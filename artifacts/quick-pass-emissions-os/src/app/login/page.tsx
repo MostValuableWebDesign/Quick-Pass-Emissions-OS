@@ -40,6 +40,7 @@ export default function Login() {
       <section className="login-panel">
         <form
           className="login-form"
+          method="post"
           onSubmit={async (e) => {
             e.preventDefault();
             setPending(true);

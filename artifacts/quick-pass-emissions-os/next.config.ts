@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 const config: NextConfig = {
   poweredByHeader: false,
-  allowedDevOrigins: ["*.replit.dev", "*.replit.app"],
+  allowedDevOrigins: ["127.0.0.1", "*.replit.dev", "*.replit.app"],
   async headers() {
     return [
       {

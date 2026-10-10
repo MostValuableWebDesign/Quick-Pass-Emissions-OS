@@ -363,11 +363,13 @@ async function main() {
         ? 4
         : process.env.E2E_IMPORT_ONLY === "1"
           ? 1
-          : process.env.E2E_STATION_ONLY === "1"
+          : process.env.E2E_DAY_ONLY === "1"
             ? 1
-            : process.env.E2E_STATION_HISTORY === "1"
-              ? 11
-              : 10,
+            : process.env.E2E_STATION_ONLY === "1"
+              ? 1
+              : process.env.E2E_STATION_HISTORY === "1"
+                ? 12
+                : 10,
   );
   console.log(
     process.env.E2E_SUPPORT_ONLY === "1"
@@ -378,11 +380,13 @@ async function main() {
           ? process.env.E2E_IMPORT_REMAINDER === "1"
             ? "Passed: 1 targeted remaining import UI flow including supplier verification/dropdowns, saved staff changes, mobile repeat conflicts and role restrictions; no skips."
             : "Passed: 1 complete owner import desktop/mobile journey including backup, reloads, unknown configuration, verification gates, staff-edit conflicts and role restrictions; no skips."
-          : process.env.E2E_STATION_ONLY === "1"
-            ? "Passed: 1 targeted station lifecycle check; no skips."
-            : process.env.E2E_STATION_HISTORY === "1"
-              ? "Passed: 11 signed-in browser checks including station report review, reconciliation, coverage, export and access restrictions; no skips."
-              : "Passed: 10 signed-in browser checks, including four-role desktop/mobile navigation, daily performance date selection, return context, history, authorization and vendor persistence; no skips.",
+          : process.env.E2E_DAY_ONLY === "1"
+            ? "Passed: 1 daily performance date selection and reload check; no skips."
+            : process.env.E2E_STATION_ONLY === "1"
+              ? "Passed: 1 targeted station lifecycle check; no skips."
+              : process.env.E2E_STATION_HISTORY === "1"
+                ? "Passed: 12 signed-in browser checks including daily date selection, station report review, reconciliation, coverage, export and access restrictions; no skips."
+                : "Passed: 10 signed-in browser checks, including four-role desktop/mobile navigation, daily performance date selection, return context, history, authorization and vendor persistence; no skips.",
   );
   if (process.env.E2E_MANUAL_TEST === "1") {
     console.log("Private browser checks completed; preview remains available for visual review.");

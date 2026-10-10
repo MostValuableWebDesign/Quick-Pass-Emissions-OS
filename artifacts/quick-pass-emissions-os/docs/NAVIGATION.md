@@ -56,7 +56,7 @@ disposable database, leaving the managed preview and its real sessions alone. Pa
 are posted privately outside browser snapshots. Cookie states and reports live in a
 restricted temporary directory, with tracing/video disabled, and are removed afterward.
 
-The browser suite expects nine passing checks with no skips: the existing public guard,
+The browser suite expects ten passing checks with no skips: the existing public guard,
 owner navigation and protected vendor persistence checks, four-role desktop/mobile
 navigation and server denials, record/list context and browser history, and week/report
 date navigation. The role checks also visit every allowed menu destination.
@@ -67,12 +67,19 @@ remains a readable, empty view; its absence from the menu is not a new prohibiti
 
 For one interactive verification pass, set `E2E_MANUAL_TEST=1` alongside `E2E_DIRECT=1`.
 The runner prints only the private preview URL and fixture metadata path. Creating an
-empty `run-tests` file in that private directory starts the same nine checks, then keeps
+empty `run-tests` file in that private directory starts the same ten checks, then keeps
 the server available for visual inspection until stopped. Never print the session files.
 An incomplete manual run also retains the private server and report for diagnosis;
 it remains a failed run and never counts missing or skipped checks as successful.
 
 The shared-main station-history module adds owner-only Performance under Overview,
 with setup and evidence detail routes. Its optional isolated browser checks remain
-available with `E2E_STATION_HISTORY=1` (eleven total checks), or
+available with `E2E_STATION_HISTORY=1` (twelve total checks), or
 `E2E_STATION_ONLY=1 E2E_STATION_HISTORY=1` for the single lifecycle check.
+
+Performance also has a direct **Daily count date** selector. It requests one day
+without a separate range-mode choice and preserves the employee record filter.
+Its native GET button remains usable before hydration. Verify only that changed
+flow with `E2E_DIRECT=1 E2E_DAY_ONLY=1 pnpm test:e2e`; it expects one passing check.
+The full suite was not green during this change: unrelated record-context and
+protected vendor-save checks failed. The targeted daily-date/reload check passed.

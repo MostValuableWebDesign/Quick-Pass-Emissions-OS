@@ -1,8 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-
 export function PerformanceDayFilter({
   date,
   today,
@@ -12,34 +9,33 @@ export function PerformanceDayFilter({
   today: string;
   employeeId?: string;
 }) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-
   return (
     <form
       className="card card-body"
       aria-label="Daily performance count"
+      action="/performance"
+      method="get"
       style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "end" }}
     >
+      <input type="hidden" name="preset" value="day" />
+      {employeeId && <input type="hidden" name="employeeId" value={employeeId} />}
       <label className="field">
         <span>Daily count date</span>
         <input
           type="date"
-          value={date}
+          name="date"
+          defaultValue={date}
           max={today}
           required
           onChange={(event) => {
-            const selected = event.currentTarget.value;
-            if (!selected) return;
-            const params = new URLSearchParams({ preset: "day", date: selected });
-            if (employeeId) params.set("employeeId", employeeId);
-            setLoading(true);
-            router.push(`/performance?${params.toString()}`, { scroll: false });
+            if (event.currentTarget.validity.valid && event.currentTarget.value)
+              event.currentTarget.form?.requestSubmit();
           }}
         />
       </label>
-      <span className="muted" aria-live="polite">
-        {loading ? "Loading daily count…" : "The count updates when you select a date."}
+      <button className="button button-primary">Show daily count</button>
+      <span className="muted">
+        Choose one date. If it does not load automatically, select Show daily count.
       </span>
     </form>
   );

@@ -20,3 +20,9 @@ Certificate purchasing is deliberately user-controlled: “I must control the en
 **Why:** The user explicitly excluded automatic quantities, approvals, ordering, submission and payment. Successful portal login is not permission to expand this scope.
 
 **How to apply:** Treat any future automated certificate purchase proposal as a new authorization decision, not an extension of manual station access or report-import permission.
+
+Daily station counts must be accessible by choosing one date, without a separate range-mode choice.
+
+**Why:** The user said, “i should be able to select a date and get the daily count.”
+
+**How to apply:** Keep single-day lookup direct while retaining the source-evidence boundary: selecting a date does not authorize portal automation or prove a zero count when no report exists.

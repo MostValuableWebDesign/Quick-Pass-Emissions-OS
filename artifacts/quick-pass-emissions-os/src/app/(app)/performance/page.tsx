@@ -168,8 +168,12 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
       <section className="stats space-top" aria-label="Station-wide totals">
         <StationStat
           label="Station recorded (confirmed)"
-          value={data.stationRecorded}
-          note="Station-wide, all employees"
+          value={data.stationRecorded + data.stationPending > 0 ? data.stationRecorded : "No data"}
+          note={
+            data.stationRecorded + data.stationPending > 0
+              ? "Station-wide, all employees"
+              : "No imported records for the selected dates. This is not a verified zero."
+          }
         />
         <StationStat
           label="Pending identities"

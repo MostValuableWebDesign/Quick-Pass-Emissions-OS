@@ -134,13 +134,21 @@ test.describe("Owner daily performance count", () => {
 
   test("selecting a date loads that single-day station count", async ({ page }) => {
     await page.goto("/performance");
+    const dayForm = page.getByRole("form", { name: "Daily performance count" });
+    // A native GET remains usable even when a date is selected before hydration.
     await page.getByLabel("Daily count date").fill("2026-01-15");
+    if (!new URL(page.url()).searchParams.has("date"))
+      await dayForm.getByRole("button", { name: "Show daily count" }).click();
     await expect(page).toHaveURL(/\/performance\?preset=day&date=2026-01-15$/);
     await expect(page.locator("main h1")).toContainText("Station performance");
     const totals = page.getByRole("region", { name: "Station-wide totals" });
     await expect(totals).toContainText("Station recorded");
     await expect(totals).toContainText("Pending identities");
     await expect(page.locator("main")).toContainText("2026-01-15 inclusive");
+    await page.reload();
+    await expect(page.getByLabel("Daily count date")).toHaveValue("2026-01-15");
+    await expect(page.locator('main input[name="start"]')).toHaveValue("2026-01-15");
+    await expect(page.locator('main input[name="end"]')).toHaveValue("2026-01-15");
   });
 });
 

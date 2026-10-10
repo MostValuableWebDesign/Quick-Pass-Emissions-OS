@@ -1,14 +1,19 @@
-"use client";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { createAuthClient } from "better-auth/react";
 import { CheckCheck, ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-const auth = createAuthClient();
-export default function Login() {
-  const router = useRouter();
-  const [error, setError] = useState("");
-  const [pending, setPending] = useState(false);
+export default async function Login({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error: errorCode } = await searchParams;
+  const error =
+    errorCode === "rate_limit"
+      ? "Too many sign-in attempts. Wait a minute before trying again."
+      : errorCode === "unavailable"
+        ? "Cannot connect. Please try again."
+        : errorCode
+          ? "Unable to sign in. Check your credentials or try again later."
+          : "";
   return (
     <div className="login-page">
       <section className="login-brand">
@@ -41,28 +46,7 @@ export default function Login() {
         <form
           className="login-form"
           method="post"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setPending(true);
-            setError("");
-            const data = new FormData(e.currentTarget);
-            try {
-              const result = await auth.signIn.email({
-                email: String(data.get("email")),
-                password: String(data.get("password")),
-              });
-              if (result.error)
-                setError("Unable to sign in. Check your credentials or try again later.");
-              else {
-                router.push("/dashboard");
-                router.refresh();
-              }
-            } catch {
-              setError("Cannot connect. Please try again.");
-            } finally {
-              setPending(false);
-            }
-          }}
+          action="/api/sign-in"
         >
           <span className="login-symbol">
             <ShieldCheck size={27} />
@@ -75,15 +59,22 @@ export default function Login() {
           </label>
           <label className="field">
             <span>Password</span>
-            <input name="password" type="password" autoComplete="current-password" required />
+            <input
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              minLength={12}
+              maxLength={128}
+              required
+            />
           </label>
           {error && (
             <p role="alert" className="error-text">
               {error}
             </p>
           )}
-          <Button disabled={pending}>
-            {pending ? "Signing in…" : "Sign in"}
+          <Button type="submit">
+            Sign in
             <ArrowRight size={17} />
           </Button>
           <p className="login-help">

@@ -1,0 +1,1 @@
+- [Preview authentication boundaries](preview-auth-boundaries.md) — imported Next APIs can conflict with the scaffold router; credential forms must be safe before hydration.

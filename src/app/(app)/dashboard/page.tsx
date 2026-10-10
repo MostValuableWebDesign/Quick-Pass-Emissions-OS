@@ -5,7 +5,8 @@ import { currentUser } from "@/lib/access";
 import { db } from "@/lib/db";
 import { isManager } from "@/lib/policy";
 import { businessDate, dueInstant, addDays, formatDate } from "@/lib/time";
-import { Empty, PageHeader, TaskTable, employeeSelect } from "@/components/shared";
+import { PageHeader, TaskTable, employeeSelect } from "@/components/shared";
+import { certificateOverview } from "@/modules/certificates/service";
 import { Button } from "@/components/ui/button";
 export default async function Dashboard() {
   const user = await currentUser();
@@ -15,14 +16,24 @@ export default async function Dashboard() {
       <>
         <PageHeader
           title="Welcome to Quick Pass"
-          description="Your account is ready. Accounting and payroll are planned for later phases."
+          description="Prepare and review payroll information and certificate purchase records."
         />
-        <Empty
-          title="Financial modules are not enabled"
-          text="Phase 1 contains no payroll, wages, revenue, or profit records."
-        />
+        <section className="card card-body">
+          <h2>Payroll preparation</h2>
+          <p>
+            Review approved source records and prepare payroll drafts for independent manager or
+            owner approval.
+          </p>
+          <Link className="text-link" href="/payroll">
+            Open payroll & commissions →
+          </Link>
+          <Link className="text-link" href="/certificates">
+            Open certificate records →
+          </Link>
+        </section>
       </>
     );
+  const certificates = management ? await certificateOverview(user.id) : null;
   const today = businessDate();
   const now = new Date();
   const start = dueInstant(today, "00:00");
@@ -100,6 +111,18 @@ export default async function Dashboard() {
           )}
         </div>
       )}
+      {management &&
+        certificates &&
+        (!certificates.stock || !certificates.settings || certificates.estimate?.low) && (
+          <div className="notice warning">
+            <Link href="/certificates">
+              {!certificates.stock || !certificates.settings
+                ? "Certificate inventory setup requires a physical count and owner-confirmed ordering settings."
+                : `Certificate reorder needed: ${certificates.stock.balance} recorded in stock.`}{" "}
+              Review certificates →
+            </Link>
+          </div>
+        )}
       <section className="stats" aria-label="Operations metrics">
         {[
           {

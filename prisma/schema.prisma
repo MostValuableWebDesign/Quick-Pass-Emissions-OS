@@ -108,6 +108,11 @@ model Employee {
   templates TaskTemplate[]
   tasks TaskInstance[]
   invites Invite[]
+  payArrangements PayArrangement[]
+  commissionPolicies CommissionPolicy[]
+  emissions DailyEmission[]
+  payrollInputs PayrollInput[]
+  payrollLines PayrollLine[]
 }
 model Invite {
   id String @id @default(cuid())
@@ -223,4 +228,177 @@ model JobRun {
   status String @default("RUNNING")
   generated Int @default(0)
   message String?
+}
+
+enum PayKind {
+  FIXED
+  HOURLY
+}
+enum PayrollStatus {
+  OPEN
+  APPROVED
+  CANCELLED
+}
+enum DraftStatus {
+  DRAFT
+  RETURNED
+  APPROVED
+}
+enum MovementKind {
+  OPENING
+  USAGE
+  VOID
+  RECONCILE
+  RECEIPT
+}
+enum PurchaseStatus {
+  REQUESTED
+  APPROVED
+  ORDERED
+  RECEIVED
+  CANCELLED
+}
+model PayArrangement {
+  id String @id @default(cuid())
+  employeeId String
+  employee Employee @relation(fields:[employeeId],references:[id])
+  effectiveDate String
+  kind PayKind
+  amountCents Int
+  reason String
+  createdBy String
+  createdAt DateTime @default(now())
+  @@unique([employeeId,effectiveDate])
+}
+model CommissionPolicy {
+  id String @id @default(cuid())
+  employeeId String
+  employee Employee @relation(fields:[employeeId],references:[id])
+  effectiveDate String
+  eligible Boolean
+  threshold Int
+  rateCents Int
+  attribution String
+  reason String
+  createdBy String
+  createdAt DateTime @default(now())
+  @@unique([employeeId,effectiveDate])
+}
+model DailyEmission {
+  id String @id @default(cuid())
+  employeeId String
+  employee Employee @relation(fields:[employeeId],references:[id])
+  date String
+  count Int
+  sourceRef String @unique
+  reason String
+  version Int @default(0)
+  createdBy String
+  approvedBy String?
+  approvedAt DateTime?
+  createdAt DateTime @default(now())
+  @@unique([employeeId,date])
+  @@index([date])
+}
+model PayrollPeriod {
+  id String @id @default(cuid())
+  startDate String
+  endDate String
+  label String
+  status PayrollStatus @default(OPEN)
+  cancelledReason String?
+  createdBy String
+  createdAt DateTime @default(now())
+  inputs PayrollInput[]
+  drafts PayrollDraft[]
+  @@index([startDate,endDate])
+}
+model PayrollInput {
+  id String @id @default(cuid())
+  periodId String
+  period PayrollPeriod @relation(fields:[periodId],references:[id])
+  employeeId String
+  employee Employee @relation(fields:[employeeId],references:[id])
+  minutes Int
+  emissionsComplete Boolean
+  reason String
+  version Int @default(0)
+  createdBy String
+  approvedBy String?
+  approvedAt DateTime?
+  @@unique([periodId,employeeId])
+}
+model PayrollDraft {
+  id String @id @default(cuid())
+  periodId String
+  period PayrollPeriod @relation(fields:[periodId],references:[id])
+  revision Int
+  status DraftStatus @default(DRAFT)
+  preparedBy String
+  reviewedBy String?
+  reviewedAt DateTime?
+  reviewReason String?
+  totalCents Int
+  createdAt DateTime @default(now())
+  lines PayrollLine[]
+  @@unique([periodId,revision])
+}
+model PayrollLine {
+  id String @id @default(cuid())
+  draftId String
+  draft PayrollDraft @relation(fields:[draftId],references:[id])
+  employeeId String
+  employee Employee @relation(fields:[employeeId],references:[id])
+  employeeName String
+  baseCents Int
+  commissionCents Int
+  totalCents Int
+  snapshot Json
+  @@unique([draftId,employeeId])
+}
+model CertificateSetting {
+  id String @id @default("certificates")
+  minimumOrder Int
+  reorderPoint Int
+  leadDays Int
+  windowDays Int
+  updatedAt DateTime @updatedAt
+}
+model CertificateStock {
+  id String @id @default("certificates")
+  balance Int
+  version Int @default(0)
+  openingDate String
+  reconciledDate String
+  updatedAt DateTime @updatedAt
+}
+model CertificateMovement {
+  id String @id @default(cuid())
+  kind MovementKind
+  delta Int
+  balanceAfter Int
+  date String
+  reference String @unique
+  reason String
+  createdBy String
+  purchaseId String?
+  purchase CertificatePurchase? @relation(fields:[purchaseId],references:[id])
+  createdAt DateTime @default(now())
+  @@index([date,kind])
+}
+model CertificatePurchase {
+  id String @id @default(cuid())
+  quantity Int
+  minimumOrder Int
+  status PurchaseStatus @default(REQUESTED)
+  requestedBy String
+  approvedBy String?
+  approvedAt DateTime?
+  confirmation String?
+  paymentReference String?
+  received Int @default(0)
+  reason String
+  reviewReason String?
+  createdAt DateTime @default(now())
+  movements CertificateMovement[]
 }

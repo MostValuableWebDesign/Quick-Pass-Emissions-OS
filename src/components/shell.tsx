@@ -18,6 +18,8 @@ import {
   ArrowUpRight,
   ShieldCheck,
   CircleDot,
+  Wallet,
+  Package,
 } from "lucide-react";
 import { Button } from "./ui/button";
 const authClient = createAuthClient();
@@ -45,6 +47,12 @@ export function Shell({
         ]
       : []),
     ...(manager ? [{ href: "/employees", label: "Employees", icon: Users }] : []),
+    ...(["OWNER", "ADMIN", "BOOKKEEPER"].includes(role)
+      ? [
+          { href: "/payroll", label: "Payroll & commissions", icon: Wallet },
+          { href: "/certificates", label: "Certificates", icon: Package },
+        ]
+      : []),
     { href: "/notifications", label: "Notifications", icon: Bell },
     ...(manager ? [{ href: "/settings", label: "Settings & audit", icon: Settings }] : []),
   ];
@@ -158,7 +166,7 @@ export function Shell({
         </header>
         <main id="main">{children}</main>
         <footer className="page-footer">
-          Quick Pass Business OS <span>Phase 1 · Operations workspace</span>
+          Quick Pass Business OS <span>Phases 1–2 · Business workspace</span>
         </footer>
       </div>
     </div>

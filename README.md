@@ -1,6 +1,6 @@
 # Quick Pass Business OS
 
-A PostgreSQL-backed Phase 1 operations application for Quick Pass Emissions, Tag Renewal & Carwash. Next.js App Router, TypeScript, React, Tailwind, a shadcn-style Button primitive, Lucide, Prisma, Better Auth, and Zod. No real business records or financial balances are included.
+A PostgreSQL-backed Phases 1–2 business application for Quick Pass Emissions, Tag Renewal & Carwash. Next.js App Router, TypeScript, React, Tailwind, a shadcn-style Button primitive, Lucide, Prisma, Better Auth, and Zod. No real business records or financial balances are included.
 
 ## Quick start
 
@@ -41,14 +41,18 @@ The server binds to `0.0.0.0`; set `PORT` for a different port. If npm 12 report
 ## What works
 
 - Invite-only email/password accounts, server-stored sessions, four roles, active-account checks, login throttling, and session revocation on deactivation/role changes.
-- Employee profiles, role assignment, archival through deactivation, duties, work areas, manager-only notes and a certification expiry field. Compensation is not collected in Phase 1.
+- Employee profiles, role assignment, archival through deactivation, duties, work areas, manager-only notes and a certification expiry field. Compensation is configured separately in the owner-only payroll workflow.
 - One shift per employee/date, a navigable seven-day schedule, shift edits/removal and assigned duties.
 - One-time, daily, weekly, monthly, quarterly and annual task templates; assignments, deadlines, priorities, notes, blocked work, completion and manager review.
 - Persistent task history, audited corrections/reassignment, live overdue counts, role-scoped dashboard data and operational notifications.
 - Dark/light themes, collapsible desktop navigation, mobile navigation and touch-friendly task actions.
 - Authenticated independently triggered operations jobs, PostgreSQL advisory locking, duplicate prevention, closure exclusions and job-run history.
 
-Future payroll, emissions records, certificates, bays, maintenance, dealerships, invoices, finance and reports are identified on the Product roadmap only. There are no fake revenue/profit cards, financial endpoints, external integrations, email sends or payment actions.
+- Effective-dated owner-authorized pay/commission arrangements, approved personal daily test counts, versioned corrections and duplicate-safe count imports.
+- Ended payroll periods, independently approved time inputs/completeness attestations, exact-cent gross drafts, retained calculation revisions, separate approval and approved CSV export.
+- Certificate opening/reconciliation counts, consumption/void ledger, estimated depletion/reorder alerts, independent purchase approval, external-order references and partial physical receipts.
+
+Read [PHASE2.md](PHASE2.md) for workflow, permissions, configuration and operating limits. Bays, maintenance, dealerships, invoices, accounting finance and advanced automation remain planned. No business wage/stock values are seeded and no payments or external orders are executed.
 
 ## Local demonstration data
 
@@ -103,6 +107,7 @@ Read [BUSINESS_RULES.md](BUSINESS_RULES.md) before configuring recurrence or cha
 ## Handoff
 
 - [REPLIT_SETUP.md](REPLIT_SETUP.md): GitHub transfer, provisioning and deployment.
+- [PHASE2.md](PHASE2.md): payroll and inventory workflows, permissions and limits.
 - [ARCHITECTURE.md](ARCHITECTURE.md): boundaries, data model and security.
 - [BUSINESS_RULES.md](BUSINESS_RULES.md): time, lifecycle and business assumptions.
 - [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md): owner decisions before live operations.

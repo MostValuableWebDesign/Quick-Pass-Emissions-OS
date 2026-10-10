@@ -2,7 +2,7 @@
 
 ## Business facts
 
-Quick Pass has emissions testing, a tag renewal kiosk and six carwash/detailing bays. Phase 1 manages responsibilities; it does not replace the state-certified analyzer, official emissions reporting, payroll processing or accounting records. Known employee names and historical compensation figures are context only. There is no live kiosk, analyzer, dealer, payroll or bank API integration.
+Quick Pass has emissions testing, a tag renewal kiosk and six carwash/detailing bays. Phases 1–2 manage responsibilities and internal payroll/inventory preparation; it does not replace the state-certified analyzer, official emissions reporting, payroll processing or accounting records. Known employee names and historical compensation figures are context only. There is no live kiosk, analyzer, dealer, payroll or bank API integration.
 
 ## Calendar and recurrence
 
@@ -28,10 +28,12 @@ Escalation hours are configured per template, 0–168. Employees get overdue not
 
 ## Roles and sensitive data
 
-OWNER: all Phase 1 operations and privileged account management. ADMIN: operational management and employee-role account provisioning; cannot elevate accounts. EMPLOYEE: assigned task information, own shifts and own alerts. BOOKKEEPER: account access and future accounting placeholder only. Only managers see manager notes or the employee directory. No SSNs, bank credentials, payroll amounts or compensation records are stored.
+OWNER: operational management and owner-authorized financial configuration. ADMIN: operational management and independent payroll/source/purchase approval. BOOKKEEPER: payroll/inventory read and preparation, approved payroll export and external order recording; cannot approve or change stock. EMPLOYEE: assigned task information, own shifts and alerts; no Phase 2 records. See PHASE2.md for precise permissions. No SSNs or bank credentials are stored.
 
-## Deferred financial rules
+## Payroll and certificates
 
-Commission description: configurable `$1 × max(0, approved eligible daily tests − 50)` per eligible employee, pending owner approval of attribution. Station totals are not personal test counts. Historical base compensation is not current payroll data. Phase 2 must retain effective-dated policies, integer cents/exact decimal values, calculation snapshots, correction reasons and approval history. Do not enable calculations or seed compensation before those decisions are confirmed.
+See [PHASE2.md](PHASE2.md). Rates, compensation arrangements, eligibility, personal-count attribution, periods, export mapping, opening stock and ordering terms remain unconfigured until explicitly entered by authorized users. Historical $1 above 50 and 300-certificate examples are not seeded business facts. Minimum ordering configuration supports at least 300 as required by the original specification; confirm the actual minimum before use.
 
-At least 300 certificates per order is a historical operating description to confirm before Phase 2. Stock must come from recorded receipts, usage and reconciliation. No unauthorized ACH or unofficial regulated-system calls. Accounting records remain the financial source of truth; missing data is never zero profit.
+All money is integer USD cents with exact BigInt calculation intermediates. Base hourly compensation uses separately approved worked minutes, rounded half up per employee/period. Fixed compensation is an explicitly configured per-period amount. Commission policies are selected per employee/day. Drafts snapshot approved sources and freeze edits; approved payroll is immutable. Corrections require reasons, source reapproval, and a new draft revision after a separate reviewer returns the draft. No overtime, tax, withholding, amended-payroll, automatic payment or processor-specific export logic is claimed.
+
+Inventory is unknown until physically reconciled. Every stock movement retains history and a unique source reference. Concurrent usage and receipt are serialized, negative stock and excess receipts fail closed. Forecasts are estimates from entered usage, not proof of official totals. Purchase requests need a different authorized approver; only confirmed physical receipt changes ordered stock. No order submission, ACH, official analyzer calls or bank integration exists.

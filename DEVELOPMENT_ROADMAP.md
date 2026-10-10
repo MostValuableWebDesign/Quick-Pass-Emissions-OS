@@ -8,9 +8,9 @@ Before live use: resolve OPEN_QUESTIONS, bootstrap a real owner on a clean datab
 
 Small follow-ups within Phase 1, not claimed as delivered: richer multiple-certification/training records, task attachments with authenticated object storage, split/multiple daily shifts, self-service password recovery via verified email, advanced schedule conflict checks, bulk audited reassignment, filtered audit exports and recurrence replacement automation.
 
-## Phase 2 — payroll and certificates (not implemented)
+## Phase 2 — payroll and certificates (implemented locally)
 
-Effective-dated commission configuration, approved per-employee emissions counts, payroll periods/drafts/review/export, exact-cent calculations and historical snapshots. Inventory movement ledger, reconciliation, certificate forecasting, purchase requests and approval. Tests: attribution, thresholds, money precision, duplicate imports, concurrent inventory, authorization and approval separation. No automatic wage payments or ACH.
+Implemented: owner-authorized effective-dated pay/commission configuration; approved personal emissions counts; duplicate-safe imports; approved worked-minute inputs and completeness attestation; nonoverlapping payroll periods; exact-cent drafts, retained revisions, independent approval and approved CSV export. Certificate movement ledger, versioned physical reconciliation, consumption/void entries, estimated depletion/reorder banner, purchase request/approval, recorded external orders and partial receipts. See PHASE2.md and VERIFICATION.md for verified behavior and limits. No automatic wage payments, tax engine, ACH or official analyzer integration. Publication/deployment and real owner configuration are separate.
 
 ## Phase 3 — carwash and maintenance (not implemented)
 
@@ -24,4 +24,4 @@ Dealership accounts, invoice line items, approval and payment records, aging, op
 
 Owner summaries, maintenance/certification reminders, forecasting, receivables reminders and analytics. Reuse job locking, idempotency and audit patterns. Add persistent queues/outbox only when requirements justify them.
 
-Phases 2–5 require explicit user authorization before implementation.
+Phases 3–5 require explicit user authorization before implementation.

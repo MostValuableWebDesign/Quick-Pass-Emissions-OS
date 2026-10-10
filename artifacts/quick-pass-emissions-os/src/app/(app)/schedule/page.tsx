@@ -21,9 +21,6 @@ export default async function Schedule({
     db.employeeSchedule.findMany({
       where: {
         date: { gte: from, lte: dates[6] },
-        ...(management
-          ? {}
-          : { employeeId: actor.role === "EMPLOYEE" ? (actor.employee?.id ?? "none") : "none" }),
       },
       include: { employee: { select: { user: { select: { name: true, active: true } } } } },
       orderBy: { startTime: "asc" },

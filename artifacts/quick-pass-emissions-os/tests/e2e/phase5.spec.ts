@@ -17,7 +17,7 @@ test("Phase 5 owner configuration, durable summary, report export and failed-job
   await f.getByLabel("Escalate after days overdue").fill("365");
   await f
     .getByRole("group", { name: "Recipients (advance and overdue)", exact: true })
-    .getByRole("checkbox", { name: "Demo Al (employee)", exact: true })
+    .getByRole("checkbox", { name: "Navigation Fixture ADMIN (admin)", exact: true })
     .check();
   await f
     .getByRole("group", { name: "Escalation recipients", exact: true })
@@ -69,10 +69,10 @@ test("Phase 5 owner configuration, durable summary, report export and failed-job
   await expect(page.getByRole("button", { name: "Authorize retry", exact: true })).toHaveCount(0);
 });
 
-test("Phase 5 own reminder acknowledgement persists while private owner records stay protected", async ({
+test("Phase 5 management reminder acknowledgement persists while private owner records stay protected", async ({
   page,
 }) => {
-  await login(page, "al@example.test");
+  await login(page, "manager@example.test");
   await page.goto("/reminders");
   const reminder = page
     .locator(".list-row")
@@ -83,9 +83,9 @@ test("Phase 5 own reminder acknowledgement persists while private owner records 
   await page.reload();
   await expect(reminder.getByText(/Acknowledged/)).toBeVisible();
   await reminder.getByRole("link", { name: "Open source record" }).click();
-  await expect(page).toHaveURL(/\/reminders\/certification/);
-  await expect(page.getByText(/Current recorded expiry:/).first()).toBeVisible();
-  for (const route of ["/automation", "/overview", "/summaries", "/reports"]) {
+  await expect(page).toHaveURL(/\/employees\//);
+  await expect(page.getByRole("heading", { name: "Demo Al", exact: true })).toBeVisible();
+  for (const route of ["/automation", "/overview", "/summaries"]) {
     await page.goto(route);
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(
@@ -97,13 +97,13 @@ test("Phase 5 own reminder acknowledgement persists while private owner records 
   const denied = await page.request.get(
     "/api/reports/export?dataset=certificates&start=2026-10-01&end=2026-10-10",
   );
-  expect(denied.status()).toBe(403);
-  await login(page, "bookkeeper@example.test");
+  expect(denied.status()).toBe(200);
+  await login(page, "preparer@example.test");
   await page.goto("/reports?dataset=certificates");
   await expect(
     page.getByRole("heading", { name: "Operational reports", exact: true }),
   ).toBeVisible();
-  await expect(page.getByLabel(/^Report/).locator("option")).toHaveCount(2);
+  await expect(page.getByLabel(/^Report/).locator("option")).toHaveCount(6);
   await page.goto("/automation");
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.setViewportSize({ width: 390, height: 844 });

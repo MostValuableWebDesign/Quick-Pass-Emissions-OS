@@ -75,7 +75,9 @@ describe("manual certificate portal navigation", () => {
     it(`retains inventory and management-alert boundaries for ${role}`, () => {
       const render = (alert: boolean) =>
         renderToStaticMarkup(createElement(CertificateOrderLink, { role, alert }));
-      expect(render(false).includes("Order Certificates")).toBe(role !== "EMPLOYEE");
+      expect(render(false).includes("Order Certificates")).toBe(
+        role === "OWNER" || role === "ADMIN",
+      );
       expect(render(true).includes("Order Certificates")).toBe(
         role === "OWNER" || role === "ADMIN",
       );

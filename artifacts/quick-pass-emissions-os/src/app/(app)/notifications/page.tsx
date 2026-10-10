@@ -15,16 +15,6 @@ export default async function Notifications() {
     where: {
       userId: actor.id,
       resolvedAt: null,
-      ...(actor.role === "EMPLOYEE"
-        ? {
-            OR: [
-              { task: { employeeId: actor.employee?.id ?? "none" } },
-              { maintenance: { assignedId: actor.employee?.id ?? "none" } },
-            ],
-          }
-        : actor.role === "BOOKKEEPER"
-          ? { id: "none" }
-          : {}),
     },
     orderBy: { createdAt: "desc" },
     take: 100,

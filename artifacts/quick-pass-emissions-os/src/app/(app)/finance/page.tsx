@@ -137,7 +137,7 @@ export default async function Finance({
                           ? "Verified against supplied evidence"
                           : "Manual · not independently verified"}
                     {e.voidReason && <small>{e.voidReason}</small>}
-                    {actor.role !== "BOOKKEEPER" && !e.voidDate && (
+                    {true && !e.voidDate && (
                       <details>
                         <summary>Review record</summary>
                         <ActionForm action={reviewEntry} submit="Review finance entry">

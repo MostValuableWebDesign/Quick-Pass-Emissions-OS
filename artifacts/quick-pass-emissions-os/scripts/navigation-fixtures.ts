@@ -13,6 +13,7 @@ export async function navigationFixtures(
   progress("private role credential hashing");
   const hash = await hashPassword(password);
   const users = [];
+  // Legacy non-management credentials exist only to prove rejection and old-session denial.
   for (const role of ["ADMIN", "BOOKKEEPER", "EMPLOYEE"] as const) {
     progress("private role fixture accounts");
     const email = `navigation-${role.toLowerCase()}-${randomUUID()}@example.test`;

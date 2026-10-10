@@ -17,9 +17,7 @@ export default async function Tasks({
   const filter = query.filter ?? "active";
   const page = Math.max(1, Math.min(10000, Math.floor(Number(query.page)) || 1));
   const today = businessDate();
-  const where: Prisma.TaskInstanceWhereInput = management
-    ? {}
-    : { employeeId: user.role === "EMPLOYEE" ? (user.employee?.id ?? "none") : "none" };
+  const where: Prisma.TaskInstanceWhereInput = {};
   if (filter === "overdue") {
     where.dueAt = { lt: new Date() };
     where.status = { notIn: ["COMPLETED", "CANCELLED"] };
@@ -45,7 +43,7 @@ export default async function Tasks({
   return (
     <>
       <PageHeader
-        title={management ? "Team responsibilities" : "My responsibilities"}
+        title="Team responsibilities"
         description="Clear ownership. A complete record of every task."
       >
         {management && (

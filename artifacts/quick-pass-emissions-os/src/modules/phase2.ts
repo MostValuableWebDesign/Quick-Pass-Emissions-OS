@@ -4,7 +4,7 @@ export class BusinessError extends Error {}
 export function requireRule(ok: unknown, message: string): asserts ok {
   if (!ok) throw new BusinessError(message);
 }
-export const financeRoles: Role[] = ["OWNER", "ADMIN", "BOOKKEEPER"];
+export const financeRoles: Role[] = ["OWNER", "ADMIN"];
 export const approvalRoles: Role[] = ["OWNER", "ADMIN"];
 export type Tx = Prisma.TransactionClient;
 // One transaction-scoped lock serializes this small business's Phase 2 ledger and approvals.

@@ -111,18 +111,15 @@ if (enabled) {
       },
     ],
   });
-  it("filters many-to-many categories/search and strictly excludes private payloads", async () => {
-    expect((await s.directory(employee, { category: CATEGORIES[2] })).providers).toHaveLength(1);
-    expect((await s.directory(employee, { search: "synthetic" })).providers).toHaveLength(1);
-    expect((await s.directory(employee, { category: CATEGORIES[1] })).providers).toHaveLength(0);
-    const payload = JSON.stringify(await s.providerDetail(employee, vendor));
-    expect(payload).not.toContain("PRIVATE-");
-    expect(payload).not.toContain("Private legacy");
-    expect(payload).not.toContain("repairCostCents");
-    expect(payload).toContain("800");
-    await expect(s.directory(bookkeeper)).rejects.toThrow();
-    await db.user.update({ where: { id: employee }, data: { active: false } });
-    await expect(s.directory(employee)).rejects.toThrow();
+  it("filters directory for management and denies every staff support surface", async () => {
+    expect((await s.directory(owner, { category: CATEGORIES[2] })).providers).toHaveLength(1);
+    expect((await s.directory(owner, { search: "synthetic" })).providers).toHaveLength(1);
+    expect((await s.directory(owner, { category: CATEGORIES[1] })).providers).toHaveLength(0);
+    for (const actor of [employee, other, bookkeeper]) {
+      await expect(s.directory(actor)).rejects.toThrow("permission");
+      await expect(s.providerDetail(actor, vendor)).rejects.toThrow("permission");
+      await expect(s.ticketSupport(actor, ticket)).rejects.toThrow("permission");
+    }
   });
   it("changes category-specific preferences explicitly with durable stale-write protection", async () => {
     const input = {
@@ -192,14 +189,14 @@ if (enabled) {
       "2026-01-01",
     );
   });
-  it("permits own/assigned provider association without changing repair lifecycle or management fields", async () => {
+  it("permits management provider association without changing repair lifecycle or management fields", async () => {
     const before = await db.maintenanceTicket.findUniqueOrThrow({ where: { id: ticket } });
     const input = { id: ticket, version: 0, vendorId: vendor, reason: "Contact support" };
     await expect(s.selectTicketProvider(other, input)).rejects.toThrow();
     await expect(
       s.selectTicketProvider(employee, { ...input, assignedId: null }),
     ).rejects.toThrow();
-    await s.selectTicketProvider(employee, input);
+    await s.selectTicketProvider(owner, input);
     const after = await db.maintenanceTicket.findUniqueOrThrow({ where: { id: ticket } });
     for (const key of [
       "assignedId",
@@ -215,7 +212,7 @@ if (enabled) {
     await db.maintenanceTicket.update({ where: { id: ticket }, data: { status: "COMPLETED" } });
     await expect(s.selectTicketProvider(employee, { ...input, version: 1 })).rejects.toThrow();
   });
-  it("keeps explicit contact history self-reported, self-private, related-access checked and independent", async () => {
+  it("keeps management contact history attributable and independent", async () => {
     const input = {
       vendorId: vendor,
       contactedAt: "2026-01-01T18:00:00Z",
@@ -229,9 +226,9 @@ if (enabled) {
     await expect(s.logContact(other, input)).rejects.toThrow();
     await expect(s.logContact(employee, { ...input, ticketId: null })).rejects.toThrow();
     await expect(s.logContact(employee, { ...input, actorId: owner })).rejects.toThrow();
-    await s.logContact(employee, input);
-    expect((await s.providerDetail(employee, vendor)).history[0].actorName).toBe("employee");
-    expect((await s.providerDetail(other, vendor)).history).toHaveLength(0);
+    await s.logContact(owner, input);
+    expect((await s.providerDetail(owner, vendor)).history[0].actorName).toBe("owner");
+    await expect(s.providerDetail(other, vendor)).rejects.toThrow("permission");
     expect((await s.providerDetail(owner, vendor)).history).toHaveLength(1);
     expect((await db.maintenanceTicket.findUniqueOrThrow({ where: { id: ticket } })).status).toBe(
       "OPEN",
@@ -240,7 +237,7 @@ if (enabled) {
       where: { id: ticket },
       data: { reportedBy: owner, assignedId: null },
     });
-    expect((await s.providerDetail(employee, vendor)).history).toHaveLength(0);
+    await expect(s.providerDetail(employee, vendor)).rejects.toThrow("permission");
   });
   it("preserves archived relationships/history and excludes inactive new selections", async () => {
     await s.associateSupport(owner, {
@@ -250,14 +247,14 @@ if (enabled) {
       remove: false,
       reason: "Supported pump",
     });
-    expect((await s.ticketSupport(employee, ticket)).relevant[0].id).toBe(vendor);
-    await s.selectTicketProvider(employee, {
+    expect((await s.ticketSupport(owner, ticket)).relevant[0].id).toBe(vendor);
+    await s.selectTicketProvider(owner, {
       id: ticket,
       version: 0,
       vendorId: vendor,
       reason: "Select",
     });
-    await s.logContact(employee, {
+    await s.logContact(owner, {
       vendorId: vendor,
       contactedAt: "2026-01-01T00:00:00Z",
       method: "OTHER",
@@ -271,12 +268,12 @@ if (enabled) {
       active: false,
       reason: "Archive retains history",
     });
-    expect((await s.directory(employee)).providers).toHaveLength(0);
-    expect((await s.ticketSupport(employee, ticket)).choices).toHaveLength(0);
-    expect((await s.ticketSupport(employee, ticket)).assigned?.id).toBe(vendor);
-    expect((await s.providerDetail(employee, vendor)).history).toHaveLength(1);
+    expect((await s.directory(owner)).providers).toHaveLength(0);
+    expect((await s.ticketSupport(owner, ticket)).choices).toHaveLength(0);
+    expect((await s.ticketSupport(owner, ticket)).assigned?.id).toBe(vendor);
+    expect((await s.providerDetail(owner, vendor)).history).toHaveLength(1);
     await expect(
-      s.selectTicketProvider(employee, {
+      s.selectTicketProvider(owner, {
         id: ticket,
         version: 1,
         vendorId: vendor,
@@ -314,10 +311,10 @@ if (enabled) {
         )
       ).counts.unchanged,
     ).toBe(1);
-    const payload = JSON.stringify(await s.directory(employee));
+    const payload = JSON.stringify(await s.directory(owner));
     expect(payload).not.toContain("PRIVATE-SOURCE");
     await expect(
-      s.selectTicketProvider(employee, {
+      s.selectTicketProvider(owner, {
         id: ticket,
         version: 0,
         vendorId: row.id,

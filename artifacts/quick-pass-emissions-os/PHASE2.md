@@ -1,5 +1,7 @@
 # Phase 2 — payroll and certificates
 
+Current access policy: this app is exclusively for owners and management (OWNER/ADMIN). Employees and legacy bookkeepers cannot sign in or use any workflow. Staff profiles remain business records for management; management records their progress and receives all alerts. See README's Management-only access section. Historical role descriptions below are superseded by this policy.
+
 Phase 2 is implemented locally on top of the Phase 1 repository. No business rates, eligibility, actual counts, wages, stock, order confirmations or payments are seeded. Test fixtures are illustrative. GitHub publication and deployment require a separate instruction.
 
 ## Payroll workflow

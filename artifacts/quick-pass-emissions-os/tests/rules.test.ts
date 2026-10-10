@@ -48,11 +48,11 @@ describe("Business calendar", () => {
   });
 });
 describe("Authorization and lifecycle", () => {
-  it("employees cannot read peers or privileged tasks", () => {
-    expect(canAccessTask("EMPLOYEE", "a", "b")).toBe(false);
-    expect(canAccessTask("EMPLOYEE", "a", "a")).toBe(true);
-    expect(canAccessTask("BOOKKEEPER", "a", "a")).toBe(false);
-    expect(canAccessTask("ADMIN", undefined, "a")).toBe(true);
+  it("only management can access tasks", () => {
+    expect(canAccessTask("EMPLOYEE")).toBe(false);
+    expect(canAccessTask("OWNER")).toBe(true);
+    expect(canAccessTask("BOOKKEEPER")).toBe(false);
+    expect(canAccessTask("ADMIN")).toBe(true);
   });
   it("only owners grant privileged roles", () => {
     expect(canManageRole("ADMIN", "OWNER")).toBe(false);
@@ -63,7 +63,7 @@ describe("Authorization and lifecycle", () => {
   it("employees cannot reopen terminal work or cancel", () => {
     expect(canTransition("COMPLETED", "IN_PROGRESS", false)).toBe(false);
     expect(canTransition("PENDING", "CANCELLED", false)).toBe(false);
-    expect(canTransition("BLOCKED", "COMPLETED", false)).toBe(true);
+    expect(canTransition("BLOCKED", "COMPLETED", false)).toBe(false);
     expect(canTransition("COMPLETED", "PENDING", true)).toBe(true);
   });
   it("overdue is live and excludes terminal records", () => {

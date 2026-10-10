@@ -1,5 +1,7 @@
 # Phase 4 — Dealerships & finance
 
+Current access policy: this app is exclusively for owners and management (OWNER/ADMIN). Employees and legacy bookkeepers cannot sign in or use any workflow. Staff profiles remain business records for management; management records their progress and receives all alerts. See README's Management-only access section. Historical role descriptions below are superseded by this policy.
+
 Implemented locally on the complete Phases 1–3 source. No business accounts, rates, tax assumptions, opening balances or finance transactions are seeded. Read VERIFICATION.md for checks and publication/deployment status.
 
 ## Permissions and setup

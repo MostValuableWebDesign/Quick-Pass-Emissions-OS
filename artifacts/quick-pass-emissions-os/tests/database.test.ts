@@ -55,7 +55,7 @@ describeDatabase("PostgreSQL workflows", () => {
     expect(new Set(tasks.map((t) => `${t.templateId}:${t.occurrenceDate}`)).size).toBe(23);
     const task = tasks.find((t) => t.occurrenceDate === "2026-10-09")!;
     taskId = task.id;
-    expect(await db.notification.count({ where: { taskId } })).toBe(2);
+    expect(await db.notification.count({ where: { taskId } })).toBe(1);
   });
   it("denies completion by another employee and leaves no completion log", async () => {
     await expect(
@@ -76,7 +76,7 @@ describeDatabase("PostgreSQL workflows", () => {
   });
   it("persists completion, its audit and resolves alerts atomically", async () => {
     await change(
-      { id: employeeUserId, name: "Test Employee", role: "EMPLOYEE", employee: { id: employeeId } },
+      { id: ownerId, name: "Test Owner", role: "OWNER" },
       { taskId, version: 0, status: "COMPLETED", note: "Inspection completed" },
     );
     const fresh = new PrismaClient();
@@ -103,7 +103,7 @@ describeDatabase("PostgreSQL workflows", () => {
         { id: employeeUserId, name: "Employee", role: "EMPLOYEE", employee: { id: employeeId } },
         { taskId, version: 1, status: "PENDING", note: "" },
       ),
-    ).rejects.toThrow("not allowed");
+    ).rejects.toThrow("denied");
   });
   it("honors closures and skips inactive employees for new generation", async () => {
     await db.closure.create({ data: { date: "2026-10-24", reason: "Closed" } });

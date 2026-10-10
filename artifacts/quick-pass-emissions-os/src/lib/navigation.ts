@@ -3,12 +3,12 @@
  * safe return-context helpers. Visibility here is presentation only; every
  * route remains authorized on the server.
  */
-export type NavRole = "OWNER" | "ADMIN" | "BOOKKEEPER" | "EMPLOYEE";
+export type NavRole = "OWNER" | "ADMIN";
 
-export const ALL: readonly NavRole[] = ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"];
+export const ALL: readonly NavRole[] = ["OWNER", "ADMIN"];
 export const MANAGERS: readonly NavRole[] = ["OWNER", "ADMIN"];
-export const OPERATORS: readonly NavRole[] = ["OWNER", "ADMIN", "EMPLOYEE"];
-export const FINANCE: readonly NavRole[] = ["OWNER", "ADMIN", "BOOKKEEPER"];
+export const OPERATORS: readonly NavRole[] = ["OWNER", "ADMIN"];
+export const FINANCE: readonly NavRole[] = ["OWNER", "ADMIN"];
 export const OWNER_ONLY: readonly NavRole[] = ["OWNER"];
 
 export type IconKey =
@@ -172,14 +172,6 @@ function detail(
 
 export const ROUTES: RouteDef[] = [
   ...navDefs,
-  {
-    pattern: "/reminders/certification",
-    title: "My certification",
-    section: "Overview",
-    navHref: "/reminders",
-    parent: "/reminders",
-    roles: ALL,
-  },
   detail("/tasks/:id", "Task detail", "/tasks", OPERATORS),
   detail("/employees/:id", "Employee profile", "/employees", MANAGERS),
   detail("/payroll/:id", "Payroll period", "/payroll", FINANCE),

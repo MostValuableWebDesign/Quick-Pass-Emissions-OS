@@ -29,24 +29,42 @@ test("owner can provision, schedule, assign, complete and audit work", async ({
   const name = `E2E Employee ${suffix}`;
   const email = `e2e-${suffix}@example.test`;
   await page.getByLabel("Full name").fill(name);
-  await page.getByLabel("Account email", { exact: false }).fill(email);
+  await page.getByLabel("Contact email", { exact: false }).fill(email);
   await page.getByRole("button", { name: "Create employee", exact: true }).click();
   await expect(page.getByRole("status")).toHaveText("Saved successfully.");
   await page.getByRole("link", { name, exact: true }).click();
+  await expect(page.getByRole("button", { name: "Issue private invitation" })).toHaveCount(0);
+  await expect(
+    page.getByText("Staff record · No app access", { exact: false }).first(),
+  ).toBeVisible();
+  // Owner provisions another manager; staff records never expose activation controls.
+  await page.goto("/employees");
+  await page.getByText("+ Add an employee", { exact: true }).click();
+  const managerName = `E2E Manager ${suffix}`;
+  await page.getByLabel("Full name").fill(managerName);
+  await page.getByLabel("Contact email", { exact: false }).fill(`manager-${suffix}@example.test`);
+  await page.getByLabel(/^App access/).selectOption("ADMIN");
+  await page.getByRole("button", { name: "Create employee", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("Saved successfully.");
+  await page.getByRole("link", { name: managerName, exact: true }).click();
   await page.getByRole("button", { name: "Issue private invitation" }).click();
-  const invite = page.getByLabel("Private invitation link");
-  await expect(invite).toBeVisible();
-  const link = await invite.inputValue();
-  const ctx = await browser.newContext();
-  const employeePage = await ctx.newPage();
-  await employeePage.goto(link);
-  await employeePage.getByLabel("New password").fill(await privatePassword());
-  await employeePage.getByRole("button", { name: "Activate account" }).click();
-  await expect(employeePage.getByRole("status")).toHaveText(/Account activated/);
-  await employeePage.goto(link);
-  await employeePage.getByLabel("New password").fill(await privatePassword());
-  await employeePage.getByRole("button", { name: "Activate account" }).click();
-  await expect(employeePage.getByRole("status")).toHaveText(/invalid or expired/);
+  const invitation = page.getByLabel("Private invitation link");
+  await expect(invitation).toBeVisible();
+  const link = await invitation.inputValue();
+  const context = await browser.newContext();
+  try {
+    const managerPage = await context.newPage();
+    await managerPage.goto(link);
+    await managerPage.getByLabel("New password").fill(await privatePassword());
+    await managerPage.getByRole("button", { name: "Activate account" }).click();
+    await expect(managerPage.getByRole("status")).toHaveText(/Account activated/);
+    await managerPage.goto(link);
+    await managerPage.getByLabel("New password").fill(await privatePassword());
+    await managerPage.getByRole("button", { name: "Activate account" }).click();
+    await expect(managerPage.getByRole("status")).toHaveText(/invalid or expired/);
+  } finally {
+    await context.close();
+  }
   await page.goto("/schedule");
   await page.getByLabel(/^Employee/).selectOption({ label: name });
   await page.getByLabel("Start · Eastern").fill("08:00");
@@ -65,63 +83,21 @@ test("owner can provision, schedule, assign, complete and audit work", async ({
   await page.goto("/tasks");
   await page.getByRole("link", { name: title, exact: true }).click();
   await expect(page).toHaveURL(/\/tasks\/[^/]+$/);
-  const taskUrl = page.url();
-  await login(employeePage, email);
-  await employeePage.goto("/tasks");
-  await expect(
-    employeePage.getByRole("link", { name: "Inspect emissions analyzer", exact: true }),
-  ).toHaveCount(0);
-  await employeePage.getByRole("link", { name: title, exact: true }).click();
-  await employeePage.getByLabel("Completion note / reason").fill("Verified in browser");
-  await employeePage.getByRole("button", { name: "Update task" }).click();
-  await expect(employeePage.getByText("Completed", { exact: false }).first()).toBeVisible();
-  await employeePage.reload();
-  await expect(employeePage.getByText("Verified in browser")).toBeVisible();
-  await page.goto(taskUrl);
+  await page.getByLabel("Completion note / reason").fill("Management verified work in browser");
+  await page.getByRole("button", { name: "Update task" }).click();
+  await expect(page.getByRole("status").first()).toHaveText("Saved successfully.");
+  await page.reload();
+  await expect(page.getByText("Management verified work in browser")).toBeVisible();
   await page.getByRole("button", { name: "Approve completion review" }).click();
   await expect(page.getByText("Manager reviewed", { exact: false })).toBeVisible();
-  await employeePage.goto("/employees");
-  await expect(employeePage.getByText("The people behind Quick Pass")).toHaveCount(0);
-  await employeePage.goto("/settings");
-  await expect(employeePage.getByText("Business settings & accountability")).toHaveCount(0);
-  await page.goto("/tasks?filter=completed");
-  const other = page.getByRole("link", { name: "Inspect emissions analyzer", exact: true }).first();
-  await other.click();
-  await expect(page).toHaveURL(/\/tasks\/[^/]+$/);
-  await employeePage.goto(page.url());
-  await expect(employeePage.getByText("Page not available", { exact: true })).toBeVisible();
   await page.goto("/employees");
   await page.getByRole("link", { name, exact: true }).click();
   await page.getByRole("button", { name: "Deactivate employee", exact: true }).click();
   await expect(page.getByRole("status")).toHaveText("Saved successfully.");
-  await employeePage.goto("/dashboard");
-  await expect(employeePage).toHaveURL(/login/);
-  await ctx.close();
 });
-test("bookkeeper has no operations data and mobile layout fits", async ({ page }) => {
-  await login(page, "bookkeeper@example.test");
-  await expect(
-    page.getByRole("heading", { name: "Payroll preparation", exact: true }),
-  ).toBeVisible();
-  await page.goto("/tasks");
-  await expect(page.locator("tbody tr")).toHaveCount(0);
-  await page.getByRole("button", { name: "Sign out" }).click();
-  await expect(page).toHaveURL(/login/);
-  await login(page, "al@example.test");
-  await page.goto("/payroll");
-  await expect(
-    page.getByRole("heading", { name: "Payroll & commissions", exact: true }),
-  ).toHaveCount(0);
-  await page.goto("/certificates");
-  await expect(
-    page.getByRole("heading", { name: "Certificate inventory", exact: true }),
-  ).toHaveCount(0);
-  expect((await page.request.get("/api/payroll/unknown/export")).status()).toBe(403);
-  await page.goto("/dashboard");
+test("manager mobile workspace contains team operations", async ({ page }) => {
+  await login(page, "manager@example.test");
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(
-    page.getByRole("button", { name: /^(open|close|toggle) navigation( menu)?$/i }),
-  ).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);

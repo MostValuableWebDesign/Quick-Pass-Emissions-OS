@@ -98,9 +98,6 @@ export const ticketInput = z
     vendorId: optionalId,
   })
   .refine(oneTarget, "Choose either a bay or equipment item.");
-export const reportInput = z
-  .object({ ...target, title: label, description: reason, priority })
-  .refine(oneTarget, "Choose either a bay or equipment item.");
 export const planInput = z
   .object({
     ...target,

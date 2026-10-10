@@ -1,5 +1,7 @@
 # Phase 3 — carwash and maintenance
 
+Current access policy: this app is exclusively for owners and management (OWNER/ADMIN). Employees and legacy bookkeepers cannot sign in or use any workflow. Staff profiles remain business records for management; management records their progress and receives all alerts. See README's Management-only access section. Historical role descriptions below are superseded by this policy.
+
 Implemented locally on the complete Phase 2 delivery. This source includes Phases 1–3; GitHub publication and deployment are separate steps. No actual bays, equipment, vendor contacts, chemical stock, tenants, rental prices, repair costs or payments are seeded. The local browser fixtures are explicitly illustrative.
 
 ## Bays, assets and downtime

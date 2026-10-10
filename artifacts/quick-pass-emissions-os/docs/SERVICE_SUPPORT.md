@@ -5,7 +5,7 @@
 Open **Carwash & Maintenance → Service & Support** (`/vendors`). It is the existing
 Vendor register, not a parallel supplier database. OWNER/ADMIN maintain verified primary
 contacts, directory metadata, category preferences, target associations and active status.
-EMPLOYEE has an explicit operational contact projection; BOOKKEEPER remains excluded.
+Employees and legacy bookkeepers have no app access. All support operations are performed by owners and managers.
 Every read and operation rechecks the current active account and role in the transaction.
 
 Search provider/contact/service text, filter any supported category and optionally include
@@ -27,29 +27,20 @@ HTTP/HTTPS website/support links reject embedded credentials and unsafe schemes 
 clearly external, with opener isolation. Desktop links depend on installed calling/email
 apps. Links never log connected calls, sent emails, conversations or completed repairs.
 
-The employee SQL projection excludes legacy verification/business references, services
-narrative and notes as well as the new account reference. Managers enter employee-safe
-supported services/instructions separately. Do not put account identifiers or financial
-terms in operational fields. Employees do not receive physical-target association details,
-equipment notes/serials, finance/cost fields, audit history or other users' contact narratives.
-
 ## Maintenance, equipment and history
 
 Manager equipment/bay views link to their configured support providers without widening
-record access or replacing the legacy primary equipment vendor. Any authorized employee
-may associate an active verified vendor with their own report/current assigned ticket using
-the dedicated **Associate provider only** operation after reporting it. This strict input
-cannot set assignees, cost, deadlines, review rights, progress or repair status. Terminal
-tickets remain closed. Ordinary work submission and manager review are unchanged.
+record access or replacing the legacy primary equipment vendor. Owners and managers
+may associate an active verified vendor with a ticket using **Associate provider only**.
+This operation cannot change assignees, costs, deadlines, review rights, progress or repair
+status. Terminal tickets remain closed. Management records all work and review.
 
 Contact entries are user-initiated and explicitly self-reported. Time includes an explicit
 offset; actor identity comes from the server. Method, optional ticket/equipment, outcome,
 reference and follow-up date persist in separate append-only application history. Every
-related ticket/equipment is authorized and mismatched targets are refused. Employees can
-log general provider contacts or contacts related to their permitted tickets; direct
-equipment association needs a permitted matching ticket. Management can select equipment.
-Employee history is self-only; related ticket access is rechecked on every read. Manager
-history includes all entries. Narrative is not copied into ordinary audit summaries.
+related ticket/equipment is authorized and mismatched targets are refused. Management
+can log general provider contacts or select related tickets/equipment. History includes
+all management entries. Narrative is not copied into ordinary audit summaries.
 Contact entries do not submit work or alter repair completion. No external reminders,
 messages or service requests are sent.
 
@@ -134,9 +125,9 @@ E2E_DIRECT=1 E2E_SUPPORT_ONLY=1 pnpm --filter @workspace/quick-pass-emissions-os
 It creates/removes only a uniquely owned disposable test database, uses a private native
 sign-in/port/cache and never changes the managed business preview. One complete journey
 passed with no skips: desktop filtering/preferences/contact destinations, management edits
-and equipment association, employee payload exclusions, manual history persisted across
+and equipment association, non-management access denial, manual history persisted across
 reload, narrow maintenance provider changes, archive/history preservation, bookkeeper
-exclusion and missing-contact states. 390px employee detail/directory views fit without
+exclusion and missing-contact states. 390px manager detail/directory views fit without
 horizontal overflow and keyboard filter focus worked. No real contact link was activated.
 The reviewed captures contain Next's development badge; it is not a production app element.
 

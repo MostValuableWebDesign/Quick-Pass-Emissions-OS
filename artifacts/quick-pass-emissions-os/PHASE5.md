@@ -1,5 +1,7 @@
 # Phase 5 — Advanced automation and reporting
 
+Current access policy: this app is exclusively for owners and management (OWNER/ADMIN). Employees and legacy bookkeepers cannot sign in or use any workflow. Staff profiles remain business records for management; management records their progress and receives all alerts. See README's Management-only access section. Historical role descriptions below are superseded by this policy.
+
 Implemented in the existing Next.js/Prisma/PostgreSQL/Better Auth workspace. Phase 4 was imported at its reviewed GitHub revision; the standalone and workspace histories were joined without resetting, force-pushing or discarding the local security fixes. Phase 4 remains the billing/finance implementation. See VERIFICATION.md for exact checks and publication status.
 
 ## Pages and current server permissions

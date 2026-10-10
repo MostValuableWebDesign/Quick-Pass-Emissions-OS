@@ -1,3 +1,9 @@
+# Management-only access publication — October 10, 2026
+
+Only Owner and Manager accounts can sign in or use protected application workflows. Staff and legacy bookkeeper identities remain linked to payroll, schedules and operational history. Additive migration 011 removes their authentication accounts/sessions, expires unused invitations and resolves their personal notifications/reminders without deleting business records. Owners/managers record task progress, maintenance and support contact history; alerts target management.
+
+Fresh publication checks passed application TypeScript, ESLint, Prettier, the standard Turbopack production build and **273 unit/database tests with no skips** in 28 files. Tests used a uniquely owned disposable PostgreSQL database; upgrade sentinels remained intact and the temporary database was removed. The existing backup utility filesystem-tracing warning remains. Implementation verification separately reported **22 browser checks passed with no skips** (17 main workflows plus focused support/certificate checks); browser checks were not repeated during this publication run. No business database migration or deployment was performed during publication.
+
 # Phase 1–5 review fixes — October 10, 2026
 
 The review fixes preserve the existing shared Git history and business database. Changes include paginated/filterable payroll count review; stricter required-number validation; bounded forecast dates; dated invoice/rebill and rental correction checks; stable form labels and invitation activation; and saved-summary handling for unconfigured inventory. The owned browser runner now includes the Phase 1–5 workflows rather than silently excluding them.

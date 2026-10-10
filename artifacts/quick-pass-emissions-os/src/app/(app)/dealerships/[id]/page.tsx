@@ -14,7 +14,7 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
     data = await dealerDetail(actor.id, (await params).id),
     d = data.dealer;
   if (!d) notFound();
-  const management = actor.role !== "BOOKKEEPER",
+  const management = true,
     unbilled = data.unbilled;
   return (
     <>

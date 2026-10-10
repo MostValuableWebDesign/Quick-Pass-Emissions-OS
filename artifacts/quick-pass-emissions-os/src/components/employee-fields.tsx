@@ -12,7 +12,7 @@ export function EmployeeFields({
       <Field label="Full name">
         <input name="name" required maxLength={160} defaultValue={employee?.user.name} />
       </Field>
-      <Field label="Account email (cannot change after creation)">
+      <Field label="Contact email (cannot change after creation)">
         <input
           name="email"
           type="email"
@@ -22,10 +22,21 @@ export function EmployeeFields({
           readOnly={!!employee}
         />
       </Field>
-      <Field label="Role">
-        <select name="role" defaultValue={employee?.user.role ?? "EMPLOYEE"}>
-          {(owner ? ["EMPLOYEE", "ADMIN", "BOOKKEEPER", "OWNER"] : ["EMPLOYEE"]).map((r) => (
-            <option key={r}>{r}</option>
+      <Field label="App access">
+        <select
+          name="role"
+          defaultValue={
+            employee?.user.role === "BOOKKEEPER" ? "EMPLOYEE" : (employee?.user.role ?? "EMPLOYEE")
+          }
+        >
+          {(owner ? ["EMPLOYEE", "ADMIN", "OWNER"] : ["EMPLOYEE"]).map((r) => (
+            <option key={r} value={r}>
+              {r === "EMPLOYEE"
+                ? "Staff record — no app access"
+                : r === "ADMIN"
+                  ? "Manager"
+                  : "Owner"}
+            </option>
           ))}
         </select>
       </Field>

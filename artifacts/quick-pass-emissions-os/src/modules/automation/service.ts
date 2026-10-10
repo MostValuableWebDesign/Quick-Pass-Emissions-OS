@@ -58,11 +58,7 @@ export async function saveReminderPolicy(actorId: string, raw: unknown) {
     const users = await tx.user.findMany({ where: { id: { in: ids }, active: true } });
     requireRule(users.length === ids.length, "Choose only current active internal recipients.");
     requireRule(
-      users.every((u) =>
-        v.kind === "DEALER" || v.kind === "RENTAL"
-          ? ["OWNER", "ADMIN", "BOOKKEEPER"].includes(u.role)
-          : u.role !== "BOOKKEEPER",
-      ),
+      users.every((u) => ["OWNER", "ADMIN"].includes(u.role)),
       "A recipient lacks permission for this domain.",
     );
     const saved = await tx.reminderPolicy.create({
@@ -114,7 +110,7 @@ export async function automationSettings(actorId: string) {
       orderBy: { name: "asc" },
     }),
     recipients: await tx.user.findMany({
-      where: { active: true },
+      where: { active: true, role: { in: ["OWNER", "ADMIN"] } },
       select: { id: true, name: true, role: true },
       orderBy: { name: "asc" },
     }),
@@ -127,16 +123,6 @@ export async function automationSettings(actorId: string) {
 }
 export async function ownerOverview(actorId: string) {
   return automation(actorId, ["OWNER"], (tx) => overview(tx));
-}
-export async function ownCertification(actorId: string) {
-  return automation(actorId, ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"], async (tx, actor) =>
-    actor.employee
-      ? tx.employee.findUnique({
-          where: { id: actor.employee.id },
-          select: { certificationExpires: true },
-        })
-      : null,
-  );
 }
 export async function summaryArchive(actorId: string) {
   return automation(actorId, ["OWNER"], (tx) =>
@@ -154,12 +140,10 @@ export async function summaryDetail(actorId: string, id: string) {
   });
 }
 export async function remindersForUser(actorId: string) {
-  return automation(actorId, ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"], (tx, actor) =>
-    visibleReminders(tx, actor),
-  );
+  return automation(actorId, ["OWNER", "ADMIN"], (tx, actor) => visibleReminders(tx, actor));
 }
 export async function automationInbox(actorId: string) {
-  return automation(actorId, ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"], async (tx, actor) => ({
+  return automation(actorId, ["OWNER", "ADMIN"], async (tx, actor) => ({
     reminders: await visibleReminders(tx, actor),
     summaries:
       actor.role === "OWNER"
@@ -179,7 +163,7 @@ export async function automationInbox(actorId: string) {
 }
 export async function acknowledgeReminder(actorId: string, raw: unknown) {
   const v = z.object({ id: z.string().min(1).max(100) }).parse(raw);
-  return automation(actorId, ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"], async (tx, actor) => {
+  return automation(actorId, ["OWNER", "ADMIN"], async (tx, actor) => {
     const reminder = (await visibleReminders(tx, actor)).find((r) => r.id === v.id);
     requireRule(reminder, "Reminder is no longer applicable or is not yours.");
     if (reminder.acknowledgedAt) return reminder;

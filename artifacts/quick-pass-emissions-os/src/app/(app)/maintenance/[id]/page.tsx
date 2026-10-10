@@ -32,8 +32,7 @@ export default async function Ticket({ params }: { params: Promise<{ id: string 
   const data = await maintenanceOverview(actor.id),
     management = managers.includes(actor.role),
     closed = ["COMPLETED", "CANCELLED"].includes(t.status);
-  const canWork =
-    management || (t.assignedId === actor.employee?.id && t.status !== "AWAITING_REVIEW");
+  const canWork = management;
   return (
     <>
       <PageHeader
@@ -92,7 +91,7 @@ export default async function Ticket({ params }: { params: Promise<{ id: string 
       </section>
       {!closed && canWork && (
         <section className="card card-body space-top">
-          <h2>{management ? "Update or review work" : "Update your assigned work"}</h2>
+          <h2>Update or review work</h2>
           <ActionForm action={updateTicket} submit="Save maintenance progress">
             <RecordId id={t.id} version={t.version} />
             <Field label="Maintenance work status">
@@ -100,10 +99,7 @@ export default async function Ticket({ params }: { params: Promise<{ id: string 
                 <option value="" disabled>
                   Choose next status
                 </option>
-                {(management
-                  ? ["OPEN", "IN_PROGRESS", "BLOCKED", "AWAITING_REVIEW", "COMPLETED", "CANCELLED"]
-                  : ["IN_PROGRESS", "BLOCKED", "AWAITING_REVIEW"]
-                )
+                {["OPEN", "IN_PROGRESS", "BLOCKED", "AWAITING_REVIEW", "COMPLETED", "CANCELLED"]
                   .filter((s) => s !== t.status)
                   .map((s) => (
                     <option key={s} value={s}>

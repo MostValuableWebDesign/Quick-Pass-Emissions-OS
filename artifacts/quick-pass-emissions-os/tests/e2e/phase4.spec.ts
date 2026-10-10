@@ -30,9 +30,9 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
       extraHTTPHeaders: { "x-forwarded-for": "198.51.100.43" },
     }),
     employee = await employeeContext.newPage();
+  await employeeContext.clearCookies();
   await login(page, "owner@example.test");
-  await login(book, "bookkeeper@example.test");
-  await login(employee, "john@example.test");
+  await login(book, "preparer@example.test");
   await book.goto("/dealerships");
   let f = form(book, "Add dealership");
   await f.getByLabel("Unique dealership code").fill("E2E-DEALER");
@@ -89,7 +89,10 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
   await expect(
     book.getByRole("heading", { name: "Total: $107.50 USD", exact: true }),
   ).toBeVisible();
-  await expect(book.getByRole("button", { name: "Record invoice decision" })).toHaveCount(0);
+  f = form(book, "Record invoice decision");
+  await f.getByLabel("Change reason").fill("E2E own draft approval denied");
+  await f.getByRole("button", { name: "Record invoice decision" }).click();
+  await expect(f.getByRole("status")).toHaveText(/different owner or manager/);
   await page.goto(invoiceUrl);
   f = form(page, "Record invoice decision");
   await f.getByLabel("Change reason").fill("E2E separate review of services and tax");
@@ -171,16 +174,16 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
     .toBe(true);
   for (const path of ["/dealerships", dealerUrl, invoiceUrl, "/finance", "/finance/reports"]) {
     await employee.goto(path);
-    await expect(
-      employee.getByRole("heading", { name: "We couldn’t open this view.", exact: true }),
-    ).toBeVisible();
+    await expect(employee).toHaveURL(/\/login$/);
     await expect(employee.getByText("Private account notes", { exact: true })).toHaveCount(0);
   }
   const denied = await employee.request.get(
     "/api/finance/export?dataset=entries&start=2026-01-01&end=2026-10-10",
+    { maxRedirects: 0 },
   );
-  expect(denied.status()).toBe(403);
-  expect(denied.headers()["cache-control"]).toContain("no-store");
+  expect(denied.status()).toBe(307);
+  expect(denied.headers().location).toBe("/login");
+  expect(denied.headers()["content-disposition"]).toBeUndefined();
   await bookContext.close();
   await employeeContext.close();
 });

@@ -2,7 +2,7 @@ import { Prisma, type Role } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireRule } from "./phase2";
 export { audit, requireRule, BusinessError, type Tx } from "./phase2";
-export const financeRoles: Role[] = ["OWNER", "ADMIN", "BOOKKEEPER"];
+export const financeRoles: Role[] = ["OWNER", "ADMIN"];
 export const reviewers: Role[] = ["OWNER", "ADMIN"];
 export async function phase4<T>(
   actorId: string,

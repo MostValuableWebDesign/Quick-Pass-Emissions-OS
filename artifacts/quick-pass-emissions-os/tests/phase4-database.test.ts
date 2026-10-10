@@ -33,7 +33,7 @@ if (enabled) {
       ).id;
     owner = await user("OWNER");
     manager = await user("ADMIN");
-    book = await user("BOOKKEEPER");
+    book = await user("ADMIN");
     employee = await user("EMPLOYEE");
   });
   async function dealer(configure = true) {
@@ -272,7 +272,7 @@ if (enabled) {
   });
   it("separates invoice preparation/approval and versions review/delivery", async () => {
     const i = await draft();
-    await expect(f.reviewInvoice(book, decision(i.id))).rejects.toThrow("permission");
+    await expect(f.reviewInvoice(book, decision(i.id))).rejects.toThrow("different");
     await db.dealerInvoice.update({ where: { id: i.id }, data: { createdBy: owner } });
     await expect(f.reviewInvoice(owner, decision(i.id))).rejects.toThrow("different");
     await f.reviewInvoice(manager, decision(i.id));
@@ -292,7 +292,12 @@ if (enabled) {
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
     const p = await db.dealerPayment.findFirstOrThrow();
     await expect(
-      f.reverseDealerPayment(book, { id: p.id, date: today, reference: "reverse", evidence: why }),
+      f.reverseDealerPayment(employee, {
+        id: p.id,
+        date: today,
+        reference: "reverse",
+        evidence: why,
+      }),
     ).rejects.toThrow("permission");
     await f.reverseDealerPayment(owner, {
       id: p.id,
@@ -414,7 +419,7 @@ if (enabled) {
     const e = await f.recordEntry(book, entry());
     await expect(
       f.reviewEntry(book, { id: e.id, version: 0, decision: "VERIFY", reason: why }),
-    ).rejects.toThrow("permission");
+    ).rejects.toThrow("different");
     await f.reviewEntry(owner, { id: e.id, version: 0, decision: "VERIFY", reason: why });
     await expect(
       f.reviewEntry(manager, { id: e.id, version: 0, decision: "VOID", reason: why }),
@@ -472,7 +477,7 @@ if (enabled) {
   it("retains voided service history and allows a separately referenced replacement", async () => {
     const d = await dealer(),
       s = await service(d.id);
-    await expect(f.voidService(book, { id: s.id, reason: why })).rejects.toThrow("permission");
+    await expect(f.voidService(employee, { id: s.id, reason: why })).rejects.toThrow("permission");
     await f.voidService(owner, { id: s.id, reason: why });
     await expect(
       f.createInvoice(book, {

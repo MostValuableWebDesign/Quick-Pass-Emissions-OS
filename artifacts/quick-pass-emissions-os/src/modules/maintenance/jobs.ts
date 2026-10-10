@@ -77,8 +77,6 @@ export async function generateMaintenance(
   for (const ticket of late) {
     if (automationPolicy?.active) continue; // Phase 5 replaces, rather than duplicates, these alerts.
     const recipients = new Set(managers.map((u) => u.id));
-    if (ticket.assigned?.user.active && ticket.assigned.user.role !== "BOOKKEEPER")
-      recipients.add(ticket.assigned.userId);
     for (const userId of recipients) {
       const key = `maintenance:${ticket.id}:${userId}`;
       liveKeys.push(key);

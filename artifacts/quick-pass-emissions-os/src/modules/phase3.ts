@@ -3,8 +3,7 @@ import { db } from "../lib/db";
 import { requireRule } from "./phase2";
 export { audit, requireRule, BusinessError, type Tx } from "./phase2";
 export const managers: Role[] = ["OWNER", "ADMIN"];
-export const operators: Role[] = ["OWNER", "ADMIN", "EMPLOYEE"];
-export const rentalRoles: Role[] = ["OWNER", "ADMIN", "BOOKKEEPER"];
+export const rentalRoles: Role[] = ["OWNER", "ADMIN"];
 export async function phase3<T>(
   actorId: string,
   roles: Role[],

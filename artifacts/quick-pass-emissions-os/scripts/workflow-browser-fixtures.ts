@@ -10,18 +10,18 @@ export async function workflowBrowserFixtures(db: PrismaClient, password: string
     create: { id: "business", configured: true, operatingDays: [1, 2, 3, 4, 5, 6, 7] },
     update: {},
   });
-  const hash = await hashPassword(password);
   const users = [];
   for (const [role, name] of [
     ["WORKER", "Demo Al"],
     ["PEER", "Demo John"],
+    ["PREPARER", "Preparation Manager"],
   ]) {
     const email = `workflow-${randomUUID()}@example.test`;
     const user = await db.user.create({
       data: {
         name,
         email,
-        role: "EMPLOYEE",
+        role: role === "PREPARER" ? "ADMIN" : "EMPLOYEE",
         emailVerified: true,
         employee: {
           create: {
@@ -32,15 +32,16 @@ export async function workflowBrowserFixtures(db: PrismaClient, password: string
       },
       include: { employee: true },
     });
-    await db.account.create({
-      data: {
-        id: randomUUID(),
-        userId: user.id,
-        accountId: user.id,
-        providerId: "credential",
-        password: hash,
-      },
-    });
+    if (role === "PREPARER")
+      await db.account.create({
+        data: {
+          id: randomUUID(),
+          userId: user.id,
+          accountId: user.id,
+          providerId: "credential",
+          password: await hashPassword(password),
+        },
+      });
     users.push({ role, email });
     if (role === "PEER") {
       const date = businessDate();

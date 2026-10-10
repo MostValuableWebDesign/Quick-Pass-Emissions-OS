@@ -87,7 +87,14 @@ export async function saveEmployee(_: ActionState, form: FormData) {
             "Please keep the account email unchanged; provision a new account for a new identity.",
           );
         await tx.user.update({ where: { id: old.userId }, data: { name, role } });
-        if (role !== old.user.role) await tx.session.deleteMany({ where: { userId: old.userId } });
+        if (role !== old.user.role) {
+          await tx.session.deleteMany({ where: { userId: old.userId } });
+          await tx.invite.updateMany({
+            where: { employeeId, usedAt: null },
+            data: { usedAt: new Date() },
+          });
+          if (!isManager(role)) await tx.account.deleteMany({ where: { userId: old.userId } });
+        }
         await tx.auditLog.create({
           data: {
             actorId: actor.id,
@@ -154,7 +161,11 @@ export async function issueInvite(_: ActionState, form: FormData) {
         where: { id: employeeId },
         include: { user: true },
       });
-      if (!employee.user.active || !canManageRole(actor.role, employee.user.role))
+      if (
+        !employee.user.active ||
+        !isManager(employee.user.role) ||
+        !canManageRole(actor.role, employee.user.role)
+      )
         throw new Error("You cannot invite this account.");
       if (await tx.account.count({ where: { userId: employee.userId, providerId: "credential" } }))
         throw new Error(
@@ -193,7 +204,13 @@ export async function acceptInvite(_: ActionState, form: FormData) {
       where: { tokenHash },
       include: { employee: { include: { user: true } } },
     });
-    if (!found || found.usedAt || found.expiresAt < new Date() || !found.employee.user.active)
+    if (
+      !found ||
+      found.usedAt ||
+      found.expiresAt < new Date() ||
+      !found.employee.user.active ||
+      !isManager(found.employee.user.role)
+    )
       throw new Error("Invite is invalid or expired.");
     const password = await hashPassword(data.password);
     await db.$transaction(async (tx) => {
@@ -203,7 +220,7 @@ export async function acceptInvite(_: ActionState, form: FormData) {
           id: found.id,
           usedAt: null,
           expiresAt: { gt: new Date() },
-          employee: { user: { active: true } },
+          employee: { user: { active: true, role: { in: ["OWNER", "ADMIN"] } } },
         },
         data: { usedAt: new Date() },
       });
@@ -502,12 +519,7 @@ export async function addTaskNote(_: ActionState, form: FormData) {
     const taskId = id.parse(form.get("taskId"));
     const message = note.min(1).parse(form.get("note"));
     await db.$transaction(async (tx) => {
-      const task = await tx.taskInstance.findUniqueOrThrow({ where: { id: taskId } });
-      if (
-        !isManager(actor.role) &&
-        (actor.role !== "EMPLOYEE" || task.employeeId !== actor.employee?.id)
-      )
-        throw new Error("Task access denied.");
+      await tx.taskInstance.findUniqueOrThrow({ where: { id: taskId } });
       await tx.taskEvent.create({
         data: { taskId, actorId: actor.id, actorName: actor.name, action: "NOTE", note: message },
       });

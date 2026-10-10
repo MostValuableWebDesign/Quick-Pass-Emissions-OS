@@ -104,7 +104,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ id: s
       </div>
 
       <section className="card card-body space-top">
-        <h2>{d.management ? "Contact history" : "Your contact history"}</h2>
+        <h2>Contact history</h2>
         <p className="muted">
           Entries are self-reported. They are never verified communication and do not confirm a
           repair was completed.

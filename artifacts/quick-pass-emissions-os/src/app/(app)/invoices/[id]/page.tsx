@@ -18,7 +18,7 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
       i.payments,
       businessDate(),
     ),
-    management = actor.role !== "BOOKKEEPER";
+    management = true;
   const snap = i.snapshot as {
     name: string;
     code: string;

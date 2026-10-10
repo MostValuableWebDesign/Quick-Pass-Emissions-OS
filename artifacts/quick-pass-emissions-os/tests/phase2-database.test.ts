@@ -34,7 +34,7 @@ if (enabled) {
     ).id;
     bookkeeper = (
       await db.user.create({
-        data: { name: "Bookkeeper", email: `${randomUUID()}@example.test`, role: "BOOKKEEPER" },
+        data: { name: "Preparing manager", email: `${randomUUID()}@example.test`, role: "ADMIN" },
       })
     ).id;
     const e = await db.employee.create({
@@ -310,7 +310,7 @@ if (enabled) {
     ).rejects.toThrow("frozen");
     await expect(
       pay.reviewDraft(bookkeeper, { id: draft.id, decision: "APPROVED", reason: "Self" }),
-    ).rejects.toThrow("permission");
+    ).rejects.toThrow("prepared");
     await pay.reviewDraft(owner, {
       id: draft.id,
       decision: "APPROVED",
@@ -614,7 +614,7 @@ if (enabled) {
       cert.requestPurchase(bookkeeper, { quantity: 300, reason: "Duplicate" }),
     ).rejects.toThrow("open purchase");
     await expect(
-      cert.recordUsage(bookkeeper, {
+      cert.recordUsage(employeeUser, {
         kind: "USAGE",
         quantity: 1,
         date,
@@ -623,7 +623,7 @@ if (enabled) {
       }),
     ).rejects.toThrow("permission");
     await expect(
-      cert.reviewPurchase(bookkeeper, { id: results[0].id, decision: "APPROVED", reason: "x" }),
+      cert.reviewPurchase(employeeUser, { id: results[0].id, decision: "APPROVED", reason: "x" }),
     ).rejects.toThrow("permission");
     await expect(
       cert.saveCertificateSettings(manager, {

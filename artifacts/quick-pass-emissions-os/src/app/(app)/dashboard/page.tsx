@@ -14,52 +14,13 @@ import { Button } from "@/components/ui/button";
 export default async function Dashboard() {
   const user = await currentUser();
   const management = isManager(user.role);
-  if (user.role === "BOOKKEEPER")
-    return (
-      <>
-        <PageHeader
-          title="Welcome to Quick Pass"
-          description="Prepare payroll, certificates, dealership invoices, rental receipts and finance records."
-        />
-        <section className="card card-body">
-          <h2>Payroll preparation</h2>
-          <p>
-            Review approved source records and prepare payroll drafts for independent manager or
-            owner approval.
-          </p>
-          <Link className="text-link" href="/payroll">
-            Open payroll & commissions →
-          </Link>
-          <Link className="text-link" href="/reminders">
-            Open my reminders →
-          </Link>
-          <Link className="text-link" href="/reports">
-            Open operational reports →
-          </Link>
-          <Link className="text-link" href="/certificates">
-            Open certificate records →
-          </Link>
-          <Link className="text-link" href="/rentals">
-            Open detailing rental records →
-          </Link>
-          <Link className="text-link" href="/dealerships">
-            Open dealerships & invoices →
-          </Link>
-          <Link className="text-link" href="/finance">
-            Open operational finance & reports →
-          </Link>
-        </section>
-      </>
-    );
   const certificates = management ? await certificateOverview(user.id) : null;
   const maintenance = management ? await maintenanceSummary(user.id) : null;
   const today = businessDate();
   const now = new Date();
   const start = dueInstant(today, "00:00");
   const end = dueInstant(addDays(today, 1), "00:00");
-  const scope: Prisma.TaskInstanceWhereInput = management
-    ? {}
-    : { employeeId: user.employee?.id ?? "none" };
+  const scope: Prisma.TaskInstanceWhereInput = {};
   const [todays, lateCount, shifts, activity, upcoming, settings, demoCount, run] =
     await Promise.all([
       db.taskInstance.findMany({
@@ -71,7 +32,7 @@ export default async function Dashboard() {
         where: { ...scope, dueAt: { lt: now }, status: { notIn: ["COMPLETED", "CANCELLED"] } },
       }),
       db.employeeSchedule.findMany({
-        where: { date: today, ...(management ? {} : { employeeId: user.employee?.id ?? "none" }) },
+        where: { date: today },
         include: { employee: { select: { user: { select: { name: true, active: true } } } } },
         orderBy: { startTime: "asc" },
       }),
@@ -123,11 +84,7 @@ export default async function Dashboard() {
       {!settings?.configured && (
         <div className="notice warning">
           Business operating days are not configured.{" "}
-          {management ? (
-            <Link href="/settings">Complete setup to start scheduling →</Link>
-          ) : (
-            "Ask your manager to complete setup."
-          )}
+          <Link href="/settings">Complete setup to start scheduling →</Link>
         </div>
       )}
       {management &&
@@ -189,7 +146,7 @@ export default async function Dashboard() {
             color: "orange",
           },
           {
-            label: management ? "Today's coverage" : "Your shifts today",
+            label: "Today's coverage",
             value: shifts.length,
             note: "Scheduled employee shifts",
             icon: Users,

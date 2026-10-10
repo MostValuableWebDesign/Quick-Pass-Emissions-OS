@@ -170,6 +170,7 @@ async function main() {
         accounts: {
           "owner@example.test": email,
           "manager@example.test": fixtures.users.find((u) => u.role === "ADMIN")!.email,
+          "preparer@example.test": workflowUsers.find((u) => u.role === "PREPARER")!.email,
           "bookkeeper@example.test": fixtures.users.find((u) => u.role === "BOOKKEEPER")!.email,
           "al@example.test": workflowUsers.find((u) => u.role === "WORKER")!.email,
           "john@example.test": workflowUsers.find((u) => u.role === "PEER")!.email,
@@ -253,7 +254,7 @@ async function main() {
   }
   stage = "private role authentication";
   let clientNumber = 20;
-  for (const fixture of [...fixtures.users, ...workflowUsers]) {
+  for (const fixture of fixtures.users) {
     const roleApi = await request.newContext({
       baseURL,
       extraHTTPHeaders: { "x-forwarded-for": `198.51.100.${clientNumber++}` },
@@ -264,9 +265,32 @@ async function main() {
         maxRedirects: 0,
         headers: { Origin: baseURL },
       });
-      if (response.status() !== 303 || response.headers().location !== "/dashboard")
-        throw new Error("Private role authentication failed.");
+      const allowed = fixture.role === "ADMIN";
+      if (
+        response.status() !== 303 ||
+        (allowed
+          ? response.headers().location !== "/dashboard"
+          : !response.headers().location?.startsWith("/login?error="))
+      )
+        throw new Error("Private management authorization failed.");
       await response.dispose();
+      if (!allowed) {
+        // Preserve a real formerly-authorized cookie to verify fresh role checks,
+        // in addition to the rejected legacy credential request above.
+        await db.user.update({ where: { id: fixture.id }, data: { role: "ADMIN" } });
+        try {
+          const prior = await roleApi.post("/api/sign-in", {
+            form: { email: fixture.email, password },
+            maxRedirects: 0,
+            headers: { Origin: baseURL },
+          });
+          if (prior.status() !== 303 || prior.headers().location !== "/dashboard")
+            throw new Error("Prior management session fixture failed.");
+          await prior.dispose();
+        } finally {
+          await db.user.update({ where: { id: fixture.id }, data: { role: fixture.role } });
+        }
+      }
       const statePath = path.join(temporary, `${fixture.role}.json`);
       await roleApi.storageState({ path: statePath });
       await chmod(statePath, 0o600);
@@ -310,7 +334,7 @@ async function main() {
     tests!.once("error", () => resolve(null));
   });
   const report = JSON.parse(await readFile(path.join(temporary, "report.json"), "utf8"));
-  // Emit only test-file line numbers and statuses, never serialized errors or request state.
+  // Emit only source locations and statuses, never serialized errors or request state.
   function summarize(
     suites: Array<{
       suites?: unknown[];
@@ -335,6 +359,10 @@ async function main() {
             .find((result) => result.error || result.errors?.length);
           const error = result?.error ?? result?.errors?.[0];
           const stack = error?.stack || error?.message || "";
+          const frames = [
+            ...stack.matchAll(/tests\/e2e\/([A-Za-z0-9_-]+(?:\.spec)?\.ts):(\d+):(\d+)/g),
+          ].map((m) => `${m[1]}:${Number(m[2])}`);
+          if (frames.length) console.error(`Failure source: ${[...new Set(frames)].join(", ")}.`);
           const line =
             error?.location?.line ??
             stack.match(/(?:regression|navigation|operations|phase[2-5])\.spec\.ts:(\d+):\d+/)?.[1];
@@ -390,7 +418,7 @@ async function main() {
   assertSuiteReport(report, suite);
   console.log(
     process.env.E2E_SUPPORT_ONLY === "1"
-      ? "Passed: 1 complete Service & Support desktop/mobile flow with directory management, contact history, narrow employee provider association and private role exclusions; no skips."
+      ? "Passed: 1 complete Service & Support desktop/mobile flow with directory management, contact history, management provider association and private role exclusions; no skips."
       : process.env.E2E_CERTIFICATES_ONLY === "1"
         ? "Passed: 4 manual certificate navigation role checks including intercepted new tabs/reopening, same-tab records, desktop/mobile, keyboard and unchanged purchase/stock/alert snapshots; no skips."
         : process.env.E2E_IMPORT_ONLY === "1"

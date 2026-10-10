@@ -22,7 +22,7 @@ async function save(
   if (disappears) await expect(f).toHaveCount(0);
   else await expect(f.getByRole("status")).toHaveText(expected);
 }
-test("six bays, employee issue and reviewed repair, preventative work, chemical stock and rental payment", async ({
+test("six bays, management-recorded issue and reviewed repair, preventative work, chemical stock and rental payment", async ({
   page,
   browser,
 }) => {
@@ -36,8 +36,8 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
     }),
     book = await bookContext.newPage();
   await login(page, "owner@example.test");
-  await login(employee, "al@example.test");
-  await login(book, "bookkeeper@example.test");
+  await login(employee, "manager@example.test");
+  await login(book, "preparer@example.test");
   await page.goto("/carwash");
   let f = form(page, "Confirm six bays");
   for (let n = 1; n <= 6; n++) await f.locator(`[name="bay${n}"]`).fill(`E2E Bay ${n}`);
@@ -88,7 +88,7 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await expect(employee).toHaveURL(/\/maintenance\/[^/]+$/);
   const ticketUrl = employee.url();
   await expect(employee.getByRole("heading", { name: "E2E hose leak", exact: true })).toBeVisible();
-  await expect(employee.getByRole("heading", { name: "Assignment & deadline" })).toHaveCount(0);
+  await expect(employee.getByRole("heading", { name: "Assignment & deadline" })).toBeVisible();
   await page.goto(ticketUrl);
   f = form(page, "Update maintenance assignment");
   await f.getByLabel("Assigned employee").selectOption({ label: "Demo Al" });
@@ -100,7 +100,7 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await f.getByLabel("Maintenance work status").selectOption("AWAITING_REVIEW");
   await f.getByLabel("Work performed / findings").fill("E2E replaced leaking hose");
   await f.getByLabel("Work update / review reason").fill("E2E work ready for inspection");
-  await save(f, "Save maintenance progress", true);
+  await save(f, "Save maintenance progress");
   await page.reload();
   f = form(page, "Save maintenance progress");
   await f.getByLabel("Maintenance work status").selectOption("COMPLETED");
@@ -110,8 +110,8 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await expect(page.getByText("Recorded repair cost: $25.00 USD", { exact: true })).toBeVisible();
   await employee.reload();
   await expect(employee.getByText("E2E replaced leaking hose", { exact: true })).toBeVisible();
-  await expect(employee.getByText("Recorded repair cost", { exact: false })).toHaveCount(0);
-  await expect(employee.getByRole("heading", { name: "Maintenance history" })).toHaveCount(0);
+  await expect(employee.getByText("Recorded repair cost", { exact: false })).toBeVisible();
+  await expect(employee.getByRole("heading", { name: "Maintenance history" })).toBeVisible();
   await page.goto("/maintenance/plans");
   f = form(page, "Create preventative schedule");
   await f
@@ -199,20 +199,6 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await page.reload();
 
   await expect(page.getByText("-$40.00 USD", { exact: false })).toBeVisible();
-  await employee.goto("/carwash");
-  await expect(
-    employee.getByRole("heading", { name: "We couldn’t open this view.", exact: true }),
-  ).toBeVisible();
-  await expect(employee.getByRole("heading", { name: "Carwash & bays", exact: true })).toHaveCount(
-    0,
-  );
-  await employee.goto(rentalUrl);
-  await expect(
-    employee.getByRole("heading", { name: "We couldn’t open this view.", exact: true }),
-  ).toBeVisible();
-  await expect(
-    employee.getByRole("heading", { name: "Authorized terms", exact: true }),
-  ).toHaveCount(0);
   await page.goto("/carwash");
   await expect(page.getByRole("heading", { name: "E2E Bay 1", exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });

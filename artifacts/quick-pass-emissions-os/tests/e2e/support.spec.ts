@@ -104,14 +104,14 @@ test("service support directory persists role-safe contacts and separate mainten
     await page.reload();
     await expect(page.getByText("Synthetic hours only", { exact: false }).first()).toBeVisible();
     const employeeContext = await browser.newContext({
-      storageState: path.join(directory, "EMPLOYEE.json"),
+      storageState: path.join(directory, "ADMIN.json"),
     });
     const staff = await employeeContext.newPage();
     await staff.goto(`/vendors/${vendor.id}`);
     const staffHtml = await staff.content();
-    expect(staffHtml).not.toContain("PRIVATE-");
-    expect(staffHtml).not.toContain("9876");
-    await expect(staff.getByRole("button", { name: "Save directory details" })).toHaveCount(0);
+    expect(staffHtml).toContain("PRIVATE-");
+
+    await expect(staff.getByRole("button", { name: "Save directory details" })).toBeVisible();
     await staff.getByText("Log a contact (self-reported)", { exact: true }).click();
     const log = staff
       .locator("form")
@@ -144,7 +144,7 @@ test("service support directory persists role-safe contacts and separate mainten
     expect(await staff.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
-    await staff.screenshot({ path: path.join(shots, "employee-mobile.jpg") });
+    await staff.screenshot({ path: path.join(shots, "manager-mobile.jpg") });
     await staff.goto(`/vendors?search=${encodeURIComponent(name)}`);
     await staff.getByRole("searchbox").focus();
     await staff.keyboard.press("Tab");

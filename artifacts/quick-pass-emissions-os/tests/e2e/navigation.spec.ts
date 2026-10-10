@@ -8,7 +8,7 @@ const fixtures = JSON.parse(readFileSync(path.join(directory, "navigation.json")
   records: Record<string, string>;
 };
 
-for (const role of ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"] as const) {
+for (const role of ["OWNER", "ADMIN"] as const) {
   test.describe(`${role} navigation`, () => {
     test.use({
       storageState: path.join(directory, role === "OWNER" ? "session.json" : `${role}.json`),
@@ -39,14 +39,7 @@ for (const role of ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"] as const) {
       }
       for (const anchor of await navigation.locator("a").all())
         expect(await anchor.getAttribute("target")).not.toBe("_blank");
-      const forbidden =
-        role === "EMPLOYEE"
-          ? ["/employees", "/payroll", "/finance", "/carwash", "/automation", "/reports"]
-          : role === "BOOKKEEPER"
-            ? ["/employees", "/maintenance", "/carwash", "/automation", "/settings"]
-            : role === "ADMIN"
-              ? ["/overview", "/summaries", "/automation"]
-              : [];
+      const forbidden = role === "ADMIN" ? ["/overview", "/summaries", "/automation"] : [];
       for (const href of forbidden) {
         expect(hrefs).not.toContain(href);
         const response = await context.request.get(href, { maxRedirects: 0 });
@@ -63,17 +56,6 @@ for (const role of ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"] as const) {
           expect(response.status(), `Server must deny ${role} access to ${href}`).toBeGreaterThan(
             399,
           );
-        await response.dispose();
-      }
-      if (role === "BOOKKEEPER") {
-        // This legacy URL intentionally renders an empty view (employeeId:
-        // "none"), rather than denying the document. Preserve that contract.
-        expect(hrefs).not.toContain("/tasks");
-        const response = await context.request.get("/tasks", { maxRedirects: 0 });
-        expect(response.status()).toBe(200);
-        const body = await response.text();
-        expect(body.includes("My responsibilities")).toBe(true);
-        expect(body.includes(`/tasks/${fixtures.records.task}`)).toBe(false);
         await response.dispose();
       }
       await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
@@ -107,14 +89,7 @@ for (const role of ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"] as const) {
       await expect(toggle).toBeFocused();
       await toggle.click();
       const mobileNavigation = await expandGroups(page);
-      const destination =
-        role === "OWNER"
-          ? "/payroll"
-          : role === "ADMIN"
-            ? "/maintenance"
-            : role === "BOOKKEEPER"
-              ? "/invoices"
-              : "/tasks";
+      const destination = role === "OWNER" ? "/payroll" : "/maintenance";
       await mobileNavigation.locator(`a[href="${destination}"]`).click();
       await expect(page).toHaveURL(new RegExp(`${destination}$`));
       await expect(page.locator("main h1")).toBeVisible();
@@ -211,3 +186,29 @@ test("selected weeks and report dates survive navigation, refresh and Back/Forwa
   await expect.poll(() => new URL(page.url()).pathname).toBe("/finance/reports");
   expect(context.pages()).toHaveLength(1);
 });
+
+for (const role of ["EMPLOYEE", "BOOKKEEPER"] as const) {
+  test(`${role} cannot enter any former workspace`, async ({ browser }) => {
+    const context = await browser.newContext({
+      storageState: path.join(directory, `${role}.json`),
+    });
+    try {
+      const page = await context.newPage();
+      for (const route of [
+        "/dashboard",
+        "/tasks",
+        "/schedule",
+        "/maintenance",
+        "/vendors",
+        "/reminders",
+        "/payroll",
+      ]) {
+        await page.goto(route);
+        await expect(page).toHaveURL(/\/login$/);
+        await expect(page.getByRole("navigation", { name: "Main navigation" })).toHaveCount(0);
+      }
+    } finally {
+      await context.close();
+    }
+  });
+}

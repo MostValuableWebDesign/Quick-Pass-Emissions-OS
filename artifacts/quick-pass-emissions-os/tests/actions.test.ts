@@ -1,5 +1,5 @@
 import { beforeAll, afterAll, describe, expect, it, vi } from "vitest";
-import { randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { PrismaClient } from "@prisma/client";
 const session = vi.hoisted(() => ({ userId: "" }));
 vi.mock("@/lib/auth", () => ({
@@ -72,6 +72,23 @@ suite("Server action authorization with PostgreSQL", () => {
   });
   afterAll(async () => {
     await db?.$disconnect();
+  });
+  it("staff cannot receive or redeem account invitations", async () => {
+    session.userId = ownerId;
+    expect((await actions.issueInvite({}, form({ id: employeeProfileId }))).ok).toBe(false);
+    const token = randomBytes(32).toString("hex");
+    const invite = await db.invite.create({
+      data: {
+        employeeId: employeeProfileId,
+        tokenHash: createHash("sha256").update(token).digest("hex"),
+        expiresAt: new Date(Date.now() + 60000),
+      },
+    });
+    expect((await actions.acceptInvite({}, form({ token, password: randomUUID() }))).ok).toBe(
+      false,
+    );
+    expect((await db.invite.findUniqueOrThrow({ where: { id: invite.id } })).usedAt).toBeNull();
+    expect(await db.account.count({ where: { userId: employeeId } })).toBe(0);
   });
   it("denies an employee's direct request to create an account", async () => {
     session.userId = employeeId;

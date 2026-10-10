@@ -13,40 +13,10 @@ import {
 const hrefs = (role: string) => navForRole(role).flatMap((s) => s.items.map((i) => i.href));
 
 describe("role-filtered navigation", () => {
-  it("bookkeepers never see staffing or maintenance manager routes", () => {
-    const h = hrefs("BOOKKEEPER");
-    for (const r of [
-      "/tasks",
-      "/schedule",
-      "/employees",
-      "/maintenance",
-      "/carwash",
-      "/equipment",
-      "/vendors",
-      "/chemicals",
-      "/settings",
-      "/overview",
-    ])
-      expect(h).not.toContain(r);
-    expect(h).toEqual(
-      expect.arrayContaining(["/payroll", "/invoices", "/reports", "/reminders", "/roadmap"]),
-    );
-  });
-  it("employees get operational routes only", () => {
-    const h = hrefs("EMPLOYEE");
-    expect(h).toEqual(
-      expect.arrayContaining(["/tasks", "/schedule", "/maintenance", "/notifications", "/vendors"]),
-    );
-    for (const r of [
-      "/payroll",
-      "/employees",
-      "/tasks/templates",
-      "/maintenance/plans",
-      "/invoices",
-    ])
-      expect(h).not.toContain(r);
-    expect(navForRole("EMPLOYEE").map((s) => s.id)).not.toContain("payroll");
-    expect(matchRoute("/vendors/provider-1")?.parent).toBe("/vendors");
+  it.each(["EMPLOYEE", "BOOKKEEPER"])("%s has no application routes", (role) => {
+    expect(navForRole(role)).toEqual([]);
+    expect(safeReturnPath("/tasks", role)).toBeNull();
+    expect(returnTarget("/tasks/t1", null, role)).toBeNull();
   });
   it("owner-only routes are owner-only; admin sees managers routes", () => {
     expect(hrefs("ADMIN")).not.toContain("/automation");
@@ -68,10 +38,10 @@ describe("route matching", () => {
     expect(matchRoute("/tasks/abc123")?.title).toBe("Task detail");
     expect(activeNavHref("/tasks/templates", "OWNER")).toBe("/tasks/templates");
     expect(activeNavHref("/tasks/abc", "OWNER")).toBe("/tasks");
-    expect(activeNavHref("/finance/reports", "BOOKKEEPER")).toBe("/finance/reports");
+    expect(activeNavHref("/finance/reports", "ADMIN")).toBe("/finance/reports");
     expect(activeNavHref("/maintenance/plans", "ADMIN")).toBe("/maintenance/plans");
-    expect(activeNavHref("/maintenance/t1", "EMPLOYEE")).toBe("/maintenance");
-    expect(activeNavHref("/reminders/certification", "EMPLOYEE")).toBe("/reminders");
+    expect(activeNavHref("/maintenance/t1", "ADMIN")).toBe("/maintenance");
+    expect(matchRoute("/reminders/certification")).toBeUndefined();
     expect(activeNavHref("/tasksx", "OWNER")).toBeUndefined();
   });
   it("rejects odd id segments", () => {
@@ -93,10 +63,10 @@ describe("route matching", () => {
 
 describe("return context validation", () => {
   it("accepts allowlisted relative routes with query", () => {
-    expect(safeReturnPath("/tasks?filter=overdue&page=2", "EMPLOYEE")).toBe(
+    expect(safeReturnPath("/tasks?filter=overdue&page=2", "ADMIN")).toBe(
       "/tasks?filter=overdue&page=2",
     );
-    expect(safeReturnPath("/finance/reports?start=2025-01-01&end=2025-01-31", "BOOKKEEPER")).toBe(
+    expect(safeReturnPath("/finance/reports?start=2025-01-01&end=2025-01-31", "ADMIN")).toBe(
       "/finance/reports?start=2025-01-01&end=2025-01-31",
     );
   });
@@ -126,30 +96,30 @@ describe("return context validation", () => {
     expect(safeReturnPath("/tasks", "BOOKKEEPER")).toBeNull();
   });
   it("withReturn encodes safe origins and drops unsafe ones", () => {
-    expect(withReturn("/tasks/t1", "/dashboard", "EMPLOYEE")).toBe("/tasks/t1?from=%2Fdashboard");
+    expect(withReturn("/tasks/t1", "/dashboard", "ADMIN")).toBe("/tasks/t1?from=%2Fdashboard");
     expect(withReturn("/invoices/i1", "/finance/reports?start=2025-01-01", "OWNER")).toBe(
       "/invoices/i1?from=%2Ffinance%2Freports%3Fstart%3D2025-01-01",
     );
     expect(withReturn("/tasks/t1", "//evil", "OWNER")).toBe("/tasks/t1");
   });
   it("returnTarget uses origin, else falls back to parent list", () => {
-    expect(returnTarget("/invoices/i1", "/dealerships/d1", "BOOKKEEPER")).toEqual({
+    expect(returnTarget("/invoices/i1", "/dealerships/d1", "ADMIN")).toEqual({
       href: "/dealerships/d1",
       label: "Back to dealership account",
     });
-    expect(returnTarget("/tasks/t1", null, "EMPLOYEE")).toEqual({
+    expect(returnTarget("/tasks/t1", null, "ADMIN")).toEqual({
       href: "/tasks",
       label: "Back to tasks",
     });
-    expect(returnTarget("/tasks/t1", "https://evil", "EMPLOYEE")?.href).toBe("/tasks");
-    expect(returnTarget("/tasks/t1", "/tasks/t1", "EMPLOYEE")?.href).toBe("/tasks");
+    expect(returnTarget("/tasks/t1", "https://evil", "ADMIN")?.href).toBe("/tasks");
+    expect(returnTarget("/tasks/t1", "/tasks/t1", "ADMIN")?.href).toBe("/tasks");
     expect(returnTarget("/tasks", "/dashboard", "OWNER")).toBeNull();
   });
 });
 
 describe("return context with query filters and cross-record links", () => {
   it("keeps encoded slashes and URLs inside query filter values", () => {
-    expect(safeReturnPath("/dealerships?q=A%2FB", "BOOKKEEPER")).toBe("/dealerships?q=A%2FB");
+    expect(safeReturnPath("/dealerships?q=A%2FB", "ADMIN")).toBe("/dealerships?q=A%2FB");
     expect(safeReturnPath("/invoices?q=https%3A%2F%2Fevil.example%2Fx", "OWNER")).toBe(
       "/invoices?q=https%3A%2F%2Fevil.example%2Fx",
     );
@@ -161,10 +131,10 @@ describe("return context with query filters and cross-record links", () => {
     );
   });
   it("cross-record origin survives a round trip", () => {
-    const href = withReturn("/invoices/i1", "/dealerships/d1?from=%2Fdealerships", "BOOKKEEPER");
+    const href = withReturn("/invoices/i1", "/dealerships/d1?from=%2Fdealerships", "ADMIN");
     expect(href).toBe("/invoices/i1?from=%2Fdealerships%2Fd1%3Ffrom%3D%252Fdealerships");
     const from = new URL(href, "http://x").searchParams.get("from");
-    expect(returnTarget("/invoices/i1", from, "BOOKKEEPER")).toEqual({
+    expect(returnTarget("/invoices/i1", from, "ADMIN")).toEqual({
       href: "/dealerships/d1?from=%2Fdealerships",
       label: "Back to dealership account",
     });

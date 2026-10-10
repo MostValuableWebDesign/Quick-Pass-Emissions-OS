@@ -33,7 +33,7 @@ test("payroll and certificate preparation, independent review, export, and physi
   const preparer = await preparerContext.newPage();
   const reviewer = await reviewerContext.newPage();
   await login(page, "owner@example.test");
-  await login(preparer, "bookkeeper@example.test");
+  await login(preparer, "preparer@example.test");
   await login(reviewer, "manager@example.test");
   await page.goto("/payroll");
   const arrangement = form(page, "Authorize pay arrangement");

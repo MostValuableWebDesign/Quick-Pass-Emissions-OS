@@ -47,6 +47,6 @@ describe("record links respect module access without hiding permitted data", () 
     const html = render("EMPLOYEE", "/carwash");
     expect(html).toContain("Visible record label");
     expect(html).not.toContain("href=");
-    expect(render("EMPLOYEE", "/tasks/task_1")).toContain("<a");
+    expect(render("EMPLOYEE", "/tasks/task_1")).not.toContain("<a");
   });
 });

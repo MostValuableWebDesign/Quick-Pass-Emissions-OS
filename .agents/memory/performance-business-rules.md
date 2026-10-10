@@ -13,7 +13,9 @@ Monday–Saturday are available workdays, while emissions staff normally work fi
 
 **Why:** The user selected all six available weekdays but separately confirmed five ten-hour workdays. Automatically assigning all six would overstate base pay.
 
-**How to apply:** Require a confirmed individual five-day schedule or dated actual hours/base overrides; do not guess a day off or a sixth paid shift. Store named compensation details only in application configuration, not agent memory.
+**How to apply:** Do not guess a day off or automatically add a sixth paid shift. A source-confirmed working day may use the standard ten-hour shift as a clearly marked base-pay estimate when no actual hours are recorded; actual hours/base overrides take precedence. Without a confirmed schedule or work evidence, keep the period total unknown but display the configured daily/weekly rate. Store named compensation details only in application configuration, not agent memory.
+
+**Why this estimate is allowed:** The user clarified that the approximate weekly base should be divided across five working days, rather than displayed as a missing rate. Working-day evidence permits an estimate, not a claim of verified hours or approved payroll.
 
 Performance should be professional and quick to read, with automatic current counts, cached historical days, week/month graphs, date/range selection, employee filters and summed pay, without instructional panels.
 

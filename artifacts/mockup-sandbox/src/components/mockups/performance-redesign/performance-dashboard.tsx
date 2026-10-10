@@ -9,6 +9,7 @@ import type { DashboardData, DashboardState } from "./dashboard-types";
 import { getPerformanceDashboardAction } from "./mock-actions";
 import { PerformanceTrend } from "./performance-dashboard-trend";
 import { EmployeeTable } from "./performance-dashboard-employees";
+import { PerformanceCalendar } from "./performance-calendar";
 import { PayPlanDialog } from "./performance-dashboard-pay";
 import { instant, longDate, num, usd } from "./performance-dashboard-format";
 
@@ -151,45 +152,16 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
       </section>
 
       <div className="pd-controls">
-        <form method="get" action={window.location.pathname} aria-label="Single date">
-          <label className="field">
-            <span>Date</span>
-            <input type="date" name="start" max={data.today} defaultValue={single ? q.start : ""} required data-testid="input-date"
-              onChange={(e) => {
-                if (e.currentTarget.validity.valid && e.currentTarget.value) e.currentTarget.form?.requestSubmit();
-              }} />
-          </label>
-          <input type="hidden" name="end" value="" />
-          <input type="hidden" name="trendDays" value={q.trendDays} />
-          {q.employee && <input type="hidden" name="employee" value={q.employee} />}
-          <button className="button button-primary button-sm" data-testid="button-apply-date">Show day</button>
-        </form>
-        <span className="sep" aria-hidden />
-        <form method="get" action={window.location.pathname} aria-label="Date range and filters">
-          <label className="field">
-            <span>From</span>
-            <input type="date" name="start" max={data.today} defaultValue={q.start} required data-testid="input-start" />
-          </label>
-          <label className="field">
-            <span>To</span>
-            <input type="date" name="end" max={data.today} defaultValue={q.end} required data-testid="input-end" />
-          </label>
-          <label className="field">
-            <span>Employee</span>
-            <select name="employee" defaultValue={q.employee ?? ""} data-testid="select-employee">
-              <option value="">All</option>
-              {data.employeeOptions.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </select>
-          </label>
-          <label className="field">
-            <span>Trend</span>
-            <select name="trendDays" defaultValue={String(q.trendDays)} data-testid="select-trend">
-              <option value="7">Week</option>
-              <option value="30">Month</option>
-            </select>
-          </label>
-          <button className="button button-primary button-sm" data-testid="button-apply-range">Apply</button>
-        </form>
+        <PerformanceCalendar
+          key={`${q.start}-${q.end}`}
+          start={q.start}
+          end={q.end}
+          today={data.today}
+          trendDays={q.trendDays}
+          employee={q.employee}
+          employeeOptions={data.employeeOptions}
+          action={window.location.pathname}
+        />
       </div>
 
       <div className="pd-grid">

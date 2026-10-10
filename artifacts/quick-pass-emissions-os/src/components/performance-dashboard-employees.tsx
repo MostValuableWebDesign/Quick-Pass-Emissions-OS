@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import type { DashboardEmployee } from "@/modules/station/dashboard-types";
+import type { DashboardEmployee, PayProfile } from "@/modules/station/dashboard-types";
 import { usd, num } from "./performance-dashboard-format";
 
 type Key = "name" | "cars" | "workingDays" | "revenueCents" | "baseCents" | "commissionCents" | "payCents";
@@ -19,7 +19,7 @@ const COLS: [Key, string, boolean][] = [
 const sumKnown = (rows: DashboardEmployee[], k: "baseCents" | "commissionCents" | "payCents" | "cars" | "revenueCents") =>
   rows.some((r) => r[k] === null) ? null : rows.reduce((a, r) => a + (r[k] ?? 0), 0);
 
-export function EmployeeTable({ employees }: { employees: DashboardEmployee[] }) {
+export function EmployeeTable({ employees, profiles = [] }: { employees: DashboardEmployee[]; profiles?: PayProfile[] }) {
   const [sort, setSort] = useState<{ key: Key; dir: 1 | -1 }>({ key: "payCents", dir: -1 });
   const [q, setQ] = useState("");
   const rows = useMemo(() => {
@@ -75,7 +75,10 @@ export function EmployeeTable({ employees }: { employees: DashboardEmployee[] })
               </tr>
             </thead>
             <tbody>
-              {rows.map((e) => (
+              {rows.map((e) => {
+                const profile = profiles.find((p) => p.id === e.id || (e.inspector !== null && p.inspector === e.inspector));
+                const dailyBase = profile?.hourlyCents != null ? Math.round(profile.hourlyCents * profile.standardMinutes / 60) : null;
+                return (
                 <tr key={e.id} data-testid={`row-employee-${e.id}`}>
                   <td>
                     <strong>{e.name}</strong>
@@ -87,14 +90,20 @@ export function EmployeeTable({ employees }: { employees: DashboardEmployee[] })
                   </td>
                   <td className="r">{e.workingDays ?? "—"}</td>
                   <td className="r">{usd(e.revenueCents)}</td>
-                  <td className="r">{e.baseCents === null ? <span className="pd-unknown">Unknown</span> : usd(e.baseCents)}</td>
+                  <td className="r">
+                    {e.baseCents === null ? <span className="pd-unknown">{dailyBase !== null ? "Days unconfirmed" : "Unknown"}</span> : usd(e.baseCents)}
+                    {dailyBase !== null && profile && (
+                      <small>{usd(dailyBase)} / day · {usd(dailyBase * profile.shiftsPerWeek)} / week{profile.approximate ? " approx." : ""}</small>
+                    )}
+                  </td>
                   <td className="r">{e.commissionCents === null ? <span className="pd-unknown">Unknown</span> : usd(e.commissionCents)}</td>
                   <td className="r">
                     {e.payCents === null ? <span className="pd-unknown">Unknown</span> : <strong>{usd(e.payCents)}</strong>}
                     {e.approximate && <small>estimated</small>}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
             <tfoot>
               <tr>

@@ -5,6 +5,7 @@ export const modules: ModuleMap = {
   "./components/mockups/performance-redesign/DailyFilter.tsx": () => import("../components/mockups/performance-redesign/DailyFilter.tsx"),
   "./components/mockups/performance-redesign/Preview.tsx": () => import("../components/mockups/performance-redesign/Preview.tsx"),
   "./components/mockups/performance-redesign/mock-actions.tsx": () => import("../components/mockups/performance-redesign/mock-actions.tsx"),
+  "./components/mockups/performance-redesign/performance-calendar.tsx": () => import("../components/mockups/performance-redesign/performance-calendar.tsx"),
   "./components/mockups/performance-redesign/performance-dashboard-employees.tsx": () => import("../components/mockups/performance-redesign/performance-dashboard-employees.tsx"),
   "./components/mockups/performance-redesign/performance-dashboard-pay.tsx": () => import("../components/mockups/performance-redesign/performance-dashboard-pay.tsx"),
   "./components/mockups/performance-redesign/performance-dashboard-trend.tsx": () => import("../components/mockups/performance-redesign/performance-dashboard-trend.tsx"),

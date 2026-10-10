@@ -63,12 +63,23 @@ describe("Performance financial projections", () => {
     const invalid = { ...plan, profiles: plan.profiles.map((p) => ({ ...p, scheduledWeekdays: [1,2,3,4,5,6] })) };
     expect(dashboardPayPlanSchema.safeParse(invalid).success).toBe(false);
   });
-  it("leaves an unconfirmed five-day rota unknown rather than guessing days off", () => {
+  it("estimates standard shifts only for source-confirmed work without guessing days off", () => {
     const unconfirmed = { ...plan, profiles: plan.profiles.map((p) => ({ ...p, scheduledWeekdays: [] })) };
     const data = buildDashboard(query, today, [day], unconfirmed);
-    expect(data.summary.baseCents).toBeNull();
-    expect(data.summary.payCents).toBeNull();
+    expect(data.summary.baseCents).toBe(46000);
+    expect(data.summary.payCents).toBe(55000);
+    expect(data.employees.every((e) => e.approximate)).toBe(true);
     expect(data.summary.commissionCents).toBe(9000);
+    expect(buildDashboard(query, today, [], unconfirmed).summary.baseCents).toBeNull();
+  });
+  it("projects a $900 five-day ten-hour week as $180 per confirmed working day, with actual hours taking precedence", () => {
+    const p = { ...plan.profiles[0], hourlyCents: 1800, approximate: true, scheduledWeekdays: [] };
+    const estimated = { ...plan, profiles: [p] };
+    const row = buildDashboard(query, today, [day], estimated).employees[0];
+    expect(row.baseCents).toBe(18000);
+    expect(row.payCents).toBe(22500);
+    const actual = { ...estimated, adjustments: [{ profileId: p.id, date: today, minutes: 480, baseCents: null, grassCut: false }] };
+    expect(buildDashboard(query, today, [day], actual).employees[0].baseCents).toBe(14400);
   });
   it("uses dated hours/base adjustments and only adds grass pay when recorded", () => {
     const maintenance = { ...plan.profiles[0], id: "grounds", name: "Fixture grounds", inspector: null,

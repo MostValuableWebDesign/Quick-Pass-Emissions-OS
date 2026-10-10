@@ -31,7 +31,10 @@ function dayPay(profile: PayProfile, date: string, day: PortalDay | undefined, p
   const hasWork = !!personal?.total;
   const scheduled = profile.scheduledWeekdays.includes(weekday);
   const isMondayPay = profile.mondayCents !== null;
-  let minutes = adjustment?.minutes ?? (scheduled ? profile.standardMinutes : null);
+  // A source-confirmed working day can use the standard shift as an estimate,
+  // even before its rota is confirmed. Actual recorded hours always win.
+  const estimatedHours = adjustment?.minutes == null && hasWork && !scheduled;
+  let minutes = adjustment?.minutes ?? (scheduled || hasWork ? profile.standardMinutes : null);
   const actualBase = adjustment?.baseCents;
   let base: number | null;
   if (actualBase !== null && actualBase !== undefined) base = actualBase;
@@ -54,7 +57,7 @@ function dayPay(profile: PayProfile, date: string, day: PortalDay | undefined, p
   const payCommission = !profile.commissionEligible ? 0 :
     working ? (day ? commission(day.total) : null) : workKnown ? 0 : null;
   if (adjustment?.grassCut) base = base === null ? null : base + 5000;
-  return { base, commission: payCommission, working: working || !!adjustment?.grassCut,
+  return { base, commission: payCommission, estimatedHours, working: working || !!adjustment?.grassCut,
     workKnown: workKnown || !!adjustment?.grassCut };
 }
 
@@ -87,7 +90,7 @@ export function buildDashboard(
       workingDays: daily.every((d) => d.workKnown) ? daily.filter((d) => d.working).length : null,
       revenueCents: testsKnown ? daily.reduce((n, d) => n + ((d.count?.passed ?? 0) + (d.count?.failed ?? 0)) * TEST_PRICE_CENTS, 0) : null,
       baseCents, commissionCents, payCents: nullableSum([baseCents, commissionCents]),
-      approximate: profile.approximate,
+      approximate: profile.approximate || daily.some((d) => d.estimatedHours),
     };
   });
   for (const inspector of allInspectors) {

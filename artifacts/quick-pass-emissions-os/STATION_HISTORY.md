@@ -38,6 +38,10 @@ Open **Performance → Setup & imports** as the active owner:
 
 ## Import, identity review, coverage and recovery
 
+Corrections invalidate coverage for both their old and new business dates, even when the corrected row no longer appears in the old range. Existing attestations remain as historical evidence; dashboard/history/reconciliation reject them until a later owner comparison. Older correction audits lacking date bounds fail closed for that station.
+
+The provider's zero-report semantics remain unverified. An empty current station day cannot be attested, reconciled into payroll, or used as a complete projection observation—even when an old nonempty report or a wider report range covers that date. Re-attesting an old report after its records move to another date cannot establish zero tests. An employee may still have a supported zero qualifying count on a nonempty, independently reviewed station day when the mapped test evidence belongs to other employees; that replacement remains unapproved until independently approved through Payroll.
+
 1. In the portal, enter inclusive business dates and the configured station only; clear any VIN/certificate/plate/waiver filters. Compare all page counts. Export the original `.xls`, not a transformed CSV or invented template.
 2. Import original report files of at most 2 MB. Changed columns, missing station/date metadata, binary Excel, invalid/out-of-range timestamps, wrong station, missing evidence or indistinguishable duplicates **fail explicitly**. An empty report is rejected because its zero-test meaning is unverified; absence of files/rows is never certified as zero.
 3. Exact row fingerprints are skipped across repeats, concurrent and overlapping imports. Each new row starts **pending identity**, even when an exact inspector mapping exists. Review each row as a genuinely distinct test or explicitly link it as a correction. Do not treat matching VIN/time/name/certificate as proof. A report containing multiple indistinguishable rows requires a better source with stable IDs; it cannot safely be collapsed.

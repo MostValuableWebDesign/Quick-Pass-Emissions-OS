@@ -1,6 +1,12 @@
 import { businessDate, addDays } from "@/lib/time";
 import { type Tx } from "../phase2";
-import { stationTransaction, currentRecords, reportRange } from "./service";
+import {
+  stationTransaction,
+  currentRecords,
+  reportRange,
+  correctionBoundaries,
+  coverageAfterCorrections,
+} from "./service";
 import { report as financeReport } from "../finance/service";
 import { commissionCents, periodAmounts, sumCents, csvCell } from "../payroll/calculations";
 import { audit } from "../phase2";
@@ -204,17 +210,20 @@ export async function performance(actorId: string, input: unknown, now = new Dat
       : pricedAll;
     const estimated = pricedAll.filter((r) => r.estimatedCents !== null);
     const days = [];
+    const corrections = await correctionBoundaries(tx, hash);
     for (let date = query.start; date <= query.end; date = addDays(date, 1)) {
       const daily = all.filter((r) => r.source.businessDate === date);
       days.push({
         date,
-        attested: coverage.some(
-          (r) =>
-            r.startDate <= date &&
-            r.endDate >= date &&
-            r.reviewedAt &&
-            daily.every((v) => v.state === "CONFIRMED" && v.source.observedAt <= r.reviewedAt!),
-        ),
+        attested:
+          daily.length > 0 &&
+          coverage.some(
+            (r) =>
+              r.startDate <= date &&
+              r.endDate >= date &&
+              coverageAfterCorrections(r.reviewedAt, date, corrections) &&
+              daily.every((v) => v.state === "CONFIRMED" && v.source.observedAt <= r.reviewedAt!),
+          ),
         pending: daily.filter((r) => r.state !== "CONFIRMED").length,
       });
     }
@@ -234,11 +243,12 @@ export async function performance(actorId: string, input: unknown, now = new Dat
         const daily = history.filter((r) => r.source.businessDate === date);
         if (
           !minutes ||
+          !daily.length ||
           !coverage.some(
             (r) =>
               r.startDate <= date &&
               r.endDate >= date &&
-              r.reviewedAt &&
+              coverageAfterCorrections(r.reviewedAt, date, corrections) &&
               daily.every((v) => v.source.observedAt <= r.reviewedAt!),
           ) ||
           daily.some((r) => r.state !== "CONFIRMED")

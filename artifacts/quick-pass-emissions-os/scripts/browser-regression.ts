@@ -132,7 +132,7 @@ async function main() {
     ...(process.env.E2E_STATION_HISTORY === "1" ? { GA_STATION_ID: "SYNTHETIC" } : {}),
   };
   db = new PrismaClient();
-  stage = "private owner fixture";
+  stage = "owned owner creation";
   const email = `regression-${randomUUID()}@example.test`;
   const password = randomBytes(32).toString("base64url");
   const user = await db.user.create({
@@ -148,6 +148,7 @@ async function main() {
       password: await hashPassword(password),
     },
   });
+  stage = "owned navigation fixtures";
   const fixtures = await navigationFixtures(db, password, user.id, (value) => {
     stage = value;
   });

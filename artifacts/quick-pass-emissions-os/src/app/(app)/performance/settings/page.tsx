@@ -144,7 +144,11 @@ export default async function StationSettings({
                 </p>
                 <label className="field">
                   <span>Portal total for these dates (all pages)</span>
-                  <input name="expectedRows" type="number" min={0} required inputMode="numeric" />
+                  <input name="expectedRows" type="number" min={1} required inputMode="numeric" />
+                  <small>
+                    Zero-test days cannot be confirmed: the provider&apos;s zero-report format is
+                    unverified.
+                  </small>
                 </label>
                 <label className="field">
                   <span>Reason</span>

@@ -215,6 +215,10 @@ export async function attestCoverage(actorId: string, input: unknown) {
     );
     const records = await currentRecords(tx, hash, run.startDate, run.endDate);
     requireRule(
+      records.length > 0 && data.expectedRows > 0,
+      "Zero-test report evidence is unverified. A historical report with no current records cannot establish empty-day coverage.",
+    );
+    requireRule(
       records.length === data.expectedRows && records.every((r) => r.state === "CONFIRMED"),
       "Import every page, resolve identities/corrections and compare the combined distinct count with the portal total before attesting.",
     );
@@ -400,8 +404,44 @@ export async function mergeCorrection(actorId: string, input: unknown) {
         version: { increment: 1 },
       },
     });
-    await audit(tx, actorId, "STATION_CORRECTION_LINKED", original.row.id, data);
+    await audit(tx, actorId, "STATION_CORRECTION_LINKED", original.row.id, {
+      ...data,
+      stationHash: hash,
+      oldDate: original.source.businessDate,
+      newDate: incoming.source.businessDate,
+    });
   });
+}
+/** Departure dates matter too: a corrected row no longer appears in its old range.
+ * Legacy correction events have no date bounds, so conservatively invalidate all
+ * older attestations for that station instead of treating absence as zero.
+ */
+export async function correctionBoundaries(tx: Tx, hash: string) {
+  const events = await tx.$queryRaw<{ details: Prisma.JsonValue; createdAt: Date }[]>`
+    SELECT a."details", a."createdAt" FROM "AuditLog" a
+    JOIN "StationRecord" r ON r.id = a."entityId"
+    WHERE a.action = 'STATION_CORRECTION_LINKED' AND r."stationHash" = ${hash}`;
+  return events.flatMap((e) => {
+    const d: Record<string, unknown> =
+      e.details && typeof e.details === "object" && !Array.isArray(e.details) ? e.details : {};
+    const dates = [d.oldDate, d.newDate];
+    return [
+      {
+        at: e.createdAt,
+        dates: dates.every((v): v is string => dateString.safeParse(v).success) ? dates : null,
+      },
+    ];
+  });
+}
+export function coverageAfterCorrections(
+  reviewedAt: Date | null,
+  date: string,
+  corrections: { at: Date; dates: string[] | null }[],
+) {
+  return (
+    reviewedAt !== null &&
+    !corrections.some((c) => c.at >= reviewedAt && (!c.dates || c.dates.includes(date)))
+  );
 }
 export async function reconcileCount(actorId: string, input: unknown) {
   const data = z
@@ -419,6 +459,7 @@ export async function reconcileCount(actorId: string, input: unknown) {
       "Owner must confirm the source calendar dates are America/New_York business dates before payroll reconciliation.",
     );
     const rows = await currentRecords(tx, hash, data.date, data.date);
+    const corrections = await correctionBoundaries(tx, hash);
     const runs = await tx.stationImport.findMany({
       where: {
         stationHash: hash,
@@ -429,10 +470,13 @@ export async function reconcileCount(actorId: string, input: unknown) {
       },
     });
     requireRule(
-      runs.some(
-        (run) => run.reviewedAt && rows.every((r) => r.source.observedAt <= run.reviewedAt!),
-      ),
-      "A current complete-page owner report attestation is required. New source revisions require a new coverage review.",
+      rows.length > 0 &&
+        runs.some(
+          (run) =>
+            coverageAfterCorrections(run.reviewedAt, data.date, corrections) &&
+            rows.every((r) => r.source.observedAt <= run.reviewedAt!),
+        ),
+      "A current complete-page owner report attestation with nonempty station-day evidence is required. Empty station days require separately verified zero-report semantics; new source revisions require a new coverage review.",
     );
     requireRule(
       rows.every((r) => r.state === "CONFIRMED" && r.employeeId && r.eligible !== null),

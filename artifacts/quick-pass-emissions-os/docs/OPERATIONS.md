@@ -1,5 +1,7 @@
 # Operator runbook
 
+> Storage identity, safe startup, optional pre-migration full backups and guarded restore: [DATA_PERSISTENCE.md](../DATA_PERSISTENCE.md). Provider backups must still be configured independently.
+
 ## Station reports and performance
 
 Read [STATION_HISTORY.md](../STATION_HISTORY.md) before importing or reconciling station data. Use **Performance → Setup & imports**, original portal HTML `.xls` files for the configured station only, explicit identity/exception review, all-page total comparison and owner coverage attestation. New source revisions require renewed coverage review. Reconciliation replaces an existing personal daily count and clears approval; a different authorized reviewer approves through Payroll. Draft/approved periods remain frozen. No raw exports/sessions are retained, no portal refresh scheduler runs, and forecasts with an unverified current cutoff say **Insufficient data**. Never combine station price estimates with global finance receipts or approved dealership billing.

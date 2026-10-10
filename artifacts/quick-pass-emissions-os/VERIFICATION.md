@@ -1,5 +1,23 @@
 # Verification and handoff status
 
+## Navigation reorganization — October 10, 2026
+
+Desktop and mobile now share one role-filtered navigation definition, with Overview, Team & Tasks, Payroll, Inventory, Carwash & Maintenance, Dealerships & Billing, Reports, and Settings. Competing module navigation bars were removed. Registered detail links carry validated list/date/filter/page context, and restricted related-module references remain readable without offering an inaccessible link. Existing routes and server permissions are retained.
+
+- The isolated application suite passed 172 tests with no skips, including 31 navigation tests and migration/snapshot protection checks. A subsequent focused run passed those 31 navigation tests plus three new rendered record-link tests; the latter cover owners/managers, bookkeepers and employee module-link restrictions.
+- All nine browser checks were verified across desktop and mobile for OWNER, ADMIN, BOOKKEEPER and EMPLOYEE: eight valid checks in the full run, followed by a passing focused Bookkeeper rerun after correcting the expectation for the intentionally empty legacy Tasks view. This is not a claim that the initial full run was entirely green.
+- Checks covered same-tab links, permitted destinations, explicit server denials, active states, breadcrumbs, filtered record returns, date ranges, direct URLs, reload, history, independent sidebar scrolling, drawer focus in both directions, Escape/backdrop dismissal and common action discoverability.
+- Typecheck, ESLint, Prettier and the webpack production build passed on the navigation changes.
+- Browser writes and sign-ins used a separately bound disposable server and owned test database, not business data. Private credentials, states and caches were cleaned up, and the managed preview was restarted.
+
+See `docs/NAVIGATION.md` for maintenance and verification commands.
+
+### Final shared-main reconciliation
+
+The newer station-history and persistent-storage changes were retained, including the owner-only Performance menu destination and its setup/evidence pages. The verified focus-cycle fix, role-safe record links, explicit streamed-denial checks and empty legacy Bookkeeper Tasks contract were kept when resolving overlapping navigation/testing changes.
+
+After installing the committed locked dependencies and regenerating the updated Prisma client, the navigation task's merged application's isolated suite passed **202 tests in 22 files, with no skips**. The upgrade check retained approved payroll, approved invoice and signed reversal snapshots through the storage/station migrations. Typecheck, ESLint, Prettier and the webpack production build also passed on that merged source. The nine browser checks described above verified the navigation flows before that reconciliation; no additional full browser run is claimed here. The subsequent departure-date safeguard and standard-build checks are documented separately below.
+
 ## Station history and performance — October 10, 2026
 
 The existing Next/Prisma/Better Auth artifact now has owner-only Performance, original-report imports, evidence/identity/correction review, historical mapping, effective-dated pricing/calendar settings, explicit replacement reconciliation and actual-period payroll explanations through the shared exact-cent period engine. Phases 1–5, existing unique daily counts, independent approval and frozen snapshots remain intact. Original migrations 001–006 match the retained baseline byte-for-byte; 007 is additive and was applied to the confirmed **development** database only. No real portal rows were persisted and no production migration/deployment was performed.
@@ -15,6 +33,14 @@ The existing Next/Prisma/Better Auth artifact now has owner-only Performance, or
 **Publication:** normal shared-main publication is recorded at task completion after credential/session/export/generated-artifact inspection. Source publication is not production deployment. Required owner business configuration and provider-approved unattended integration remain operational gates, not guessed defaults.
 
 **Newer shared source preserved:** incoming shared commit `1227fe8` added the independent durable-storage work during this task. It was joined by a normal merge, retaining both original migration-007 directories and all storage checks rather than replacing either branch. Final combined verification passed **21 files / 199 tests / zero skips**, with Phase 4→Phase 5 + storage + station sentinel preservation and disposal of only the owned test database. The combined artifact's typecheck, lint, formatting and standard Turbopack production build passed. Published storage-migration bytes match the incoming commit. The development storage migration was applied through its new guarded operator command; no business records were seeded, cleared or imported, and no production operation was performed.
+
+**Final correction check:** after project synchronization, a departure-date edge case was closed without changing migration bytes: immutable correction audits now carry old/new calendar dates, and coverage/history/reconciliation recheck both dates. Legacy correction audits without date bounds fail closed for the configured station. Final disposable verification passed **21 files / 200 tests / zero skips**, including refusal to turn an older attestation into a completed zero after a row moves to another date. Only that temporary database was dropped. App typecheck, lint, formatting and standard Turbopack production build passed after this correction.
+
+**Latest navigation integration:** newer shared navigation source `1e2acca` was retained, including visible-drawer focus cycling, non-clickable restricted related-module references, explicit streamed permission-denial checks, the intentionally empty legacy Bookkeeper Tasks view, and safe private-runner progress/diagnostics. The station/domain modules and migration files remained byte-identical to the source verified by the 200-test disposable run. All **38 focused navigation, rendered record-link and isolation-gate checks** passed after integration; app typecheck/lint/format and standard Turbopack production build passed again on the combined source. No additional station browser pass is claimed.
+
+**Zero-evidence review correction:** an old nonempty import cannot be re-attested with zero current rows after a date correction. Empty station days also cannot inherit complete coverage from a wider nonempty report, become usable projection observations, or replace payroll counts without separately verified zero-report semantics. A supported employee zero on a nonempty fully mapped station day remains available and independently unapproved. Regression verification covers failed renewed zero attestation, a synthetic legacy/future-dated attestation, blocked zero reconciliation with no count/reconciliation written, and nonempty-range versus employee-zero behavior. Final disposable verification passed **22 files / 204 tests / zero skips**; only its temporary database was removed. App typecheck, lint, formatting and standard Turbopack production build passed. These zero-evidence safeguards, like the departure-date safeguard, remain local under the publication blocker below. No further private browser run is claimed.
+
+**Confirmed publication and remaining blocker:** implementation merge [fd6cafe](https://github.com/MostValuableWebDesign/Quick-Pass-Emissions-OS/commit/fd6cafeb5662b8f4452aea06c25fc7e47284b08b) was published by the authorized GitHub App bridge with exact commit verification and independently matched remote main. Project completion then recreated an unpublished non-UTC ancestor; native Git authentication still rejects its credential and the existing exact-commit bridge refuses that ancestor format. Published ancestry was normally merged back rather than force-pushed. The last correction-date safeguard and final synchronization/evidence commits remain local until a working native Git push or another exact-history transport is available. Do not describe the latest complete source as fully synchronized.
 
 ## Persistent data across releases — October 10, 2026
 
@@ -167,21 +193,3 @@ The previous delivery passed 27 logic/database tests and 3 browser workflows, in
 Phase 1 limits remain: one shift per employee/date; one certification-expiry field; no task attachments; recurrence changes use pause/replacement plus audited overrides; closure/open-day changes do not rewrite existing instances; no self-service password recovery email. No real business database, Replit deployment, backup service, external scheduler, email delivery or accounting/regulated integration was verified during that baseline.
 
 Database tests truncate their explicitly isolated `_test` fixtures. `npm test` without TEST_DATABASE_URL skips database suites; never report skipped tests as passed. Never point test credentials at business data.
-
-## Navigation reorganization — October 10, 2026
-
-Desktop and mobile now share one role-filtered navigation definition, with Overview, Team & Tasks, Payroll, Inventory, Carwash & Maintenance, Dealerships & Billing, Reports, and Settings. Competing module navigation bars were removed. Registered detail links carry validated list/date/filter/page context, and restricted related-module references remain readable without offering an inaccessible link. Existing routes and server permissions are retained.
-
-- The isolated application suite passed 172 tests with no skips, including 31 navigation tests and migration/snapshot protection checks. A subsequent focused run passed those 31 navigation tests plus three new rendered record-link tests; the latter cover owners/managers, bookkeepers and employee module-link restrictions.
-- All nine browser checks were verified across desktop and mobile for OWNER, ADMIN, BOOKKEEPER and EMPLOYEE: eight valid checks in the full run, followed by a passing focused Bookkeeper rerun after correcting the expectation for the intentionally empty legacy Tasks view. This is not a claim that the initial full run was entirely green.
-- Checks covered same-tab links, permitted destinations, explicit server denials, active states, breadcrumbs, filtered record returns, date ranges, direct URLs, reload, history, independent sidebar scrolling, drawer focus in both directions, Escape/backdrop dismissal and common action discoverability.
-- Typecheck, ESLint, Prettier and the webpack production build passed on the navigation changes.
-- Browser writes and sign-ins used a separately bound disposable server and owned test database, not business data. Private credentials, states and caches were cleaned up, and the managed preview was restarted.
-
-See `docs/NAVIGATION.md` for maintenance and verification commands.
-
-### Final shared-main reconciliation
-
-The newer station-history and persistent-storage changes were retained, including the owner-only Performance menu destination and its setup/evidence pages. The verified focus-cycle fix, role-safe record links, explicit streamed-denial checks and empty legacy Bookkeeper Tasks contract were kept when resolving overlapping navigation/testing changes.
-
-After installing the committed locked dependencies and regenerating the updated Prisma client, the merged application's isolated suite passed **202 tests in 22 files, with no skips**. The upgrade check retained approved payroll, approved invoice and signed reversal snapshots through the storage/station migrations. Typecheck, ESLint, Prettier and the webpack production build also passed on the merged source. The nine browser checks described above verified the navigation flows before this final reconciliation; no additional full browser run is claimed here.

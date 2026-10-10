@@ -14,6 +14,7 @@ const env = {
   REPLIT_DEV_DOMAIN: "example.replit.dev",
   NODE_ENV: "development",
 };
+
 describe("Browser isolation gates", () => {
   it("requires the full expanded navigation suite, not just the original checks", () => {
     const stats = { expected: 9, skipped: 0, flaky: 0, unexpected: 0 };

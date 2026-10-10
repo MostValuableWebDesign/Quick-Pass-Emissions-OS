@@ -34,12 +34,12 @@ async function run(script, env) {
         : spawn("pnpm", ["run", script], { cwd: app, env, stdio: ["ignore", "pipe", "pipe"] });
     let output = "";
     const receive = (chunk) => {
+      output += chunk;
       // The owned browser runner emits sanitized status only; it never relays
       // framework/request logs or cookie state. Interactive readiness cannot
       // wait for the child to exit, otherwise the private preview appears stuck.
       if (script === "test:e2e:owned" && env.E2E_MANUAL_TEST === "1")
         process.stdout.write(redact(chunk));
-      else output += chunk;
     };
     child.stdout.on("data", (chunk) => {
       receive(chunk);

@@ -131,6 +131,110 @@ if (enabled) {
     });
     expect(await records()).toHaveLength(1);
   });
+  it("invalidates both dates when a correction leaves a previously attested day", async () => {
+    await setup();
+    const run = await imported();
+    const original = (await records())[0];
+    await review(original.id);
+    await s.attestCoverage(owner, {
+      importId: run.id,
+      expectedRows: 1,
+      reason: "Original full-day comparison",
+    });
+    expect((await p.performance(owner, { start: date, end: date })).days[0].attested).toBe(true);
+    const next = addDays(date, 1);
+    await imported(reportFixture(next));
+    const incoming = (await p.performance(owner, { start: next, end: next })).records[0];
+    const current = (await records())[0];
+    await s.mergeCorrection(owner, {
+      recordId: incoming.id,
+      version: incoming.version,
+      originalId: current.id,
+      originalVersion: current.version,
+      reason: "Corrected business date",
+    });
+    const old = await p.performance(owner, { start: date, end: date });
+    expect(old.records).toHaveLength(0);
+    expect(old.days[0].attested).toBe(false);
+    expect(old.projection.status).toBe("Insufficient data");
+    await expect(
+      s.reconcileCount(owner, {
+        employeeId: empId,
+        date,
+        expectedVersion: 0,
+        reason: "Must not infer a completed zero from an old attestation",
+      }),
+    ).rejects.toThrow("attestation");
+    const audit = await db.auditLog.findFirst({ where: { action: "STATION_CORRECTION_LINKED" } });
+    expect(audit!.details).toMatchObject({ oldDate: date, newDate: next });
+    await expect(
+      s.attestCoverage(owner, {
+        importId: run.id,
+        expectedRows: 0,
+        reason: "Old nonempty report must not become new zero-test evidence",
+      }),
+    ).rejects.toThrow("Zero-test report evidence");
+    // Even a legacy/imported attestation newer than the correction cannot prove zero.
+    await db.stationImport.update({
+      where: { id: run.id },
+      data: { reviewedAt: new Date(Date.now() + 60_000), coverage: "OWNER_ATTESTED" },
+    });
+    expect((await p.performance(owner, { start: date, end: date })).days[0].attested).toBe(false);
+    await expect(
+      s.reconcileCount(owner, {
+        employeeId: empId,
+        date,
+        expectedVersion: 0,
+        reason: "Reject renewed legacy zero-day attestation",
+      }),
+    ).rejects.toThrow("zero-report semantics");
+    expect(await db.dailyEmission.count()).toBe(0);
+    expect(await db.stationReconciliation.count()).toBe(0);
+    // Legacy events without explicit dates also fail closed.
+    await db.auditLog.update({
+      where: { id: audit!.id },
+      data: { details: { originalId: current.id } },
+    });
+    expect((await p.performance(owner, { start: date, end: date })).days[0].attested).toBe(false);
+  });
+  it("keeps empty days in a nonempty range unverified, while allowing evidenced employee zero counts", async () => {
+    await setup();
+    const next = addDays(date, 1);
+    const run = await imported(reportFixture(date, undefined, fixtureStation, next));
+    const original = (await records())[0];
+    await review(original.id);
+    await s.attestCoverage(owner, {
+      importId: run.id,
+      expectedRows: 1,
+      reason: "Compared the nonempty report range",
+    });
+    const overview = await p.performance(owner, { start: date, end: next });
+    expect(overview.days.map((d) => d.attested)).toEqual([true, false]);
+    await expect(
+      s.reconcileCount(owner, {
+        employeeId: empId,
+        date: next,
+        expectedVersion: 0,
+        reason: "No station-day zero evidence",
+      }),
+    ).rejects.toThrow("zero-report semantics");
+    const peerUser = await db.user.create({
+      data: { name: "Synthetic peer", email: `${randomUUID()}@example.test`, role: "EMPLOYEE" },
+    });
+    const peer = await db.employee.create({ data: { userId: peerUser.id } });
+    const reconciliation = await s.reconcileCount(owner, {
+      employeeId: peer.id,
+      date,
+      expectedVersion: 0,
+      reason: "All evidenced tests belong to another mapped employee",
+    });
+    expect(reconciliation.countVersion).toBe(0);
+    const count = await db.dailyEmission.findUnique({
+      where: { id: reconciliation.dailyEmissionId },
+    });
+    expect(count?.count).toBe(0);
+    expect(count?.approvedBy).toBeNull();
+  });
   it("rejections retain only fixed diagnostics, never invalidate last successful import or fabricate zero coverage", async () => {
     await imported();
     await expect(imported(reportFixture(date, undefined, "OTHER"))).rejects.toThrow(/station/);

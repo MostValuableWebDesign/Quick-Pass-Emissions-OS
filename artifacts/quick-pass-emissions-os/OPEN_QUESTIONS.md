@@ -1,5 +1,11 @@
 # Owner decisions before operational use
 
+## Station report access and business configuration
+
+- The October 9, 2026 configured-station report was parsed live in memory (94 exported rows; ten visible sample rows matched), but no supported API/unattended-automation permission or stable report test identifiers have been established. Manual original-report mode is delivered; do not enable scraping based only on successful authentication.
+- Owner must confirm business-week start, operating hours/closures, source calendar timezone meaning, exact historical inspector attribution, outcome eligibility/prices and exceptions in Performance setup. No real business values were inferred.
+- Provider zero-test, correction, all-page/cutoff and fee/payment semantics remain unverified. Empty reports cannot prove zero; current-day/week test/revenue/gross-pay forecasts remain insufficient. See STATION_HISTORY.md.
+
 Before live Phase 5 use: confirm daily/weekly Eastern summary times, weekday, closure behavior; policy advance/escalation days and authorized regular/escalation recipients for each domain; inventory observation windows, minimum usable history, planning leads and per-unit thresholds; person responsible for missed-run/terminal-failure review and persistent scheduler/dead-man monitoring. No values are inferred from business examples. Confirm whether zero days before escalation means immediate maintenance escalation once its due instant passes.
 
 1. Who is the owner account holder, who can be general manager, and who verifies employee identity before delivering an invite?

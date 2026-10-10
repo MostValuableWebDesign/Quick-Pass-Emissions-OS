@@ -6,9 +6,9 @@
     "node": ">=22.12 <27"
   },
   "scripts": {
-    "dev": "next dev --hostname 0.0.0.0 --port ${PORT:-3000}",
+    "dev": "tsx scripts/database.ts migrate && next dev --hostname 0.0.0.0 --port ${PORT:-3000}",
     "build": "prisma generate && next build",
-    "start": "next start --hostname 0.0.0.0",
+    "start": "tsx scripts/database.ts migrate && next start --hostname 0.0.0.0",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -16,14 +16,17 @@
     "test:e2e": "node scripts/test-isolated.mjs --browser",
     "test:e2e:owned": "tsx scripts/browser-regression.ts",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
+    "db:migrate": "tsx scripts/database.ts migrate",
+    "db:check": "tsx scripts/database.ts check",
+    "db:backup": "tsx scripts/database.ts backup",
+    "db:restore": "tsx scripts/database.ts restore",
     "db:dev": "prisma migrate dev",
-    "bootstrap": "tsx scripts/bootstrap.ts",
+    "bootstrap": "tsx scripts/database.ts check && tsx scripts/bootstrap.ts",
     "seed:demo": "tsx scripts/seed.ts",
-    "jobs": "tsx scripts/jobs.ts",
+    "jobs": "tsx scripts/database.ts check && tsx scripts/jobs.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "recover-account": "tsx scripts/recover-account.ts"
+    "recover-account": "tsx scripts/database.ts check && tsx scripts/recover-account.ts"
   },
   "dependencies": {
     "@js-temporal/polyfill": "0.5.1",
@@ -35,6 +38,7 @@
     "lucide-react": "1.54.0",
     "next": "16.4.0",
     "next-themes": "0.4.6",
+    "parse5": "8.0.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "tailwind-merge": "3.7.0",

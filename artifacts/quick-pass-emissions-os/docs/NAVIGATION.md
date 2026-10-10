@@ -71,3 +71,8 @@ empty `run-tests` file in that private directory starts the same nine checks, th
 the server available for visual inspection until stopped. Never print the session files.
 An incomplete manual run also retains the private server and report for diagnosis;
 it remains a failed run and never counts missing or skipped checks as successful.
+
+The shared-main station-history module adds owner-only Performance under Overview,
+with setup and evidence detail routes. Its optional isolated browser checks remain
+available with `E2E_STATION_HISTORY=1` (eleven total checks), or
+`E2E_STATION_ONLY=1 E2E_STATION_HISTORY=1` for the single lifecycle check.

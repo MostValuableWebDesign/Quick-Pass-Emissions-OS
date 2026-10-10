@@ -50,3 +50,12 @@ Thumbs.db
 # User uploads may contain private input; do not publish new uploads automatically.
 /attached_assets/
 /generated-artifacts/
+
+# Private database backups and verification artifacts are never source code.
+**/backups/
+*.dump
+*.dump.partial
+/work/
+/.next/
+/playwright-report/
+/test-results/

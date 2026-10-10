@@ -6,6 +6,8 @@ This is Quick Pass Business OS, currently Phases 1–5. Read README, ARCHITECTUR
 
 ## Code conventions
 
+Read DATA_PERSISTENCE.md before storage, startup or environment changes. Preserve the configured persistent DATABASE_URL across code updates. Keep the storage identity and optional per-environment pin; use the guarded deploy-migration/backup/recovery scripts. Never use reset, fixture truncation, demo seeding or the scaffold Drizzle schema against business records. Builds must not modify the database. Preview and published databases may contain different data.
+
 Use strict TypeScript, Next.js App Router, React, Tailwind/CSS variables, reusable components, Prisma/PostgreSQL and Zod. Use the configured Prettier formatter. Add domain logic in src/modules; infrastructure belongs in src/lib; pages/actions coordinate services. Keep client components limited to interaction. Do not introduce vendor lock-in, proprietary storage, microservices or unnecessary global state. Pin dependencies and retain the root pnpm lockfile; use root pnpm workspace commands, not root npm ci. Keep setup portable; no hardcoded machine paths.
 
 ## Security boundaries

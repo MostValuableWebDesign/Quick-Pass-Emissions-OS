@@ -1,11 +1,15 @@
 # Quick Pass Business OS
 
+> Saved records live in persistent PostgreSQL, outside build files. Normal startup applies safe migrations and checks the storage connection. Read [DATA_PERSISTENCE.md](DATA_PERSISTENCE.md) before entering live records, changing databases or restoring backups.
+
 > This app now lives inside the shared pnpm workspace. Start with the
 > [repository README](../../README.md) for installation, builds, and normal Git
 > synchronization. The npm instructions below also apply to a standalone export
 > of this app; do not run root `npm ci` in the pnpm workspace.
 
 A PostgreSQL-backed Phases 1–5 business application for Quick Pass Emissions, Tag Renewal & Carwash. Next.js App Router, TypeScript, React, Tailwind, a shadcn-style Button primitive, Lucide, Prisma, Better Auth, and Zod. No real business records or financial balances are included.
+
+**Station performance:** the owner-only **Performance** view adds verified original-report imports, explicit identity/coverage/count review, revenue evidence separation and existing-payroll explanations. Live portal synchronization and current-day earnings forecasts remain unverified/unsupported, not simulated. Read [STATION_HISTORY.md](STATION_HISTORY.md) for secure setup, source discovery, operating instructions and limitations.
 
 ## Quick start
 

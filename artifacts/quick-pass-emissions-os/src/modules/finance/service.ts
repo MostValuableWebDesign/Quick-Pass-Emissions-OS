@@ -567,7 +567,7 @@ export async function invoiceDetail(actorId: string, key: string) {
     demo: (await tx.employee.count({ where: { demo: true } })) > 0,
   }));
 }
-async function report(tx: Tx, start: string, end: string) {
+export async function report(tx: Tx, start: string, end: string) {
   const invoices = await tx.dealerInvoice.findMany({
     where: { issueDate: { lte: end } },
     include: { dealership: { select: { name: true, code: true } }, payments: true },

@@ -1,5 +1,7 @@
 # Quick Pass Business OS — shared workspace
 
+> Saved business data persists in PostgreSQL across code updates and restarts. Read [Data persistence](artifacts/quick-pass-emissions-os/DATA_PERSISTENCE.md) for connection pinning, Replit database selection and full backup/recovery commands.
+
 This repository contains the complete Replit pnpm workspace. The business app is
 in `artifacts/quick-pass-emissions-os`, not at the repository root. The shared-main
 transition retains the original standalone and workspace histories through a

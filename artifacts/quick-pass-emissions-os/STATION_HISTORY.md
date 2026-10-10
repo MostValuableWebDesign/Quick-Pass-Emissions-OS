@@ -1,0 +1,86 @@
+# Station history and performance
+
+## Delivered access mode and verified source evidence
+
+**Manual original-report import, not live synchronization.** On October 10, 2026, authorized read-only discovery successfully used the configured credentials and station for the inclusive **October 9, 2026** Test History / VIR Reprint query. The portal's first displayed page had ten test links. Its original Excel export was actually HTML (`application/ms-excel`, `.xls`), with **94 valid rows** for that date. The application's real server parser validated all 94 rows in memory, and the six source fields of all ten displayed sample rows matched exported fingerprints. No real rows were inserted into the business application and no original export or authenticated response was saved.
+
+This establishes a working **report parser**, not a supported automated portal integration. No documented API, stable identifier guarantee, correction protocol, report cutoff, zero-test semantics, future all-page export guarantee, or unattended automation permission was established. Authentication alone is not permission to schedule scraping. No CAPTCHA/MFA bypass, destructive tests, other-station queries, analyzer calls or record changes were attempted. There is no portal adapter, saved portal session, refresh scheduler or authenticated portal URL in application responses.
+
+The observed export contains:
+
+- `Waiver Date`: inclusive `MM/DD/YYYY - MM/DD/YYYY`; `Station ID`.
+- `VIN`, `License Plate`, `Test Date`, `Issued By`, `Cert Number`, `Result`, and a print-action column.
+- Minute-resolution local display timestamps with AM/PM. **No timezone/offset**. Normalized calendar dates are inferred until the owner explicitly confirms their New York business-date meaning. No UTC instant or disambiguated DST timestamp is fabricated.
+- Exact display-name labels in `Issued By`, **not inspector IDs**. `Abort`, `Fail`, `Pass` were observed, not assigned automatic financial/commission meanings.
+- **No fee, receipt, bank settlement, dealership or payment evidence.**
+
+On-page detail links contain a source identifier that the export omits. Certificates and VINs are not assumed unique test IDs. The report mode cannot preserve identifiers that the source report does not supply. It does preserve certificate/outcome/inspector/local-time evidence separately from owner classification and inferred dates.
+
+## Secure setup (development)
+
+Keep `GA_DASHBOARD_USERNAME`, `GA_DASHBOARD_PASSWORD`, and `GA_STATION_ID` in Replit Secrets. Only the server reads station configuration; the application never returns station-secret values or credentials. The chosen manual mode requires `GA_STATION_ID`; username/password are reserved for separately authorized discovery and are **not consumed during normal application imports**.
+
+The additive `202610100007_station_history` migration follows the six unchanged existing migrations. Do not reset the database or replace existing payroll/finance tables. Generate Prisma and apply development migrations using the established project command:
+
+```sh
+pnpm --filter @workspace/quick-pass-emissions-os db:generate
+pnpm --filter @workspace/quick-pass-emissions-os db:migrate
+```
+
+These instructions are **for the development database only**. No production deployment/migration is part of this delivery. Use the documented, separately approved publishing process for production; do not run startup DDL or add migration build hooks.
+
+Open **Performance → Setup & imports** as the active owner:
+
+1. Confirm an effective date, ISO business-week start, each day's operating hours, observation window and minimum usable days. No hours/week start, wage, threshold, price, eligibility or overtime rule is inferred. Omitted weekdays mean explicitly closed. Overnight shifts must be split by business date. Existing **Settings** supplies closures.
+2. Confirm source calendar dates correspond to America/New_York before reconciling counts. Provider timezone remains unverified; the owner confirmation is recorded rather than represented as provider documentation.
+3. Add exact inspector-label → employee mappings and effective-dated outcome eligibility/retail prices in **integer cents**, with reasons. These are owner-approved settings, not illustrative business defaults.
+4. Use the existing payroll policy and compensation controls for wages/thresholds, actual payroll periods and independently approved **worked** time. Scheduled shifts never become payroll time.
+
+## Import, identity review, coverage and recovery
+
+1. In the portal, enter inclusive business dates and the configured station only; clear any VIN/certificate/plate/waiver filters. Compare all page counts. Export the original `.xls`, not a transformed CSV or invented template.
+2. Import original report files of at most 2 MB. Changed columns, missing station/date metadata, binary Excel, invalid/out-of-range timestamps, wrong station, missing evidence or indistinguishable duplicates **fail explicitly**. An empty report is rejected because its zero-test meaning is unverified; absence of files/rows is never certified as zero.
+3. Exact row fingerprints are skipped across repeats, concurrent and overlapping imports. Each new row starts **pending identity**, even when an exact inspector mapping exists. Review each row as a genuinely distinct test or explicitly link it as a correction. Do not treat matching VIN/time/name/certificate as proof. A report containing multiple indistinguishable rows requires a better source with stable IDs; it cannot safely be collapsed.
+4. Linking a correction requires the incoming and original record versions plus a reason. It appends a revision, supersedes the incoming placeholder and returns the original to pending review. Old fingerprints stay retained, so reimporting an old file does not revive its previous state. If VIN information changed, use the explicit verified-original ID/version form, not automatic matching.
+5. Existing records keep their historical attribution. New mappings do not rewrite them. Use the explicit reattribute review checkbox, with reason, to reapply the exact mapping effective on the source date. Unmapped raw labels remain visible without guessed employee names.
+6. After importing **every** page/file and resolving identities/corrections, compare the portal's total with the **combined distinct confirmed current records for the range**, then attest a successful import's range. This is visibly **owner-attested report coverage**, never a complete live query. File row counts alone are not proof; the attestation rejects mismatched totals and unresolved identities. Review again if new source revisions arrive after the attestation. The same form permits renewed attestation.
+7. New/partial/failing imports never delete absent records or silently invalidate/overwrite history. Source revisions arriving after coverage review make the affected days incomplete. Last successful import is preserved even after many failures; it is not a last successful live sync. Recent attempts show safe errors, inserted/repeat counts and server elapsed time. The UI shows live elapsed upload time and historical duration bounds when known, qualified by sample count/report size; portal query duration and future completion time are unknown.
+
+Imports are bounded synchronous database transactions, not background jobs. A connection/commit failure produces a failed attempt when the database is available; the transaction cannot partially insert records. Retrying an uncertain submission is safe because fingerprints deduplicate committed rows. An unavailable database cannot persist its own failure. There is no cancellation/retry scheduler or query-page worker in manual mode. Do not equate the on-screen timer with scheduled execution.
+
+Raw HTML, full VINs, plates, credentials, portal cookies, viewstate and authenticated detail URLs are never persisted by ingestion. Full VIN is used transiently for an opaque matching hash; only the last four characters are displayed/retained as vehicle text. Necessary source labels/times/results/certificates, revisions, import digests and reasons are retained. Uploaded HTML is parsed as inert text, never rendered/executed.
+
+## Personal count reconciliation and approval
+
+After an ended business day has current owner-attested coverage and every row's identity, mapping and eligibility is resolved, choose an employee/day and explicitly **replace** its count. This is not additive ingestion.
+
+- The existing unique employee/day count, optimistic version, audit, source reference and payroll freeze checks remain. Existing source references are retained with a separate station reconciliation/evidence link.
+- Reconciliation records the current record/revision/version set and reason, increments the personal count version and clears its approval.
+- Existing independent approval is mandatory. An owner who prepared the replacement **cannot approve it**; an authorized different owner/admin must approve in Payroll.
+- Approved/drafted payroll freezes reject replacements. Return a draft through the established workflow before attempting allowed source edits; never rewrite approved snapshots.
+- Later source/attribution/eligibility changes flag reconciliation **needs review**, but do not touch the approved personal count or immutable payroll. Reconcile again explicitly only when the payroll period is open. Repeated explicit replacements can clear approval again; this is disclosed, not a background side effect.
+- Reports lacking proved zero semantics cannot establish employee/day zeros for absent records. A fully reviewed nonempty station day can establish zero eligible tests for an explicitly selected employee.
+
+## Revenue and payroll explanations
+
+Station recorded tests, pending identities, price-derived estimates, existing approved dealership invoices and money received are separate. A confirmed `RETAIL` test with a matching owner-approved effective price contributes an **estimate**, not collected cash. No matching rule or unresolved disposition is unresolved, not zero. The outcome rule's date, price, eligibility and reason appear in evidence.
+
+Retests/no-charge/failed/abort/void exceptions must be explicitly classified using owner evidence; source outcomes do not automatically mean collected fees. `EXCLUDED`, `DEALER` and `FINANCE` classifications do not contribute a retail estimate. Dealership links require same-date unvoided service capacity; manual finance links require same-date, unvoided actual revenue and cannot be allocated twice. Linked evidence remains subject to existing invoice approvals and signed receipt/reversal behavior. Voiding existing evidence never silently changes station history. Existing finance totals are clearly labelled **global business register**, not station-specific payments, and never summed with station estimates. There is no profit/complete-accounting claim.
+
+Daily commissions use the existing exact-cent `commissionCents` and the effective employee/day eligibility, rate and daily threshold. A weekly screen **does not introduce a weekly threshold**. Period views use the existing actual payroll periods and `hourlyCents`, rounding base pay once for the entire period; each daily effective policy is applied as in payroll. A future period-based rule must be added to the shared calculation services, not independently reset in this dashboard.
+
+Pay shows live provisional explanations and immutable approved payroll-line snapshots separately. No approved worked-time input, no completeness attestation, missing source approvals/policies, or a crossed pay-arrangement change means **Incomplete**, not assumed pay. Partial daily views do not repeat a full base amount per day. Approved historical snapshots remain available even when current employee status changes.
+
+## Projections, dates, security and exports
+
+Today and This Week use America/New_York and the owner's effective week boundary; custom dates are inclusive, at most 367 days, with future queries rejected. Station totals remain station-wide when employee records/pay are filtered. Unknown/uncovered ranges remain explicitly incomplete.
+
+Observation history includes only ended owner-attested, completely reviewed days with an effective schedule and nonzero confirmed operating time. Closures contribute no operating time. Eastern DST boundaries use actual elapsed minutes. The test-rate primitive adds only remaining expected work to performed work and requires sufficient positive history/current coverage. **Manual reports have no verified current cutoff, so current-day/current-week test, revenue and gross-pay forecasts deliberately remain Insufficient data.** Completed historical ranges show completed performed totals, not forecasts. Employee forecasts additionally lack justified work allocation and approved future-time inputs. No projected commission threshold, wage, collected cash or profit is invented.
+
+Every service read/write/import/attestation/reconciliation/export takes the existing personnel/Phase2–5 locks, rechecks the actor's current **active OWNER** role, then the station lock. Pages/actions use existing Better Auth and current-user checks too. Employees, admins and bookkeepers receive no station/peer-pay/vehicle/finance access through these new routes, regardless of navigation state; existing separately authorized finance/payroll behavior is unchanged. Export is independently guarded and audited, includes all filtered rows (no list cap), minimized vehicles, explicit unverified local time/revision and report-not-live coverage, signed integer cents and CSV formula escaping. It is private/no-store.
+
+## Verification and remaining gates
+
+See [VERIFICATION.md](VERIFICATION.md) for exact completed commands, browser results and publication evidence. Synthetic tests use disposable `_test` databases and native authenticated private fixtures, never actual business/portal records. Earlier migration bytes and approved sentinel snapshots are retained. Generated/source-sensitive outputs stay out of Git and the Library.
+
+Before enabling unattended access, obtain documented provider permission and a supported API/report with stable identities, pagination/total guarantees, authentication expiry behavior, timezone/cutoff and fee/payment semantics. Then live-verify a limited authorized query. A real scheduler, dead-man monitoring and messaging require separate approved setup. This delivery does not provision them.

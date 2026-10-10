@@ -9,6 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { assertCompleteReport, assertOwnedDatabase } from "./e2e-safety.mjs";
 import { navigationFixtures } from "./navigation-fixtures";
+import { stationBrowserFixture } from "./station-browser-fixtures";
 
 const app = process.cwd();
 let server: ChildProcess | undefined;
@@ -59,7 +60,22 @@ async function privatePort() {
 }
 function start(command: string, args: string[], env: NodeJS.ProcessEnv) {
   // Never relay framework, request, or Playwright logs that might contain auth state.
-  const child = spawn(command, args, { cwd: app, env, detached: true, stdio: "ignore" });
+  const child = spawn(command, args, {
+    cwd: app,
+    env,
+    detached: true,
+    stdio: ["ignore", "ignore", "pipe"],
+  });
+  child.stderr?.on("data", (chunk: Buffer) => {
+    // Classify in memory; no raw framework/driver response is saved or relayed.
+    const text = chunk.toString();
+    for (const [fragment, label] of [
+      ["Invalid Server Actions request", "Server action origin validation rejected the request."],
+      ["PrismaClient", "Database operation failed in the private preview."],
+      ["File is not defined", "Private preview lacks File decoding support."],
+    ])
+      if (text.includes(fragment)) console.error(label);
+  });
   child.on("error", () => {
     interrupted = true;
   });
@@ -113,6 +129,7 @@ async function main() {
     E2E_STORAGE_STATE: state,
     // NixOS workspace Chromium; other machines may use Playwright's installed browser.
     E2E_CHROMIUM_PATH: process.env.E2E_CHROMIUM_PATH ?? "/repl/tools/bin/chromium",
+    ...(process.env.E2E_STATION_HISTORY === "1" ? { GA_STATION_ID: "SYNTHETIC" } : {}),
   };
   db = new PrismaClient();
   stage = "private owner fixture";
@@ -121,6 +138,7 @@ async function main() {
   const user = await db.user.create({
     data: { name: "Regression Owner", email, role: "OWNER", emailVerified: true },
   });
+  stage = "owned credential setup";
   await db.account.create({
     data: {
       id: randomUUID(),
@@ -133,6 +151,11 @@ async function main() {
   const fixtures = await navigationFixtures(db, password, user.id, (value) => {
     stage = value;
   });
+  stage = "owned station fixture configuration";
+  const station =
+    process.env.E2E_STATION_HISTORY === "1"
+      ? await stationBrowserFixture(db, user.id, temporary)
+      : undefined;
   server = start(
     "pnpm",
     ["exec", "next", "dev", "--hostname", "0.0.0.0", "--port", String(port)],
@@ -215,7 +238,7 @@ async function main() {
   const fixturePath = path.join(temporary, "navigation.json");
   await writeFile(
     fixturePath,
-    JSON.stringify({ baseURL, directory: temporary, records: fixtures.records }),
+    JSON.stringify({ baseURL, directory: temporary, records: fixtures.records, station }),
     { mode: 0o600 },
   );
   if (process.env.E2E_MANUAL_TEST === "1") {
@@ -315,9 +338,16 @@ async function main() {
   }
   if (status !== 0 || interrupted)
     throw new Error("Signed-in browser regression failed; sensitive diagnostics were not printed.");
-  assertCompleteReport(report, 9);
+  assertCompleteReport(
+    report,
+    process.env.E2E_STATION_ONLY === "1" ? 1 : process.env.E2E_STATION_HISTORY === "1" ? 11 : 9,
+  );
   console.log(
-    "Passed: 9 signed-in browser checks, including four-role desktop/mobile navigation, return context, history, authorization and vendor persistence; no skips.",
+    process.env.E2E_STATION_ONLY === "1"
+      ? "Passed: 1 targeted station lifecycle check; no skips."
+      : process.env.E2E_STATION_HISTORY === "1"
+        ? "Passed: 11 signed-in browser checks including station report review, reconciliation, coverage, export and access restrictions; no skips."
+        : "Passed: 9 signed-in browser checks, including four-role desktop/mobile navigation, return context, history, authorization and vendor persistence; no skips.",
   );
   if (process.env.E2E_MANUAL_TEST === "1") {
     console.log("Private browser checks completed; preview remains available for visual review.");
@@ -340,6 +370,15 @@ main()
       /^(TypeError|PrismaClientValidationError|PrismaClientUnknownRequestError)$/.test(name)
     )
       console.error(`Sanitized failure class: ${name}.`);
+    // Local source positions only; never serialize exceptions, URLs or request state.
+    if (error instanceof Error) {
+      const positions =
+        error.stack?.match(
+          /(?:src\/modules\/station\/[\w-]+\.ts|scripts\/station-browser-fixtures\.ts):\d+:\d+/g,
+        ) ?? [];
+      if (positions.length)
+        console.error(`Owned station fixture source positions: ${positions.join(", ")}`);
+    }
     process.exitCode = 1;
   })
   .finally(async () => {

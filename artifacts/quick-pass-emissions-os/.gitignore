@@ -9,3 +9,6 @@ test-results/
 coverage/
 work/
 outputs/
+backups/
+*.dump
+*.dump.partial

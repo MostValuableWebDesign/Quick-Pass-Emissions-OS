@@ -1,5 +1,75 @@
 # Verification and handoff status
 
+## Station history and performance — October 10, 2026
+
+The existing Next/Prisma/Better Auth artifact now has owner-only Performance, original-report imports, evidence/identity/correction review, historical mapping, effective-dated pricing/calendar settings, explicit replacement reconciliation and actual-period payroll explanations through the shared exact-cent period engine. Phases 1–5, existing unique daily counts, independent approval and frozen snapshots remain intact. Original migrations 001–006 match the retained baseline byte-for-byte; 007 is additive and was applied to the confirmed **development** database only. No real portal rows were persisted and no production migration/deployment was performed.
+
+**Live evidence:** authorized read-only configured-station October 9 query exported 94 rows; the actual inert HTML `.xls` parser accepted them in memory and all ten visible first-page samples matched their export cells. This establishes the working original report format, not an API/all-page/zero/payment/timezone/automation contract. No credentials, session files, full VINs, plates or sensitive report bodies are in source or browser payloads. See STATION_HISTORY.md for the exact limitations and manual operations.
+
+**Passing checks:** `pnpm --filter @workspace/quick-pass-emissions-os test:isolated` passed **19 files / 189 tests / zero skips** in a disposable database, retained approved payroll/invoice/signed reversal migration sentinels and removed that database. Includes protected File/FormData action input, concurrency/repeats/corrections, coverage, mapping history, independent approval/freezes, exact cents/actual periods/missing worked time, finance allocation, role/deactivation, inclusive/DST bounds and insufficient projections. Artifact `typecheck`, `lint`, `format:check` and standard `build` passed; production builder was Next 16.4 Turbopack with all new routes successfully compiled. No alternate builder is claimed.
+
+**Private browser evidence, not a falsely green suite:** one combined 11-check attempt had five test-harness assertion failures (three permission probes followed legitimate denial redirects; week history was read before navigation completed; repeat upload omitted its required reason after React reset). Native private sign-in/unrelated-origin rejection passed. Targeted continuation verified repeat upload, wrong-station rejection, evidence review, coverage attestation and daily-count reconciliation with approval still required. Its terminal money assertion expected `$25.01` instead of the actual `$25.01 USD`; that selector is now corrected. No final 11/11 rerun is claimed. Independent private authenticated HTTP checks on an owned fixture confirmed Performance HTTP 200, the actual `$25.01 USD` display, missing-payroll-period/confirmed-evidence state and full CSV HTTP 200 with one data row, minimized vehicle and private/no-store headers. Desktop 1280×720/mobile 390×844 captures of Performance/setup rendered with no measured document overflow; those original captures were empty-state views, not evidence of imported-row persistence. A non-blocking development caret-color hydration warning and resource 404 were observed.
+
+**Workspace limitation:** root `pnpm run typecheck` fails in the unchanged Canvas artifact `artifacts/mockup-sandbox/vite.config.ts:36–37` with TS2769 Vite plugin type incompatibility. Quick Pass's own typecheck and production build pass. No Canvas dependency/library change or unrelated accessibility/legacy approval task was implemented.
+
+**Publication:** normal shared-main publication is recorded at task completion after credential/session/export/generated-artifact inspection. Source publication is not production deployment. Required owner business configuration and provider-approved unattended integration remain operational gates, not guessed defaults.
+
+**Newer shared source preserved:** incoming shared commit `1227fe8` added the independent durable-storage work during this task. It was joined by a normal merge, retaining both original migration-007 directories and all storage checks rather than replacing either branch. Final combined verification passed **21 files / 199 tests / zero skips**, with Phase 4→Phase 5 + storage + station sentinel preservation and disposal of only the owned test database. The combined artifact's typecheck, lint, formatting and standard Turbopack production build passed. Published storage-migration bytes match the incoming commit. The development storage migration was applied through its new guarded operator command; no business records were seeded, cleared or imported, and no production operation was performed.
+
+## Persistent data across releases — October 10, 2026
+
+Pulled the complete shared pnpm workspace through `9d9ec90` before these changes. Saved
+business records already used Prisma/PostgreSQL; added guarded startup/migrations, permanent
+storage identity and optional per-environment pin, full private backup/empty-target restore,
+owner-only storage information, and corrected conflicting scaffold/standalone instructions.
+Migration 007 adds only the storage marker. Migration files 001–006 are unchanged.
+
+Verified locally with Node 26.8.2, pnpm 10.26.1, PostgreSQL 18 and PostgreSQL client tools 18.6:
+
+- Root `pnpm install --frozen-lockfile` and full workspace `pnpm run typecheck` passed.
+  App `npm run typecheck`, `npm run lint`, `npm run format:check` and `git diff --check` passed.
+- **18 Vitest files / 150 tests passed, zero skipped**, using newly created disposable `_test`
+  databases. Storage tests cover repeat migrations/new connections, wrong/missing database pin,
+  owner role/deactivation rechecks, full all-table backup/restore digest equality (including
+  credential/migration/history tables), file permissions, refusal of the current/nonempty
+  target, invalid archives, public/build-directory refusal and incomplete-backup cleanup.
+  Isolated runner environments explicitly clear inherited business storage pins, backup
+  directories and recovery targets while keeping their generated test URL. An actual prior-release fixture
+  applies migrations 001–006, retains its profile/audit records, refuses migration 007 when
+  the configured backup fails, then successfully backs up/upgrades and repeats without
+  another backup. Only run-owned temporary databases were dropped.
+- **Standard `npm run build` (Turbopack) passed.** The final build also passed with an
+  unreachable test database URL, confirming build generation needs no database write.
+- A separate private Chromium check ran the real production build/start scripts on a disposable
+  local database. Native sign-in happened outside captured browser forms. An owner saved an
+  employee through the UI, stopped the server, ran a fresh production build, restarted using
+  the same pinned database and existing browser session, and verified the employee record
+  was byte-equivalent and visible, with the same storage ID. Owner Settings was checked on
+  desktop and at 390px without horizontal overflow. This is one focused local persistence
+  workflow; it is not a rerun of all previous browser scenarios or a Replit deployment test.
+- The Replit lockfile excludes macOS native build/test bindings. Matching exact-version local
+  binaries were supplied only in ignored verification files; no dependency/lockfile or
+  platform override was changed. Private credentials, dumps, database files, screenshots and
+  runners remain ignored and were not published.
+
+The production-only **workspace** dependency audit reports three pre-existing advisories:
+`deepmerge-ts` 7.1.5 (high) through the scaffold Drizzle → Prisma configuration tool chain;
+`source-map-js` 1.2.1 (high) through Better Auth's optional Vitest/Vite/PostCSS peer chain; and
+`proxy-addr` 2.0.7 (critical) in the separate Express scaffold. The business app does not import
+Vitest/source-map processing in request handlers, Prisma configuration processes trusted
+operator files, and the Express scaffold does not enable `trust proxy` or use trusted proxy
+subnet checks. No affected attacker-controlled request path was established by this review;
+these advisories remain open, not clean or patched. Dependencies were not changed in this
+storage-focused work. Do not enable proxy trust without reviewing/patching that chain.
+
+**Remaining setup:** no real Replit database, production migration, deployment, managed backup
+service, encryption service, persistent backup directory or production restore drill was
+configured. Keep each environment's DATABASE_URL stable, record/pin its storage ID and configure
+provider backups. Development preview and published data can be separate. Optional local
+pre-migration backups require DATA_BACKUP_DIR and matching PostgreSQL tools; they are not a
+scheduled backup after every Save. Existing deleted/rolled-back data requires a prior database
+backup or provider recovery. See DATA_PERSISTENCE.md for precise setup and commands.
+
 ## Phase 5 — October 10, 2026 (America/New_York)
 
 The reviewed GitHub Phase 4 baseline was imported into the existing artifact and both unrelated histories were joined using a normal history-preserving merge after content integration. Newer workspace/authentication security changes remain. Every migration 001–005 was compared byte-for-byte with the reviewed standalone baseline; additive migration 006 supplies the new persistence. The development workspace applied migrations 005 and 006 normally; no production database or production deployment was touched.
@@ -109,3 +179,9 @@ Desktop and mobile now share one role-filtered navigation definition, with Overv
 - Browser writes and sign-ins used a separately bound disposable server and owned test database, not business data. Private credentials, states and caches were cleaned up, and the managed preview was restarted.
 
 See `docs/NAVIGATION.md` for maintenance and verification commands.
+
+### Final shared-main reconciliation
+
+The newer station-history and persistent-storage changes were retained, including the owner-only Performance menu destination and its setup/evidence pages. The verified focus-cycle fix, role-safe record links, explicit streamed-denial checks and empty legacy Bookkeeper Tasks contract were kept when resolving overlapping navigation/testing changes.
+
+After installing the committed locked dependencies and regenerating the updated Prisma client, the merged application's isolated suite passed **202 tests in 22 files, with no skips**. The upgrade check retained approved payroll, approved invoice and signed reversal snapshots through the storage/station migrations. Typecheck, ESLint, Prettier and the webpack production build also passed on the merged source. The nine browser checks described above verified the navigation flows before this final reconciliation; no additional full browser run is claimed here.

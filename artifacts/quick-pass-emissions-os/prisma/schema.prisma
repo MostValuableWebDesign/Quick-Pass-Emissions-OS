@@ -5,6 +5,12 @@ datasource db {
   provider = "postgresql"
   url = env("DATABASE_URL")
 }
+// Created once by a migration, retained across releases and database backups.
+model DataStore {
+  id String @id @default("business")
+  instanceId String @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt DateTime @default(now())
+}
 enum Role {
   OWNER
   ADMIN
@@ -801,6 +807,116 @@ model FinanceEntry {
   version Int @default(0)
   createdAt DateTime @default(now())
   @@index([date])
+}
+
+// Station history: manual report evidence, never a live portal completeness claim.
+model StationImport {
+  id String @id @default(cuid())
+  stationHash String
+  digest String
+  startDate String
+  endDate String
+  status String
+  rows Int @default(0)
+  inserted Int @default(0)
+  duplicates Int @default(0)
+  elapsedMs Int @default(0)
+  coverage String @default("PARTIAL")
+  reason String
+  error String?
+  createdBy String
+  createdAt DateTime @default(now())
+  reviewedAt DateTime?
+  revisions StationRevision[]
+  @@index([stationHash,startDate,endDate])
+}
+model StationRecord {
+  id String @id @default(cuid())
+  stationHash String
+  state String @default("PENDING")
+  version Int @default(1)
+  currentRevisionId String?
+  employeeId String?
+  mappingId String?
+  disposition String @default("UNRESOLVED")
+  eligible Boolean?
+  dealerServiceId String?
+  financeEntryId String?
+  reason String @default("")
+  revisions StationRevision[]
+  @@index([stationHash,state])
+}
+model StationRevision {
+  id String @id @default(cuid())
+  stationHash String
+  fingerprint String
+  recordId String
+  record StationRecord @relation(fields:[recordId],references:[id],onDelete:Restrict)
+  importId String
+  import StationImport @relation(fields:[importId],references:[id],onDelete:Restrict)
+  sourceDate String
+  businessDate String
+  inspector String
+  outcome String
+  certificate String
+  vehicleSuffix String
+  vehicleHash String
+  observedAt DateTime @default(now())
+  @@unique([stationHash,fingerprint])
+  @@index([businessDate])
+}
+model StationMapping {
+  id String @id @default(cuid())
+  stationHash String
+  inspector String
+  effectiveDate String
+  employeeId String
+  reason String
+  createdBy String
+  createdAt DateTime @default(now())
+  @@unique([stationHash,inspector,effectiveDate])
+}
+model StationRule {
+  id String @id @default(cuid())
+  stationHash String
+  outcome String
+  effectiveDate String
+  eligible Boolean
+  priceCents Int
+  reason String
+  createdBy String
+  createdAt DateTime @default(now())
+  @@unique([stationHash,outcome,effectiveDate])
+}
+model StationSetting {
+  id String @id @default(cuid())
+  stationHash String
+  revision Int
+  effectiveDate String
+  weekStart Int
+  hours Json
+  observationDays Int
+  minimumDays Int
+  sourceTimezoneConfirmed Boolean @default(false)
+  reason String
+  createdBy String
+  createdAt DateTime @default(now())
+  @@unique([stationHash,revision])
+  @@unique([stationHash,effectiveDate])
+}
+model StationReconciliation {
+  id String @id @default(cuid())
+  stationHash String
+  employeeId String
+  date String
+  dailyEmissionId String
+  countVersion Int
+  evidenceHash String
+  evidence Json
+  reason String
+  createdBy String
+  createdAt DateTime @default(now())
+  @@index([stationHash,employeeId,date])
 }
 
 // Phase 5 configurations retain every revision. No external channel exists.

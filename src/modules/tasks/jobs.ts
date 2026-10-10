@@ -1,5 +1,6 @@
 import { db } from "../../lib/db";
 import { businessDate, addDays, dueInstant } from "../../lib/time";
+import { generateMaintenance } from "../maintenance/jobs";
 import { occursOn } from "./recurrence";
 export async function runJobs(now = new Date()) {
   const run = await db.jobRun.create({ data: {} });
@@ -84,6 +85,7 @@ export async function runJobs(now = new Date()) {
           },
           data: { resolvedAt: now },
         });
+        count += await generateMaintenance(tx, now, settings.operatingDays, closed);
         await tx.jobRun.update({
           where: { id: run.id },
           data: { status: "SUCCESS", completedAt: now, generated: count },

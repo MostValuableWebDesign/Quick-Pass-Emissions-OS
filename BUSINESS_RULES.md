@@ -2,7 +2,7 @@
 
 ## Business facts
 
-Quick Pass has emissions testing, a tag renewal kiosk and six carwash/detailing bays. Phases 1–2 manage responsibilities and internal payroll/inventory preparation; it does not replace the state-certified analyzer, official emissions reporting, payroll processing or accounting records. Known employee names and historical compensation figures are context only. There is no live kiosk, analyzer, dealer, payroll or bank API integration.
+Quick Pass has emissions testing, a tag renewal kiosk and six carwash/detailing bays. Phases 1–3 manage responsibilities, payroll/inventory preparation, carwash maintenance and rental records; the app does not replace the state-certified analyzer, official emissions reporting, payroll processing or accounting records. Known employee names and historical compensation figures are context only. There is no live kiosk, analyzer, dealer, payroll or bank API integration.
 
 ## Calendar and recurrence
 
@@ -37,3 +37,7 @@ See [PHASE2.md](PHASE2.md). Rates, compensation arrangements, eligibility, perso
 All money is integer USD cents with exact BigInt calculation intermediates. Base hourly compensation uses separately approved worked minutes, rounded half up per employee/period. Fixed compensation is an explicitly configured per-period amount. Commission policies are selected per employee/day. Drafts snapshot approved sources and freeze edits; approved payroll is immutable. Corrections require reasons, source reapproval, and a new draft revision after a separate reviewer returns the draft. No overtime, tax, withholding, amended-payroll, automatic payment or processor-specific export logic is claimed.
 
 Inventory is unknown until physically reconciled. Every stock movement retains history and a unique source reference. Concurrent usage and receipt are serialized, negative stock and excess receipts fail closed. Forecasts are estimates from entered usage, not proof of official totals. Purchase requests need a different authorized approver; only confirmed physical receipt changes ordered stock. No order submission, ACH, official analyzer calls or bank integration exists.
+
+## Carwash and rental integrity
+
+Read PHASE3.md. Three self-service and three detailing bays require owner-confirmed identifiers and inspected condition. Outage intervals measure recording time, not inferred historical downtime. Chemical stock is unknown before a physical count and uses whole declared units without automatic conversion. Employee maintenance reads exclude cost, vendor and manager history; submission goes to manager review. Scheduled maintenance uses Eastern due instants, configured open days/closures, unique occurrences and persisted bounded catch-up. No generated ticket is rewritten by schedule edits. Rental terms require owner authorization; inclusive agreements cannot overlap. Full-calendar-month charges retain authorized snapshots; payments/reversals use exact cents and unique references. Amounts are entered records, not bank reconciliation, automated collection or verified profit.

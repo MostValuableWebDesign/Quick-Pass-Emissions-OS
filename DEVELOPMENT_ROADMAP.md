@@ -12,9 +12,9 @@ Small follow-ups within Phase 1, not claimed as delivered: richer multiple-certi
 
 Implemented: owner-authorized effective-dated pay/commission configuration; approved personal emissions counts; duplicate-safe imports; approved worked-minute inputs and completeness attestation; nonoverlapping payroll periods; exact-cent drafts, retained revisions, independent approval and approved CSV export. Certificate movement ledger, versioned physical reconciliation, consumption/void entries, estimated depletion/reorder banner, purchase request/approval, recorded external orders and partial receipts. See PHASE2.md and VERIFICATION.md for verified behavior and limits. No automatic wage payments, tax engine, ACH or official analyzer integration. Publication/deployment and real owner configuration are separate.
 
-## Phase 3 — carwash and maintenance (not implemented)
+## Phase 3 — carwash and maintenance (implemented locally)
 
-Six bays, equipment registry, downtime events, corrective/preventative work, vendors, chemicals and detailing rentals. Verified contact/contract data only. Optional secure photo storage requires a configured provider and authorization design.
+Implemented: owner-confirmed three self-service/three detailing bays, condition/responsibility and downtime history; equipment and verified vendor registers; employee issue reporting, assigned work and manager review; corrective tickets and independently scheduled preventative tickets; chemical stock ledger/low-stock dashboard; owner-authorized rental terms, nonoverlapping contracts, monthly charge snapshots, received payments, reversals and unpaid voids. Read PHASE3.md and VERIFICATION.md for exact semantics, permissions, full-month rental limits, verification and deployment status. Actual records require owner/staff configuration. Optional secure photo storage remains deferred until a configured provider and authorization design exist.
 
 ## Phase 4 — dealerships and finance (not implemented)
 
@@ -24,4 +24,4 @@ Dealership accounts, invoice line items, approval and payment records, aging, op
 
 Owner summaries, maintenance/certification reminders, forecasting, receivables reminders and analytics. Reuse job locking, idempotency and audit patterns. Add persistent queues/outbox only when requirements justify them.
 
-Phases 3–5 require explicit user authorization before implementation.
+Phases 4–5 require explicit user authorization before implementation.

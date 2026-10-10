@@ -32,10 +32,18 @@ The scheduler takes a transaction-scoped PostgreSQL advisory lock and creates in
 
 PayArrangement, CommissionPolicy, DailyEmission, PayrollPeriod/Input/Draft/Line and CertificateSetting/Stock/Movement/Purchase are added in versioned migrations, including check constraints for money, quantity and approval-pair bounds. Payroll drafts retain JSON calculation evidence plus relational exact-cent line items. Source corrections preserve previous values in audit and invalidate approval. Active period overlap is checked while holding the shared lock; cancelled period history remains. Inventory stock is a balance cache updated atomically with an append-only application ledger. Trusted database operators can still modify data directly; independent tamper-proof logging is not claimed.
 
-Read PHASE2.md for calculation semantics, roster completeness boundaries, locking, approvals and operational limits. Existing Phase 1 migrations are unchanged. Maintenance, receivables, regulated integrations, external storage and advanced automation remain separate future domains.
+Read PHASE2.md for calculation semantics, roster completeness boundaries, locking, approvals and operational limits. Existing Phase 1 migrations are unchanged. Receivables, regulated integrations, external storage and advanced automation remain separate future domains.
 
 ## References
 
 The implementation uses the official [Better Auth Prisma adapter](https://better-auth.com/docs/adapters/prisma), [database/session model](https://better-auth.com/docs/concepts/database), and [security guidance](https://better-auth.com/docs/reference/security). Framework behavior follows [Next.js App Router documentation](https://nextjs.org/docs/app). Exact package versions are pinned in package.json and package-lock.json.
 
 Phase 2 transaction boundaries follow [PostgreSQL advisory-lock semantics](https://www.postgresql.org/docs/current/explicit-locking.html#ADVISORY-LOCKS); the application uses the pinned Prisma 6 client API, not newer ORM API examples.
+
+## Carwash, maintenance, chemicals and rentals
+
+`src/modules/maintenance` owns registries, role-scoped issue/work services and preventative generation. `src/modules/chemicals` owns exact-unit stock and movement history. `src/modules/rentals` owns owner-authorized terms, full-month snapshots, payments and reversals. `src/modules/phase3.ts` provides a separate advisory-lock transaction and fresh role/active check. Phase 2 services and locks remain intact. `phase3-actions.ts` supplies the authenticated actor; no browser role or actor ID is trusted.
+
+Migration 004 adds relational bay/equipment/vendor/ticket/event/plan/downtime, chemical item/movement and rental agreement/charge/payment entities. Check constraints bound quantities/cents and enforce target/sign consistency. Partial unique indexes permit only one open outage per target. Standard `btree_gist` plus an inclusive date-range exclusion prevents overlapping noncancelled contracts, including direct writes. Notification gains an optional maintenance FK for employee ownership filtering and links. There is no object/file upload subsystem.
+
+The existing observable scheduler transaction takes the job lock followed by Phase 3's lock, generates unique preventative occurrences with a persisted bounded catch-up cursor, and reconciles scoped overdue alerts. Domain mutations never take the job lock, avoiding reverse lock order. Services select an explicit employee-safe ticket shape before returning data; manager cost/history/vendor fields are omitted in SQL. Register edits, movement versions and payment checks serialize before audit commits. See PHASE3.md for workflows and limitations.

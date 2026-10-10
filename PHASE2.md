@@ -37,6 +37,6 @@ Lists show the latest 100 records (and 100 of each configuration type). All hist
 
 ## Deployment and verification
 
-Read VERIFICATION.md for actual results. Apply all three version-controlled migrations with `npm run db:migrate`; never reset business data. Configure real owners/approvers, current compensation, attribution, periods, export mapping, actual opening inventory and ordering terms before live use. Keep production, demo and `_test` databases separate. Existing Phase 1 scheduling/backup requirements still apply.
+Read VERIFICATION.md for actual results. Apply all version-controlled migrations (including Phase 3 migration 004 when using this complete source) with `npm run db:migrate`; never reset business data. Configure real owners/approvers, current compensation, attribution, periods, export mapping, actual opening inventory and ordering terms before live use. Keep production, demo and `_test` databases separate. Existing Phase 1 scheduling/backup requirements still apply.
 
 The generic Next.js production command remains `npm run build`. This host blocks Turbopack's CSS-worker port binding; `npm run build -- --webpack` uses the supported alternate builder for local verification. On hosts where Turbopack works, the ordinary build is unchanged.

@@ -33,6 +33,7 @@ enum Frequency {
   ANNUAL
 }
 model User {
+  maintenanceReports MaintenanceTicket[] @relation("TicketReporter")
   id String @id @default(cuid())
   name String
   email String @unique
@@ -94,6 +95,9 @@ model RateLimit {
   lastRequest BigInt
 }
 model Employee {
+  responsibleBays CarwashBay[] @relation("BayResponsible")
+  maintenancePlans MaintenancePlan[] @relation("PlanAssignee")
+  maintenanceTickets MaintenanceTicket[] @relation("TicketAssignee")
   id String @id @default(cuid())
   userId String @unique
   user User @relation(fields:[userId],references:[id])
@@ -199,6 +203,9 @@ model TaskEvent {
   @@index([taskId,createdAt])
 }
 model Notification {
+  maintenanceId String?
+  maintenance MaintenanceTicket? @relation(fields:[maintenanceId],references:[id])
+  @@index([maintenanceId])
   id String @id @default(cuid())
   key String @unique
   userId String
@@ -401,4 +408,255 @@ model CertificatePurchase {
   reviewReason String?
   createdAt DateTime @default(now())
   movements CertificateMovement[]
+}
+
+enum BayType {
+  SELF_SERVICE
+  DETAILING
+}
+enum BayStatus {
+  UNKNOWN
+  OPERATIONAL
+  MAINTENANCE_REQUIRED
+  OUT_OF_SERVICE
+  UNDER_REPAIR
+}
+enum MaintenanceStatus {
+  OPEN
+  IN_PROGRESS
+  BLOCKED
+  AWAITING_REVIEW
+  COMPLETED
+  CANCELLED
+}
+enum EquipmentCategory {
+  ANALYZER
+  KIOSK
+  PUMP
+  HOSE
+  BRUSH
+  NOZZLE
+  DISPENSER
+  DRAIN_PIT
+  PROPERTY
+  OTHER
+}
+enum ChemicalUnit {
+  ML
+  GRAM
+  ITEM
+}
+enum ChemicalMovementKind {
+  OPENING
+  RECONCILE
+  RECEIPT
+  USAGE
+  DISPOSAL
+}
+enum RentalStatus {
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+model CarwashBay {
+  id String @id @default(cuid())
+  slot Int @unique
+  identifier String @unique
+  type BayType
+  status BayStatus @default(UNKNOWN)
+  notes String @default("")
+  responsibleId String?
+  responsible Employee? @relation("BayResponsible",fields:[responsibleId],references:[id])
+  version Int @default(0)
+  equipment Equipment[]
+  tickets MaintenanceTicket[]
+  plans MaintenancePlan[]
+  downtime DowntimeEvent[]
+  rentals BayRentalAgreement[]
+}
+model Vendor {
+  id String @id @default(cuid())
+  name String
+  contact String
+  phone String
+  email String
+  services String
+  reference String
+  verifiedDate String
+  notes String @default("")
+  active Boolean @default(true)
+  version Int @default(0)
+  equipment Equipment[]
+  tickets MaintenanceTicket[]
+  chemicals ChemicalItem[]
+}
+model Equipment {
+  id String @id @default(cuid())
+  code String @unique
+  name String
+  category EquipmentCategory
+  bayId String?
+  bay CarwashBay? @relation(fields:[bayId],references:[id])
+  vendorId String?
+  vendor Vendor? @relation(fields:[vendorId],references:[id])
+  model String @default("")
+  serial String @default("")
+  notes String @default("")
+  active Boolean @default(true)
+  version Int @default(0)
+  tickets MaintenanceTicket[]
+  plans MaintenancePlan[]
+  downtime DowntimeEvent[]
+}
+model DowntimeEvent {
+  id String @id @default(cuid())
+  bayId String?
+  bay CarwashBay? @relation(fields:[bayId],references:[id])
+  equipmentId String?
+  equipment Equipment? @relation(fields:[equipmentId],references:[id])
+  startedAt DateTime
+  endedAt DateTime?
+  reason String
+  resolution String?
+  createdBy String
+  closedBy String?
+  @@index([startedAt])
+}
+model MaintenancePlan {
+  id String @id @default(cuid())
+  bayId String?
+  bay CarwashBay? @relation(fields:[bayId],references:[id])
+  equipmentId String?
+  equipment Equipment? @relation(fields:[equipmentId],references:[id])
+  title String
+  instructions String
+  employeeId String
+  employee Employee @relation("PlanAssignee",fields:[employeeId],references:[id])
+  intervalDays Int
+  nextDueDate String
+  dueTime String
+  priority Priority
+  active Boolean @default(true)
+  version Int @default(0)
+  createdBy String
+  tickets MaintenanceTicket[]
+}
+model MaintenanceTicket {
+  id String @id @default(cuid())
+  bayId String?
+  bay CarwashBay? @relation(fields:[bayId],references:[id])
+  equipmentId String?
+  equipment Equipment? @relation(fields:[equipmentId],references:[id])
+  planId String?
+  plan MaintenancePlan? @relation(fields:[planId],references:[id])
+  occurrenceDate String?
+  title String
+  description String
+  priority Priority
+  status MaintenanceStatus @default(OPEN)
+  assignedId String?
+  assigned Employee? @relation("TicketAssignee",fields:[assignedId],references:[id])
+  vendorId String?
+  vendor Vendor? @relation(fields:[vendorId],references:[id])
+  targetDate String
+  dueAt DateTime
+  workPerformed String @default("")
+  repairCostCents Int?
+  reportedBy String
+  reporter User @relation("TicketReporter",fields:[reportedBy],references:[id])
+  completedAt DateTime?
+  reviewedBy String?
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  events MaintenanceEvent[]
+  notifications Notification[]
+  @@unique([planId,occurrenceDate])
+  @@index([status,dueAt])
+  @@index([assignedId])
+}
+model MaintenanceEvent {
+  id String @id @default(cuid())
+  ticketId String
+  ticket MaintenanceTicket @relation(fields:[ticketId],references:[id])
+  actorId String
+  action String
+  details Json
+  createdAt DateTime @default(now())
+  @@index([ticketId,createdAt])
+}
+model ChemicalItem {
+  id String @id @default(cuid())
+  name String
+  unit ChemicalUnit
+  reorderPoint Int
+  vendorId String?
+  vendor Vendor? @relation(fields:[vendorId],references:[id])
+  notes String @default("")
+  active Boolean @default(true)
+  balance Int?
+  lastMovementDate String?
+  version Int @default(0)
+  movements ChemicalMovement[]
+}
+model ChemicalMovement {
+  id String @id @default(cuid())
+  itemId String
+  item ChemicalItem @relation(fields:[itemId],references:[id])
+  kind ChemicalMovementKind
+  delta Int
+  balanceAfter Int
+  date String
+  reference String @unique
+  reason String
+  createdBy String
+  createdAt DateTime @default(now())
+  @@index([itemId,createdAt])
+}
+model BayRentalAgreement {
+  id String @id @default(cuid())
+  bayId String
+  bay CarwashBay @relation(fields:[bayId],references:[id])
+  tenant String
+  contact String
+  reference String @unique
+  startDate String
+  endDate String?
+  monthlyCents Int
+  dueDay Int
+  responsibilities String
+  status RentalStatus @default(ACTIVE)
+  authorizedBy String
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  charges RentalCharge[]
+  @@index([bayId,startDate])
+}
+model RentalCharge {
+  id String @id @default(cuid())
+  agreementId String
+  agreement BayRentalAgreement @relation(fields:[agreementId],references:[id])
+  month String
+  dueDate String
+  amountCents Int
+  snapshot Json
+  voidedAt DateTime?
+  voidReason String?
+  createdBy String
+  createdAt DateTime @default(now())
+  payments RentalPayment[]
+  @@unique([agreementId,month])
+}
+model RentalPayment {
+  id String @id @default(cuid())
+  chargeId String
+  charge RentalCharge @relation(fields:[chargeId],references:[id])
+  amountCents Int
+  date String
+  reference String @unique
+  reason String
+  createdBy String
+  reversesId String? @unique
+  reverses RentalPayment? @relation("PaymentReversal",fields:[reversesId],references:[id])
+  reversal RentalPayment? @relation("PaymentReversal")
+  createdAt DateTime @default(now())
 }

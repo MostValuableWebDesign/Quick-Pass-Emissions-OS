@@ -1,6 +1,6 @@
 # Quick Pass Business OS
 
-A PostgreSQL-backed Phases 1–2 business application for Quick Pass Emissions, Tag Renewal & Carwash. Next.js App Router, TypeScript, React, Tailwind, a shadcn-style Button primitive, Lucide, Prisma, Better Auth, and Zod. No real business records or financial balances are included.
+A PostgreSQL-backed Phases 1–3 business application for Quick Pass Emissions, Tag Renewal & Carwash. Next.js App Router, TypeScript, React, Tailwind, a shadcn-style Button primitive, Lucide, Prisma, Better Auth, and Zod. No real business records or financial balances are included.
 
 ## Quick start
 
@@ -14,7 +14,7 @@ npm run db:generate
 npm run db:migrate
 ```
 
-Provision an empty database separately using your PostgreSQL host. Set an HTTPS `BETTER_AUTH_URL` in production. Generate each secret independently with `openssl rand -hex 32`. Never commit `.env`.
+Provision an empty database separately using your PostgreSQL host. Migration 004 requires the standard `btree_gist` extension; ask the database administrator to provision it if your migration role cannot create extensions. Set an HTTPS `BETTER_AUTH_URL` in production. Generate each secret independently with `openssl rand -hex 32`. Never commit `.env`.
 
 Create the first owner once, on a database with no users. Set `BOOTSTRAP_EMAIL`, `BOOTSTRAP_NAME`, and a unique `BOOTSTRAP_PASSWORD` (12–128 characters) in your local environment or secret manager, then:
 
@@ -52,7 +52,10 @@ The server binds to `0.0.0.0`; set `PORT` for a different port. If npm 12 report
 - Ended payroll periods, independently approved time inputs/completeness attestations, exact-cent gross drafts, retained calculation revisions, separate approval and approved CSV export.
 - Certificate opening/reconciliation counts, consumption/void ledger, estimated depletion/reorder alerts, independent purchase approval, external-order references and partial physical receipts.
 
-Read [PHASE2.md](PHASE2.md) for workflow, permissions, configuration and operating limits. Bays, maintenance, dealerships, invoices, accounting finance and advanced automation remain planned. No business wage/stock values are seeded and no payments or external orders are executed.
+- Owner-confirmed six-bay layout, equipment/vendor registry, downtime, corrective tickets, employee issue reporting, reviewed work and scheduled preventative maintenance.
+- Chemical stock ledger/low-stock alerts and owner-authorized detailing agreements, monthly charges, received payments and reversal history.
+
+Read [PHASE2.md](PHASE2.md) and [PHASE3.md](PHASE3.md) for workflows, permissions, configuration and operating limits. Dealerships, invoices, accounting finance and advanced automation remain planned. No business wage/stock values are seeded and no payments or external orders are executed.
 
 ## Local demonstration data
 
@@ -107,6 +110,7 @@ Read [BUSINESS_RULES.md](BUSINESS_RULES.md) before configuring recurrence or cha
 ## Handoff
 
 - [REPLIT_SETUP.md](REPLIT_SETUP.md): GitHub transfer, provisioning and deployment.
+- [PHASE3.md](PHASE3.md): carwash, maintenance, chemicals and rental workflows.
 - [PHASE2.md](PHASE2.md): payroll and inventory workflows, permissions and limits.
 - [ARCHITECTURE.md](ARCHITECTURE.md): boundaries, data model and security.
 - [BUSINESS_RULES.md](BUSINESS_RULES.md): time, lifecycle and business assumptions.

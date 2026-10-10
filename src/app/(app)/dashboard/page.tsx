@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { isManager } from "@/lib/policy";
 import { businessDate, dueInstant, addDays, formatDate } from "@/lib/time";
 import { PageHeader, TaskTable, employeeSelect } from "@/components/shared";
+import { maintenanceSummary } from "@/modules/maintenance/service";
 import { certificateOverview } from "@/modules/certificates/service";
 import { Button } from "@/components/ui/button";
 export default async function Dashboard() {
@@ -30,10 +31,14 @@ export default async function Dashboard() {
           <Link className="text-link" href="/certificates">
             Open certificate records →
           </Link>
+          <Link className="text-link" href="/rentals">
+            Open detailing rental records →
+          </Link>
         </section>
       </>
     );
   const certificates = management ? await certificateOverview(user.id) : null;
+  const maintenance = management ? await maintenanceSummary(user.id) : null;
   const today = businessDate();
   const now = new Date();
   const start = dueInstant(today, "00:00");
@@ -123,6 +128,26 @@ export default async function Dashboard() {
             </Link>
           </div>
         )}
+      {maintenance && (
+        <section className="card card-body space-top">
+          <h2>Carwash & maintenance</h2>
+          <p>
+            {maintenance.openTickets} open tickets · {maintenance.overdueTickets} overdue ·{" "}
+            {maintenance.offlineBays} bays offline · {maintenance.lowChemicals} supplies at low
+            recorded stock.
+          </p>
+          {maintenance.configuredBays < 6 || maintenance.unknownBays > 0 ? (
+            <p className="notice warning">
+              Confirm the six-bay layout and inspect unknown bay conditions.
+            </p>
+          ) : null}
+          <div className="module-links">
+            <Link href="/carwash">Review bays →</Link>
+            <Link href="/maintenance">Review maintenance →</Link>
+            <Link href="/chemicals">Review chemical stock →</Link>
+          </div>
+        </section>
+      )}
       <section className="stats" aria-label="Operations metrics">
         {[
           {

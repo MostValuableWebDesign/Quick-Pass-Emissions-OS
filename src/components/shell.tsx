@@ -20,6 +20,9 @@ import {
   CircleDot,
   Wallet,
   Package,
+  Wrench,
+  Car,
+  KeyRound,
 } from "lucide-react";
 import { Button } from "./ui/button";
 const authClient = createAuthClient();
@@ -52,6 +55,13 @@ export function Shell({
           { href: "/payroll", label: "Payroll & commissions", icon: Wallet },
           { href: "/certificates", label: "Certificates", icon: Package },
         ]
+      : []),
+    ...(manager ? [{ href: "/carwash", label: "Carwash & bays", icon: Car }] : []),
+    ...(role !== "BOOKKEEPER"
+      ? [{ href: "/maintenance", label: "Maintenance", icon: Wrench }]
+      : []),
+    ...(["OWNER", "ADMIN", "BOOKKEEPER"].includes(role)
+      ? [{ href: "/rentals", label: "Detailing rentals", icon: KeyRound }]
       : []),
     { href: "/notifications", label: "Notifications", icon: Bell },
     ...(manager ? [{ href: "/settings", label: "Settings & audit", icon: Settings }] : []),
@@ -166,7 +176,7 @@ export function Shell({
         </header>
         <main id="main">{children}</main>
         <footer className="page-footer">
-          Quick Pass Business OS <span>Phases 1–2 · Business workspace</span>
+          Quick Pass Business OS <span>Phases 1–3 · Business workspace</span>
         </footer>
       </div>
     </div>

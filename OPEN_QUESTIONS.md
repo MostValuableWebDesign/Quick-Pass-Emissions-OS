@@ -8,10 +8,14 @@
 6. Confirm whether one shift per employee/date and the single certification-expiry field are sufficient for the initial workflow.
 7. Before live Phase 2 use: verify current compensation arrangements, eligible test attribution, commission thresholds/rates/effective dates, approved payroll periods and payroll export destination.
 8. Before live Phase 2 use: reconcile certificate stock and confirm ordering units, minimum quantity, reorder threshold, purchase approvers and approved ordering channel.
-9. Before Phase 3: confirm bay identifiers, equipment, rental agreements, maintenance responsibilities and verified vendor contact information.
+9. Before live Phase 3 use: confirm the three self-service and three detailing identifiers/condition, equipment, verified vendor contacts and sources, responsibility assignments, inspection intervals and closure handling, chemical measurement units/opening counts/thresholds, tenant contacts and authorized rental terms.
 10. Before Phase 4: confirm dealerships, rates, tax configuration, payment terms, actual balances and accounting source of truth.
 11. Before external effects: confirm email sender, approved invoice delivery process, object storage and any explicitly authorized integrations.
 
 All unknown financial, licensing, vendor, bank and regulatory information remains unconfigured. There is no implied approval to operate or connect a regulated system.
 
 12. Assign at least two authorized preparer/reviewer accounts. Confirm fixed-per-period versus hourly-minute semantics, payroll employee roster including final pay, how completeness is attested, and the processor mapping for exact-cent gross CSV. Overtime, taxes and post-approval corrections are handled outside this preparation tool.
+
+13. Confirm whether whole milliliters/grams/items cover actual chemical measurements and which staff can verify receipts, usage and disposal. No package conversion or chemical purchasing is automated.
+14. Confirm rental calendar-month billing, month-end due-day clamping, agreement date boundaries and payment source references. Partial-month rent, deposits, fees, credits, taxes and amended paid periods require the established accounting process. Confirm the owner-authorized handling before entering these cases.
+15. Confirm maintenance review responsibility and repair-cost source, the process for follow-up corrections to closed work, and the external scheduler/operator for preventative jobs. Configure `btree_gist` permissions with the database host before migration 004.

@@ -1,18 +1,11 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
-const password = process.env.DEMO_PASSWORD;
-test.skip(!password, "Set DEMO_PASSWORD and use a fresh isolated demo database.");
+import { login } from "./workflow-helpers";
 function form(page: Page, button: string) {
   return page
     .locator("form")
     .filter({ has: page.getByRole("button", { name: button, exact: true }) });
 }
-async function login(page: Page, email: string) {
-  await page.goto("/login");
-  await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password!);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/dashboard/);
-}
+
 async function save(
   f: Locator,
   button: string,
@@ -68,7 +61,10 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await f.getByLabel("Verified contact person / department").fill("Fixture support desk");
   await f.getByLabel("Verified phone", { exact: false }).fill("555-fixture");
   await f.getByLabel("Services provided").fill("Fixture pump service");
-  await f.getByLabel("Contact verification source reference").fill("e2e-contact-reference");
+  await f
+    .getByLabel("Business reference / contact verification evidence")
+    .fill("e2e-contact-reference");
+  await f.getByLabel("Contact verification date").fill("2026-10-01");
   await f.getByLabel("Change reason").fill("E2E checked contact");
   await save(f, "Save verified vendor");
   await page.goto("/equipment");
@@ -141,6 +137,7 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await page.goto("/chemicals");
   f = form(page, "Add chemical item");
   await f.getByLabel("Chemical / supply name").fill("E2E Wash Soap");
+  await f.getByLabel("Stock unit", { exact: false }).selectOption("ML");
   await f.getByLabel("Low-stock threshold · chosen units").fill("500");
   await f.getByLabel("Change reason").fill("E2E stock settings");
   await save(f, "Add chemical item");
@@ -149,7 +146,7 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await f.getByLabel("Unique chemical movement reference").fill("e2e-soap-opening");
   await f.getByLabel("Stock movement reason").fill("E2E physical opening count");
   await save(f, "Record chemical movement");
-  await f.getByLabel("Stock movement", { exact: true }).selectOption("USAGE");
+  await f.getByRole("combobox", { name: /^Stock movement/ }).selectOption("USAGE");
   await f.getByLabel("Quantity", { exact: false }).fill("600");
   await f.getByLabel("Unique chemical movement reference").fill("e2e-soap-used");
   await f.getByLabel("Stock movement reason").fill("E2E soap consumed");
@@ -161,7 +158,7 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await expect(page.getByText("Low recorded stock", { exact: false })).toBeVisible();
   await page.goto("/rentals");
   f = form(page, "Authorize rental agreement");
-  await f.getByLabel("Detailing bay", { exact: true }).selectOption({ label: "E2E Bay 4" });
+  await f.getByLabel(/^Detailing\ bay/).selectOption({ label: "E2E Bay 4" });
   await f.getByLabel("Tenant / business name").fill("E2E Detailing Tenant");
   await f.getByLabel("Verified tenant contact").fill("Fixture contact");
   await f.getByLabel("Unique agreement reference").fill("e2e-rental-agreement");
@@ -218,14 +215,12 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   ).toHaveCount(0);
   await page.goto("/carwash");
   await expect(page.getByRole("heading", { name: "E2E Bay 1", exact: true })).toBeVisible();
-  await page.screenshot({ path: "test-results/phase3-bays-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await expect(page.getByRole("heading", { name: "E2E Bay 1", exact: true })).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);
-  await page.screenshot({ path: "test-results/phase3-bays-mobile.png", fullPage: false });
   await employee.goto(ticketUrl);
   await employee.setViewportSize({ width: 390, height: 844 });
   await expect(employee.getByRole("heading", { name: "E2E hose leak", exact: true })).toBeVisible();

@@ -1,18 +1,11 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
-const password = process.env.DEMO_PASSWORD;
-test.skip(!password, "Set DEMO_PASSWORD and use an isolated demo database.");
+import { login } from "./workflow-helpers";
 function form(page: Page, button: string) {
   return page
     .locator("form")
     .filter({ has: page.getByRole("button", { name: button, exact: true }) });
 }
-async function login(page: Page, email: string) {
-  await page.goto("/login");
-  await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password!);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/dashboard/);
-}
+
 async function save(f: Locator, button: string, disappears = false) {
   const response = f
     .page()
@@ -128,7 +121,12 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
     book.getByRole("heading", { name: "Finance reports & exports", exact: true }),
   ).toBeVisible();
   await expect(book.getByRole("link", { name: "E2E-INV-001", exact: true })).toBeVisible();
-  await expect(book.getByRole("cell", { name: "91+ days", exact: true })).toBeVisible();
+  await expect(
+    book
+      .locator("tr")
+      .filter({ has: book.getByRole("link", { name: "E2E-INV-001", exact: true }) })
+      .getByRole("cell", { name: "91+ days", exact: true }),
+  ).toBeVisible();
   await book.goto("/finance");
   f = form(book, "Record finance entry");
   await f.getByLabel("Record direction").selectOption("EXPENSE");
@@ -153,7 +151,7 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
   const downloadPromise = book.waitForEvent("download");
   await book.getByRole("link", { name: "Download dealer payments CSV", exact: true }).click();
   const download = await downloadPromise;
-  await download.saveAs("test-results/phase4-dealer-payments.csv");
+
   const stream = await download.createReadStream();
   let csv = "";
   for await (const part of stream!) csv += part.toString();
@@ -163,7 +161,6 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
   await expect(
     page.getByRole("heading", { name: "Operational finance", exact: true }),
   ).toBeVisible();
-  await page.screenshot({ path: "test-results/phase4-finance-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await expect(
@@ -172,7 +169,6 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);
-  await page.screenshot({ path: "test-results/phase4-finance-mobile.png", fullPage: false });
   for (const path of ["/dealerships", dealerUrl, invoiceUrl, "/finance", "/finance/reports"]) {
     await employee.goto(path);
     await expect(

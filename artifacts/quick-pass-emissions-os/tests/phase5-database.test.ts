@@ -98,6 +98,77 @@ if (enabled) {
       },
     });
   }
+  it("generates a complete summary with extreme valid certificate and chemical forecasts", async () => {
+    await cert.saveCertificateSettings(owner, {
+      minimumOrder: 300,
+      reorderPoint: 0,
+      leadDays: 0,
+      windowDays: 7,
+      reason: "Verified",
+    });
+    await cert.reconcileStock(owner, {
+      observed: 2000000000,
+      version: 0,
+      date: past,
+      reference: "extreme-opening",
+      reason: "Verified",
+    });
+    await cert.recordUsage(owner, {
+      kind: "USAGE",
+      quantity: 1,
+      date: today,
+      reference: "extreme-usage",
+      reason: "Verified",
+    });
+    const item = await chemicals.saveChemical(owner, {
+      id: "",
+      version: 0,
+      name: "Large balance",
+      unit: "ML",
+      reorderPoint: 0,
+      vendorId: "",
+      active: true,
+      reason: "Verified",
+    });
+    await chemicals.moveChemical(owner, {
+      id: item.id,
+      version: 0,
+      kind: "RECONCILE",
+      quantity: 2000000000,
+      date: past,
+      reference: "chemical-opening",
+      reason: "Verified",
+    });
+    await chemicals.moveChemical(owner, {
+      id: item.id,
+      version: 1,
+      kind: "USAGE",
+      quantity: 1,
+      date: today,
+      reference: "chemical-usage",
+      reason: "Verified",
+    });
+    for (const key of ["certificates", item.id])
+      await s.saveForecastPolicy(owner, {
+        key,
+        windowDays: 7,
+        minimumDays: 1,
+        leadDays: 0,
+        threshold: 0,
+        revision: 0,
+      });
+    expect((await cert.certificateOverview(owner)).estimate?.depletionDate).toBeNull();
+    expect(
+      (await s.ownerOverview(owner)).inventory.every(
+        (i) => i.state === "ESTIMATE" && i.depletionDate === null,
+      ),
+    ).toBe(true);
+    await schedule();
+    const result = await jobs.runAutomation(now);
+    expect(result.failed).toBe(0);
+    expect(await db.savedSummary.count()).toBe(1);
+    expect(await db.automationDelivery.count({ where: { summaryId: { not: null } } })).toBe(1);
+  });
   it("rejects all protected consolidated reads/config for nonowners and deactivated owners", async () => {
     for (const id of [manager, book, employee]) {
       await expect(s.ownerOverview(id)).rejects.toThrow("permission");
@@ -120,10 +191,15 @@ if (enabled) {
   });
   it("produces one immutable summary and owner-only delivery under simultaneous repeated triggers", async () => {
     const scheduleRow = await schedule();
+    await db.chemicalItem.create({
+      data: { name: "Unconfigured supply", unit: null, reorderPoint: null },
+    });
     await Promise.all([jobs.runAutomation(now), jobs.runAutomation(now), jobs.runAutomation(now)]);
     expect(await db.savedSummary.count()).toBe(1);
     expect(await db.automationDelivery.count({ where: { summaryId: { not: null } } })).toBe(1);
     const summary = await db.savedSummary.findFirstOrThrow();
+    const { parseSnapshot } = await import("../src/components/phase5-snapshot");
+    expect(parseSnapshot(summary.payload).success).toBe(true);
     expect(summary.scheduleId).toBe(scheduleRow.id);
     expect(JSON.stringify(summary.payload)).toContain("Historical snapshot");
     const before = JSON.stringify(summary.payload);

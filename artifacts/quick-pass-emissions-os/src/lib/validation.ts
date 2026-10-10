@@ -1,5 +1,11 @@
 import { z } from "zod";
 import { Temporal } from "@js-temporal/polyfill";
+export function requiredInteger(min: number, max: number) {
+  return z
+    .union([z.number(), z.string().trim().min(1)])
+    .transform((v) => Number(v))
+    .pipe(z.number().int().min(min).max(max));
+}
 export const dateString = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)

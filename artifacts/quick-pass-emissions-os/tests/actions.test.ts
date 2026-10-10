@@ -131,4 +131,68 @@ suite("Server action authorization with PostgreSQL", () => {
       ).ok,
     ).toBe(false);
   });
+  async function queuedChange(
+    action: () => Promise<unknown>,
+    change: (tx: import("@prisma/client").Prisma.TransactionClient) => Promise<unknown>,
+  ) {
+    let pending: Promise<unknown> | undefined;
+    await db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(7183502)`;
+      pending = action();
+      const deadline = Date.now() + 2000;
+      let waiting = false;
+      while (Date.now() < deadline) {
+        const rows = await tx.$queryRaw<
+          { waiting: boolean }[]
+        >`SELECT EXISTS (SELECT 1 FROM pg_locks WHERE locktype = 'advisory' AND objid = 7183502 AND NOT granted) AS waiting`;
+        if (rows[0].waiting) {
+          waiting = true;
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      expect(waiting).toBe(true);
+      await change(tx);
+    });
+    return pending as Promise<{ ok?: boolean }>;
+  }
+  it("denies a queued manager deactivation after the target becomes owner", async () => {
+    const target = await db.employee.create({
+      data: { user: { create: { name: "Promoted", email: `${randomUUID()}@example.test` } } },
+    });
+    session.userId = adminId;
+    const before = await db.auditLog.count();
+    const result = await queuedChange(
+      () => actions.setEmployeeActive({}, form({ id: target.id, active: "false" })),
+      (tx) => tx.user.update({ where: { id: target.userId }, data: { role: "OWNER" } }),
+    );
+    expect(result.ok).toBe(false);
+    expect(await db.user.findUniqueOrThrow({ where: { id: target.userId } })).toMatchObject({
+      active: true,
+      role: "OWNER",
+    });
+    expect(await db.auditLog.count()).toBe(before);
+  });
+  it.each(["inactive", "demoted"])(
+    "denies a queued owner grant after its actor becomes %s",
+    async (change) => {
+      const actor = await db.user.create({
+        data: { name: "Queued owner", email: `${randomUUID()}@example.test`, role: "OWNER" },
+      });
+      const email = `${randomUUID()}@example.test`;
+      session.userId = actor.id;
+      const before = await db.auditLog.count();
+      const result = await queuedChange(
+        () => actions.saveEmployee({}, form({ ...employeeData, email, role: "OWNER" })),
+        (tx) =>
+          tx.user.update({
+            where: { id: actor.id },
+            data: change === "inactive" ? { active: false } : { role: "ADMIN" },
+          }),
+      );
+      expect(result.ok).toBe(false);
+      expect(await db.user.count({ where: { email } })).toBe(0);
+      expect(await db.auditLog.count()).toBe(before);
+    },
+  );
 });

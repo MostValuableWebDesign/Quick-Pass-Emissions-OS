@@ -1,19 +1,17 @@
-import { test, expect, type Page } from "@playwright/test";
-const password = process.env.DEMO_PASSWORD;
-test.skip(!password, "Set DEMO_PASSWORD and point E2E_BASE_URL at a freshly seeded local demo.");
-async function login(page: Page, email: string) {
-  await page.goto("/login");
-  await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password!);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/dashboard/);
-}
+import { test, expect } from "@playwright/test";
+import { login, privatePassword } from "./workflow-helpers";
+
 test("unauthenticated access and public signup are denied", async ({ page, request }) => {
+  await page.context().clearCookies();
   await page.goto("/employees");
   await expect(page).toHaveURL(/login/);
   const response = await request.post("/api/auth/sign-up/email", {
     headers: { Origin: new URL(process.env.E2E_BASE_URL ?? "http://localhost:3000").origin },
-    data: { name: "Unauthorized", email: "intruder@example.test", password: password! },
+    data: {
+      name: "Unauthorized",
+      email: "intruder@example.test",
+      password: await privatePassword(),
+    },
   });
   expect(response.ok()).toBe(false);
   const job = await request.post("/api/jobs");
@@ -42,15 +40,15 @@ test("owner can provision, schedule, assign, complete and audit work", async ({
   const ctx = await browser.newContext();
   const employeePage = await ctx.newPage();
   await employeePage.goto(link);
-  await employeePage.getByLabel("New password").fill(password!);
+  await employeePage.getByLabel("New password").fill(await privatePassword());
   await employeePage.getByRole("button", { name: "Activate account" }).click();
   await expect(employeePage.getByRole("status")).toHaveText(/Account activated/);
   await employeePage.goto(link);
-  await employeePage.getByLabel("New password").fill(password!);
+  await employeePage.getByLabel("New password").fill(await privatePassword());
   await employeePage.getByRole("button", { name: "Activate account" }).click();
   await expect(employeePage.getByRole("status")).toHaveText(/invalid or expired/);
   await page.goto("/schedule");
-  await page.getByLabel("Employee", { exact: true }).selectOption({ label: name });
+  await page.getByLabel(/^Employee/).selectOption({ label: name });
   await page.getByLabel("Start · Eastern").fill("08:00");
   await page.getByLabel("End · Eastern").fill("17:00");
   await page.getByLabel("Assigned duties").fill("E2E inspection");
@@ -60,7 +58,7 @@ test("owner can provision, schedule, assign, complete and audit work", async ({
   const title = `E2E task ${suffix}`;
   await page.getByLabel("Task title").fill(title);
   await page.getByLabel("Assigned employee").selectOption({ label: name });
-  await page.getByLabel("Repeat", { exact: true }).selectOption("ONCE");
+  await page.getByLabel(/^Repeat/).selectOption("ONCE");
   await page.getByLabel("Require manager review").check();
   await page.getByRole("button", { name: "Create responsibility", exact: true }).click();
   await expect(page.getByRole("status")).toHaveText("Saved successfully.");
@@ -108,6 +106,7 @@ test("bookkeeper has no operations data and mobile layout fits", async ({ page }
   await page.goto("/tasks");
   await expect(page.locator("tbody tr")).toHaveCount(0);
   await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/login/);
   await login(page, "al@example.test");
   await page.goto("/payroll");
   await expect(
@@ -120,10 +119,12 @@ test("bookkeeper has no operations data and mobile layout fits", async ({ page }
   expect((await page.request.get("/api/payroll/unknown/export")).status()).toBe(403);
   await page.goto("/dashboard");
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole("button", { name: "Toggle navigation" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /^(open|close|toggle) navigation( menu)?$/i }),
+  ).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);
-  await page.getByRole("button", { name: "Toggle navigation" }).click();
-  await expect(page.getByRole("link", { name: "My tasks", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /^(open|close|toggle) navigation( menu)?$/i }).click();
+  await expect(page.getByRole("link", { name: "Tasks", exact: true })).toBeVisible();
 });

@@ -1,5 +1,5 @@
 import { Temporal } from "@js-temporal/polyfill";
-import { addDays } from "../../lib/time";
+import { addDays, forecastDate } from "../../lib/time";
 export function certificateForecast(input: {
   balance: number;
   openingDate: string;
@@ -29,7 +29,7 @@ export function certificateForecast(input: {
     used: input.used,
     averageDailyUsage,
     daysRemaining,
-    depletionDate: daysRemaining === null ? null : addDays(input.today, daysRemaining),
+    depletionDate: forecastDate(input.today, daysRemaining),
     reorderAt,
     low,
     recommendedQuantity,

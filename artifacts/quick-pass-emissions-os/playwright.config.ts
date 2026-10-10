@@ -1,3 +1,4 @@
+import { browserSuite } from "./scripts/e2e-suites.mjs";
 import { assertOwnedDatabase } from "./scripts/e2e-safety.mjs";
 import { defineConfig, devices } from "@playwright/test";
 assertOwnedDatabase(process.env);
@@ -7,20 +8,7 @@ if (!process.env.E2E_STORAGE_STATE || !process.env.E2E_PRIVATE_DIR || !process.e
 export default defineConfig({
   ...(process.env.E2E_STATION_ONLY === "1" ? { grep: /station report →/ } : {}),
   testDir: "tests/e2e",
-  testMatch:
-    process.env.E2E_SUPPORT_ONLY === "1"
-      ? ["support.spec.ts"]
-      : process.env.E2E_CERTIFICATES_ONLY === "1"
-        ? ["certificate-order.spec.ts"]
-        : process.env.E2E_IMPORT_ONLY === "1"
-          ? ["business-import.spec.ts"]
-          : process.env.E2E_STATION_ONLY === "1"
-            ? ["station.spec.ts"]
-            : [
-                "regression.spec.ts",
-                "navigation.spec.ts",
-                ...(process.env.E2E_STATION_HISTORY === "1" ? ["station.spec.ts"] : []),
-              ],
+  testMatch: Object.keys(browserSuite(process.env)),
   timeout: 120000,
   workers: 1,
   fullyParallel: false,

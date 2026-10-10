@@ -1,13 +1,6 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
-const password = process.env.DEMO_PASSWORD;
-test.skip(!password, "Set DEMO_PASSWORD and use a fresh isolated demo database.");
-async function login(page: Page, email: string) {
-  await page.goto("/login");
-  await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password!);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/dashboard/);
-}
+import { login } from "./workflow-helpers";
+
 async function save(form: Locator, button: string, disappears = false) {
   const saved = form
     .page()
@@ -44,7 +37,7 @@ test("payroll and certificate preparation, independent review, export, and physi
   await login(reviewer, "manager@example.test");
   await page.goto("/payroll");
   const arrangement = form(page, "Authorize pay arrangement");
-  await arrangement.getByLabel("Pay employee", { exact: true }).selectOption({ label: "Demo Al" });
+  await arrangement.getByLabel(/^Pay\ employee/).selectOption({ label: "Demo Al" });
   await arrangement.getByLabel("Pay effective date").fill("2026-10-01");
   await arrangement.getByLabel("Authorized amount · integer cents").fill("10000");
   await arrangement
@@ -52,9 +45,7 @@ test("payroll and certificate preparation, independent review, export, and physi
     .fill("E2E illustrative owner authorization");
   await save(arrangement, "Authorize pay arrangement");
   const policy = form(page, "Authorize commission policy");
-  await policy
-    .getByLabel("Commission employee", { exact: true })
-    .selectOption({ label: "Demo Al" });
+  await policy.getByLabel(/^Commission\ employee/).selectOption({ label: "Demo Al" });
   await policy.getByLabel("Commission effective date").fill("2026-10-01");
   await policy.getByLabel("Commission eligibility").selectOption("true");
   await policy.getByLabel("Daily test threshold").fill("50");
@@ -68,7 +59,7 @@ test("payroll and certificate preparation, independent review, export, and physi
     preparer.getByRole("button", { name: "Authorize pay arrangement", exact: true }),
   ).toHaveCount(0);
   const counts = form(preparer, "Record test count");
-  await counts.getByLabel("Employee", { exact: true }).selectOption({ label: "Demo Al" });
+  await counts.getByLabel(/^Employee/).selectOption({ label: "Demo Al" });
   await counts.getByLabel("Test date").fill("2026-10-01");
   await counts.getByLabel("Personal qualifying tests").fill("65");
   await counts.getByLabel("Unique source reference").fill("e2e-personal-65");
@@ -84,8 +75,21 @@ test("payroll and certificate preparation, independent review, export, and physi
   await preparer.getByRole("link", { name: "E2E Phase 2 period", exact: true }).click();
   await expect(preparer).toHaveURL(/\/payroll\/[^/]+$/);
   const periodUrl = preparer.url();
+  await reviewer.goto(periodUrl);
+  await reviewer
+    .getByRole("link", { name: "Review pending counts for this period", exact: true })
+    .click();
+  await expect(
+    reviewer.getByText("0 matching counts · Page 1 of 1", { exact: true }),
+  ).toBeVisible();
+  await reviewer.getByLabel("Count approval filter").selectOption("ALL");
+  await reviewer.getByRole("button", { name: "Filter counts", exact: true }).click();
+  await expect(
+    reviewer.getByText("1 matching counts · Page 1 of 1", { exact: true }),
+  ).toBeVisible();
+  await expect(reviewer.locator("tbody tr").filter({ hasText: "e2e-personal-65" })).toHaveCount(1);
   const inputs = form(preparer, "Record payroll input");
-  await inputs.getByLabel("Payroll employee", { exact: true }).selectOption({ label: "Demo Al" });
+  await inputs.getByLabel(/^Payroll\ employee/).selectOption({ label: "Demo Al" });
   await inputs.getByLabel("Approved worked minutes · 0 for fixed pay").fill("0");
   await inputs.getByLabel("I verified all personal counts", { exact: false }).check();
   await inputs.getByLabel("Source / correction reason").fill("E2E complete count verification");
@@ -166,12 +170,10 @@ test("payroll and certificate preparation, independent review, export, and physi
   await expect(
     page.locator('section[aria-label="Certificate metrics"]').getByText("400", { exact: true }),
   ).toBeVisible();
-  await page.screenshot({ path: "test-results/certificates-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);
-  await page.screenshot({ path: "test-results/certificates-mobile.png", fullPage: false });
   await preparerContext.close();
   await reviewerContext.close();
 });

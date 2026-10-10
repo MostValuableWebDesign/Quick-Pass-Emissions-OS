@@ -16,7 +16,7 @@ const inv = z.object({
   averageDailyUsage: num,
   estimatedDaysRemaining: num,
   depletionDate: z.string().nullable().optional(),
-  threshold: z.number(),
+  threshold: z.number().nullable(),
   low: z.boolean(),
   coverageDays: z.number(),
   recordedConsumption: z.number(),
@@ -26,7 +26,7 @@ const inv = z.object({
   limits: z.string().optional(),
   coverageStart: z.string().nullable().optional(),
   lastPhysicalCountDate: z.string().nullable().optional(),
-  planningLeadDays: z.number().optional(),
+  planningLeadDays: z.number().nullable().optional(),
 });
 const rowValue = z.union([z.string(), z.number(), z.null()]);
 const report = z.object({

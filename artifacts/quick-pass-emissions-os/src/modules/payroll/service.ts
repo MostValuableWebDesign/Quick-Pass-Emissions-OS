@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Temporal } from "@js-temporal/polyfill";
-import { dateString, id } from "../../lib/validation";
+import { dateString, id, requiredInteger } from "../../lib/validation";
 import { businessDate } from "../../lib/time";
 import {
   audit,
@@ -12,7 +12,7 @@ import {
   type Tx,
 } from "../phase2";
 import { MAX_CENTS, commissionCents, periodAmounts, sumCents, csvCell } from "./calculations";
-const integer = (max: number) => z.coerce.number().int().min(0).max(max);
+const integer = (max: number) => requiredInteger(0, max);
 const reason = z.string().trim().min(1).max(2000);
 const version = integer(2147483647);
 const cents = integer(MAX_CENTS);
@@ -532,29 +532,53 @@ export async function reviewDraft(actorId: string, input: unknown) {
     await audit(tx, actorId, `PAYROLL_${data.decision}`, draft.id, { reason: data.reason });
   });
 }
-export async function payrollOverview(actorId: string) {
-  return phase2(actorId, financeRoles, async (tx) => ({
-    employees: await tx.employee.findMany({
-      select: { id: true, demo: true, user: { select: { name: true, active: true } } },
-      orderBy: { user: { name: "asc" } },
-    }),
-    arrangements: await tx.payArrangement.findMany({
-      orderBy: { effectiveDate: "desc" },
-      take: 100,
-      include: { employee: { select: { user: { select: { name: true } } } } },
-    }),
-    policies: await tx.commissionPolicy.findMany({
-      orderBy: { effectiveDate: "desc" },
-      take: 100,
-      include: { employee: { select: { user: { select: { name: true } } } } },
-    }),
-    periods: await tx.payrollPeriod.findMany({ orderBy: { startDate: "desc" }, take: 100 }),
-    counts: await tx.dailyEmission.findMany({
-      orderBy: [{ date: "desc" }, { id: "asc" }],
-      take: 100,
-      include: { employee: { select: { user: { select: { name: true } } } } },
-    }),
-  }));
+export const countReviewInput = z.object({
+  page: requiredInteger(1, 1000000000).default(1),
+  status: z.enum(["ALL", "PENDING"]).default("ALL"),
+  periodId: z.preprocess((v) => (v === "" ? undefined : v), id.optional()),
+});
+export async function payrollOverview(actorId: string, review: unknown = {}) {
+  const filter = countReviewInput.parse(review);
+  return phase2(actorId, financeRoles, async (tx) => {
+    const period = filter.periodId
+      ? await tx.payrollPeriod.findUnique({ where: { id: filter.periodId } })
+      : null;
+    requireRule(!filter.periodId || period, "Choose an existing payroll period.");
+    const where = {
+      ...(filter.status === "PENDING" ? { approvedAt: null } : {}),
+      ...(period ? { date: { gte: period.startDate, lte: period.endDate } } : {}),
+    };
+    const total = await tx.dailyEmission.count({ where });
+    const pageSize = 100;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    // Pending approvals disappear as they are reviewed; keep the current page reachable.
+    const page = Math.min(filter.page, totalPages);
+    return {
+      countReview: { ...filter, page, pageSize, total, totalPages, period },
+      employees: await tx.employee.findMany({
+        select: { id: true, demo: true, user: { select: { name: true, active: true } } },
+        orderBy: { user: { name: "asc" } },
+      }),
+      arrangements: await tx.payArrangement.findMany({
+        orderBy: { effectiveDate: "desc" },
+        take: 100,
+        include: { employee: { select: { user: { select: { name: true } } } } },
+      }),
+      policies: await tx.commissionPolicy.findMany({
+        orderBy: { effectiveDate: "desc" },
+        take: 100,
+        include: { employee: { select: { user: { select: { name: true } } } } },
+      }),
+      periods: await tx.payrollPeriod.findMany({ orderBy: [{ startDate: "desc" }, { id: "asc" }] }),
+      counts: await tx.dailyEmission.findMany({
+        where,
+        orderBy: [{ date: "desc" }, { id: "asc" }],
+        take: pageSize,
+        skip: (page - 1) * pageSize,
+        include: { employee: { select: { user: { select: { name: true } } } } },
+      }),
+    };
+  });
 }
 export async function payrollDetail(actorId: string, periodId: string) {
   return phase2(actorId, financeRoles, (tx) =>

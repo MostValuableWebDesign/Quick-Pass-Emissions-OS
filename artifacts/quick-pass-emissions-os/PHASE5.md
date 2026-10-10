@@ -89,3 +89,5 @@ Migration 006 adds only Phase 5 tables, checks, indexes and delivery relations. 
 External email/SMS, orders, wage payments, collections, customer/dealership messages, bank feeds/reconciliation, complete-books/profit claims, richer training records, chemical conversions, financial lifecycle/proration changes and production deployment/migrations remain outside this delivery. Trusted database operators can modify records directly; cryptographic immutability is not claimed. Existing accessible-label and legacy approval-regression task drafts are separate work.
 
 Before live use confirm schedules/closure choices, responsibility windows, recipients/escalations, certification records, inventory opening/count quality, coverage/lead/threshold settings, exact CSV mapping, backups and failure-monitoring responsibility. Read REPLIT_SETUP.md, docs/OPERATIONS.md and VERIFICATION.md.
+
+Depletion dates beyond the supported four-digit calendar years are unavailable, while numeric days remaining are retained. Extreme valid balances and low recorded usage do not prevent overview or summary generation.

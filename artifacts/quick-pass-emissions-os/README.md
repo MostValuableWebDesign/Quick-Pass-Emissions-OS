@@ -103,14 +103,18 @@ DATABASE_URL="$TEST_DATABASE_URL" npm run db:migrate
 TEST_DATABASE_URL="$TEST_DATABASE_URL" npm test
 ```
 
-**Database tests truncate their isolated fixtures. Never point them at business data.** Browser tests require a running local app with the demo seed and `DEMO_PASSWORD` in the environment:
+**Database tests truncate their isolated fixtures. Never point them at business data.** The isolated runners create and remove their own temporary databases and synthetic accounts; they do not seed or restart the business app. The database connection must allow creating a temporary database.
 
 ```sh
 npx playwright install chromium
-npm run test:e2e
+# On a local development machine (uses a private ephemeral server port):
+E2E_DIRECT=1 npm run test:isolated
+E2E_DIRECT=1 npm run test:e2e
 ```
 
-Set `E2E_BASE_URL` if needed. Tests create clearly named E2E employees and tasks in the demo database. Use fresh disposable databases for clean reruns. Tests verify invitation activation/reuse, schedules, assignment, employee completion, persistence after reload, manager review, restricted reads, account deactivation, unauthenticated endpoints, bookkeeper isolation and mobile layout.
+In Replit, omit `E2E_DIRECT=1` to use the configured preview port; that port must be free. `DATABASE_URL` supplies the connection to the PostgreSQL server, and the runners generate their own database name, signing secret and private sessions. `DEMO_PASSWORD` and a pre-seeded app are unnecessary. `E2E_CHROMIUM_PATH` optionally selects an installed browser.
+
+The default browser command requires all 17 checks across navigation, personnel/invitations, tasks, payroll, certificates, maintenance, chemicals, rentals, dealer billing, finance and Phase 5 automation. Phase 5 covers configuration, summary delivery and immutability, reminders, CSV reports, failed-job retry and role restrictions. A missing workflow file, skipped test, failure or retry fails the completion guard. Targeted support/import/certificate/station modes remain available and report only their selected coverage. Browser traces, screenshots and video are disabled; temporary sessions and reports are private and removed on completion.
 
 ## Scheduling
 

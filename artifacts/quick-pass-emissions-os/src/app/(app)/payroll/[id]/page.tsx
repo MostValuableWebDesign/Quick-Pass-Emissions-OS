@@ -55,6 +55,15 @@ export default async function PayrollPeriodPage({ params }: { params: Promise<{ 
         included. A completed-period attestation is required; missing test days are not inferred
         from schedules.
       </p>
+      <p>
+        <Link href={`/payroll?periodId=${period.id}&status=PENDING`}>
+          Review pending counts for this period
+        </Link>
+        {" · "}
+        <Link href={`/payroll?periodId=${period.id}&status=ALL`}>
+          Review all counts for this period
+        </Link>
+      </p>
       <section className="card card-body">
         <h2>Payroll inputs</h2>
         {period.inputs.map((i) => (

@@ -10,6 +10,8 @@ import path from "node:path";
 import { assertCompleteReport, assertOwnedDatabase } from "./e2e-safety.mjs";
 import { navigationFixtures } from "./navigation-fixtures";
 import { stationBrowserFixture } from "./station-browser-fixtures";
+import { workflowBrowserFixtures } from "./workflow-browser-fixtures";
+import { browserSuite, assertSuiteReport } from "./e2e-suites.mjs";
 
 const app = process.cwd();
 let server: ChildProcess | undefined;
@@ -97,6 +99,7 @@ async function halt(child?: ChildProcess) {
 
 async function main() {
   assertOwnedDatabase(process.env);
+  const suite = browserSuite(process.env);
   const definition = await readFile(path.join(app, ".replit-artifact/artifact.toml"), "utf8");
   const direct = process.env.E2E_DIRECT === "1";
   const port = direct
@@ -131,8 +134,10 @@ async function main() {
       ? { DATA_BACKUP_DIR: path.join(temporary, "backups") }
       : {}),
     // NixOS workspace Chromium; other machines may use Playwright's installed browser.
-    E2E_CHROMIUM_PATH: process.env.E2E_CHROMIUM_PATH ?? "/repl/tools/bin/chromium",
-    ...(process.env.E2E_STATION_HISTORY === "1" ? { GA_STATION_ID: "SYNTHETIC" } : {}),
+    ...(process.env.E2E_CHROMIUM_PATH || !direct
+      ? { E2E_CHROMIUM_PATH: process.env.E2E_CHROMIUM_PATH ?? "/repl/tools/bin/chromium" }
+      : {}),
+    GA_STATION_ID: "SYNTHETIC",
   };
   db = new PrismaClient();
   stage = "owned owner creation";
@@ -155,6 +160,25 @@ async function main() {
   const fixtures = await navigationFixtures(db, password, user.id, (value) => {
     stage = value;
   });
+  const workflowUsers =
+    "operations.spec.ts" in suite ? await workflowBrowserFixtures(db, password) : [];
+  if (workflowUsers.length)
+    await writeFile(
+      path.join(temporary, "workflow.json"),
+      JSON.stringify({
+        password,
+        accounts: {
+          "owner@example.test": email,
+          "manager@example.test": fixtures.users.find((u) => u.role === "ADMIN")!.email,
+          "bookkeeper@example.test": fixtures.users.find((u) => u.role === "BOOKKEEPER")!.email,
+          "al@example.test": workflowUsers.find((u) => u.role === "WORKER")!.email,
+          "john@example.test": workflowUsers.find((u) => u.role === "PEER")!.email,
+        },
+      }),
+      {
+        mode: 0o600,
+      },
+    );
   stage = "owned station fixture configuration";
   const station =
     process.env.E2E_STATION_HISTORY === "1"
@@ -228,8 +252,12 @@ async function main() {
     await api.dispose();
   }
   stage = "private role authentication";
-  for (const fixture of fixtures.users) {
-    const roleApi = await request.newContext({ baseURL });
+  let clientNumber = 20;
+  for (const fixture of [...fixtures.users, ...workflowUsers]) {
+    const roleApi = await request.newContext({
+      baseURL,
+      extraHTTPHeaders: { "x-forwarded-for": `198.51.100.${clientNumber++}` },
+    });
     try {
       const response = await roleApi.post("/api/sign-in", {
         form: { email: fixture.email, password },
@@ -309,7 +337,7 @@ async function main() {
           const stack = error?.stack || error?.message || "";
           const line =
             error?.location?.line ??
-            stack.match(/(?:regression|navigation)\.spec\.ts:(\d+):\d+/)?.[1];
+            stack.match(/(?:regression|navigation|operations|phase[2-5])\.spec\.ts:(\d+):\d+/)?.[1];
           console.error(
             `Regression check at test line ${Number(spec.line)} failed${line ? ` at assertion line ${Number(line)}` : ""}.`,
           );
@@ -357,18 +385,9 @@ async function main() {
     throw new Error("Signed-in browser regression failed; sensitive diagnostics were not printed.");
   assertCompleteReport(
     report,
-    process.env.E2E_SUPPORT_ONLY === "1"
-      ? 1
-      : process.env.E2E_CERTIFICATES_ONLY === "1"
-        ? 4
-        : process.env.E2E_IMPORT_ONLY === "1"
-          ? 1
-          : process.env.E2E_STATION_ONLY === "1"
-            ? 1
-            : process.env.E2E_STATION_HISTORY === "1"
-              ? 11
-              : 9,
+    Object.values(suite).reduce((sum, n) => sum + n, 0),
   );
+  assertSuiteReport(report, suite);
   console.log(
     process.env.E2E_SUPPORT_ONLY === "1"
       ? "Passed: 1 complete Service & Support desktop/mobile flow with directory management, contact history, narrow employee provider association and private role exclusions; no skips."
@@ -380,9 +399,7 @@ async function main() {
             : "Passed: 1 complete owner import desktop/mobile journey including backup, reloads, unknown configuration, verification gates, staff-edit conflicts and role restrictions; no skips."
           : process.env.E2E_STATION_ONLY === "1"
             ? "Passed: 1 targeted station lifecycle check; no skips."
-            : process.env.E2E_STATION_HISTORY === "1"
-              ? "Passed: 11 signed-in browser checks including station report review, reconciliation, coverage, export and access restrictions; no skips."
-              : "Passed: 9 signed-in browser checks, including four-role desktop/mobile navigation, return context, history, authorization and vendor persistence; no skips.",
+            : `Passed: ${Object.values(suite).reduce((sum, n) => sum + n, 0)} browser checks across navigation, operations, payroll, certificates, maintenance, rentals, finance and Phase 5 automation${process.env.E2E_STATION_HISTORY === "1" ? ", plus station history" : ""}; no skips.`,
   );
   if (process.env.E2E_MANUAL_TEST === "1") {
     console.log("Private browser checks completed; preview remains available for visual review.");

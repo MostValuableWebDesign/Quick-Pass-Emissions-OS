@@ -1,4 +1,5 @@
 import { RecordLink } from "@/components/record-link";
+import Link from "next/link";
 import { currentUser } from "@/lib/access";
 import { businessDate } from "@/lib/time";
 import { payrollOverview } from "@/modules/payroll/service";
@@ -15,9 +16,17 @@ import {
   approveEmission,
   createPayrollPeriod,
 } from "@/app/phase2-actions";
-export default async function Payroll() {
+export default async function Payroll({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; status?: string; periodId?: string }>;
+}) {
   const actor = await currentUser();
-  const data = await payrollOverview(actor.id);
+  const params = await searchParams;
+  const data = await payrollOverview(actor.id, params);
+  const review = data.countReview;
+  const reviewHref = (page: number) =>
+    `/payroll?${new URLSearchParams({ page: String(page), status: review.status, ...(review.periodId ? { periodId: review.periodId } : {}) })}`;
   const today = businessDate();
   const approver = approvalRoles.includes(actor.role);
   const employees = data.employees.map((e) => (
@@ -190,8 +199,38 @@ export default async function Payroll() {
       )}
       <section className="card space-top">
         <div className="card-heading">
-          <h2>Daily counts · latest 100</h2>
+          <h2>Daily counts · review</h2>
         </div>
+        <form action="/payroll" method="get" className="card-body">
+          <Field label="Count approval filter">
+            <select name="status" defaultValue={review.status}>
+              <option value="ALL">All counts</option>
+              <option value="PENDING">Awaiting approval</option>
+            </select>
+          </Field>
+          <Field label="Count review period">
+            <select name="periodId" defaultValue={review.periodId ?? ""}>
+              <option value="">All dates</option>
+              {data.periods.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label} · {p.startDate} — {p.endDate}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <button className="button" type="submit">
+            Filter counts
+          </button>
+        </form>
+        <nav aria-label="Count review pages" className="card-body">
+          <span>
+            {review.total} matching counts · Page {review.page} of {review.totalPages}
+          </span>{" "}
+          {review.page > 1 && <Link href={reviewHref(review.page - 1)}>Previous counts</Link>}{" "}
+          {review.page < review.totalPages && (
+            <Link href={reviewHref(review.page + 1)}>Next counts</Link>
+          )}
+        </nav>
         <div className="table-scroll">
           <table>
             <thead>

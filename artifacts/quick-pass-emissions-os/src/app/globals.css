@@ -843,6 +843,12 @@ td small {
   font-size: 12px;
   min-width: 0;
 }
+.field > label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
 .field > span,
 .field > label {
   font-weight: 600;

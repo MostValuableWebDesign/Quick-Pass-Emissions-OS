@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { browserSuite, assertSuiteReport } from "../scripts/e2e-suites.mjs";
 import {
   assertOwnedDatabase,
   assertCompleteReport,
@@ -16,6 +17,32 @@ const env = {
 };
 
 describe("Browser isolation gates", () => {
+  it("includes every main workflow and checks per-file coverage, not smoke totals alone", () => {
+    const suite = browserSuite({});
+    expect(Object.keys(suite)).toEqual(
+      expect.arrayContaining([
+        "operations.spec.ts",
+        "phase2.spec.ts",
+        "phase3.spec.ts",
+        "phase4.spec.ts",
+        "phase5.spec.ts",
+      ]),
+    );
+    expect(Object.values(suite).reduce((sum, n) => sum + n, 0)).toBe(17);
+    const suites = Object.entries(suite).map(([file, count]) => ({
+      file,
+      specs: Array.from({ length: count }, () => ({ tests: [{}] })),
+    }));
+    expect(() => assertSuiteReport({ suites }, suite)).not.toThrow();
+    expect(() =>
+      assertSuiteReport({ suites: suites.filter((s) => s.file !== "phase5.spec.ts") }, suite),
+    ).toThrow();
+  });
+  it("allows explicit local isolation without a Replit preview domain", () => {
+    expect(() =>
+      assertOwnedDatabase({ ...env, REPLIT_DEV_DOMAIN: "", E2E_DIRECT: "1" }),
+    ).not.toThrow();
+  });
   it("requires the full expanded navigation suite, not just the original checks", () => {
     const stats = { expected: 9, skipped: 0, flaky: 0, unexpected: 0 };
     expect(() => assertCompleteReport({ stats, errors: [] }, 9)).not.toThrow();
@@ -58,7 +85,7 @@ describe("Browser isolation gates", () => {
   });
   it("fails empty, skipped, flaky and failed reports explicitly", () => {
     const stats = { expected: 3, skipped: 0, flaky: 0, unexpected: 0 };
-    expect(() => assertCompleteReport({ stats, errors: [] })).not.toThrow();
+    expect(() => assertCompleteReport({ stats, errors: [] }, 3)).not.toThrow();
     for (const change of [
       { expected: 0 },
       { expected: 2 },
@@ -66,8 +93,8 @@ describe("Browser isolation gates", () => {
       { flaky: 1 },
       { unexpected: 1 },
     ]) {
-      expect(() => assertCompleteReport({ stats: { ...stats, ...change } })).toThrow();
+      expect(() => assertCompleteReport({ stats: { ...stats, ...change } }, 3)).toThrow();
     }
-    expect(() => assertCompleteReport({ stats, errors: [{}] })).toThrow();
+    expect(() => assertCompleteReport({ stats, errors: [{}] }, 3)).toThrow();
   });
 });

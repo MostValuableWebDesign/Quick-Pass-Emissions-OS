@@ -139,6 +139,57 @@ if (enabled) {
     const a = await agreement();
     return r.createCharge(book, { agreementId: a.id, month: "2026-02", reason: why });
   }
+  it("prevents a backdated replacement payment from making historical rent negative", async () => {
+    const c = await charge();
+    const payment = await r.recordPayment(book, {
+      chargeId: c.id,
+      amountCents: 10000,
+      date: "2026-09-10",
+      reference: "first",
+      reason: why,
+    });
+    await r.reversePayment(owner, {
+      id: payment.id,
+      date: "2026-09-20",
+      reference: "reverse",
+      reason: why,
+    });
+    const before = await db.auditLog.count();
+    await expect(
+      r.recordPayment(book, {
+        chargeId: c.id,
+        amountCents: 10000,
+        date: "2026-09-15",
+        reference: "replacement",
+        reason: why,
+      }),
+    ).rejects.toThrow("latest payment/reversal");
+    expect(await db.rentalPayment.count()).toBe(2);
+    expect(await db.auditLog.count()).toBe(before);
+    const { paymentSummary } = await import("../src/modules/rentals/rules");
+    const ledger = await db.rentalPayment.findMany();
+    expect(
+      paymentSummary(
+        c.amountCents,
+        ledger.filter((p) => p.date <= "2026-09-15"),
+        c.dueDate,
+        "2026-09-15",
+      ).remainingCents,
+    ).toBe(0);
+    await r.recordPayment(book, {
+      chargeId: c.id,
+      amountCents: 10000,
+      date: "2026-09-20",
+      reference: "replacement",
+      reason: why,
+    });
+    for (const date of ["2026-09-09", "2026-09-10", "2026-09-15", "2026-09-20", today]) {
+      const payments = (await db.rentalPayment.findMany()).filter((p) => p.date <= date);
+      expect(
+        paymentSummary(c.amountCents, payments, c.dueDate, date).remainingCents,
+      ).toBeGreaterThanOrEqual(0);
+    }
+  });
   it("denies unauthorized reads, mutations and stale active/role claims", async () => {
     for (const actor of [employee, book]) {
       await expect(m.registry(actor)).rejects.toThrow("permission");

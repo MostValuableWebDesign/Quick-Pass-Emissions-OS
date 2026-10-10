@@ -111,6 +111,91 @@ if (enabled) {
       reason: "Physical opening count",
     });
   }
+  it("pages every count, drains 101 pending approvals, and generates the reviewed period", async () => {
+    const { addDays } = await import("../src/lib/time");
+    const startDate = "2026-01-01",
+      endDate = addDays(startDate, 100);
+    await pay.saveArrangement(owner, {
+      employeeId: employee,
+      effectiveDate: startDate,
+      kind: "FIXED",
+      amountCents: 1000,
+      reason: "Confirmed",
+    });
+    await pay.savePolicy(owner, {
+      employeeId: employee,
+      effectiveDate: startDate,
+      eligible: false,
+      threshold: 0,
+      rateCents: 0,
+      attribution: "PERSONAL_APPROVED_DAILY",
+      reason: "Confirmed",
+    });
+    const period = await pay.createPeriod(bookkeeper, {
+      startDate,
+      endDate,
+      label: "101-count period",
+    });
+    const rows = Array.from({ length: 101 }, (_, i) => ({
+      employeeId: employee,
+      date: addDays(startDate, i),
+      count: 0,
+      sourceRef: `paged-${i}`,
+      reason: "Explicit zero",
+    }));
+    await pay.importEmissions(bookkeeper, [
+      ...rows,
+      { ...rows[0], date, sourceRef: "outside-period" },
+    ]);
+    const first = await pay.payrollOverview(owner, { periodId: period.id });
+    const second = await pay.payrollOverview(owner, { periodId: period.id, page: 2 });
+    expect(first.countReview.total).toBe(101);
+    expect(first.counts).toHaveLength(100);
+    expect(second.counts).toHaveLength(1);
+    expect(new Set([...first.counts, ...second.counts].map((c) => c.id)).size).toBe(101);
+    for (const c of first.counts)
+      await pay.approveEmissions(owner, { id: c.id, version: c.version });
+    const remaining = await pay.payrollOverview(owner, {
+      status: "PENDING",
+      periodId: period.id,
+      page: 2,
+    });
+    expect(remaining.countReview).toMatchObject({ total: 1, page: 1 });
+    expect(remaining.counts[0].id).toBe(second.counts[0].id);
+    await pay.approveEmissions(owner, {
+      id: remaining.counts[0].id,
+      version: remaining.counts[0].version,
+    });
+    expect(
+      (await pay.payrollOverview(owner, { status: "PENDING", periodId: period.id })).counts,
+    ).toHaveLength(0);
+    expect((await pay.payrollOverview(owner, { status: "PENDING" })).counts).toHaveLength(1);
+    const input = await pay.savePayrollInput(bookkeeper, {
+      periodId: period.id,
+      employeeId: employee,
+      minutes: 0,
+      emissionsComplete: true,
+      reason: "All 101 days verified",
+      version: 0,
+    });
+    await pay.approvePayrollInput(owner, { id: input.id, version: input.version });
+    const draft = await pay.generateDraft(bookkeeper, period.id);
+    expect(draft.totalCents).toBe(1000);
+  });
+  it.each(["", null, false])(
+    "rolls back an import containing a missing numeric count: %j",
+    async (count) => {
+      const row = {
+        employeeId: employee,
+        date,
+        sourceRef: "missing-number",
+        reason: "Verified",
+        count,
+      };
+      await expect(pay.importEmissions(bookkeeper, [row])).rejects.toThrow();
+      expect(await db.dailyEmission.count()).toBe(0);
+    },
+  );
   it("re-reads role and active status for all protected reads/mutations", async () => {
     await expect(pay.payrollOverview(employeeUser)).rejects.toThrow("permission");
     await expect(cert.certificateOverview(employeeUser)).rejects.toThrow("permission");

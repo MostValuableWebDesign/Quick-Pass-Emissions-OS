@@ -62,12 +62,12 @@ export async function navigationFixtures(
     },
   });
   progress("private maintenance fixtures");
-  const bay = await db.carwashBay.create({
-    data: { slot: 1, identifier: "Navigation fixture bay", type: "SELF_SERVICE" },
+  const equipment = await db.equipment.create({
+    data: { code: "NAVIGATION", name: "Navigation fixture equipment", category: "PUMP" },
   });
   const ticket = await db.maintenanceTicket.create({
     data: {
-      bayId: bay.id,
+      equipmentId: equipment.id,
       title: "Navigation fixture maintenance",
       description: "Disposable navigation fixture only",
       priority: "NORMAL",

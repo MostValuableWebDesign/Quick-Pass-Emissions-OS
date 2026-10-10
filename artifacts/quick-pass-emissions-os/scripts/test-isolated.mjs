@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomBytes } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -65,13 +65,20 @@ try {
     throw new Error("Use test:isolated with optional --browser.");
   }
   const browser = args.includes("--browser");
-  if (process.env.NODE_ENV === "production" || !process.env.REPLIT_DEV_DOMAIN || !original) {
+  if (
+    process.env.NODE_ENV === "production" ||
+    (!process.env.REPLIT_DEV_DOMAIN && process.env.E2E_DIRECT !== "1") ||
+    !original
+  ) {
     throw new Error("Isolated verification is restricted to this development workspace.");
   }
   const url = new URL(original);
   url.pathname = `/${name}`;
   testUrl = url.toString();
-  isolatedEnv = isolatedDatabaseEnvironment(process.env, testUrl);
+  isolatedEnv = {
+    ...isolatedDatabaseEnvironment(process.env, testUrl),
+    BETTER_AUTH_SECRET: randomBytes(32).toString("hex"),
+  };
   admin = new PrismaClient({ datasources: { db: { url: original } } });
   // The identifier is generated here, never accepted from user input.
   await admin.$executeRawUnsafe(`CREATE DATABASE "${name}"`);
@@ -87,12 +94,7 @@ try {
     );
     await fs.mkdir(path.join(upgradeDir, "migrations"));
     for (const entry of await fs.readdir(path.join(app, "prisma/migrations"))) {
-      if (
-        entry.startsWith("202610100006") ||
-        entry.startsWith("202610100007") ||
-        entry.startsWith("202610100009")
-      )
-        continue;
+      if (/^\d{12}_.+$/.test(entry) && entry >= "202610100006_") continue;
       await fs.cp(
         path.join(app, "prisma/migrations", entry),
         path.join(upgradeDir, "migrations", entry),

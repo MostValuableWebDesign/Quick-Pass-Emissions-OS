@@ -19,16 +19,18 @@ export function assertOwnedDatabase(env) {
     env.DATABASE_URL !== env.TEST_DATABASE_URL ||
     new URL(env.DATABASE_URL).pathname !== `/${name}` ||
     env.NODE_ENV === "production" ||
-    !env.REPLIT_DEV_DOMAIN
+    (!env.REPLIT_DEV_DOMAIN && env.E2E_DIRECT !== "1")
   ) {
     throw new Error("Browser verification requires the runner-owned isolated database.");
   }
 }
 
-export function assertCompleteReport(report, expected = 3) {
+export function assertCompleteReport(report, expected) {
   const stats = report?.stats;
   // Never count empty, skipped, flaky/retried, or interrupted coverage as passing.
   if (
+    !Number.isInteger(expected) ||
+    expected < 1 ||
     !stats ||
     stats.expected !== expected ||
     stats.unexpected !== 0 ||

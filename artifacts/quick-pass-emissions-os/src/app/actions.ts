@@ -21,7 +21,20 @@ import { dueInstant, businessDate, addDays } from "@/lib/time";
 import { changeTask, taskChange } from "@/modules/tasks/service";
 import { runJobs } from "@/modules/tasks/jobs";
 import { occursOn } from "@/modules/tasks/recurrence";
+import type { Prisma } from "@prisma/client";
 export type ActionState = { ok?: boolean; message?: string; invite?: string };
+const personnelOptions = {
+  isolationLevel: "ReadCommitted",
+  maxWait: 10000,
+  timeout: 30000,
+} as const;
+async function personnelActor(tx: Prisma.TransactionClient, actorId: string) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(7183502)`;
+  const actor = await tx.user.findUnique({ where: { id: actorId } });
+  if (!actor?.active || !isManager(actor.role))
+    throw new Error("You do not have permission for this action.");
+  return actor;
+}
 async function perform(work: () => Promise<ActionState | void>): Promise<ActionState> {
   try {
     const result = await work();
@@ -50,13 +63,13 @@ async function perform(work: () => Promise<ActionState | void>): Promise<ActionS
 }
 export async function saveEmployee(_: ActionState, form: FormData) {
   return perform(async () => {
-    const actor = await manager();
+    const identity = await manager();
     const data = employeeInput.parse(fields(form));
     const employeeId = form.get("id")?.toString();
-    if (!canManageRole(actor.role, data.role))
-      throw new Error("Only the owner may manage privileged accounts.");
     await db.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(7183502)`;
+      const actor = await personnelActor(tx, identity.id);
+      if (!canManageRole(actor.role, data.role))
+        throw new Error("Only the owner may manage privileged accounts.");
       const { name, email, role, ...profile } = data;
       if (employeeId) {
         const old = await tx.employee.findUniqueOrThrow({
@@ -96,15 +109,16 @@ export async function saveEmployee(_: ActionState, form: FormData) {
           },
         });
       }
-    });
+    }, personnelOptions);
   });
 }
 export async function setEmployeeActive(_: ActionState, form: FormData) {
   return perform(async () => {
-    const actor = await manager();
+    const identity = await manager();
     const employeeId = id.parse(form.get("id"));
     const active = form.get("active") === "true";
     await db.$transaction(async (tx) => {
+      const actor = await personnelActor(tx, identity.id);
       const employee = await tx.employee.findUniqueOrThrow({
         where: { id: employeeId },
         include: { user: true },
@@ -126,15 +140,16 @@ export async function setEmployeeActive(_: ActionState, form: FormData) {
           details: { active },
         },
       });
-    });
+    }, personnelOptions);
   });
 }
 export async function issueInvite(_: ActionState, form: FormData) {
   return perform(async () => {
-    const actor = await manager();
+    const identity = await manager();
     const employeeId = id.parse(form.get("id"));
     const token = randomBytes(32).toString("hex");
     await db.$transaction(async (tx) => {
+      const actor = await personnelActor(tx, identity.id);
       const employee = await tx.employee.findUniqueOrThrow({
         where: { id: employeeId },
         include: { user: true },
@@ -159,7 +174,7 @@ export async function issueInvite(_: ActionState, form: FormData) {
       await tx.auditLog.create({
         data: { actorId: actor.id, action: "INVITE_CREATED", entityId: employeeId, details: {} },
       });
-    });
+    }, personnelOptions);
     return {
       ok: true,
       message: "Share this one-time link privately. It expires in 48 hours.",
@@ -182,6 +197,7 @@ export async function acceptInvite(_: ActionState, form: FormData) {
       throw new Error("Invite is invalid or expired.");
     const password = await hashPassword(data.password);
     await db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(7183502)`;
       const used = await tx.invite.updateMany({
         where: {
           id: found.id,
@@ -209,7 +225,7 @@ export async function acceptInvite(_: ActionState, form: FormData) {
           details: {},
         },
       });
-    });
+    }, personnelOptions);
     return { ok: true, message: "Account activated. You can now sign in." };
   });
 }

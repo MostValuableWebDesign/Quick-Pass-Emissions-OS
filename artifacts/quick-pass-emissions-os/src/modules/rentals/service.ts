@@ -149,6 +149,10 @@ export async function recordPayment(actorId: string, input: unknown) {
       data.date <= businessDate() && data.date >= c.agreement.startDate,
       "Choose a current/past payment date within or after the agreement start.",
     );
+    requireRule(
+      c.payments.every((p) => p.date <= data.date),
+      "Use a date on or after the latest payment/reversal.",
+    );
     await uniqueReceiptReference(tx, data.reference);
     const { remainingCents } = paymentSummary(c.amountCents, c.payments, c.dueDate, businessDate());
     requireRule(data.amountCents <= remainingCents, "Payment exceeds the outstanding charge.");
@@ -171,6 +175,12 @@ export async function reversePayment(actorId: string, input: unknown) {
     requireRule(
       data.date >= row.date && data.date <= businessDate(),
       "Use a current/past reversal date on or after the payment.",
+    );
+    requireRule(
+      !(await tx.rentalPayment.count({
+        where: { chargeId: row.chargeId, date: { gt: data.date } },
+      })),
+      "Use a date on or after the latest payment/reversal.",
     );
     await uniqueReceiptReference(tx, data.reference);
     const reversal = await tx.rentalPayment.create({

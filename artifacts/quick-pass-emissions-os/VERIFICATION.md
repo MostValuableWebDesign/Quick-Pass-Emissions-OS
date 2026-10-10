@@ -1,3 +1,9 @@
+# Phase 1–5 review fixes — October 10, 2026
+
+The review fixes preserve the existing shared Git history and business database. Changes include paginated/filterable payroll count review; stricter required-number validation; bounded forecast dates; dated invoice/rebill and rental correction checks; stable form labels and invitation activation; and saved-summary handling for unconfigured inventory. The owned browser runner now includes the Phase 1–5 workflows rather than silently excluding them.
+
+Publication checks: application TypeScript, ESLint and Prettier passed. All **271 unit/database tests passed with none skipped** in 27 files on a uniquely owned disposable database; the upgrade check preserved approved payroll, approved invoices and signed-reversal sentinels, and the temporary database was removed. The standard **Next.js Turbopack production build passed**, with the existing backup-utility dynamic-filesystem tracing warning. Builds used an unreachable database URL so compilation did not access business data. **All 17 browser checks passed with no skips**, covering navigation, operations, payroll, certificates, maintenance, rentals, finance and Phase 5 automation. Native preview login and unrelated-origin rejection passed. The runner removed its temporary database, private session state and build cache. No deployment or real external calls/orders were performed.
+
 # Service & Support — October 10, 2026
 
 - Application typecheck, full workspace `pnpm run typecheck`, ESLint and Prettier passed.

@@ -94,6 +94,36 @@ if (enabled) {
     await f.reviewInvoice(owner, decision(i.id));
     return db.dealerInvoice.findUniqueOrThrow({ where: { id: i.id } });
   }
+  it("rejects overlapping backdated invoice reissues and preserves historical receivables", async () => {
+    const old = await approved();
+    const line = await db.dealerInvoiceLine.findFirstOrThrow({ where: { invoiceId: old.id } });
+    await f.reviewInvoice(owner, decision(old.id, old.version, "VOID"));
+    const input = {
+      dealershipId: old.dealershipId,
+      number: "REISSUE",
+      issueDate: addDays(today, -1),
+      serviceIds: [line.serviceId],
+      notes: "Correction",
+    };
+    const before = await db.auditLog.count();
+    await expect(f.createInvoice(book, input)).rejects.toThrow("void date");
+    expect(await db.auditLog.count()).toBe(before);
+    expect(await db.dealerInvoice.count()).toBe(1);
+    expect(
+      (await db.dealerService.findUniqueOrThrow({ where: { id: line.serviceId } })).invoiceId,
+    ).toBeNull();
+    const replacement = await f.createInvoice(book, { ...input, issueDate: today });
+    await f.reviewInvoice(owner, decision(replacement.id));
+    const { receivable } = await import("../src/modules/finance/rules");
+    const invoices = await db.dealerInvoice.findMany({ include: { payments: true } });
+    for (const date of [past, addDays(today, -1), today]) {
+      const outstanding = invoices.reduce(
+        (sum, i) => sum + receivable(i, i.payments, date).remainingCents,
+        0,
+      );
+      expect(outstanding).toBe(old.totalCents);
+    }
+  });
   const payment = (
     invoiceId: string,
     amountCents = 4000,

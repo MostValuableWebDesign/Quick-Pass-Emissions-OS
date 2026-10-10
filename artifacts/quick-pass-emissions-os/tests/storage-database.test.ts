@@ -122,7 +122,7 @@ if (enabled) {
     await mkdir(path.join(baseline, "migrations"), { recursive: true });
     await cp("prisma/schema.prisma", path.join(baseline, "schema.prisma"));
     for (const migration of await readdir("prisma/migrations")) {
-      if (!migration.startsWith("202610100007"))
+      if (migration !== "202610100007_durable_storage")
         await cp(
           path.join("prisma/migrations", migration),
           path.join(baseline, "migrations", migration),

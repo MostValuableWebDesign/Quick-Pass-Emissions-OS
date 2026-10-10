@@ -3,6 +3,8 @@ import { businessDate, formatDate } from "@/lib/time";
 import { approvalRoles } from "@/modules/phase2";
 import { certificateOverview } from "@/modules/certificates/service";
 import { PageHeader } from "@/components/shared";
+import Link from "next/link";
+import { CertificateOrderLink } from "@/components/certificate-order-link";
 import { ActionForm, Field } from "@/components/action-form";
 import {
   saveInventorySettings,
@@ -36,6 +38,25 @@ export default async function Certificates() {
         Stock reflects entered movements. Verify against the official system and physical count.
         Orders are placed through your approved external channel, then recorded here.
       </p>
+      <section className="card card-body" aria-label="Manual certificate ordering">
+        <h2>Order on the official portal</h2>
+        <CertificateOrderLink role={actor.role} />
+        <p>
+          First create a purchase request here and have a different OWNER or ADMIN approve it.
+          Opening this link does not grant approval or record a purchase, payment, receipt or
+          successful portal login/order, change stock, or acknowledge or resolve an alert.
+        </p>
+        <p>
+          After approval, place the order yourself on the portal. Then use the existing approved
+          request below to manually record the external order reference and optional payment
+          reference against its approved quantity. Only an OWNER or ADMIN confirming physical
+          receipt increases inventory; partial deliveries use the existing receipt process.
+        </p>
+        <div className="module-links">
+          <Link href="#purchase-request">Create a purchase request</Link>
+          <Link href="#purchase-history">Review purchase requests & order records</Link>
+        </div>
+      </section>
       <section className="stats" aria-label="Certificate metrics">
         {[
           {
@@ -81,6 +102,7 @@ export default async function Certificates() {
             before approval.
           </p>
           <ActionForm action={draftRecommendedPurchase} submit="Draft recommended purchase" />
+          <CertificateOrderLink role={actor.role} />
         </section>
       )}
       <div className="two-columns space-top">
@@ -135,7 +157,7 @@ export default async function Certificates() {
         )}
       </div>
       <div className="two-columns space-top">
-        <section className="card card-body">
+        <section className="card card-body" id="purchase-request">
           <h2>Request a certificate purchase</h2>
           <p className="muted">
             One open request at a time. A second manager or owner must approve. Receipts increase
@@ -212,7 +234,7 @@ export default async function Certificates() {
           </section>
         )}
       </div>
-      <section className="card card-body space-top">
+      <section className="card card-body space-top" id="purchase-history">
         <h2>Purchase history · latest 100</h2>
         {!data.purchases.length && <p className="muted">No purchase requests recorded.</p>}
         {data.purchases.map((p) => (

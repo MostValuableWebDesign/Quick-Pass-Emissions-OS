@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CertificateOrderLink } from "@/components/certificate-order-link";
 import { requireRole } from "@/lib/require-role";
 import { ownerOverview } from "@/modules/automation/service";
 import { PageHeader } from "@/components/shared";
@@ -19,6 +20,19 @@ export default async function Overview() {
         </Link>
       </PageHeader>
       <Boundary>{data.limits}</Boundary>
+      {data.inventory.some(
+        (i) =>
+          i.key === "certificates" &&
+          i.balance != null &&
+          i.state !== "UNCONFIGURED" &&
+          i.state !== "UNKNOWN_STOCK" &&
+          i.low,
+      ) && (
+        <section className="notice warning" aria-label="Certificate low-stock warning">
+          <h2>Certificate reorder needed</h2>
+          <CertificateOrderLink role={user.role} alert />
+        </section>
+      )}
       <section aria-label="Exception counts" className="stats-grid">
         <div className="card stat-card">
           <span className="muted">Total exceptions</span>

@@ -1,5 +1,48 @@
 # Verification and handoff status
 
+## Manual certificate ordering navigation — October 10, 2026
+
+The latest shared business-import source was fast-forwarded before editing. Inventory now has
+**Order Certificates**, short official-portal/login-recovery instructions and same-tab request/history
+links. The manager Dashboard and live owner-exception certificate low-stock surfaces reuse the
+ordinary anchor to `https://gadashboard.com/Purchasing/Purchasing.aspx`, with `_blank` and
+`noopener noreferrer`. No embedding, browser popup script, credential handling, purchase integration,
+schema/service mutation, acknowledgement or receipt changes were added. Setup, unknown-stock,
+chemical and historical-summary warnings are not relabeled as certificate ordering.
+
+- `pnpm --filter @workspace/quick-pass-emissions-os test:isolated` passed **25 files / 223 tests,
+  zero skips**, with upgrade sentinels retained and only the owned temporary database removed.
+  Existing independent approval, manual order recording, partial receipts and role regressions
+  remained in that run. After adding six rendered warning-state cases and a browser-suite/count
+  contract check, a focused run of `certificate-order.test.ts` and `e2e-safety.test.ts` passed
+  **2 files / 17 tests, zero skips**. These later counts are not a second full isolated run.
+- Root workspace typecheck passed. Final app typecheck, ESLint, Prettier and `git diff --check`
+  passed. Standard Next 16.4 Turbopack production build passed. It retains the existing dynamic
+  filesystem tracing warning in database-maintenance/business-import backup code; inspected
+  **55 emitted traces with zero private input/environment/dump/session/generated-artifact entries**.
+  No dependency, migration or backup behavior was changed for this navigation feature.
+- Browser checks used a separately bound owned server/database and private native authentication;
+  the managed preview and business sessions were not replaced. All Georgia-dashboard requests were
+  intercepted as inert test HTML; no real portal login, order, submission or payment occurred.
+  The dedicated four-role suite checks exact URL, keyboard Tab/Enter, null-opener new tabs,
+  controlled post-login navigation/reopening, same-tab history, mobile overflow and before/after
+  purchase/stock/movement/notification/reminder/audit snapshots.
+- **Browser evidence limitation:** the first run failed the mock HTTP-redirect URL expectation.
+  It was changed to direct inert responses plus controlled intercepted navigation, preventing any
+  real redirect-chain request. The second run emitted no failed-spec messages and produced OWNER,
+  ADMIN and BOOKKEEPER desktop/mobile screenshots after their keyboard/reopening and unchanged-state
+  assertions. Those screenshots were reviewed as readable, with wrapping mobile instructions.
+  Its overall wrapper still rejected completion: the new dedicated four-check suite had incorrectly
+  inherited the nine-check report-count gate. The expected count and success label are now corrected,
+  and the selector/count/no-skips contract is covered by the passing focused unit run. The private
+  browser report had already been disposed, so exact final browser counts cannot be certified and
+  **no fully green browser-suite rerun is claimed**. Employee restrictions also remain covered by
+  rendered role tests and the unchanged server/domain authorization regressions.
+
+Publication is performed normally against shared GitHub main after final source/privacy checks;
+the commit URL is reported at completion. Source publication is separate from deployment.
+No production deployment or production database operation was performed.
+
 ## Controlled configuration import — 2026-10-10
 
 Commands completed on the final implementation:

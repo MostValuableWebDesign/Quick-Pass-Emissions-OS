@@ -1,3 +1,40 @@
+# Service & Support — October 10, 2026
+
+- Application typecheck, full workspace `pnpm run typecheck`, ESLint and Prettier passed.
+  The shared workspace check passed for API, Canvas, application and scripts; no
+  unrelated Canvas changes were made.
+- All **228 Vitest tests passed, none skipped**, in **26 files**, on a uniquely owned
+  disposable `_test` PostgreSQL database. Upgrade checks retained approved payroll,
+  approved invoice and signed-reversal sentinels; the isolated database was removed.
+  New checks include role/active restrictions, employee private-field exclusion, strict
+  provider-only mutation, manager confirmation/category/status versions, explicit
+  category preferences and clearing, contact history scope/persistence, archive
+  relationships and concurrent/repeated support import preservation.
+- **One complete protected Service & Support Playwright journey passed, no skips**,
+  using `E2E_DIRECT=1 E2E_SUPPORT_ONLY=1`. The exact completion marker and exit zero
+  were independently reported by the tester. It covered desktop filters/preferences,
+  contact destinations/extensions, saved management metadata and equipment association,
+  employee self-history/reloads/private exclusions, narrow maintenance association,
+  archival/history, bookkeeper denial, missing contacts, 390px fit and keyboard focus.
+  No phone, email or external destination was activated. Mobile captures were visually
+  reviewed; Next's development issue badge partly obscures one captured provider card.
+  The final prominent Call label/help text were checked by compilation, not another
+  browser pass.
+- Standard **`pnpm run build:app` passed** (Next 16.4 Turbopack). One existing backup
+  utility dynamic-filesystem tracing warning remains. Emitted trace manifests contained
+  no private import inputs, uploaded sources or support backups. No deployment occurred.
+- The normal managed application workflow restarted against its unchanged pinned
+  business database and reported ready. A screenshot of protected `/vendors` correctly
+  showed the public sign-in boundary; protected screens were verified with the isolated
+  signed-in browser journey, not that unauthenticated screenshot.
+- Source application was **development preview only**, after a private pre-migration
+  backup, storage identity verification and another verified backup at apply:
+  **4 unconfirmed vendors created, 0 updated, 0 unchanged, 0 conflicted, 2 review-only
+  items skipped/staged**. Repeat preview: **4 unchanged, 2 skipped, 0 created/updated/conflicted**.
+  No dates, preferences, physical associations, tickets or contact histories were
+  manufactured. See [docs/SERVICE_SUPPORT.md](docs/SERVICE_SUPPORT.md) for the exact
+  imported-versus-staged mapping and unsupported fields.
+
 # Verification and handoff status
 
 ## Manual certificate ordering navigation — October 10, 2026

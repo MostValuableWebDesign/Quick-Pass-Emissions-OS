@@ -7,12 +7,22 @@ resumable conflict handling, read [Business configuration import](BUSINESS_IMPOR
 
 ## Station reports and performance
 
-For an owner-requested daily total, choose a **Daily count date** in Performance
-and select **Get daily count from portal**. The server retrieves the configured
-station's original export and checks its row count against the portal total.
-The aggregate snapshot survives reload and is labeled with its retrieval time;
-it does not import individual records, reconcile payroll, or run in the background.
-An unavailable, empty or inconsistent report is not silently treated as a zero day.
+**Performance** automatically loads the current count when the owner opens it.
+Choose a single date or an inclusive date range, a week/month trend and an employee.
+Original source exports are checked against the portal's total. Aggregate days
+are cached in PostgreSQL; live-day snapshots are finalized after their day ends,
+and current-day data has a five-minute freshness window. Refresh is explicit,
+not a scheduler or background poll. Only the separately verified, echoed
+single-date empty-grid response establishes a dashboard zero; missing rows,
+unavailable reports, inconsistent exports and failures remain unknown.
+
+Revenue is a **$20 estimate per Pass/Fail**, not collected cash. Pay setup stores
+owner-entered rates, exact portal-name links, five-day schedules and dated actual
+hours/base overrides. Monday–Saturday availability never automatically pays six
+shifts. Commission is $1 per station test above 50 **per day for each working
+eligible employee**, not the employee's own test count. Fixed Monday and explicitly
+recorded grass-cutting payments stay separate. Unconfirmed workdays/pay remain
+unknown; these projections never replace approved payroll or source-review gates.
 
 Read [STATION_HISTORY.md](../STATION_HISTORY.md) before importing or reconciling station data. Use **Performance → Setup & imports**, original portal HTML `.xls` files for the configured station only, explicit identity/exception review, all-page total comparison and owner coverage attestation. New source revisions require renewed coverage review. Reconciliation replaces an existing personal daily count and clears approval; a different authorized reviewer approves through Payroll. Draft/approved periods remain frozen. No raw exports/sessions are retained, no portal refresh scheduler runs, and forecasts with an unverified current cutoff say **Insufficient data**. Never combine station price estimates with global finance receipts or approved dealership billing.
 

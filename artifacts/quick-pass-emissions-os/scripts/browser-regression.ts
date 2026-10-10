@@ -10,6 +10,7 @@ import path from "node:path";
 import { assertCompleteReport, assertOwnedDatabase } from "./e2e-safety.mjs";
 import { navigationFixtures } from "./navigation-fixtures";
 import { stationBrowserFixture } from "./station-browser-fixtures";
+import { performanceBrowserFixtures } from "./performance-browser-fixtures";
 
 const app = process.cwd();
 let server: ChildProcess | undefined;
@@ -155,6 +156,13 @@ async function main() {
   const fixtures = await navigationFixtures(db, password, user.id, (value) => {
     stage = value;
   });
+  if (process.env.E2E_PORTAL_LIVE !== "1") {
+    stage = "owned performance cache fixtures";
+    env.GA_STATION_ID = process.env.E2E_STATION_HISTORY === "1" ? "SYNTHETIC" : "PERFORMANCE_FIXTURE";
+    env.GA_DASHBOARD_USERNAME = "";
+    env.GA_DASHBOARD_PASSWORD = "";
+    await performanceBrowserFixtures(db, user.id, env.GA_STATION_ID);
+  }
   stage = "owned station fixture configuration";
   const station =
     process.env.E2E_STATION_HISTORY === "1"

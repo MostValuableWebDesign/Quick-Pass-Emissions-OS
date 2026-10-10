@@ -1,0 +1,1 @@
+export function addDays(s:string,n:number){const d=new Date(s+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);} export const Temporal={PlainDate:{from:(s:string)=>({dayOfWeek:new Date(s+"T12:00:00Z").getUTCDay()||7})}};

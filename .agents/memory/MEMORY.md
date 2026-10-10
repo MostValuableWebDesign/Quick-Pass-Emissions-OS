@@ -5,3 +5,5 @@
 - [Station portal access](station-portal-access.md) — successful login does not authorize unattended automation or establish stable report identities, payments or coverage.
 - [Private build traces](private-build-traces.md) — Git/deployment ignores do not govern Next dependency tracing; dynamic backup paths require separate privacy checks.
 - [Support contact trust](support-directory-boundaries.md) — document-sourced contacts can be useful to staff without qualifying as verified assignments or confirmed conversations.
+- [Performance business rules](performance-business-rules.md) — $20 Pass/Fail revenue, shop-wide daily commissions, and five shifts within Monday–Saturday availability.
+- [Cold preview startup](cold-preview-startup.md) — framework “Ready” did not establish reachability after a workspace restart; Webpack restored the imported Next preview.

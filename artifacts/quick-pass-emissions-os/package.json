@@ -6,7 +6,7 @@
     "node": ">=22.12 <27"
   },
   "scripts": {
-    "dev": "tsx scripts/database.ts migrate && next dev --hostname 0.0.0.0 --port ${PORT:-3000}",
+    "dev": "tsx scripts/database.ts migrate && next dev --webpack --hostname 0.0.0.0 --port ${PORT:-3000}",
     "build": "prisma generate && next build",
     "start": "tsx scripts/database.ts migrate && next start --hostname 0.0.0.0",
     "lint": "eslint .",
@@ -41,6 +41,7 @@
     "parse5": "8.0.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "recharts": "^3.10.1",
     "tailwind-merge": "3.7.0",
     "zod": "4.6.5"
   },

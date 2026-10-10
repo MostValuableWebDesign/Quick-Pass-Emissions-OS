@@ -1,8 +1,9 @@
 import { parse, type DefaultTreeAdapterMap } from "parse5";
-import { dateString } from "@/lib/validation";
 import { businessDate } from "@/lib/time";
 import { BusinessError } from "../phase2";
 import { parseReport } from "./report";
+import { range } from "./report";
+import type { PortalDay, Counts } from "./dashboard-types";
 
 const ORIGIN = "https://gadashboard.com";
 export const REPORT_PATH = "/Applications/TestHistoryVirReprint.aspx";
@@ -134,9 +135,10 @@ export async function portalSearch(
   date: string,
   config: { username: string; password: string; station: string },
   session = new PortalSession(),
+  end = date,
 ) {
-  dateString.parse(date);
-  if (date > businessDate()) throw new BusinessError("Choose today or an earlier business date.");
+  range(date, end);
+  if (end > businessDate()) throw new BusinessError("Choose today or an earlier business date.");
   if (!config.username || !config.password || !/^[A-Za-z0-9_-]{1,40}$/.test(config.station))
     throw new BusinessError("Station portal Secrets are missing or invalid.");
   const login = await session.request("/Login.aspx?ReturnUrl=%2f");
@@ -171,8 +173,9 @@ export async function portalSearch(
     if (!search.body.has(`ctl00$MainContent$${suffix}`))
       throw new BusinessError("Station report filters changed. Use a manual export.");
   const [year, month, day] = date.split("-");
+  const [endYear, endMonth, endDay] = end.split("-");
   search.body.set("ctl00$MainContent$txtWaiverDateStart", `${month}/${day}/${year}`);
-  search.body.set("ctl00$MainContent$txtWaiverDateEnd", `${month}/${day}/${year}`);
+  search.body.set("ctl00$MainContent$txtWaiverDateEnd", `${endMonth}/${endDay}/${endYear}`);
   search.body.set("ctl00$MainContent$txtStationId", config.station);
   for (const suffix of required.slice(3)) search.body.set(`ctl00$MainContent$${suffix}`, "");
   search.body.set("ctl00$MainContent$btnGetReport", "Search");
@@ -180,6 +183,90 @@ export async function portalSearch(
     session,
     page: await session.request(new URL(search.action, report.url).href, search.body),
   };
+}
+
+const blankCounts = (): Counts => ({ total: 0, passed: 0, failed: 0, aborted: 0, other: 0 });
+
+/** Verified read-only provider response observed on a zero-test business date. */
+export function portalExplicitEmpty(html: string, start: string, end: string, station: string) {
+  const form = portalForm(html);
+  const format = (date: string) => {
+    const [y, m, d] = date.split("-");
+    return `${m}/${d}/${y}`;
+  };
+  if (
+    form.body.get("ctl00$MainContent$txtStationId") !== station ||
+    form.body.get("ctl00$MainContent$txtWaiverDateStart") !== format(start) ||
+    form.body.get("ctl00$MainContent$txtWaiverDateEnd") !== format(end) ||
+    ["txtVin", "txtCertNumber", "txtLicNo", "txtWaiverRecordNumber"].some(
+      (field) => form.body.get(`ctl00$MainContent$${field}`) !== "",
+    )
+  ) return false;
+  const grid = portalElements(form.document, "table").find(
+    (n) => portalAttributes(n).id === "MainContent_gvMain",
+  );
+  if (!grid || portalElements(grid, "tr").length !== 2) return false;
+  const cells = portalElements(grid, "td");
+  return cells.length === 1 && portalAttributes(cells[0]).colspan === "7" &&
+    portalText(cells[0]).replace(/\s+/g, " ").trim() === "No data was found. Clear Search" &&
+    !portalElements(form.document, "input").some((n) => portalAttributes(n).alt === "Export");
+}
+
+/** Original bounded range export. Persist only counts by date/inspector, never vehicle data. */
+export async function portalRangeDays(
+  start: string,
+  end: string,
+  config: { username: string; password: string; station: string },
+  session = new PortalSession(),
+): Promise<PortalDay[]> {
+  try {
+    const { page } = await portalSearch(start, config, session, end);
+    if (portalExplicitEmpty(page.html, start, end, config.station))
+      return start === end ? [{ date: start, ...blankCounts(), inspectors: [], retrievedAt: new Date().toISOString(), verifiedEmpty: true }] : [];
+    const expected = expectedPortalTotal(page.html);
+    const form = portalForm(page.html);
+    const exportButton = portalElements(form.document, "input")
+      .map(portalAttributes)
+      .find((a) => a.type === "image" && a.alt === "Export" &&
+        /^ctl00\$MainContent\$gvMain\$ctl\d+\$pgrApplus\$btnExport$/.test(a.name ?? ""));
+    if (!exportButton) throw new BusinessError("No verified export is available for these dates.");
+    form.body.set(`${exportButton.name}.x`, "1");
+    form.body.set(`${exportButton.name}.y`, "1");
+    const exported = await session.request(new URL(form.action, page.url).href, form.body);
+    let report: ReturnType<typeof parseReport>;
+    try {
+      report = parseReport(exported.html, config.station);
+    } catch {
+      throw new BusinessError("Station export could not be verified. Try a smaller date range.");
+    }
+    if (report.start !== start || report.end !== end || report.rows.length !== expected)
+      throw new BusinessError("Station export totals or dates changed. Refresh to try again.");
+    const days = new Map<string, PortalDay>();
+    const retrievedAt = new Date().toISOString();
+    for (const row of report.rows) {
+      let day = days.get(row.businessDate);
+      if (!day) {
+        day = { date: row.businessDate, ...blankCounts(), inspectors: [], retrievedAt, verifiedEmpty: false };
+        days.set(row.businessDate, day);
+      }
+      let inspector = day.inspectors.find((g) => g.inspector === row.inspector);
+      if (!inspector) {
+        inspector = { inspector: row.inspector, ...blankCounts() };
+        day.inspectors.push(inspector);
+      }
+      const outcome = row.outcome.toLowerCase();
+      const key = outcome === "pass" ? "passed" : outcome === "fail" ? "failed" :
+        outcome === "abort" ? "aborted" : "other";
+      for (const aggregate of [day, inspector]) {
+        aggregate.total++;
+        aggregate[key]++;
+      }
+    }
+    // Missing dates are not invented zeros. Explicit empty-day responses are verified separately.
+    return [...days.values()].sort((a, b) => a.date.localeCompare(b.date));
+  } finally {
+    session.dispose();
+  }
 }
 
 export type PortalDailyTotal = {

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { expandGroups } from "./navigation-helpers";
 
@@ -133,37 +134,102 @@ test.describe("Owner daily performance count", () => {
   test.use({ storageState: path.join(directory, "session.json") });
 
   test("selecting a date loads that single-day station count", async ({ page }) => {
+    test.setTimeout(180000);
     await page.goto("/performance");
-    const dayForm = page.getByRole("form", { name: "Daily performance count" });
-    // A native GET remains usable even when a date is selected before hydration.
-    await page.getByLabel("Daily count date").fill("2026-01-15");
-    if (!new URL(page.url()).searchParams.has("date"))
-      await dayForm.getByRole("button", { name: "Show daily count" }).click();
-    await expect(page).toHaveURL(/\/performance\?preset=day&date=2026-01-15$/);
-    await expect(page.locator("main h1")).toContainText("Station performance");
-    const totals = page.getByRole("region", { name: "Station-wide totals" });
-    await expect(totals).toContainText("Station recorded");
-    await expect(totals).toContainText("Pending identities");
-    await expect(page.locator("main")).toContainText("2026-01-15 inclusive");
+    await expect(page.locator("main h1")).toHaveText("Performance");
+    if (process.env.E2E_PORTAL_LIVE !== "1") {
+      await expect(page.getByTestId("text-today-total")).toHaveText("95");
+      await expect(page.getByTestId("text-cars")).toHaveText("95");
+      await expect(page.getByTestId("text-revenue")).toHaveText("$1,860");
+    }
+    await page.getByTestId("input-date").fill("2026-01-15");
+    if (new URL(page.url()).searchParams.get("start") !== "2026-01-15")
+      await page.getByTestId("button-apply-date").click();
+    await expect(page).toHaveURL(/start=2026-01-15/);
     await page.reload();
-    await expect(page.getByLabel("Daily count date")).toHaveValue("2026-01-15");
-    await expect(page.locator('main input[name="start"]')).toHaveValue("2026-01-15");
-    await expect(page.locator('main input[name="end"]')).toHaveValue("2026-01-15");
-    if (process.env.E2E_PORTAL_LIVE === "1") {
-      test.setTimeout(180000);
-      await page.getByLabel("Daily count date").fill("2026-10-09");
-      if (new URL(page.url()).searchParams.get("date") !== "2026-10-09")
-        await dayForm.getByRole("button", { name: "Show daily count" }).click();
-      await expect(page).toHaveURL(/\/performance\?preset=day&date=2026-10-09$/);
-      const portal = page.getByRole("region", { name: "Portal daily count" });
-      await portal.getByRole("button", { name: "Get daily count from portal" }).click();
-      await expect(portal).toContainText("Retrieved 94 test rows for 2026-10-09.", {
-        timeout: 75000,
-      });
-      await expect(portal).toContainText("Pass: 77 · Fail: 15 · Abort: 2");
+    await expect(page.getByTestId("input-date")).toHaveValue("2026-01-15");
+    if (process.env.E2E_PORTAL_LIVE !== "1") {
+      await expect(page.getByTestId("text-cars")).toHaveText("95");
+      await expect(page.getByTestId("text-revenue")).toHaveText("$1,860");
+      await expect(page.getByTestId("text-pay")).toHaveText("$550");
+      const employeeRows = page.getByRole("region", { name: "Employees" }).locator("tbody tr");
+      await expect(employeeRows).toHaveCount(2);
+      await expect(page.getByTestId("row-employee-inspector:Fixture%20One")).toContainText("$45");
+      await expect(page.getByTestId("row-employee-inspector:Fixture%20Two")).toContainText("$45");
+      await page.getByTestId("select-trend").selectOption("7");
+      await page.getByTestId("button-apply-range").click();
+      await expect(page.getByRole("region", { name: "Trend" })).toContainText("7 days");
+      await page.getByTestId("select-trend").selectOption("30");
+      await page.getByTestId("button-apply-range").click();
+      await expect(page.getByRole("region", { name: "Trend" })).toContainText("30 days");
+      await page.getByTestId("input-start").fill("2026-01-14");
+      await page.getByTestId("input-end").fill("2026-01-15");
+      await page.getByTestId("button-apply-range").click();
+      await expect(page.getByTestId("text-cars")).toHaveText("190");
+      await expect(page.getByTestId("text-revenue")).toHaveText("$3,720");
+      await expect(page.getByTestId("text-pay")).toHaveText("$1,100");
+      await page.getByTestId("select-employee").selectOption("inspector:Fixture%20Two");
+      await page.getByTestId("button-apply-range").click();
+      await expect(page.getByTestId("text-cars")).toHaveText("50");
+      await expect(page.getByTestId("text-revenue")).toHaveText("$1,000");
+      await expect(page.getByTestId("row-employee-inspector:Fixture%20Two")).toContainText("$90");
+      await expect(page.getByTestId("text-today-total")).toHaveText("95");
+      await expect(page.getByRole("region", { name: "Trend" })).toContainText("line is station total");
+      await page.getByTestId("select-employee").selectOption("");
+      await page.getByTestId("button-apply-range").click();
+      await page.getByTestId("button-sort-name").click();
+      const sortedRows = page.getByRole("region", { name: "Employees" }).locator("tbody tr");
+      await expect(sortedRows.nth(0)).toContainText("Fixture One");
+      await expect(sortedRows.nth(1)).toContainText("Fixture Two");
+      const search = page.getByTestId("input-employee-filter");
+      await search.fill("Fixture Two");
+      await expect(sortedRows).toHaveCount(1);
+      await expect(sortedRows.first()).toContainText("Fixture Two");
+      await search.fill("no such fixture");
+      await expect(page.getByText("No employees match that filter.")).toBeVisible();
+      await search.fill("");
+      await page.getByTestId("input-date").fill("2026-01-15");
+      if (new URL(page.url()).searchParams.get("start") !== "2026-01-15")
+        await page.getByTestId("button-apply-date").click();
+      await expect(page).toHaveURL(/start=2026-01-15/);
+      await page.getByTestId("select-trend").selectOption("30");
+      await page.getByTestId("button-apply-date").click();
+      await page.getByTestId("button-pay-setup").click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await expect(page.getByRole("dialog")).toContainText("Fixture One");
+      await page.getByRole("dialog").getByRole("button", { name: "Day adjustments" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Add day adjustment" }).click();
+      await page.getByRole("dialog").getByLabel("Date").last().fill("2026-01-15");
+      await page.getByRole("dialog").getByLabel("Actual hours").last().fill("12");
+      await page.getByTestId("button-save-pay").click();
+      await expect(page.getByRole("dialog")).not.toBeVisible();
+      await expect(page.getByTestId("text-pay")).toHaveText("$596");
       await page.reload();
-      await expect(portal.locator("strong")).toHaveText("94");
-      await expect(portal).toContainText("Saved snapshot");
+      await expect(page.getByTestId("text-pay")).toHaveText("$596");
+      let workspace = process.cwd();
+      while (!existsSync(path.join(workspace, "generated-artifacts")) && path.dirname(workspace) !== workspace)
+        workspace = path.dirname(workspace);
+      const screenshots = path.join(workspace, "generated-artifacts");
+      await mkdir(screenshots, { recursive: true });
+      await page.screenshot({ path: path.join(screenshots, "performance-dashboard-desktop.png"), fullPage: true });
+      await page.setViewportSize({ width: 390, height: 844 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      await expect(page.getByTestId("button-pay-setup")).toBeVisible();
+      await page.getByTestId("button-pay-setup").click();
+      const dialog = page.getByRole("dialog");
+      await expect(dialog).toBeVisible();
+      expect((await dialog.boundingBox())?.width).toBeLessThanOrEqual(390);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      await dialog.getByRole("button", { name: "Close" }).click();
+      await expect(dialog).not.toBeVisible();
+      await page.screenshot({ path: path.join(screenshots, "performance-dashboard-mobile.png"), fullPage: true });
+    }
+    if (process.env.E2E_PORTAL_LIVE === "1") {
+      await page.getByTestId("input-date").fill("2026-10-09");
+      await expect(page.getByTestId("text-cars")).toHaveText("94", { timeout: 90000 });
+      await expect(page.getByTestId("text-revenue")).toHaveText("$1,840");
+      await page.reload();
+      await expect(page.getByTestId("text-cars")).toHaveText("94");
     }
   });
 });

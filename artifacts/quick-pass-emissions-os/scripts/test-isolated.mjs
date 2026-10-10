@@ -61,6 +61,9 @@ try {
         ...process.env,
         DATABASE_URL: testUrl,
         TEST_DATABASE_URL: testUrl,
+        // This generated, disposable database receives its own identity during migration.
+        // Never inherit the business database's pin into an empty owned test database.
+        EXPECTED_DATABASE_ID: "",
         E2E_OWNED_DATABASE: browser ? name : "",
         DANGEROUSLY_ALLOW_GIT: "1",
     });

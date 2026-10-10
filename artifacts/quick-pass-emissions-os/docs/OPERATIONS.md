@@ -1,5 +1,26 @@
 # Operator runbook
 
+## Manual certificate portal and low-stock banner
+
+Certificates now opens the official purchasing portal directly inside an iframe,
+with an external-browser fallback for embedding or third-party-cookie restrictions.
+Users control provider sign-in, quantities and purchases; no internal approval is
+needed before buying on the portal. Optional internal purchase/receipt records
+remain reviewed and do not gate portal access.
+
+The read-only portal balance selects **GA102539 - QUICK PASS EMISSIONS INC**,
+verifies analyzer **HT111411**, and retrieves the provider's unused-certificate
+count. It never posts cart, quantity or payment controls. Only balance, identity
+labels and check time are cached; no provider HTML, cookies or credentials are
+saved. Owner/admin page views use a five-minute cache; manual checks have a short
+cooldown. No background polling or purchases run.
+
+Settings → Low certificate alert controls the global banner. Default: **strictly
+below 30**; a threshold of zero disables the low-stock warning. Failed checks
+preserve the last known balance and show that it could not be refreshed. The
+portal balance is distinct from the recorded stock ledger; reading it does not
+reconcile stock or prove purchase, receipt, payment or usage.
+
 For reviewed reference configuration, source mapping, backup-gated preview/apply and
 resumable conflict handling, read [Business configuration import](BUSINESS_IMPORT.md).
 

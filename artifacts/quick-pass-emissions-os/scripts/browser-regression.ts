@@ -11,6 +11,7 @@ import { assertCompleteReport, assertOwnedDatabase } from "./e2e-safety.mjs";
 import { navigationFixtures } from "./navigation-fixtures";
 import { stationBrowserFixture } from "./station-browser-fixtures";
 import { performanceBrowserFixtures } from "./performance-browser-fixtures";
+import { certificatePortalBrowserFixture } from "./certificate-portal-browser-fixtures";
 
 const app = process.cwd();
 let server: ChildProcess | undefined;
@@ -135,6 +136,11 @@ async function main() {
     E2E_CHROMIUM_PATH: process.env.E2E_CHROMIUM_PATH ?? "/repl/tools/bin/chromium",
     ...(process.env.E2E_STATION_HISTORY === "1" ? { GA_STATION_ID: "SYNTHETIC" } : {}),
   };
+  if (process.env.E2E_CERTIFICATE_UX === "1") {
+    // The owned UX run can only make unauthenticated public portal requests.
+    env.GA_DASHBOARD_USERNAME = "";
+    env.GA_DASHBOARD_PASSWORD = "";
+  }
   db = new PrismaClient();
   stage = "owned owner creation";
   const email = `regression-${randomUUID()}@example.test`;
@@ -162,6 +168,10 @@ async function main() {
     env.GA_DASHBOARD_USERNAME = "";
     env.GA_DASHBOARD_PASSWORD = "";
     await performanceBrowserFixtures(db, user.id, env.GA_STATION_ID);
+  }
+  if (process.env.E2E_CERTIFICATE_UX === "1") {
+    stage = "owned synthetic certificate portal cache fixture";
+    await certificatePortalBrowserFixture(db, user.id);
   }
   stage = "owned station fixture configuration";
   const station =
@@ -365,7 +375,9 @@ async function main() {
     throw new Error("Signed-in browser regression failed; sensitive diagnostics were not printed.");
   assertCompleteReport(
     report,
-    process.env.E2E_SUPPORT_ONLY === "1"
+    process.env.E2E_CERTIFICATE_UX === "1"
+      ? 5
+      : process.env.E2E_SUPPORT_ONLY === "1"
       ? 1
       : process.env.E2E_CERTIFICATES_ONLY === "1"
         ? 4
@@ -380,7 +392,9 @@ async function main() {
                 : 10,
   );
   console.log(
-    process.env.E2E_SUPPORT_ONLY === "1"
+    process.env.E2E_CERTIFICATE_UX === "1"
+      ? "Passed: 5 focused protected certificate portal UX checks across owner, bookkeeper and employee roles; isolated synthetic balance, threshold persistence and access verified; no skips."
+      : process.env.E2E_SUPPORT_ONLY === "1"
       ? "Passed: 1 complete Service & Support desktop/mobile flow with directory management, contact history, narrow employee provider association and private role exclusions; no skips."
       : process.env.E2E_CERTIFICATES_ONLY === "1"
         ? "Passed: 4 manual certificate navigation role checks including intercepted new tabs/reopening, same-tab records, desktop/mobile, keyboard and unchanged purchase/stock/alert snapshots; no skips."

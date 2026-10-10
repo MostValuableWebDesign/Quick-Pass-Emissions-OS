@@ -21,6 +21,18 @@ Certificate purchasing is deliberately user-controlled: “I must control the en
 
 **How to apply:** Treat any future automated certificate purchase proposal as a new authorization decision, not an extension of manual station access or report-import permission.
 
+The user wants manual purchasing within the app without app-imposed requests or second-person approval before using the provider. Optional reviewed bookkeeping is separate from that manual portal session.
+
+**Why:** The user said there is too much validation around purchasing and that it should be manually controlled.
+
+**How to apply:** The embedded portal must stay direct and cross-origin, with a browser fallback if embedding/cookies fail. Never proxy a payment page, share the server's authenticated cookies with the iframe, or handle the user's portal payment/login fields. Provider purchase rules still apply.
+
+Certificate balance discovery uses exact station/analyzer membership and a bounded read-only operation. Report-import sessions must continue rejecting purchasing redirects.
+
+**Why:** Broadening the report client's global URL allowlist for certificate reads weakened an existing safety boundary; a dedicated opt-in read context preserves it.
+
+**How to apply:** Verify the analyzer belongs to the selected station, post only selection/validation state, and call only the provider's unused-count operation. Do not submit cart, receipt, quantity or payment controls.
+
 Daily station counts must be accessible by choosing one date, without a separate range-mode choice.
 
 **Why:** The user said, “i should be able to select a date and get the daily count.”

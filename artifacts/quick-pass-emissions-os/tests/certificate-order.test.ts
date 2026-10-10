@@ -68,7 +68,7 @@ describe("manual certificate portal navigation", () => {
         },
       ];
       const html = renderToStaticMarkup(await Overview());
-      expect(html.includes(CERTIFICATE_ORDER_URL)).toBe(visible);
+      expect(html.includes('href="/certificates#portal"')).toBe(visible);
     });
   }
   for (const role of ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"] as Role[]) {
@@ -81,15 +81,15 @@ describe("manual certificate portal navigation", () => {
       );
     });
   }
-  it("uses only an ordinary fixed external anchor with visible new-tab/login guidance", () => {
+  it("opens the internal manual portal with browser fallback guidance", () => {
     const html = renderToStaticMarkup(
       createElement(CertificateOrderLink, { role: "OWNER", alert: true }),
     );
     expect(CERTIFICATE_ORDER_URL).toBe("https://gadashboard.com/Purchasing/Purchasing.aspx");
     expect(html).toContain(
-      `href="${CERTIFICATE_ORDER_URL}" target="_blank" rel="noopener noreferrer"`,
+      'href="/certificates#portal"',
     );
-    expect(html).toContain("return here and select Order Certificates again");
+    expect(html).toContain("You control sign-in and ordering");
     expect(html).toContain('href="/certificates#purchase-history"');
     expect(html).not.toMatch(/<form|<iframe|<script|onclick=|formaction=/i);
   });
@@ -105,9 +105,10 @@ describe("manual certificate portal navigation", () => {
     ])
       expect(inventory).toContain(`action={${action}}`);
     expect(inventory).toContain('id="purchase-history"');
-    expect(inventory).toContain('href="#purchase-request"');
-    expect(inventory).toContain("different OWNER or ADMIN approve");
-    expect(inventory).toContain("confirming physical");
+    expect(inventory).toContain('id="purchase-request"');
+    expect(inventory).toContain('id="records"');
+    expect(inventory).toContain("You do not need a request or approval here before buying");
+    expect(inventory).toContain("CertificatePortalBrowser");
     const dashboard = readFileSync("src/app/(app)/dashboard/page.tsx", "utf8");
     expect(dashboard).toContain(
       "certificates.stock && certificates.settings && certificates.estimate?.low",

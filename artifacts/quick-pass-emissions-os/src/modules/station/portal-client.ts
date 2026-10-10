@@ -53,12 +53,19 @@ export function portalForm(html: string) {
 export class PortalSession {
   private cookies = new Map<string, string>();
   private deadline = Date.now() + 60_000;
-  constructor(private transport: typeof fetch = fetch) {}
+  private allowedPaths: Set<string>;
+  constructor(private transport: typeof fetch = fetch, allowCertificateReads = false) {
+    this.allowedPaths = new Set(ALLOWED_PATHS);
+    if (allowCertificateReads) {
+      this.allowedPaths.add("/Purchasing/Purchasing.aspx");
+      this.allowedPaths.add("/Purchasing/Purchasing.aspx/GetUnusedCertsForAnalyzer");
+    }
+  }
 
-  async request(path: string, body?: URLSearchParams) {
+  async request(path: string, body?: URLSearchParams | string) {
     let url = new URL(path, ORIGIN);
     for (let redirect = 0; redirect < 6; redirect++) {
-      if (url.origin !== ORIGIN || !ALLOWED_PATHS.has(url.pathname))
+      if (url.origin !== ORIGIN || !this.allowedPaths.has(url.pathname))
         throw new BusinessError("Station portal redirected to an unsupported location.");
       const remaining = this.deadline - Date.now();
       if (remaining <= 0) throw new BusinessError("Station portal lookup timed out. Try later.");
@@ -71,7 +78,7 @@ export class PortalSession {
           cache: "no-store",
           signal: AbortSignal.timeout(Math.min(15_000, remaining)),
           headers: {
-            ...(body ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
+            ...(body ? { "Content-Type": typeof body === "string" ? "application/json; charset=utf-8" : "application/x-www-form-urlencoded" } : {}),
             ...(this.cookies.size
               ? { Cookie: [...this.cookies].map(([k, v]) => `${k}=${v}`).join("; ") }
               : {}),
@@ -131,14 +138,10 @@ export class PortalSession {
   }
 }
 
-export async function portalSearch(
-  date: string,
+export async function portalLogin(
   config: { username: string; password: string; station: string },
-  session = new PortalSession(),
-  end = date,
+  session: PortalSession,
 ) {
-  range(date, end);
-  if (end > businessDate()) throw new BusinessError("Choose today or an earlier business date.");
   if (!config.username || !config.password || !/^[A-Za-z0-9_-]{1,40}$/.test(config.station))
     throw new BusinessError("Station portal Secrets are missing or invalid.");
   const login = await session.request("/Login.aspx?ReturnUrl=%2f");
@@ -158,6 +161,17 @@ export async function portalSearch(
     throw new BusinessError(
       "Unable to sign in to the station portal. Check the portal credentials.",
     );
+}
+
+export async function portalSearch(
+  date: string,
+  config: { username: string; password: string; station: string },
+  session = new PortalSession(),
+  end = date,
+) {
+  range(date, end);
+  if (end > businessDate()) throw new BusinessError("Choose today or an earlier business date.");
+  await portalLogin(config, session);
   const report = await session.request(REPORT_PATH);
   const search = portalForm(report.html);
   const required = [

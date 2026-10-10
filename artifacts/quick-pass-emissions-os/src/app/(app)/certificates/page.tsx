@@ -3,8 +3,8 @@ import { businessDate, formatDate } from "@/lib/time";
 import { approvalRoles } from "@/modules/phase2";
 import { certificateOverview } from "@/modules/certificates/service";
 import { PageHeader } from "@/components/shared";
-import Link from "next/link";
-import { CertificateOrderLink } from "@/components/certificate-order-link";
+import { CertificatePortalBrowser } from "@/components/certificate-portal-browser";
+import { readCertificatePortalStatus } from "@/modules/certificates/portal";
 import { ActionForm, Field } from "@/components/action-form";
 import {
   saveInventorySettings,
@@ -18,7 +18,10 @@ import {
 } from "@/app/phase2-actions";
 export default async function Certificates() {
   const actor = await currentUser();
-  const data = await certificateOverview(actor.id);
+  const [data, portal] = await Promise.all([
+    certificateOverview(actor.id),
+    readCertificatePortalStatus().catch(() => null),
+  ]);
   const approver = approvalRoles.includes(actor.role);
   const today = businessDate();
   const estimate = data.estimate;
@@ -26,7 +29,7 @@ export default async function Certificates() {
     <>
       <PageHeader
         title="Certificate inventory"
-        description="Recorded stock, physical reconciliation, and reviewed purchase requests."
+        description="Buy certificates on the provider portal, then keep stock records here."
       />
       {data.demo && (
         <div className="notice warning">
@@ -34,29 +37,11 @@ export default async function Certificates() {
           business records.
         </div>
       )}
-      <p className="notice">
-        Stock reflects entered movements. Verify against the official system and physical count.
-        Orders are placed through your approved external channel, then recorded here.
+      <CertificatePortalBrowser initial={portal} canRefresh={approver} />
+      <p className="notice space-top">
+        Recorded stock below reflects entered movements and is separate from the portal balance.
+        Verify against the official system and physical count.
       </p>
-      <section className="card card-body" aria-label="Manual certificate ordering">
-        <h2>Order on the official portal</h2>
-        <CertificateOrderLink role={actor.role} />
-        <p>
-          First create a purchase request here and have a different OWNER or ADMIN approve it.
-          Opening this link does not grant approval or record a purchase, payment, receipt or
-          successful portal login/order, change stock, or acknowledge or resolve an alert.
-        </p>
-        <p>
-          After approval, place the order yourself on the portal. Then use the existing approved
-          request below to manually record the external order reference and optional payment
-          reference against its approved quantity. Only an OWNER or ADMIN confirming physical
-          receipt increases inventory; partial deliveries use the existing receipt process.
-        </p>
-        <div className="module-links">
-          <Link href="#purchase-request">Create a purchase request</Link>
-          <Link href="#purchase-history">Review purchase requests & order records</Link>
-        </div>
-      </section>
       <section className="stats" aria-label="Certificate metrics">
         {[
           {
@@ -98,11 +83,9 @@ export default async function Certificates() {
           <h2>Certificate reorder needed</h2>
           <p>
             Recorded stock is at or below the reorder threshold. Estimated request:{" "}
-            {estimate.recommendedQuantity} certificates. Review open orders and the physical count
-            before approval.
+            {estimate.recommendedQuantity} certificates. Review open orders and the physical count.
           </p>
           <ActionForm action={draftRecommendedPurchase} submit="Draft recommended purchase" />
-          <CertificateOrderLink role={actor.role} />
         </section>
       )}
       <div className="two-columns space-top">
@@ -156,12 +139,18 @@ export default async function Certificates() {
           </section>
         )}
       </div>
+      <details className="card card-body space-top records-section" id="records">
+        <summary>Optional records · purchase requests, ordering settings, purchase history</summary>
+        <p className="muted">
+          Optional internal records. You do not need a request or approval here before buying on the
+          portal. Record orders and confirmed receipts here to keep the stock ledger accurate.
+        </p>
       <div className="two-columns space-top">
         <section className="card card-body" id="purchase-request">
           <h2>Request a certificate purchase</h2>
           <p className="muted">
-            One open request at a time. A second manager or owner must approve. Receipts increase
-            stock only after an approved external order is recorded.
+            Optional. One open request at a time, reviewed by a different manager or owner.
+            Receipts increase stock only after an external order is recorded against a request.
           </p>
           <ActionForm action={createPurchaseRequest} submit="Request purchase">
             <Field label="Requested certificates">
@@ -311,6 +300,7 @@ export default async function Certificates() {
           </article>
         ))}
       </section>
+      </details>
       <section className="card space-top">
         <div className="card-heading">
           <h2>Inventory movements · latest 100</h2>

@@ -11,7 +11,9 @@ export default defineConfig({
   ...(process.env.E2E_STATION_ONLY === "1" ? { grep: /station report →/ } : {}),
   testDir: "tests/e2e",
   testMatch:
-    process.env.E2E_SUPPORT_ONLY === "1"
+    process.env.E2E_CERTIFICATE_UX === "1"
+      ? ["certificate-portal-ux.spec.ts"]
+      : process.env.E2E_SUPPORT_ONLY === "1"
       ? ["support.spec.ts"]
       : process.env.E2E_CERTIFICATES_ONLY === "1"
         ? ["certificate-order.spec.ts"]

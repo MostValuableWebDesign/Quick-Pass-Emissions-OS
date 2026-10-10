@@ -43,6 +43,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "./ui/button";
+import { CertificatePortalBanner } from "./certificate-portal-banner";
+import type { CertificatePortalStatus } from "@/modules/certificates/portal-types";
 import { NavRoleContext } from "./record-link";
 import {
   activeNavHref,
@@ -92,10 +94,12 @@ export function Shell({
   children,
   name,
   role,
+  certificateStatus = null,
 }: {
   children: React.ReactNode;
   name: string;
   role: string;
+  certificateStatus?: CertificatePortalStatus | null;
 }) {
   const path = usePathname();
   const params = useSearchParams();
@@ -314,6 +318,7 @@ export function Shell({
               </Button>
             </div>
           </header>
+          <CertificatePortalBanner initial={certificateStatus} role={role} />
           <main id="main">
             {back && (
               <Link className="return-link" href={back.href}>

@@ -6,8 +6,11 @@ import { ActionForm, Field } from "@/components/action-form";
 import { removeClosure, saveClosure, saveSettings, triggerJobs } from "@/app/actions";
 import { storageStatus } from "@/modules/storage/service";
 import Link from "next/link";
+import { saveCertificateAlertThresholdAction } from "@/app/certificate-portal-actions";
+import { readCertificatePortalStatus } from "@/modules/certificates/portal";
 export default async function Settings() {
   const actor = await manager();
+  const certStatus = actor.role === "OWNER" ? await readCertificatePortalStatus().catch(() => null) : null;
   const storage = actor.role === "OWNER" ? await storageStatus(actor.id) : null;
   const [settings, closures, runs, audit] = await Promise.all([
     db.businessSetting.findUnique({ where: { id: "business" } }),
@@ -52,7 +55,20 @@ export default async function Settings() {
           </p>
         </section>
       )}
-      <div className={`two-columns${storage ? " space-top" : ""}`}>
+      {actor.role === "OWNER" && (
+        <section className="card card-body space-top">
+          <h2>Low certificate alert</h2>
+          <p className="muted">
+            Show a banner across the app when the provider portal balance falls below this number.
+          </p>
+          <ActionForm action={saveCertificateAlertThresholdAction} submit="Save alert threshold">
+            <Field label="Alert when portal balance is below">
+              <input name="threshold" type="number" min="0" max="1000000" step="1" required defaultValue={certStatus?.threshold ?? 30} />
+            </Field>
+          </ActionForm>
+        </section>
+      )}
+      <div className="two-columns space-top">
         <div className="stack">
           <section className="card card-body">
             <h2>Business operating days</h2>

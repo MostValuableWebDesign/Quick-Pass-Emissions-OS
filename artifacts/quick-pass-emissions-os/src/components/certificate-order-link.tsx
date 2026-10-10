@@ -2,24 +2,22 @@ import type { Role } from "@prisma/client";
 import Link from "next/link";
 import { financeRoles, approvalRoles } from "@/modules/phase2";
 
-export const CERTIFICATE_ORDER_URL = "https://gadashboard.com/Purchasing/Purchasing.aspx";
+export { CERTIFICATE_ORDER_URL } from "@/modules/certificates/portal-types";
 
 // Navigation only. Keep this outside action forms and alert acknowledgement controls.
 export function CertificateOrderLink({ role, alert = false }: { role: Role; alert?: boolean }) {
   if (!financeRoles.includes(role) || (alert && !approvalRoles.includes(role))) return null;
   return (
     <div className="space-top">
-      <a className="button" href={CERTIFICATE_ORDER_URL} target="_blank" rel="noopener noreferrer">
-        Order Certificates <span className="sr-only">· external Georgia dashboard, new tab</span>
-      </a>
+      <Link className="button" href="/certificates#portal">Order Certificates</Link>
       <p className="muted">
-        Opens the official Georgia dashboard in a new browser tab. Login and ordering happen on that
-        portal. If login takes you elsewhere, return here and select Order Certificates again.
+        Open the official purchasing portal inside the app. You control sign-in and ordering;
+        an external-browser option is available if the portal cannot run inside your browser.
       </p>
       {alert && (
-        <Link className="text-link" href="/certificates#purchase-history">
+        <a className="text-link" href="/certificates#purchase-history">
           Review purchase requests & order records
-        </Link>
+        </a>
       )}
     </div>
   );

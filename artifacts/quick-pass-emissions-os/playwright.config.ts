@@ -1,15 +1,29 @@
-import "dotenv/config";
+import { assertOwnedDatabase } from "./scripts/e2e-safety.mjs";
 import { defineConfig, devices } from "@playwright/test";
+assertOwnedDatabase(process.env);
+if (!process.env.E2E_STORAGE_STATE || !process.env.E2E_PRIVATE_DIR || !process.env.E2E_BASE_URL) {
+  throw new Error("Run pnpm test:e2e; private authentication setup is required.");
+}
 export default defineConfig({
   testDir: "tests/e2e",
-  timeout: 60000,
+  testMatch: "regression.spec.ts",
+  timeout: 120000,
   workers: 1,
   fullyParallel: false,
+  retries: 0,
+  forbidOnly: true,
+  outputDir: `${process.env.E2E_PRIVATE_DIR}/results`,
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
-    trace: "retain-on-failure",
-    screenshot: "only-on-failure",
+    actionTimeout: 15000,
+    baseURL: process.env.E2E_BASE_URL,
+    storageState: process.env.E2E_STORAGE_STATE,
+    trace: "off",
+    screenshot: "off",
+    video: "off",
+    launchOptions: {
+      ...(process.env.E2E_CHROMIUM_PATH ? { executablePath: process.env.E2E_CHROMIUM_PATH } : {}),
+    },
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], channel: "chromium" } }],
-  reporter: [["list"], ["html", { open: "never" }]],
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  reporter: [["json", { outputFile: `${process.env.E2E_PRIVATE_DIR}/report.json` }]],
 });

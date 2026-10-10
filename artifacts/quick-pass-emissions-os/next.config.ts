@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 import { previewServerActionHosts } from "./src/lib/auth-origins";
 const config: NextConfig = {
+  // Each isolated browser run owns a separate build cache; leave .next untouched.
+  ...(process.env.E2E_NEXT_DIST_DIR ? { distDir: process.env.E2E_NEXT_DIST_DIR } : {}),
   poweredByHeader: false,
   allowedDevOrigins: [
     "127.0.0.1",

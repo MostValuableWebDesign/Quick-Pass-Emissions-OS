@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { randomUUID } from "node:crypto";
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,6 +10,28 @@ const name = `quick_pass_verify_${randomUUID().replaceAll("-", "")}_test`;
 let testUrl = "";
 let created = false;
 let admin;
+let child;
+let interrupted = false;
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.on(signal, () => {
+    interrupted = true;
+    child?.kill("SIGTERM");
+  });
+}
+async function run(script, env) {
+  return await new Promise((resolve, reject) => {
+    child = script === "test:e2e:owned"
+      ? spawn(process.execPath, ["--import", "tsx", "scripts/browser-regression.ts"], {
+          cwd: app, env, stdio: ["ignore", "pipe", "pipe"],
+        })
+      : spawn("pnpm", ["run", script], { cwd: app, env, stdio: ["ignore", "pipe", "pipe"] });
+    let output = "";
+    child.stdout.on("data", (chunk) => { output += chunk; });
+    child.stderr.on("data", (chunk) => { output += chunk; });
+    child.on("error", reject);
+    child.on("close", (status) => resolve({ status, output }));
+  });
+}
 function redact(value) {
   let text = String(value);
   if (original) text = text.replaceAll(original, "[database URL redacted]");
@@ -17,6 +39,11 @@ function redact(value) {
   return text.replace(/postgres(?:ql)?:\/\/[^\s"'`]+/g, "[database URL redacted]");
 }
 try {
+  const args = process.argv.slice(2);
+  if (args.some((arg) => arg !== "--browser") || args.length > 1) {
+    throw new Error("Use test:isolated with optional --browser.");
+  }
+  const browser = args.includes("--browser");
   if (process.env.NODE_ENV === "production" || !process.env.REPLIT_DEV_DOMAIN || !original) {
     throw new Error("Isolated verification is restricted to this development workspace.");
   }
@@ -28,20 +55,16 @@ try {
   await admin.$executeRawUnsafe(`CREATE DATABASE "${name}"`);
   created = true;
   console.log("Created a separate temporary test database. Business data is not used.");
-  for (const script of ["db:migrate", "test"]) {
-    const result = spawnSync("npm", ["run", script], {
-      cwd: app,
-      encoding: "utf8",
-      maxBuffer: 20_000_000,
-      env: {
+  for (const script of ["db:migrate", browser ? "test:e2e:owned" : "test"]) {
+    if (interrupted) throw new Error("Isolated verification interrupted.");
+    const result = await run(script, {
         ...process.env,
         DATABASE_URL: testUrl,
         TEST_DATABASE_URL: testUrl,
+        E2E_OWNED_DATABASE: browser ? name : "",
         DANGEROUSLY_ALLOW_GIT: "1",
-      },
     });
-    console.log(redact(result.stdout || ""));
-    if (result.stderr) console.error(redact(result.stderr));
+    console.log(redact(result.output));
     if (result.status !== 0) throw new Error(`Isolated ${script} failed.`);
   }
 } catch (error) {

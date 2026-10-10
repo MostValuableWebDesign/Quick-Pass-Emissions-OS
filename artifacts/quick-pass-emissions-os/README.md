@@ -1,11 +1,11 @@
 # Quick Pass Business OS
 
-> This app now lives inside the shared pnpm workspace. Start with the
-> [repository README](../../README.md) for installation, builds, and normal Git
-> synchronization. The npm instructions below also apply to a standalone export
-> of this app; do not run root `npm ci` in the pnpm workspace.
+> This app lives inside the shared pnpm workspace. Start with the
+> [repository README](../../README.md) for installation, builds, and Git
+> synchronization. The npm instructions below also apply to a standalone export;
+> do not run root `npm ci` in the pnpm workspace.
 
-A PostgreSQL-backed Phases 1–3 business application for Quick Pass Emissions, Tag Renewal & Carwash. Next.js App Router, TypeScript, React, Tailwind, a shadcn-style Button primitive, Lucide, Prisma, Better Auth, and Zod. No real business records or financial balances are included.
+A PostgreSQL-backed Phases 1–4 business application for Quick Pass Emissions, Tag Renewal & Carwash. Next.js App Router, TypeScript, React, Tailwind, a shadcn-style Button primitive, Lucide, Prisma, Better Auth, and Zod. No real business records or financial balances are included.
 
 ## Quick start
 
@@ -60,7 +60,7 @@ The server binds to `0.0.0.0`; set `PORT` for a different port. If npm 12 report
 - Owner-confirmed six-bay layout, equipment/vendor registry, downtime, corrective tickets, employee issue reporting, reviewed work and scheduled preventative maintenance.
 - Chemical stock ledger/low-stock alerts and owner-authorized detailing agreements, monthly charges, received payments and reversal history.
 
-Read [PHASE2.md](PHASE2.md) and [PHASE3.md](PHASE3.md) for workflows, permissions, configuration and operating limits. Dealerships, invoices, accounting finance and advanced automation remain planned. No business wage/stock values are seeded and no payments or external orders are executed.
+Read [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md) and [PHASE4.md](PHASE4.md) for workflows, permissions, configuration and operating limits. Dealership accounts/contacts, owner-authorized billing terms, completed services, separately approved invoice snapshots, dated receipts/reversals, A/R aging, operational revenue/expense records and accounting CSV exports are available. Advanced Phase 5 automation remains planned. No business wage/stock values are seeded and no payments or external orders are executed.
 
 ## Local demonstration data
 
@@ -76,7 +76,7 @@ npm run dev
 
 Demo accounts: `owner@example.test`, `manager@example.test`, `al@example.test`, `john@example.test`, and `bookkeeper@example.test`. All use the password **you supplied**. The app shows a prominent demonstration banner. Sample shifts, operating days and completed duties are illustrative, never confirmed business facts. Demo employee names deliberately include “Demo.” Nothing sets real employee wages, actual certificates, revenue, rental terms or dealer rates.
 
-For this delivered workspace only, an ignored `.env` and isolated PostgreSQL data under the parent `work/` folder were used for verification. They are not in the portable source archive or Git. Provision your own PostgreSQL database for ongoing use.
+Local verification used isolated PostgreSQL databases and an ignored `work/` runner with environment variables. Test credentials, databases and runtime artifacts are excluded from the portable source archive and Git. Provision your own PostgreSQL database for ongoing use.
 
 ## Verification commands
 
@@ -115,6 +115,7 @@ Read [BUSINESS_RULES.md](BUSINESS_RULES.md) before configuring recurrence or cha
 ## Handoff
 
 - [REPLIT_SETUP.md](REPLIT_SETUP.md): GitHub transfer, provisioning and deployment.
+- [PHASE4.md](PHASE4.md): dealership billing, finance provenance, reports and accounting exports.
 - [PHASE3.md](PHASE3.md): carwash, maintenance, chemicals and rental workflows.
 - [PHASE2.md](PHASE2.md): payroll and inventory workflows, permissions and limits.
 - [ARCHITECTURE.md](ARCHITECTURE.md): boundaries, data model and security.

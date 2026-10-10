@@ -134,11 +134,9 @@ export function TargetFields({
   );
 }
 export function Money({ cents }: { cents: number | null }) {
+  if (cents === null) return <>Not recorded</>;
+  const amount = BigInt(Math.abs(cents));
   return (
-    <>
-      {cents === null
-        ? "Not recorded"
-        : `${cents < 0 ? "-" : ""}$${(Math.abs(cents) / 100).toFixed(2)} USD`}
-    </>
+    <>{`${cents < 0 ? "-" : ""}$${amount / 100n}.${(amount % 100n).toString().padStart(2, "0")} USD`}</>
   );
 }

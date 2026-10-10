@@ -5,10 +5,8 @@ in `artifacts/quick-pass-emissions-os`, not at the repository root. The shared-m
 transition retains the original standalone and workspace histories through a
 merge rather than replacing either history.
 
-The normal Git instructions below apply after the initial history-joining merge
-and push are complete. Before that transition, do not pull the standalone branch
-into this workspace directly; its latest app changes must first be imported and
-reviewed.
+The original standalone changes were imported through Phase 4 before joining
+the histories. New updates use ordinary shared Git history, not a file mapper.
 
 ## Install and build
 
@@ -61,6 +59,27 @@ ahead/behind indicators. The retired standalone file importer is no longer used.
 Git indicators compare commits, not just matching source files. New edits or task
 merges still need to be committed and pushed; saving in Replit is not a Git push.
 See [GitHub update guidance](artifacts/quick-pass-emissions-os/docs/GITHUB_UPDATES.md).
+
+### Replit GitHub App fallback
+
+If native Git still rejects its credential after reconnecting Git Providers,
+the authorized GitHub App offers a separate, safe upload path:
+
+```sh
+# First review and commit changes on main, and merge any new origin/main commits.
+pnpm git:check
+pnpm git:push
+git fetch origin main
+git status
+```
+
+This Replit-only command uses managed authentication without exposing tokens.
+It verifies exact blob, tree and commit hashes, preserves both histories, and
+advances `main` only by fast-forward. It refuses dirty source, remote races,
+signed/custom metadata, or non-UTC commits instead of rewriting history. Use
+native Git for unsupported commit formats or outside Replit. New untracked
+uploads in `attached_assets/` are not published automatically; existing tracked
+assets remain tracked.
 
 ## Tests
 

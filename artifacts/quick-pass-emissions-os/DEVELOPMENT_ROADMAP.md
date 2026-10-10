@@ -16,12 +16,12 @@ Implemented: owner-authorized effective-dated pay/commission configuration; appr
 
 Implemented: owner-confirmed three self-service/three detailing bays, condition/responsibility and downtime history; equipment and verified vendor registers; employee issue reporting, assigned work and manager review; corrective tickets and independently scheduled preventative tickets; chemical stock ledger/low-stock dashboard; owner-authorized rental terms, nonoverlapping contracts, monthly charge snapshots, received payments, reversals and unpaid voids. Read PHASE3.md and VERIFICATION.md for exact semantics, permissions, full-month rental limits, verification and deployment status. Actual records require owner/staff configuration. Optional secure photo storage remains deferred until a configured provider and authorization design exist.
 
-## Phase 4 — dealerships and finance (not implemented)
+## Phase 4 — dealerships and finance (implemented locally)
 
-Dealership accounts, invoice line items, approval and payment records, aging, operational revenue/expenses, report exports and accounting integration boundary. Distinguish entered data, verified actuals, estimates and missing records. Email/PDF delivery is separately configured and authorized.
+Implemented: account/contact directory, owner-authorized terms/default rates/tax, completed services, duplicate-safe invoice allocations and frozen lines/billing snapshots, separate approval, external delivery records, received payments/full reversals, dated voids, A/R aging, manual/verified/estimated revenue and expenses, category reports and six authenticated audited CSV exports. Read PHASE4.md and VERIFICATION.md. Accounting remains the source of truth; no profit inference, payment execution, invoice email/PDF or automatic accounting posting. Actual accounts, rates, tax treatment, balances and import mapping require verification.
 
 ## Phase 5 — advanced automation (not implemented)
 
 Owner summaries, maintenance/certification reminders, forecasting, receivables reminders and analytics. Reuse job locking, idempotency and audit patterns. Add persistent queues/outbox only when requirements justify them.
 
-Phases 4–5 require explicit user authorization before implementation.
+Phase 5 requires explicit user authorization before implementation.

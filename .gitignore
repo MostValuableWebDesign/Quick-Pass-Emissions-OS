@@ -47,3 +47,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# User uploads may contain private input; do not publish new uploads automatically.
+/attached_assets/

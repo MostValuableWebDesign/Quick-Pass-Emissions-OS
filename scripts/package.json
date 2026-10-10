@@ -4,11 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "github:push": "node ./src/github-push.mjs",
+    "test:git": "node --test ./src/github-push.test.mjs",
     "hello": "tsx ./src/hello.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "tsx": "catalog:"
+  },
+  "dependencies": {
+    "@replit/connectors-sdk": "0.4.3"
   }
 }

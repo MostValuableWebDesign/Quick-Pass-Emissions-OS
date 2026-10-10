@@ -445,12 +445,19 @@ if (enabled) {
       c.moveChemical(manager, { ...input, reference: "parallel" }),
     ]);
     expect(result.filter((x) => x.status === "fulfilled")).toHaveLength(1);
+    const successful = result.find((x) => x.status === "fulfilled");
+    expect(successful).toBeDefined();
     await expect(
       c.moveChemical(owner, { ...input, version: 2, quantity: 31, reference: "too-much" }),
     ).rejects.toThrow("bounds");
-    await expect(c.moveChemical(owner, { ...input, version: 2, quantity: 1 })).rejects.toThrow(
-      "already exists",
-    );
+    await expect(
+      c.moveChemical(owner, {
+        ...input,
+        version: 2,
+        quantity: 1,
+        reference: successful!.value.reference,
+      }),
+    ).rejects.toThrow("already exists");
     expect((await db.chemicalItem.findUniqueOrThrow({ where: { id: i.id } })).balance).toBe(30);
     expect(await db.chemicalMovement.count()).toBe(2);
   });

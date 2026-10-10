@@ -530,6 +530,10 @@ importers:
         version: 0.31.10
 
   scripts:
+    dependencies:
+      '@replit/connectors-sdk':
+        specifier: 0.4.3
+        version: 0.4.3
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

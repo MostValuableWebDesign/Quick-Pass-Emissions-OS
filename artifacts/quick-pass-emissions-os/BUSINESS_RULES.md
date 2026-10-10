@@ -2,7 +2,7 @@
 
 ## Business facts
 
-Quick Pass has emissions testing, a tag renewal kiosk and six carwash/detailing bays. Phases 1–3 manage responsibilities, payroll/inventory preparation, carwash maintenance and rental records; the app does not replace the state-certified analyzer, official emissions reporting, payroll processing or accounting records. Known employee names and historical compensation figures are context only. There is no live kiosk, analyzer, dealer, payroll or bank API integration.
+Quick Pass has emissions testing, a tag renewal kiosk and six carwash/detailing bays. Phases 1–4 manage responsibilities, payroll/inventory preparation, carwash maintenance rental records, dealership billing and operational finance; the app does not replace the state-certified analyzer, official emissions reporting, payroll processing or accounting records. Known employee names and historical compensation figures are context only. There is no live kiosk, analyzer, dealer, payroll or bank API integration.
 
 ## Calendar and recurrence
 
@@ -41,3 +41,7 @@ Inventory is unknown until physically reconciled. Every stock movement retains h
 ## Carwash and rental integrity
 
 Read PHASE3.md. Three self-service and three detailing bays require owner-confirmed identifiers and inspected condition. Outage intervals measure recording time, not inferred historical downtime. Chemical stock is unknown before a physical count and uses whole declared units without automatic conversion. Employee maintenance reads exclude cost, vendor and manager history; submission goes to manager review. Scheduled maintenance uses Eastern due instants, configured open days/closures, unique occurrences and persisted bounded catch-up. No generated ticket is rewritten by schedule edits. Rental terms require owner authorization; inclusive agreements cannot overlap. Full-calendar-month charges retain authorized snapshots; payments/reversals use exact cents and unique references. Amounts are entered records, not bank reconciliation, automated collection or verified profit.
+
+## Dealerships and finance
+
+Read [PHASE4.md](PHASE4.md). Owner-authorized terms/tax gate drafts. Completed services allocate once; invoice lines and billing terms are snapshotted. Different owner/manager approval is mandatory. Payment dates are chronological, references are checked across dealer/rental/other finance records, overpayment is rejected, and full negative reversals retain originals. Effective-date aging excludes drafts and dated voids. Manual actuals, independently checked evidence, and estimates remain separate. Reports/exports use current review state and entered dates, with no profit or completeness inference. No PDF/email, accounting posting or payment execution exists.

@@ -29,7 +29,7 @@ Published GitHub commits must remain ancestors even when project completion sync
 
 **Why:** Completion synchronization rebased already-published task commits. Overwriting GitHub afterward would lose published ancestry or require an unauthorized force-push.
 
-**How to apply:** Finish the instructed project conflict resolution, then normally merge the already-published GitHub branch back into the rebased task before publishing again. Preserve the newer workspace's private verification infrastructure and the task's upgrade checks together. Inspect actual code/test scopes, not just conflict markers: automatic reconciliation can corrupt repeated test blocks without leaving markers. Run cheap type checks first, then affected suites, and compare the final remote hash.
+**How to apply:** Finish project conflict resolution and the completion callback before the final normal merge of already-published GitHub ancestry. Merging that ancestry back before retrying completion can repeatedly replay older published commits and recreate the same conflicts. Preserve the newer workspace's private verification infrastructure and the task's upgrade checks together. Inspect actual code/test scopes, not just conflict markers: automatic reconciliation can corrupt repeated test blocks without leaving markers. Run cheap checks for changed source and compare the final remote hash; a tree-identical ancestry merge does not invalidate earlier tests.
 
 Completion synchronization can create a non-UTC ancestor that the exact-commit GitHub App bridge cannot upload, even after a feature was successfully published.
 

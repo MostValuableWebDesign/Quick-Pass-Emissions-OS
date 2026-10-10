@@ -228,21 +228,37 @@ export function InventoryTable({ inventory }: { inventory: Inv[] }) {
               </td>
               <td>{i.balance ?? "Unknown"}</td>
               <td>
-                Window {i.observationStart} to {i.observationEnd}
-                <small>
-                  Usable: {i.coverageDays} days from {i.coverageStart ?? "unknown"}
-                </small>
-                <small>Recorded consumption: {i.recordedConsumption}</small>
+                {i.state === "UNCONFIGURED" ? (
+                  "Observation policy not configured"
+                ) : (
+                  <>
+                    Window {i.observationStart} to {i.observationEnd}
+                    <small>
+                      Usable: {i.coverageDays} days from {i.coverageStart ?? "unknown"}
+                    </small>
+                    <small>Recorded consumption: {i.recordedConsumption}</small>
+                  </>
+                )}
                 <small>Last physical count: {i.lastPhysicalCountDate ?? "unknown"}</small>
               </td>
               <td>
-                {i.averageDailyUsage == null ? "Not estimated" : i.averageDailyUsage.toFixed(2)}
+                {i.state === "UNCONFIGURED" || i.averageDailyUsage == null
+                  ? "Not estimated"
+                  : i.averageDailyUsage.toFixed(2)}
               </td>
               <td>{i.estimatedDaysRemaining ?? "Not estimated"}</td>
               <td>{i.depletionDate ?? "Not estimated"}</td>
               <td>
-                {i.configured === false ? "Unconfigured" : i.threshold}
-                <small>Planning lead: {i.planningLeadDays ?? "unconfigured"} days</small>
+                {i.state === "UNCONFIGURED" || i.configured === false
+                  ? "Unconfigured"
+                  : i.threshold}
+                <small>
+                  Planning lead:{" "}
+                  {i.state === "UNCONFIGURED"
+                    ? "unconfigured"
+                    : (i.planningLeadDays ?? "unconfigured")}{" "}
+                  days
+                </small>
               </td>
             </tr>
           ))}

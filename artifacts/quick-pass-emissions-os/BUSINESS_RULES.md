@@ -40,6 +40,14 @@ Inventory is unknown until physically reconciled. Every stock movement retains h
 
 ## Carwash and rental integrity
 
+## Advanced automation and reporting
+
+Read PHASE5.md. Owner summary schedules, advance/escalation recipients and inventory forecast observation/coverage/lead/threshold values must be explicitly configured. Daily/weekly reporting periods use prior local dates; captured exceptions use generation-time state. Summary catch-up retains its scheduled occurrence and generation time rather than fabricating the earlier live state. Closures skip open-days-only schedule dates rather than moving them. Schedule revisions supersede unfinished old jobs and begin from today; no old snapshot is rewritten.
+
+Acknowledgement never satisfies a source obligation. Payment/reversal, completion/cancellation, changed assignments/due dates and policy/role changes resolve or supersede obsolete reminders without altering source business state. Configured maintenance reminders replace legacy maintenance overdue alerts; responsibility notifications retain their existing behavior. External email/SMS remains disabled.
+
+Certificate USAGE/consumed VOID and chemical USAGE/DISPOSAL are genuine physical depletion; receipts/reconciliation adjustments are not consumption. Observation is clipped to opening-stock coverage; newer physical counts change balance, not historical usage completeness. Unknown stock, insufficient coverage and zero recorded usage do not imply known depletion or actual zero business usage. Reports preserve signed cents and unit/provenance/date semantics; recorded maintenance cost and payroll notes are not paid expenses, and billing is not received cash. Complete filtered CSVs include all rows, even when display stops at 100.
+
 Read PHASE3.md. Three self-service and three detailing bays require owner-confirmed identifiers and inspected condition. Outage intervals measure recording time, not inferred historical downtime. Chemical stock is unknown before a physical count and uses whole declared units without automatic conversion. Employee maintenance reads exclude cost, vendor and manager history; submission goes to manager review. Scheduled maintenance uses Eastern due instants, configured open days/closures, unique occurrences and persisted bounded catch-up. No generated ticket is rewritten by schedule edits. Rental terms require owner authorization; inclusive agreements cannot overlap. Full-calendar-month charges retain authorized snapshots; payments/reversals use exact cents and unique references. Amounts are entered records, not bank reconciliation, automated collection or verified profit.
 
 ## Dealerships and finance

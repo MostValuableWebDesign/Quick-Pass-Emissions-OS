@@ -1,5 +1,17 @@
 # Operator runbook
 
+## Phase 5 durable worker
+
+Read PHASE5.md. Run the existing CLI or authenticated POST independently every 15 minutes with the same deployment database and confirmed configuration. No traffic/page timer is needed. Check the owner **Automation** page for pending backlog, RUNNING lease expiry, attempts/backoff, terminal FAILED jobs and delivery revocations. A five-minute interrupted claim can be reclaimed on the next trigger; four attempts terminate with an observable failure. Fix connectivity/migration/configuration before using the audited owner **Authorize retry** action. Schedule revisions supersede unfinished old-revision work, never earlier saved summaries.
+
+Missed summary dates are processed at most 31 dates per schedule/trigger and 32 jobs per worker run; remaining cursors/backlog persist. Repeat triggers until caught up, inspect generation-versus-scheduled times, and do not present catch-up exception values as the prior live state. Monitor externally for lack of successful checks, pending backlog age and terminal failures; no real dead-man monitor or persistent external trigger has been configured in this delivery. Do not treat a web process remaining alive as proof that jobs are running.
+
+Back up Phase 5 schedule/policy revisions, occurrence/claim state, self-contained saved summaries, reminders and delivery history alongside earlier domain ledgers/snapshots. Restore into an isolated database and verify retained summary payloads and source authorization. Keep the established lock order (generator → personnel → Phase 2 → Phase 3 → Phase 4 → automation); claim-only automation transactions must not acquire earlier locks afterward.
+
+External email/SMS is disabled; internal delivery is atomic with job completion. Delivery revocations record permission/source changes. Reminder acknowledgement is separate from resolution and never updates maintenance/payment/certification business records. Per-item estimates use genuine usage/disposal and recorded units; physical corrections affect current stock without becoming demand or proof of history completeness. CSV consumers must retain signed cents/reversals and map date/provenance columns explicitly. No reconciliation, profit or complete-books assertion is supported.
+
+Private browser verification uses `scripts/phase5-browser-fixture.mjs create|jobs|cleanup`, a separate generated `_test` database and an ignored mode-0600 registry under workspace `.cache`. Never print the registry, credentials or sessions. Browser workflow overrides must supply exact unquoted env-file values and be removed before normal preview use. Never run truncating tests against business data.
+
 ## Backups and recovery
 
 Use managed PostgreSQL automated backups and point-in-time recovery where available. Set an owner-approved retention period and recovery time/data-loss objective. Store encrypted backups with access restricted separately from application credentials. A manual logical backup may use `pg_dump --format=custom --file=quickpass.dump "$DATABASE_URL"`; keep that file out of source control and chat attachments. Restore using `pg_restore` into a new isolated database, never over the only live copy. Verify users, task counts, audit history and migration status before switching a deployment. Schedule actual restore drills; no backup or recovery drill was configured for the user's real business during this delivery.

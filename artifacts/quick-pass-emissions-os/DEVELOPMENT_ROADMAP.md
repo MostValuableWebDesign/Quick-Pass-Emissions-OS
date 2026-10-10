@@ -20,8 +20,8 @@ Implemented: owner-confirmed three self-service/three detailing bays, condition/
 
 Implemented: account/contact directory, owner-authorized terms/default rates/tax, completed services, duplicate-safe invoice allocations and frozen lines/billing snapshots, separate approval, external delivery records, received payments/full reversals, dated voids, A/R aging, manual/verified/estimated revenue and expenses, category reports and six authenticated audited CSV exports. Read PHASE4.md and VERIFICATION.md. Accounting remains the source of truth; no profit inference, payment execution, invoice email/PDF or automatic accounting posting. Actual accounts, rates, tax treatment, balances and import mapping require verification.
 
-## Phase 5 — advanced automation (not implemented)
+## Phase 5 — advanced automation (implemented locally; publication pending)
 
-Owner summaries, maintenance/certification reminders, forecasting, receivables reminders and analytics. Reuse job locking, idempotency and audit patterns. Add persistent queues/outbox only when requirements justify them.
+Implemented: current owner-only consolidated exceptions; versioned owner schedules/policies; immutable saved daily/weekly Eastern summaries and internal delivery history; source-revalidated maintenance/certification/dealership/rental reminders with acknowledgement separate from resolution; per-ledger configured depletion estimates; complete date-filtered operational reports and audited uncapped formula-safe CSV; durable occurrence/claim leases, bounded retries, missed-run cursors and owner failure recovery. Phase 4 financial calculations remain reused rather than replaced. Read PHASE5.md and VERIFICATION.md.
 
-Phase 5 requires explicit user authorization before implementation.
+GitHub publication is currently blocked by native Git credential rejection. Production deployment/migrations, real persistent scheduler setup, external dead-man monitoring and real owner configuration remain separate and are not claimed as performed. External sending remains disabled.

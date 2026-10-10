@@ -5,7 +5,7 @@
 > synchronization. The npm instructions below also apply to a standalone export;
 > do not run root `npm ci` in the pnpm workspace.
 
-A PostgreSQL-backed Phases 1–4 business application for Quick Pass Emissions, Tag Renewal & Carwash. Next.js App Router, TypeScript, React, Tailwind, a shadcn-style Button primitive, Lucide, Prisma, Better Auth, and Zod. No real business records or financial balances are included.
+A PostgreSQL-backed Phases 1–5 business application for Quick Pass Emissions, Tag Renewal & Carwash. Next.js App Router, TypeScript, React, Tailwind, a shadcn-style Button primitive, Lucide, Prisma, Better Auth, and Zod. No real business records or financial balances are included.
 
 ## Quick start
 
@@ -61,6 +61,11 @@ The server binds to `0.0.0.0`; set `PORT` for a different port. If npm 12 report
 - Chemical stock ledger/low-stock alerts and owner-authorized detailing agreements, monthly charges, received payments and reversal history.
 
 Read [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md) and [PHASE4.md](PHASE4.md) for workflows, permissions, configuration and operating limits. Dealership billing includes immutable approved snapshots, signed receipts/reversals, dated aging and complete CSV exports. Finance separates manual, independently reviewed and estimated records; it is not bank reconciliation or complete accounting. No business wage/stock values are seeded and no payments or external orders are executed.
+
+
+## Phase 5 automation
+
+Phase 5 adds **Owner exceptions**, **Automation**, **Summary archive**, **Reminders** and **Operational reports**. Read [PHASE5.md](PHASE5.md) before configuring schedules, recipients or forecasts. The independent CLI/POST worker persists duplicate-safe historical summaries and in-app deliveries; opening a page never schedules work. External sending remains disabled. GitHub publication is blocked until native Git authentication is restored; production deployment and actual persistent scheduler provisioning are separate.
 
 ## Local demonstration data
 

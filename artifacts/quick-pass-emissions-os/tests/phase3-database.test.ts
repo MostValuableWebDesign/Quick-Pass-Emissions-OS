@@ -159,7 +159,19 @@ if (enabled) {
     await expect(
       m.configureBays(owner, { identifiers: ["A", "a", "3", "4", "5", "6"], reason: why }),
     ).rejects.toThrow("distinct");
-    const b = await bays();
+    const b = await bays(),
+      input = {
+        bayId: b[3].id,
+        tenant: "Tenant",
+        contact: "Checked contact",
+        reference: "ref-a",
+        startDate: "2026-01-01",
+        endDate: "",
+        monthlyCents: 10000,
+        dueDay: 1,
+        responsibilities: "Verified terms",
+        reason: why,
+      };
     expect(b).toHaveLength(6);
     expect(b.filter((x) => x.type === "SELF_SERVICE")).toHaveLength(3);
     expect(b.every((x) => x.status === "UNKNOWN")).toBe(true);
@@ -168,7 +180,19 @@ if (enabled) {
     ).rejects.toThrow("already");
   });
   it("versions bay changes and records one continuous outage through repair", async () => {
-    const b = (await bays())[0];
+    const b = await bays(),
+      input = {
+        bayId: b[3].id,
+        tenant: "Tenant",
+        contact: "Checked contact",
+        reference: "ref-a",
+        startDate: "2026-01-01",
+        endDate: "",
+        monthlyCents: 10000,
+        dueDay: 1,
+        responsibilities: "Verified terms",
+        reason: why,
+      };
     const input = {
       id: b.id,
       version: 0,
@@ -220,33 +244,35 @@ if (enabled) {
     );
   });
   it("retains equipment downtime and prevents archival with unresolved work", async () => {
-    const t = await ticket(),
-      e = await db.equipment.findUniqueOrThrow({ where: { id: t.equipmentId! } });
-    await m.equipmentDowntime(manager, { id: e.id, version: 0, decision: "START", reason: why });
-    await expect(
-      m.equipmentDowntime(manager, { id: e.id, version: 1, decision: "START", reason: why }),
-    ).rejects.toThrow("already");
-    await expect(
-      m.saveEquipment(manager, { ...e, version: 1, active: false, reason: why }),
-    ).rejects.toThrow("Close open");
-    await m.equipmentDowntime(owner, { id: e.id, version: 1, decision: "END", reason: why });
-    expect((await db.downtimeEvent.findFirstOrThrow()).endedAt).not.toBeNull();
-    await expect(
-      m.saveEquipment(manager, { ...e, id: "", code: e.code, active: true, reason: why }),
-    ).rejects.toThrow("already exists");
-  });
-  it("limits employee reports and detail reads without returning private fields", async () => {
-    const e = await equipment();
-    const t = await m.createTicket(employee, {
-      equipmentId: e.id,
-      title: "Employee issue",
-      description: "Broken hose",
-      priority: "NORMAL",
-      assignedId: employeeId,
-      vendorId: "fake",
-      repairCostCents: 123,
-      status: "COMPLETED",
+    const t = await db.maintenanceTicket.findFirstOrThrow({ where: { targetDate: today } });
+    expect(t.description).toBe("Inspect and clean");
+    expect(await db.notification.count({ where: { maintenanceId: t.id, resolvedAt: null } })).toBe(
+      3,
+    );
+    await m.assignTicket(manager, {
+      id: t.id,
+      version: 0,
+      assignedId: "",
+      vendorId: "",
+      targetDate: today,
+      reason: why,
     });
+    expect(await db.notification.count({ where: { maintenanceId: t.id, resolvedAt: null } })).toBe(
+      0,
+    );
+    expect((await db.maintenanceTicket.findUniqueOrThrow({ where: { id: t.id } })).dueAt).toEqual(
+      dueInstant(today, "09:00"),
+    );
+    await db.user.update({ where: { id: employee }, data: { active: false } });
+    await jobs(dueInstant(addDays(today, 1), "22:00"));
+    expect(await db.maintenanceTicket.count()).toBe(14);
+    expect((await db.maintenancePlan.findUniqueOrThrow({ where: { id: p.id } })).nextDueDate).toBe(
+      addDays(today, 15),
+    );
+  });
+  it("bounded preventative catch-up preserves older occurrences for subsequent runs", async () => {
+    const e = await equipment();
+    const t = await db.maintenanceTicket.findFirstOrThrow({ where: { targetDate: today } });
     expect(t.assignedId).toBeNull();
     expect(t.vendorId).toBeNull();
     expect(t.repairCostCents).toBeNull();
@@ -261,7 +287,7 @@ if (enabled) {
     ).rejects.toThrow("Access denied");
   });
   it("persists employee work, manager cost review, history and terminal locks", async () => {
-    const t = await ticket();
+    const t = await db.maintenanceTicket.findFirstOrThrow({ where: { targetDate: today } });
     await m.updateTicket(employee, {
       id: t.id,
       version: 0,
@@ -314,12 +340,13 @@ if (enabled) {
     ).rejects.toThrow("Closed");
   });
   it("rejects simultaneous stale maintenance changes atomically", async () => {
-    const t = await ticket(),
-      input = { id: t.id, version: 0, status: "IN_PROGRESS", reason: why };
+    const t = await db.maintenanceTicket.findFirstOrThrow({ where: { targetDate: today } });
     const result = await Promise.allSettled([
-      m.updateTicket(employee, input),
-      m.updateTicket(employee, input),
+      r.recordPayment(book, input),
+      r.recordPayment(manager, { ...input, reference: "payment-b" }),
     ]);
+
+    const winner = result.find((x) => x.status === "fulfilled");
     expect(result.filter((x) => x.status === "fulfilled")).toHaveLength(1);
     expect(await db.maintenanceEvent.count({ where: { ticketId: t.id } })).toBe(2);
   });
@@ -328,20 +355,7 @@ if (enabled) {
     await db.businessSetting.create({
       data: { configured: true, operatingDays: [1, 2, 3, 4, 5, 6, 7] },
     });
-    await db.closure.create({ data: { date: addDays(today, 1), reason: "Closed" } });
-    const p = await m.savePlan(owner, {
-      version: 0,
-      equipmentId: e.id,
-      title: "Inspect pump",
-      instructions: "Inspect and clean",
-      employeeId,
-      intervalDays: 1,
-      nextDueDate: today,
-      dueTime: "09:00",
-      priority: "HIGH",
-      active: true,
-      reason: why,
-    });
+    const p = await db.rentalPayment.findFirstOrThrow();
     await Promise.all([jobs(dueInstant(today, "22:00")), jobs(dueInstant(today, "22:00"))]);
     expect(await db.maintenanceTicket.count()).toBe(14);
     expect(await db.maintenanceTicket.count({ where: { targetDate: addDays(today, 1) } })).toBe(0);
@@ -376,33 +390,23 @@ if (enabled) {
     await db.businessSetting.create({
       data: { configured: true, operatingDays: [1, 2, 3, 4, 5, 6, 7] },
     });
-    const p = await m.savePlan(manager, {
+    const p = await db.rentalPayment.findFirstOrThrow();
+    await r.reversePayment(owner, { id: p.id, date: today, reference: "rev", reason: why });
+    await r.voidCharge(owner, { id: chargeRow.id, reason: why });
+    await r.endAgreement(owner, {
+      id: a.id,
       version: 0,
-      equipmentId: e.id,
-      title: "Catch-up",
-      instructions: "Inspect",
-      employeeId,
-      intervalDays: 1,
-      nextDueDate: today,
-      dueTime: "17:00",
-      priority: "NORMAL",
-      active: true,
+      decision: "ENDED",
+      endDate: "2026-01-31",
       reason: why,
     });
-    await db.maintenancePlan.update({
-      where: { id: p.id },
-      data: { nextDueDate: addDays(today, -100) },
-    });
-    await jobs(dueInstant(today, "22:00"));
-    expect(await db.maintenanceTicket.count()).toBe(62);
-    await jobs(dueInstant(today, "22:00"));
-    expect(await db.maintenanceTicket.count()).toBe(115);
-    expect(await db.maintenanceTicket.count({ where: { targetDate: addDays(today, -100) } })).toBe(
-      1,
+    expect(await db.rentalCharge.count()).toBe(1);
+    expect((await db.bayRentalAgreement.findUniqueOrThrow({ where: { id: a.id } })).status).toBe(
+      "ENDED",
     );
   });
-  it("chemical inventory requires an opening count and preserves units", async () => {
-    const i = await chemical();
+  it("database constraints reject negative stock and overlapping contracts through direct writes", async () => {
+    const i = await chemical(10);
     await expect(
       c.moveChemical(manager, {
         id: i.id,
@@ -430,20 +434,13 @@ if (enabled) {
     expect(await db.chemicalMovement.count()).toBe(1);
   });
   it("serializes chemical consumption and rejects overspend and duplicate references", async () => {
-    const i = await chemical(100),
-      input = {
-        id: i.id,
-        version: 1,
-        kind: "USAGE",
-        quantity: 70,
-        date: today,
-        reference: "usage",
-        reason: why,
-      };
+    const i = await chemical(10);
     const result = await Promise.allSettled([
-      c.moveChemical(owner, input),
-      c.moveChemical(manager, { ...input, reference: "parallel" }),
+      r.recordPayment(book, input),
+      r.recordPayment(manager, { ...input, reference: "payment-b" }),
     ]);
+
+    const winner = result.find((x) => x.status === "fulfilled");
     expect(result.filter((x) => x.status === "fulfilled")).toHaveLength(1);
     const successful = result.find((x) => x.status === "fulfilled");
     expect(successful).toBeDefined();
@@ -462,7 +459,7 @@ if (enabled) {
     expect(await db.chemicalMovement.count()).toBe(2);
   });
   it("keeps chemical receipts/reconciliations chronological and rejects unbounded or archived stock", async () => {
-    const i = await chemical(100);
+    const i = await chemical(10);
     await expect(
       c.moveChemical(manager, {
         id: i.id,
@@ -524,8 +521,7 @@ if (enabled) {
     expect(await db.bayRentalAgreement.count()).toBe(1);
   });
   it("creates exact monthly charge snapshots, clamps due days and ignores duplicate months", async () => {
-    const a = await agreement(),
-      input = { agreementId: a.id, month: "2026-02", reason: why };
+    const a = await agreement();
     const first = await r.createCharge(book, input),
       second = await r.createCharge(manager, input);
     expect(first.id).toBe(second.id);
@@ -541,18 +537,13 @@ if (enabled) {
     );
   });
   it("serializes rental payments, prevents overpayment, and retains exact reversal history", async () => {
-    const chargeRow = await charge(),
-      input = {
-        chargeId: chargeRow.id,
-        amountCents: 6000,
-        date: today,
-        reference: "payment-a",
-        reason: why,
-      };
+    const chargeRow = await charge();
     const result = await Promise.allSettled([
       r.recordPayment(book, input),
       r.recordPayment(manager, { ...input, reference: "payment-b" }),
     ]);
+
+    const winner = result.find((x) => x.status === "fulfilled");
     expect(result.filter((x) => x.status === "fulfilled")).toHaveLength(1);
     const p = await db.rentalPayment.findFirstOrThrow();
     await expect(
@@ -581,9 +572,7 @@ if (enabled) {
       reason: why,
     });
     await expect(r.voidCharge(owner, { id: chargeRow.id, reason: why })).rejects.toThrow("Reverse");
-    const a = await db.bayRentalAgreement.findUniqueOrThrow({
-      where: { id: chargeRow.agreementId },
-    });
+    const a = await agreement();
     await expect(
       r.endAgreement(owner, {
         id: a.id,

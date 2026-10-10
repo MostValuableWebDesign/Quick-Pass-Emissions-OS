@@ -2,6 +2,7 @@ import { db } from "../../lib/db";
 import { businessDate, addDays, dueInstant } from "../../lib/time";
 import { generateMaintenance } from "../maintenance/jobs";
 import { occursOn } from "./recurrence";
+import { runAutomation } from "../automation/jobs";
 export async function runJobs(now = new Date()) {
   const run = await db.jobRun.create({ data: {} });
   try {
@@ -99,7 +100,8 @@ export async function runJobs(now = new Date()) {
       where: { id: run.id, status: "RUNNING" },
       data: { status: "UNCONFIGURED", completedAt: now },
     });
-    return { generated, runId: run.id };
+    const automation = await runAutomation(now);
+    return { generated, runId: run.id, automation };
   } catch (error) {
     await db.jobRun.update({
       where: { id: run.id },

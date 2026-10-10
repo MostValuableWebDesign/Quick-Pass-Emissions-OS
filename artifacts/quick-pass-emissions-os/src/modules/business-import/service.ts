@@ -50,7 +50,11 @@ export async function plan(tx: Tx, input: ImportInput): Promise<PlannedItem[]> {
         : matchReference(item, records);
     const before: Record<string, unknown> | null =
       item.entity === "CERTIFICATES" ? settings : matched.record;
-    const proposed = { ...item.values };
+    const proposed: Record<string, unknown> = { ...item.values };
+    if (item.entity === "VENDOR") {
+      delete proposed.directory;
+      Object.assign(proposed, item.values.directory ?? {});
+    }
     const { changes, conflicts } = compareFields(before, proposed);
     const sourceDuplicate = input.items.some((other) => {
       if (other.key === item.key || other.entity !== item.entity) return false;
@@ -240,8 +244,28 @@ export async function applyImport(actorId: string, reviewed: Preview, backup: ()
             active: item.before?.active ?? true,
             reason: why,
           });
+          const source = input.items.find((i) => i.key === item.key);
+          if (source?.entity === "VENDOR" && source.values.directory) {
+            const directoryChanges = Object.fromEntries(
+              Object.keys(source.values.directory)
+                .filter((key) => key in item.changes)
+                .map((key) => [key, item.changes[key]]),
+            );
+            if (Object.keys(directoryChanges).length) {
+              const enriched = await tx.vendor.update({
+                where: { id: row.id },
+                data: directoryChanges,
+              });
+              await audit(tx, actorId, "SUPPORT_SOURCE_ENRICHED", row.id, {
+                sourceFingerprint: input.sourceFingerprint,
+                section: item.section,
+                fields: Object.keys(directoryChanges),
+              });
+              item.after = enriched;
+            }
+          }
           item.match = row.id;
-          item.after = row;
+          item.after ??= row;
         } else if (item.entity === "CHEMICAL") {
           const row = await saveChemicalInTransaction(tx, actorId, {
             ...fields,

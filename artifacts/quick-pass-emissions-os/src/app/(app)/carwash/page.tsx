@@ -7,9 +7,15 @@ import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { DemoNotice, RecordId, TextField, Reason, SelectField } from "@/components/phase3";
 import { configureBays, updateBay } from "@/app/phase3-actions";
+import { targetProviders } from "@/modules/support/service";
 export default async function Carwash() {
   const actor = await currentUser(),
     data = await registry(actor.id);
+  const support = new Map(
+    await Promise.all(
+      data.bays.map(async (b) => [b.id, await targetProviders(actor.id, { bayId: b.id })] as const),
+    ),
+  );
   return (
     <>
       <PageHeader
@@ -49,6 +55,15 @@ export default async function Carwash() {
               {b.status.toLowerCase().replaceAll("_", " ")}
             </span>
             <h2>{b.identifier}</h2>
+            <p>
+              <Link href="/vendors">Service &amp; Support</Link>
+            </p>
+            {support.get(b.id)?.map((p) => (
+              <p key={p.id}>
+                <Link href={`/vendors/${p.id}`}>{p.name}</Link>
+                {!p.active && " · archived"}
+              </p>
+            ))}
             <p>
               {b.type === "DETAILING" ? "Detailing rental" : "Self-service"} · {b.equipment.length}{" "}
               equipment items · {b._count.tickets} maintenance tickets

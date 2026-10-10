@@ -1,4 +1,6 @@
 import { currentUser } from "@/lib/access";
+import Link from "next/link";
+import { targetProviders } from "@/modules/support/service";
 import { formatDate } from "@/lib/time";
 import { registry } from "@/modules/maintenance/service";
 import { PageHeader } from "@/components/shared";
@@ -68,6 +70,13 @@ function EquipmentForm({ data, e }: { data: Data; e?: Data["equipment"][number] 
 export default async function Equipment() {
   const actor = await currentUser(),
     data = await registry(actor.id);
+  const support = new Map(
+    await Promise.all(
+      data.equipment.map(
+        async (e) => [e.id, await targetProviders(actor.id, { equipmentId: e.id })] as const,
+      ),
+    ),
+  );
   return (
     <>
       <PageHeader
@@ -87,6 +96,23 @@ export default async function Equipment() {
               <h2>
                 {e.code} · {e.name}
               </h2>
+              <p>
+                <Link href="/vendors">Service &amp; Support</Link>
+              </p>
+              {e.vendorId && (
+                <p>
+                  Primary vendor:{" "}
+                  <Link href={`/vendors/${e.vendorId}`}>
+                    {data.vendors.find((v) => v.id === e.vendorId)?.name ?? "Provider"}
+                  </Link>
+                </p>
+              )}
+              {support.get(e.id)?.map((p) => (
+                <p key={p.id}>
+                  <Link href={`/vendors/${p.id}`}>{p.name}</Link>
+                  {!p.active && " · archived"}
+                </p>
+              ))}
               <p>
                 {e.bay?.identifier ?? "Shared / property"} ·{" "}
                 {e.active ? (down ? "Downtime ongoing" : "No open downtime recorded") : "Archived"}

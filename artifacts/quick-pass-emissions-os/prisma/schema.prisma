@@ -39,6 +39,7 @@ enum Frequency {
   ANNUAL
 }
 model User {
+  supportContactHistory SupportContactHistory[]
   businessImports BusinessImport[]
   automationDeliveries AutomationDelivery[]
   maintenanceReports MaintenanceTicket[] @relation("TicketReporter")
@@ -479,6 +480,7 @@ enum RentalStatus {
   CANCELLED
 }
 model CarwashBay {
+  supportAssociations SupportAssociation[]
   id String @id @default(cuid())
   slot Int @unique
   identifier String @unique
@@ -495,6 +497,25 @@ model CarwashBay {
   rentals BayRentalAgreement[]
 }
 model Vendor {
+  categories String[] @default([])
+  extension String @default("")
+  alternateContact String @default("")
+  alternatePhone String @default("")
+  alternateExtension String @default("")
+  alternateEmail String @default("")
+  website String @default("")
+  supportUrl String @default("")
+  hours String @default("")
+  emergencyDetails String @default("")
+  emergencyPhone String @default("")
+  operationalInstructions String @default("")
+  supportedServices String @default("")
+  sourceReference String @default("")
+  lastConfirmedDate String?
+  accountReference String @default("")
+  preferences SupportPreference[]
+  supportAssociations SupportAssociation[]
+  contactHistory SupportContactHistory[]
   id String @id @default(cuid())
   name String
   contact String
@@ -510,7 +531,45 @@ model Vendor {
   tickets MaintenanceTicket[]
   chemicals ChemicalItem[]
 }
+model SupportPreference {
+  category String @id
+  vendorId String?
+  vendor Vendor? @relation(fields:[vendorId],references:[id],onDelete:Restrict)
+  version Int @default(0)
+}
+model SupportAssociation {
+  id String @id @default(cuid())
+  vendorId String
+  vendor Vendor @relation(fields:[vendorId],references:[id],onDelete:Restrict)
+  equipmentId String?
+  equipment Equipment? @relation(fields:[equipmentId],references:[id],onDelete:Restrict)
+  bayId String?
+  bay CarwashBay? @relation(fields:[bayId],references:[id],onDelete:Restrict)
+  @@unique([vendorId,equipmentId])
+  @@unique([vendorId,bayId])
+}
+model SupportContactHistory {
+  id String @id @default(cuid())
+  vendorId String
+  vendor Vendor @relation(fields:[vendorId],references:[id],onDelete:Restrict)
+  actorId String
+  actor User @relation(fields:[actorId],references:[id],onDelete:Restrict)
+  actorName String
+  contactedAt DateTime
+  method String
+  equipmentId String?
+  equipment Equipment? @relation(fields:[equipmentId],references:[id],onDelete:Restrict)
+  ticketId String?
+  ticket MaintenanceTicket? @relation(fields:[ticketId],references:[id],onDelete:Restrict)
+  outcome String @default("")
+  reference String @default("")
+  followUpDate String?
+  createdAt DateTime @default(now())
+  @@index([vendorId,createdAt])
+}
 model Equipment {
+  supportAssociations SupportAssociation[]
+  contactHistory SupportContactHistory[]
   id String @id @default(cuid())
   code String @unique
   name String
@@ -562,6 +621,7 @@ model MaintenancePlan {
   tickets MaintenanceTicket[]
 }
 model MaintenanceTicket {
+  contactHistory SupportContactHistory[]
   id String @id @default(cuid())
   bayId String?
   bay CarwashBay? @relation(fields:[bayId],references:[id])

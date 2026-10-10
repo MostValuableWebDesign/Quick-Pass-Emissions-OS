@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { sourceDirectory } from "../support/rules";
 const text = z.string().trim().min(1).max(2000);
 const label = z.string().trim().min(1).max(160);
 const blankable = z.string().trim().max(2000);
@@ -25,6 +26,7 @@ export const importInput = z
                   services: text,
                   reference: z.string().trim().max(160),
                   notes: blankable,
+                  directory: sourceDirectory.optional(),
                 })
                 .strict(),
             })
@@ -107,7 +109,8 @@ export function compareFields(
   for (const [field, value] of Object.entries(proposed)) {
     if (value === "" || value === null || value === undefined) continue;
     const old = before?.[field];
-    if (old === null || old === undefined || old === "") changes[field] = value;
+    if (old === null || old === undefined || old === "" || (Array.isArray(old) && old.length === 0))
+      changes[field] = value;
     else if (canonical(old) !== canonical(value)) conflicts.push(field);
   }
   return { changes, conflicts };

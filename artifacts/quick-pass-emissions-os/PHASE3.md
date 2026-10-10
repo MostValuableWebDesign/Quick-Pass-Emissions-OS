@@ -48,6 +48,13 @@ Charges, received payments, reversals, voids and contract changes are audited tr
 
 ## Roles and setup
 
+Service & Support now extends the same Vendor register. See
+[docs/SERVICE_SUPPORT.md](docs/SERVICE_SUPPORT.md) for the explicit employee operational
+projection, separate provider-only association operation and manual contact history.
+The earlier employee/vendor descriptions in this document describe the original phase;
+they are superseded only for those narrowly documented support operations. Equipment/bay
+registers, private vendor fields, costs, manager review and BOOKKEEPER restrictions remain unchanged.
+
 - OWNER: all operational workflows; confirms bay layout/identifier corrections and authorizes/ends rental terms.
 - ADMIN: operational register, stock and maintenance management; rental charges/payments, payment reversal and charge void; cannot authorize rental terms or layout.
 - EMPLOYEE: report/own operational issues and currently assigned maintenance work only. No directory, chemical/vendor register, costs or rental access.

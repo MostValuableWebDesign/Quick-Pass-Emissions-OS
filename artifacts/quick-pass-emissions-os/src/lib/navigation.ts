@@ -91,7 +91,7 @@ export const NAV_SECTIONS: NavSection[] = [
         roles: MANAGERS,
       },
       { href: "/equipment", label: "Equipment", icon: "cog", roles: MANAGERS },
-      { href: "/vendors", label: "Vendors", icon: "truck", roles: MANAGERS },
+      { href: "/vendors", label: "Service & Support", icon: "truck", roles: OPERATORS },
     ],
   },
   {
@@ -184,6 +184,7 @@ export const ROUTES: RouteDef[] = [
   detail("/employees/:id", "Employee profile", "/employees", MANAGERS),
   detail("/payroll/:id", "Payroll period", "/payroll", FINANCE),
   detail("/maintenance/:id", "Maintenance ticket", "/maintenance", OPERATORS),
+  detail("/vendors/:id", "Service & Support", "/vendors", OPERATORS),
   detail("/dealerships/:id", "Dealership account", "/dealerships", FINANCE),
   detail("/invoices/:id", "Invoice", "/invoices", FINANCE),
   detail("/rentals/:id", "Rental agreement", "/rentals", FINANCE),

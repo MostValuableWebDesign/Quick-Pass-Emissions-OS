@@ -35,7 +35,7 @@ describe("role-filtered navigation", () => {
   it("employees get operational routes only", () => {
     const h = hrefs("EMPLOYEE");
     expect(h).toEqual(
-      expect.arrayContaining(["/tasks", "/schedule", "/maintenance", "/notifications"]),
+      expect.arrayContaining(["/tasks", "/schedule", "/maintenance", "/notifications", "/vendors"]),
     );
     for (const r of [
       "/payroll",
@@ -46,6 +46,7 @@ describe("role-filtered navigation", () => {
     ])
       expect(h).not.toContain(r);
     expect(navForRole("EMPLOYEE").map((s) => s.id)).not.toContain("payroll");
+    expect(matchRoute("/vendors/provider-1")?.parent).toBe("/vendors");
   });
   it("owner-only routes are owner-only; admin sees managers routes", () => {
     expect(hrefs("ADMIN")).not.toContain("/automation");

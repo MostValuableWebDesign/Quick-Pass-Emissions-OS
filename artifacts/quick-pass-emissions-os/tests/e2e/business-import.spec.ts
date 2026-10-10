@@ -3,56 +3,64 @@ import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import path from "node:path";
 import { mkdir } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 test("owner reviewed references persist on desktop/mobile without transactions or privileged bypass", async ({
   page,
   browser,
 }) => {
   test.setTimeout(240000);
   const id = randomUUID();
-  const name = `Import fixture supplier ${id}`;
-  const chemical = `Import fixture chemical ${id}`;
-  const manifest = JSON.stringify({
-    sourceName: "Synthetic browser operations",
-    sourceFingerprint: "c".repeat(64),
-    items: [
-      {
-        entity: "VENDOR",
-        key: "vendor",
-        section: "Synthetic supplier section",
-        values: {
-          name,
-          contact: "",
-          phone: "555-fixture",
-          email: "",
-          services: "Fixture parts",
-          reference: `fixture-${id}`,
-          notes: "",
+  const continuation = JSON.parse(
+    readFileSync(path.join(process.env.E2E_PRIVATE_DIR!, "navigation.json"), "utf8"),
+  ).businessImport as { name: string; chemical: string; manifest: string } | undefined;
+  if (process.env.E2E_IMPORT_REMAINDER === "1" && !continuation)
+    throw Error("Runner-owned continuation fixture is missing.");
+  const name = continuation?.name ?? `Import fixture supplier ${id}`;
+  const chemical = continuation?.chemical ?? `Import fixture chemical ${id}`;
+  const manifest =
+    continuation?.manifest ??
+    JSON.stringify({
+      sourceName: "Synthetic browser operations",
+      sourceFingerprint: "c".repeat(64),
+      items: [
+        {
+          entity: "VENDOR",
+          key: "vendor",
+          section: "Synthetic supplier section",
+          values: {
+            name,
+            contact: "",
+            phone: "555-fixture",
+            email: "",
+            services: "Fixture parts",
+            reference: `fixture-${id}`,
+            notes: "",
+          },
         },
-      },
-      {
-        entity: "CHEMICAL",
-        key: "chemical",
-        section: "Synthetic catalog section",
-        values: { name: chemical, notes: "Synthetic, no unit or stock inferred." },
-      },
-      {
-        entity: "CERTIFICATES",
-        key: "certificates",
-        section: "Synthetic order minimum",
-        values: { minimumOrder: 300 },
-      },
-      {
-        entity: "REVIEW",
-        key: "review",
-        section: "Synthetic compensation section",
-        values: {
-          title: "Identity/effective date missing",
-          details: "No pay or shifts authorized.",
-          required: "Owner identity mapping and effective date",
+        {
+          entity: "CHEMICAL",
+          key: "chemical",
+          section: "Synthetic catalog section",
+          values: { name: chemical, notes: "Synthetic, no unit or stock inferred." },
         },
-      },
-    ],
-  });
+        {
+          entity: "CERTIFICATES",
+          key: "certificates",
+          section: "Synthetic order minimum",
+          values: { minimumOrder: 300 },
+        },
+        {
+          entity: "REVIEW",
+          key: "review",
+          section: "Synthetic compensation section",
+          values: {
+            title: "Identity/effective date missing",
+            details: "No pay or shifts authorized.",
+            required: "Owner identity mapping and effective date",
+          },
+        },
+      ],
+    });
   const db = new PrismaClient();
   const screenshots = path.resolve("../../generated-artifacts/business-import");
   await mkdir(screenshots, { recursive: true });
@@ -72,36 +80,40 @@ test("owner reviewed references persist on desktop/mobile without transactions o
         db.taskInstance.findMany(),
       ]);
     const before = JSON.stringify(await history());
-    await page.goto("/settings/import");
-    await page
-      .getByLabel("Reviewed structured manifest · private business information")
-      .fill(manifest);
-    await page.getByRole("button", { name: "Preview without writing" }).click();
-    await expect(page.getByText("Dry run only. No business data was written.")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Proposed field-level changes" })).toBeVisible();
-    expect(await db.vendor.count({ where: { name } })).toBe(0);
-    await page.getByRole("checkbox").check();
-    await page.getByRole("button", { name: "Back up and apply reviewed changes" }).click();
-    await expect(page.getByRole("status").filter({ hasText: "Import committed:" })).toContainText(
-      "3 created",
-    );
-    await page.reload();
-    await page.getByText("Synthetic browser operations", { exact: false }).click();
-    await expect(page.getByText("review · skipped", { exact: true })).toBeVisible();
-    await expect(page.getByText("No pay or shifts authorized.", { exact: true })).toBeVisible();
-    await page.goto("/chemicals");
-    await expect(item).toHaveCount(1);
-    await item.getByText("Edit item settings", { exact: true }).click();
-    await expect(item.locator('select[name="unit"]')).toHaveValue("");
-    await expect(item.locator('input[name="reorderPoint"]')).toHaveValue("");
-    await expect(item.getByRole("button", { name: "Record chemical movement" })).toHaveCount(0);
-    expect(await item.locator('select[name="vendorId"] option').allTextContents()).not.toContain(
-      name,
-    );
-    await page.screenshot({ path: path.join(screenshots, "desktop.jpg") });
-    await page.goto("/certificates");
-    await expect(page.locator('input[name="minimumOrder"]')).toHaveValue("300");
-    await expect(page.locator('input[name="reorderPoint"]')).toHaveValue("");
+    if (!continuation) {
+      await page.goto("/settings/import");
+      await page
+        .getByLabel("Reviewed structured manifest · private business information")
+        .fill(manifest);
+      await page.getByRole("button", { name: "Preview without writing" }).click();
+      await expect(page.getByText("Dry run only. No business data was written.")).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Proposed field-level changes" }),
+      ).toBeVisible();
+      expect(await db.vendor.count({ where: { name } })).toBe(0);
+      await page.getByRole("checkbox").check();
+      await page.getByRole("button", { name: "Back up and apply reviewed changes" }).click();
+      await expect(page.getByRole("status").filter({ hasText: "Import committed:" })).toContainText(
+        "3 created",
+      );
+      await page.reload();
+      await page.getByText("Synthetic browser operations", { exact: false }).click();
+      await expect(page.getByText("review · skipped", { exact: true })).toBeVisible();
+      await expect(page.getByText("No pay or shifts authorized.", { exact: true })).toBeVisible();
+      await page.goto("/chemicals");
+      await expect(item).toHaveCount(1);
+      await item.getByText("Edit item settings", { exact: true }).click();
+      await expect(item.locator('select[name="unit"]')).toHaveValue("");
+      await expect(item.locator('input[name="reorderPoint"]')).toHaveValue("");
+      await expect(item.getByRole("button", { name: "Record chemical movement" })).toHaveCount(0);
+      expect(await item.locator('select[name="vendorId"] option').allTextContents()).not.toContain(
+        name,
+      );
+      await page.screenshot({ path: path.join(screenshots, "desktop.jpg") });
+      await page.goto("/certificates");
+      await expect(page.locator('input[name="minimumOrder"]')).toHaveValue("300");
+      await expect(page.locator('input[name="reorderPoint"]')).toHaveValue("");
+    }
     await page.goto("/vendors");
     const vendor = page
       .locator("section")

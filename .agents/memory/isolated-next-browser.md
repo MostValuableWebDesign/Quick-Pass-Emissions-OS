@@ -32,3 +32,9 @@ Do not assume stopping a background verification shell runs its asynchronous cle
 **Why:** Terminating a manual fixture runner bypassed its cleanup and left owned temporary resources behind.
 
 **How to apply:** Prefer graceful runner shutdown and verify cleanup. If interrupted, confirm exact ownership before removing disposable resources; never use broad database or cache cleanup against the live preview.
+
+Keep privileged application-service fixture preparation in the native runner, not inside the browser driver's transformed test modules.
+
+**Why:** A continuation fixture failed before assertions when the driver imported server services, with an error location that did not identify the failing test selector. Native preparation completed successfully and allowed the remaining checks to pass; the earlier failure alone was not proof of an application defect.
+
+**How to apply:** Prepare only runner-owned synthetic data using the existing datasource/actor guards, then pass private metadata to the driver. Keep module/fixture failures separate from UI failures in completion reports.

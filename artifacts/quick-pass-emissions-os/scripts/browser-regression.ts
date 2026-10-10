@@ -160,6 +160,13 @@ async function main() {
     process.env.E2E_STATION_HISTORY === "1"
       ? await stationBrowserFixture(db, user.id, temporary)
       : undefined;
+  stage = "owned import continuation fixture";
+  const businessImport =
+    process.env.E2E_IMPORT_REMAINDER === "1" && process.env.E2E_IMPORT_ONLY === "1"
+      ? await (
+          await import("./business-import-browser-fixtures")
+        ).businessImportBrowserFixture(user.id, env)
+      : undefined;
   server = start(
     "pnpm",
     ["exec", "next", "dev", "--hostname", "0.0.0.0", "--port", String(port)],
@@ -242,7 +249,13 @@ async function main() {
   const fixturePath = path.join(temporary, "navigation.json");
   await writeFile(
     fixturePath,
-    JSON.stringify({ baseURL, directory: temporary, records: fixtures.records, station }),
+    JSON.stringify({
+      baseURL,
+      directory: temporary,
+      records: fixtures.records,
+      station,
+      businessImport,
+    }),
     { mode: 0o600 },
   );
   if (process.env.E2E_MANUAL_TEST === "1") {
@@ -354,7 +367,9 @@ async function main() {
   );
   console.log(
     process.env.E2E_IMPORT_ONLY === "1"
-      ? "Passed: 1 complete owner import desktop/mobile journey including backup, reloads, unknown configuration, verification gates, staff-edit conflicts and role restrictions; no skips."
+      ? process.env.E2E_IMPORT_REMAINDER === "1"
+        ? "Passed: 1 targeted remaining import UI flow including supplier verification/dropdowns, saved staff changes, mobile repeat conflicts and role restrictions; no skips."
+        : "Passed: 1 complete owner import desktop/mobile journey including backup, reloads, unknown configuration, verification gates, staff-edit conflicts and role restrictions; no skips."
       : process.env.E2E_STATION_ONLY === "1"
         ? "Passed: 1 targeted station lifecycle check; no skips."
         : process.env.E2E_STATION_HISTORY === "1"

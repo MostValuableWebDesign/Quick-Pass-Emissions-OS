@@ -166,6 +166,11 @@ E2E_DIRECT=1 E2E_IMPORT_ONLY=1 pnpm --filter @workspace/quick-pass-emissions-os 
 Tests use synthetic fixtures in a newly created, uniquely owned `_test` database.
 The focused browser runner uses a separate private port and private native-login
 state without replacing the managed preview or entering captured credentials.
+When continuing only previously unreached assertions, additionally set
+`E2E_IMPORT_REMAINDER=1`. The native runner prepares the matching synthetic manifest with a
+verified isolated backup, and Playwright starts at vendor verification rather than
+repeating the already checked dry-run/apply UI. Require the exact targeted-completion
+message, process exit zero and cleanup; do not count a failed or partial run as passing.
 Tests cover matching/blank preservation, duplicates, repeat/concurrent application,
 stale previews, staff edits, permission/backup gates, rollback/resume, unknown
 configuration and historical side-effect preservation. Upgrade sentinels retain approved

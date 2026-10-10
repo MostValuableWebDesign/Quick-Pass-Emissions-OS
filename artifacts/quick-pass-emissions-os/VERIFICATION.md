@@ -32,18 +32,24 @@ Actual application and code publication are separate:
   intentionally excluded from this public verification note and Git.
 - No production deployment, production application, external order/message or ACH execution.
 
-**Browser limitation — do not count the focused suite as passed:** the isolated owner flow
-reached dry-run, backup/application, reloadable review history, chemical unknown states and
-supplier exclusion, and saved certificate minimum. A synthetic desktop screenshot confirms
-the unknown-unit/threshold/stock/supplier state. Two test-selector defects were corrected
-(collapsed evidence also contains review text; vendor submit is `Update vendor`).
-A narrowly attempted continuation fixture then failed before the remaining assertions;
-that unsuccessful continuation-only branch was removed rather than shipped.
-The full selected browser test currently exists but has not completed successfully.
-Independent verification, subsequent staff-edit UI, role-denial UI and **mobile checks remain
-unverified**, despite passing database tests for those backend restrictions/conflicts.
-Temporary test databases and private browser state were removed. The import task remains open
-pending this verification gap; do not infer completion from publication or saved data alone.
+**Desktop/mobile evidence:** the initial isolated owner flow reached dry-run, verified
+backup/application, reloadable review history, chemical unknown states, supplier exclusion
+and saved certificate minimum. A synthetic desktop screenshot confirms the unknown-unit/
+threshold/stock/supplier state. Two test-selector defects were corrected (collapsed evidence
+also contains review text; vendor submit is `Update vendor`). A continuation setup initially
+failed when importing application services inside Playwright; this was replaced with native
+`tsx` runner-owned setup, guarded by the exact disposable datasource and owner identity.
+
+The user-authorized targeted remaining check then **exited 0**, reporting:
+`Passed: 1 targeted remaining import UI flow including supplier verification/dropdowns, saved staff changes, mobile repeat conflicts and role restrictions; no skips.`
+It verified independent vendor verification and operational dropdown availability, saved ML
+unit and threshold 10 after reload, mobile repeat import conflicts for both staff-edited
+records, no duplicated vendor/chemical records or changed operational history, and denial
+of import data/actions to ADMIN, BOOKKEEPER and EMPLOYEE. The mobile screenshot shows a narrow
+single-column layout; its viewport-width assertion passed. Owned private browser state,
+build cache and temporary database were removed. These are combined initial-flow and
+successful focused-continuation observations, **not a claim that a fresh full suite passed**.
+No real business database or managed-preview authentication was used for browser mutations.
 
 See [BUSINESS_IMPORT.md](docs/BUSINESS_IMPORT.md) for mapping, preview/apply/retry procedures,
 the owner review list and missing evidence. Required decisions stay in owner-only saved

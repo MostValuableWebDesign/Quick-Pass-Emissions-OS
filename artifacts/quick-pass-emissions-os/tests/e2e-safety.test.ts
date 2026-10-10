@@ -16,11 +16,11 @@ const env = {
 };
 
 describe("Browser isolation gates", () => {
-  it("requires the full expanded navigation suite, not just the original checks", () => {
-    const stats = { expected: 9, skipped: 0, flaky: 0, unexpected: 0 };
-    expect(() => assertCompleteReport({ stats, errors: [] }, 9)).not.toThrow();
+  it("requires the full expanded navigation and daily-count suite", () => {
+    const stats = { expected: 10, skipped: 0, flaky: 0, unexpected: 0 };
+    expect(() => assertCompleteReport({ stats, errors: [] }, 10)).not.toThrow();
     expect(() =>
-      assertCompleteReport({ stats: { ...stats, expected: 3 }, errors: [] }, 9),
+      assertCompleteReport({ stats: { ...stats, expected: 3 }, errors: [] }, 10),
     ).toThrow();
   });
   it("keeps business storage pins, backups and recovery targets out of isolated verification", () => {

@@ -129,6 +129,21 @@ for (const role of ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"] as const) {
   });
 }
 
+test.describe("Owner daily performance count", () => {
+  test.use({ storageState: path.join(directory, "session.json") });
+
+  test("selecting a date loads that single-day station count", async ({ page }) => {
+    await page.goto("/performance");
+    await page.getByLabel("Daily count date").fill("2026-01-15");
+    await expect(page).toHaveURL(/\/performance\?preset=day&date=2026-01-15$/);
+    await expect(page.locator("main h1")).toContainText("Station performance");
+    const totals = page.getByRole("region", { name: "Station-wide totals" });
+    await expect(totals).toContainText("Station recorded");
+    await expect(totals).toContainText("Pending identities");
+    await expect(page.locator("main")).toContainText("2026-01-15 inclusive");
+  });
+});
+
 test("record context survives refresh, browser history, and explicit return links", async ({
   page,
   context,

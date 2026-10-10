@@ -15,8 +15,9 @@ import {
   StationStat,
   inclusiveDays,
 } from "@/components/station-ui";
+import { PerformanceDayFilter } from "@/components/performance-day-filter";
 
-type Search = { preset?: string; start?: string; end?: string; employeeId?: string };
+type Search = { preset?: string; date?: string; start?: string; end?: string; employeeId?: string };
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default async function PerformancePage({ searchParams }: { searchParams: Promise<Search> }) {
@@ -26,11 +27,18 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
   // Initial station-wide read for today: settings and employee list.
   const base = await performance(user.id, { start: today, end: today });
   const setting = base.settings.find((s) => s.effectiveDate <= today) ?? null;
-  const preset = q.preset === "week" || q.preset === "custom" ? q.preset : "today";
+  const preset =
+    q.preset === "week" || q.preset === "custom" || q.preset === "day" ? q.preset : "today";
   let start = today;
   let end = today;
   let problem: string | null = null;
-  if (preset === "week") {
+  if (preset === "day") {
+    const selected = q.date ?? "";
+    if (!DATE.test(selected)) problem = "Choose a valid daily count date; showing today.";
+    else if (selected > today)
+      problem = "Daily counts cannot be requested for a future date; showing today.";
+    else start = end = selected;
+  } else if (preset === "week") {
     if (!setting)
       problem =
         "This Week needs an owner-confirmed week start. Configure it in performance setup; showing today.";
@@ -70,6 +78,8 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
     base.employeeOptions.find((x) => x.id === id)?.user.name ?? null;
   const tzConfirmed = !!setting?.sourceTimezoneConfirmed;
   const dateLabel = tzConfirmed ? "Business date" : "Inferred source calendar date";
+  const rangePreset = preset === "day" ? "custom" : preset;
+  const dailyDate = preset === "day" || (preset === "custom" && start === end) ? start : today;
   const attested = data.days.filter((d) => d.attested).length;
   const p = data.projection;
   const f = data.finance.totals;
@@ -101,6 +111,8 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
         </div>
       )}
 
+      <PerformanceDayFilter date={dailyDate} today={today} employeeId={employeeId} />
+
       <form
         className="card card-body"
         method="get"
@@ -114,7 +126,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
             ["custom", "Custom"],
           ].map(([v, l]) => (
             <label key={v}>
-              <input type="radio" name="preset" value={v} defaultChecked={preset === v} /> {l}
+              <input type="radio" name="preset" value={v} defaultChecked={rangePreset === v} /> {l}
             </label>
           ))}
         </fieldset>
@@ -124,12 +136,17 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
             type="date"
             name="start"
             max={today}
-            defaultValue={preset === "custom" ? start : ""}
+            defaultValue={rangePreset === "custom" ? start : ""}
           />
         </label>
         <label className="field">
           <span>Custom end</span>
-          <input type="date" name="end" max={today} defaultValue={preset === "custom" ? end : ""} />
+          <input
+            type="date"
+            name="end"
+            max={today}
+            defaultValue={rangePreset === "custom" ? end : ""}
+          />
         </label>
         <label className="field">
           <span>Employee (records and pay; station totals unchanged)</span>
@@ -143,7 +160,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
           </select>
         </label>
         <button className="button button-primary">Apply</button>
-        {preset === "week" && !setting && (
+        {rangePreset === "week" && !setting && (
           <small className="muted">Week start not configured.</small>
         )}
       </form>

@@ -367,7 +367,7 @@ async function main() {
             ? 1
             : process.env.E2E_STATION_HISTORY === "1"
               ? 11
-              : 9,
+              : 10,
   );
   console.log(
     process.env.E2E_SUPPORT_ONLY === "1"
@@ -382,7 +382,7 @@ async function main() {
             ? "Passed: 1 targeted station lifecycle check; no skips."
             : process.env.E2E_STATION_HISTORY === "1"
               ? "Passed: 11 signed-in browser checks including station report review, reconciliation, coverage, export and access restrictions; no skips."
-              : "Passed: 9 signed-in browser checks, including four-role desktop/mobile navigation, return context, history, authorization and vendor persistence; no skips.",
+              : "Passed: 10 signed-in browser checks, including four-role desktop/mobile navigation, daily performance date selection, return context, history, authorization and vendor persistence; no skips.",
   );
   if (process.env.E2E_MANUAL_TEST === "1") {
     console.log("Private browser checks completed; preview remains available for visual review.");

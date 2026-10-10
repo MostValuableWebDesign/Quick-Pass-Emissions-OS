@@ -1,45 +1,41 @@
-# [Project name]
+# Quick Pass Business OS
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Phases 1–5 of the business app live in `artifacts/quick-pass-emissions-os`. Read its
+`AGENTS.md`, `README.md`, `ARCHITECTURE.md`, `BUSINESS_RULES.md`, `OPEN_QUESTIONS.md`,
+`VERIFICATION.md` and phase guides before editing. Preserve shared Git history, commit/push
+verified changes normally, and do not deploy without the user's request.
 
-## Run & Operate
+## Run and operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm install --frozen-lockfile` — install the full workspace.
+- `pnpm --filter @workspace/quick-pass-emissions-os db:generate` — generate Prisma client.
+- `pnpm --filter @workspace/quick-pass-emissions-os dev` — safe migrations/check, then preview.
+- `pnpm run build:app` — build application files; does not reset or seed the database.
+- `pnpm --filter @workspace/quick-pass-emissions-os start` — safe migrations/check, then server.
+- `pnpm --filter @workspace/quick-pass-emissions-os db:check` — show permanent storage ID.
+- `pnpm --filter @workspace/quick-pass-emissions-os db:backup` — private full backup when configured.
+- `pnpm run typecheck` — full workspace typecheck; app lint/format/tests use its filter.
+- `pnpm --filter @workspace/quick-pass-emissions-os test:isolated` — disposable fixtures only.
 
-## Stack
+## Persistent business data
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+The actual business app uses **Next.js, Better Auth and Prisma/PostgreSQL**, with schema and
+additive migrations under `artifacts/quick-pass-emissions-os/prisma`. Keep `DATABASE_URL` in
+server secrets pointing to the same persistent database across updates/restarts. Saved data
+is separate from build output. Never recreate a database, seed over records, run reset/push
+commands or replace this app's schema with the scaffold `lib/db` Drizzle schema.
 
-## Where things live
+Set `EXPECTED_DATABASE_ID` after the first migration to refuse unintended database switches.
+Replit development and production databases have separate data/IDs. Configure managed
+backups; optional `DATA_BACKUP_DIR` enables a required backup before pending migrations and
+manual complete dumps. Deployment filesystems are not durable backup storage. Full setup,
+restore guards and environment troubleshooting: [DATA_PERSISTENCE.md](artifacts/quick-pass-emissions-os/DATA_PERSISTENCE.md).
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+## Workspace map
 
-## Architecture decisions
-
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
-
-## Product
-
-_Describe the high-level user-facing capabilities of this app once they exist._
-
-## User preferences
-
-_Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Business UI/services/auth: `artifacts/quick-pass-emissions-os/src`.
+- Managed web workflow: `artifacts/quick-pass-emissions-os: web`, manifest in its `.replit-artifact`.
+- `artifacts/api-server`, `artifacts/mockup-sandbox`, `lib/db`, API spec/codegen and client packages
+  are separate workspace scaffolds. They do not own the business app's persisted records.
+- Root README documents synchronization and workspace installation. Do not force-push or
+  commit private environment files, database dumps, generated builds or verification fixtures.

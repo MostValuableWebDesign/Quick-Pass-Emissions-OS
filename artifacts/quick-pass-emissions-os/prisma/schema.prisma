@@ -5,6 +5,12 @@ datasource db {
   provider = "postgresql"
   url = env("DATABASE_URL")
 }
+// Created once by a migration, retained across releases and database backups.
+model DataStore {
+  id String @id @default("business")
+  instanceId String @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt DateTime @default(now())
+}
 enum Role {
   OWNER
   ADMIN

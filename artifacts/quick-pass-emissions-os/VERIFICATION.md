@@ -14,6 +14,62 @@ The existing Next/Prisma/Better Auth artifact now has owner-only Performance, or
 
 **Publication:** normal shared-main publication is recorded at task completion after credential/session/export/generated-artifact inspection. Source publication is not production deployment. Required owner business configuration and provider-approved unattended integration remain operational gates, not guessed defaults.
 
+**Newer shared source preserved:** incoming shared commit `1227fe8` added the independent durable-storage work during this task. It was joined by a normal merge, retaining both original migration-007 directories and all storage checks rather than replacing either branch. Final combined verification passed **21 files / 199 tests / zero skips**, with Phase 4→Phase 5 + storage + station sentinel preservation and disposal of only the owned test database. The combined artifact's typecheck, lint, formatting and standard Turbopack production build passed. Published storage-migration bytes match the incoming commit. The development storage migration was applied through its new guarded operator command; no business records were seeded, cleared or imported, and no production operation was performed.
+
+## Persistent data across releases — October 10, 2026
+
+Pulled the complete shared pnpm workspace through `9d9ec90` before these changes. Saved
+business records already used Prisma/PostgreSQL; added guarded startup/migrations, permanent
+storage identity and optional per-environment pin, full private backup/empty-target restore,
+owner-only storage information, and corrected conflicting scaffold/standalone instructions.
+Migration 007 adds only the storage marker. Migration files 001–006 are unchanged.
+
+Verified locally with Node 26.8.2, pnpm 10.26.1, PostgreSQL 18 and PostgreSQL client tools 18.6:
+
+- Root `pnpm install --frozen-lockfile` and full workspace `pnpm run typecheck` passed.
+  App `npm run typecheck`, `npm run lint`, `npm run format:check` and `git diff --check` passed.
+- **18 Vitest files / 150 tests passed, zero skipped**, using newly created disposable `_test`
+  databases. Storage tests cover repeat migrations/new connections, wrong/missing database pin,
+  owner role/deactivation rechecks, full all-table backup/restore digest equality (including
+  credential/migration/history tables), file permissions, refusal of the current/nonempty
+  target, invalid archives, public/build-directory refusal and incomplete-backup cleanup.
+  Isolated runner environments explicitly clear inherited business storage pins, backup
+  directories and recovery targets while keeping their generated test URL. An actual prior-release fixture
+  applies migrations 001–006, retains its profile/audit records, refuses migration 007 when
+  the configured backup fails, then successfully backs up/upgrades and repeats without
+  another backup. Only run-owned temporary databases were dropped.
+- **Standard `npm run build` (Turbopack) passed.** The final build also passed with an
+  unreachable test database URL, confirming build generation needs no database write.
+- A separate private Chromium check ran the real production build/start scripts on a disposable
+  local database. Native sign-in happened outside captured browser forms. An owner saved an
+  employee through the UI, stopped the server, ran a fresh production build, restarted using
+  the same pinned database and existing browser session, and verified the employee record
+  was byte-equivalent and visible, with the same storage ID. Owner Settings was checked on
+  desktop and at 390px without horizontal overflow. This is one focused local persistence
+  workflow; it is not a rerun of all previous browser scenarios or a Replit deployment test.
+- The Replit lockfile excludes macOS native build/test bindings. Matching exact-version local
+  binaries were supplied only in ignored verification files; no dependency/lockfile or
+  platform override was changed. Private credentials, dumps, database files, screenshots and
+  runners remain ignored and were not published.
+
+The production-only **workspace** dependency audit reports three pre-existing advisories:
+`deepmerge-ts` 7.1.5 (high) through the scaffold Drizzle → Prisma configuration tool chain;
+`source-map-js` 1.2.1 (high) through Better Auth's optional Vitest/Vite/PostCSS peer chain; and
+`proxy-addr` 2.0.7 (critical) in the separate Express scaffold. The business app does not import
+Vitest/source-map processing in request handlers, Prisma configuration processes trusted
+operator files, and the Express scaffold does not enable `trust proxy` or use trusted proxy
+subnet checks. No affected attacker-controlled request path was established by this review;
+these advisories remain open, not clean or patched. Dependencies were not changed in this
+storage-focused work. Do not enable proxy trust without reviewing/patching that chain.
+
+**Remaining setup:** no real Replit database, production migration, deployment, managed backup
+service, encryption service, persistent backup directory or production restore drill was
+configured. Keep each environment's DATABASE_URL stable, record/pin its storage ID and configure
+provider backups. Development preview and published data can be separate. Optional local
+pre-migration backups require DATA_BACKUP_DIR and matching PostgreSQL tools; they are not a
+scheduled backup after every Save. Existing deleted/rolled-back data requires a prior database
+backup or provider recovery. See DATA_PERSISTENCE.md for precise setup and commands.
+
 ## Phase 5 — October 10, 2026 (America/New_York)
 
 The reviewed GitHub Phase 4 baseline was imported into the existing artifact and both unrelated histories were joined using a normal history-preserving merge after content integration. Newer workspace/authentication security changes remain. Every migration 001–005 was compared byte-for-byte with the reviewed standalone baseline; additive migration 006 supplies the new persistence. The development workspace applied migrations 005 and 006 normally; no production database or production deployment was touched.

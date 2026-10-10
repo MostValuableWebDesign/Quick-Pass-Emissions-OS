@@ -660,3 +660,144 @@ model RentalPayment {
   reversal RentalPayment? @relation("PaymentReversal")
   createdAt DateTime @default(now())
 }
+enum InvoiceState {
+  DRAFT
+  APPROVED
+  SENT
+  VOIDED
+}
+enum FinanceDirection {
+  REVENUE
+  EXPENSE
+}
+enum FinanceBasis {
+  MANUAL
+  ESTIMATE
+}
+model Dealership {
+  id String @id @default(cuid())
+  code String @unique
+  name String
+  billingAddress String
+  notes String @default("")
+  active Boolean @default(true)
+  termsDays Int?
+  defaultRateCents Int?
+  taxBps Int?
+  termsReference String?
+  termsAuthorizedBy String?
+  termsAuthorizedAt DateTime?
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  contacts DealerContact[]
+  services DealerService[]
+  invoices DealerInvoice[]
+}
+model DealerContact {
+  id String @id @default(cuid())
+  dealershipId String
+  dealership Dealership @relation(fields:[dealershipId], references:[id], onDelete:Cascade)
+  name String
+  email String
+  phone String
+  purpose String
+  source String
+  active Boolean @default(true)
+  version Int @default(0)
+  createdAt DateTime @default(now())
+}
+model DealerService {
+  id String @id @default(cuid())
+  dealershipId String
+  dealership Dealership @relation(fields:[dealershipId], references:[id], onDelete:Restrict)
+  date String
+  description String
+  quantity Int
+  unitCents Int
+  reference String @unique
+  evidence String
+  createdBy String
+  createdAt DateTime @default(now())
+  invoiceId String?
+  invoice DealerInvoice? @relation("AllocatedServices", fields:[invoiceId], references:[id], onDelete:Restrict)
+  voidDate String?
+  voidReason String?
+  lines DealerInvoiceLine[]
+  @@index([dealershipId, date])
+}
+model DealerInvoice {
+  id String @id @default(cuid())
+  number String @unique
+  dealershipId String
+  dealership Dealership @relation(fields:[dealershipId], references:[id], onDelete:Restrict)
+  issueDate String
+  dueDate String
+  state InvoiceState @default(DRAFT)
+  subtotalCents Int
+  taxBps Int
+  taxCents Int
+  totalCents Int
+  snapshot Json
+  notes String
+  createdBy String
+  approvedBy String?
+  approvedAt DateTime?
+  sentDate String?
+  deliveryReference String?
+  voidDate String?
+  voidReason String?
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  lines DealerInvoiceLine[]
+  services DealerService[] @relation("AllocatedServices")
+  payments DealerPayment[]
+  @@index([dealershipId, issueDate])
+}
+model DealerInvoiceLine {
+  id String @id @default(cuid())
+  invoiceId String
+  invoice DealerInvoice @relation(fields:[invoiceId], references:[id], onDelete:Restrict)
+  serviceId String
+  service DealerService @relation(fields:[serviceId], references:[id], onDelete:Restrict)
+  date String
+  description String
+  quantity Int
+  unitCents Int
+  amountCents Int
+  @@unique([invoiceId, serviceId])
+}
+model DealerPayment {
+  id String @id @default(cuid())
+  invoiceId String
+  invoice DealerInvoice @relation(fields:[invoiceId], references:[id], onDelete:Restrict)
+  amountCents Int
+  date String
+  reference String @unique
+  evidence String
+  createdBy String
+  reversesId String? @unique
+  reverses DealerPayment? @relation("DealerPaymentReversal", fields:[reversesId], references:[id], onDelete:Restrict)
+  reversal DealerPayment? @relation("DealerPaymentReversal")
+  createdAt DateTime @default(now())
+  @@index([date])
+}
+model FinanceEntry {
+  id String @id @default(cuid())
+  direction FinanceDirection
+  basis FinanceBasis
+  category String
+  amountCents Int
+  date String
+  reference String @unique
+  description String
+  evidence String
+  createdBy String
+  verifiedBy String?
+  verifiedAt DateTime?
+  voidDate String?
+  voidReason String?
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  @@index([date])
+}

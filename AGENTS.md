@@ -2,7 +2,7 @@
 
 ## Scope and workflow
 
-This is Quick Pass Business OS, currently Phases 1–3. Read README, ARCHITECTURE, BUSINESS_RULES, OPEN_QUESTIONS and VERIFICATION before changes. Inspect source and git status; preserve existing work. Do not implement Phases 4–5 without explicit authorization. Do not commit/push or deploy unless requested. Never treat sample data as business fact.
+This is Quick Pass Business OS, currently Phases 1–4. Read README, ARCHITECTURE, BUSINESS_RULES, OPEN_QUESTIONS and VERIFICATION before changes. Inspect source and git status; preserve existing work. Do not implement Phase 5 without explicit authorization. Standing user instruction: commit and push completed, verified Quick Pass OS changes to GitHub. Do not deploy unless requested. Never treat sample data as business fact.
 
 ## Code conventions
 
@@ -16,7 +16,7 @@ Audit sensitive mutations in their transaction. Preserve record history; deactiv
 
 ## Business rules
 
-All dates use America/New_York semantics from src/lib/time.ts. Preserve tested DST, month-end and leap-year behavior. Respect configured operating days and closures. Operating hours, compensation, commission attribution, certificate stock, vendors, dealer rates, rental amounts and financial balances are unverified until owner configuration. Never infer profit. Commission calculations require owner-authorized effective-dated personal attribution and independently approved sources. Preserve draft snapshots, approval separation, source freezes, exact-cent bounds, versioned corrections and certificate ledger locking. Read PHASE2.md and PHASE3.md. Preserve owner-confirmed six-bay layout, restricted employee maintenance selections, review transitions, preventative job cursors/uniqueness, chemical stock versions and exact rental/payment history. Store money as integer cents or exact decimals, not JavaScript floating-point currency. No bank credentials, SSNs, unsupervised ACH or unofficial state analyzer calls.
+All dates use America/New_York semantics from src/lib/time.ts. Preserve tested DST, month-end and leap-year behavior. Respect configured operating days and closures. Operating hours, compensation, commission attribution, certificate stock, vendors, dealer rates, rental amounts and financial balances are unverified until owner configuration. Never infer profit. Commission calculations require owner-authorized effective-dated personal attribution and independently approved sources. Preserve draft snapshots, approval separation, source freezes, exact-cent bounds, versioned corrections and certificate ledger locking. Read PHASE2.md, PHASE3.md and PHASE4.md. Preserve owner-confirmed six-bay layout, restricted employee maintenance selections, review transitions, preventative job cursors/uniqueness, chemical stock versions and exact rental/payment history. Store money as integer cents or exact decimals, not JavaScript floating-point currency. Preserve owner-authorized dealer terms/tax, independent invoice/finance reviews, frozen invoice lines/billing snapshots, allocation locking, dated receipt reversals/voids, cross-register reference checks and uncapped role-protected CSV exports. Distinguish billing, receipts, manual records, verified evidence and estimates. No bank credentials, SSNs, unsupervised ACH or unofficial state analyzer calls.
 
 ## Verification
 

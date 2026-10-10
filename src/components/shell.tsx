@@ -61,7 +61,11 @@ export function Shell({
       ? [{ href: "/maintenance", label: "Maintenance", icon: Wrench }]
       : []),
     ...(["OWNER", "ADMIN", "BOOKKEEPER"].includes(role)
-      ? [{ href: "/rentals", label: "Detailing rentals", icon: KeyRound }]
+      ? [
+          { href: "/rentals", label: "Detailing rentals", icon: KeyRound },
+          { href: "/dealerships", label: "Dealerships & finance", icon: Wallet },
+          { href: "/finance", label: "Finance & reports", icon: Wallet },
+        ]
       : []),
     { href: "/notifications", label: "Notifications", icon: Bell },
     ...(manager ? [{ href: "/settings", label: "Settings & audit", icon: Settings }] : []),
@@ -176,7 +180,7 @@ export function Shell({
         </header>
         <main id="main">{children}</main>
         <footer className="page-footer">
-          Quick Pass Business OS <span>Phases 1–3 · Business workspace</span>
+          Quick Pass Business OS <span>Phases 1–4 · Business workspace</span>
         </footer>
       </div>
     </div>

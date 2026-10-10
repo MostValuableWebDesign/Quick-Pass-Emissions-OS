@@ -1376,3 +1376,33 @@ details > summary {
   padding: 0.6rem 0;
   font-weight: 600;
 }
+
+/* Finance records share the existing responsive forms and table scroll containers. */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 16px;
+}
+.stat-card {
+  padding: 22px;
+  min-width: 0;
+}
+.stat-card h2 {
+  margin-top: 12px;
+  overflow-wrap: anywhere;
+}
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 12px;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.check-row input {
+  flex-shrink: 0;
+}
+.history-item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}

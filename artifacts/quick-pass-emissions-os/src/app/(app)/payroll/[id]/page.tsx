@@ -42,11 +42,7 @@ export default async function PayrollPeriodPage({ params }: { params: Promise<{ 
       <PageHeader
         title={period.label}
         description={`${period.startDate} — ${period.endDate} · ${period.status.toLowerCase()}`}
-      >
-        <Link className="button button-outline" href="/payroll">
-          All payroll periods
-        </Link>
-      </PageHeader>
+      />
       {overview.employees.some((e) => e.demo) && (
         <div className="notice warning">
           DEMONSTRATION WORKSPACE · Illustrative payroll and stock records. These are not actual

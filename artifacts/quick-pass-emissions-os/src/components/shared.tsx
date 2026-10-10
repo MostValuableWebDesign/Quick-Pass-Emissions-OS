@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { RecordLink } from "@/components/record-link";
 import type { TaskInstance } from "@prisma/client";
 import { ArrowRight, CheckCircle2, Clock3, AlertCircle } from "lucide-react";
 import { formatDate } from "@/lib/time";
@@ -81,9 +81,9 @@ export function TaskTable({
           {tasks.map((t) => (
             <tr key={t.id}>
               <td>
-                <Link className="task-name" href={`/tasks/${t.id}`}>
+                <RecordLink className="task-name" href={`/tasks/${t.id}`}>
                   {t.title}
-                </Link>
+                </RecordLink>
                 <small className={`priority priority-${t.priority.toLowerCase()}`}>
                   {t.priority.toLowerCase()} priority
                 </small>
@@ -99,9 +99,9 @@ export function TaskTable({
                 <Status task={t} />
               </td>
               <td>
-                <Link aria-label={`Open ${t.title}`} href={`/tasks/${t.id}`}>
+                <RecordLink aria-label={`Open ${t.title}`} href={`/tasks/${t.id}`}>
                   <ArrowRight size={17} />
-                </Link>
+                </RecordLink>
               </td>
             </tr>
           ))}

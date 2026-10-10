@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { RecordLink } from "@/components/record-link";
 import { currentUser } from "@/lib/access";
 import { businessDate } from "@/lib/time";
 import { maintenanceOverview } from "@/modules/maintenance/service";
@@ -6,7 +6,6 @@ import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import {
   DemoNotice,
-  MaintenanceNav,
   TextField,
   SelectField,
   PriorityField,
@@ -27,7 +26,6 @@ export default async function Maintenance() {
         }
       />
       <DemoNotice demo={data.demo} />
-      {data.manager && <MaintenanceNav />}
       <section className="card card-body">
         <h2>Report a maintenance issue</h2>
         <ActionForm action={createTicket} submit="Report maintenance issue">
@@ -68,9 +66,9 @@ export default async function Maintenance() {
               {data.tickets.map((t) => (
                 <tr key={t.id}>
                   <td>
-                    <Link className="task-name" href={`/maintenance/${t.id}`}>
+                    <RecordLink className="task-name" href={`/maintenance/${t.id}`}>
                       {t.title}
-                    </Link>
+                    </RecordLink>
                     <small>{t.bay?.identifier ?? t.equipment?.name}</small>
                   </td>
                   <td>

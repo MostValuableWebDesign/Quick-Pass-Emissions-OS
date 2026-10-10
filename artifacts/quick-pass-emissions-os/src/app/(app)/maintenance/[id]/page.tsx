@@ -5,15 +5,7 @@ import { managers } from "@/modules/phase3";
 import { ticketDetail, maintenanceOverview } from "@/modules/maintenance/service";
 import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
-import {
-  DemoNotice,
-  MaintenanceNav,
-  RecordId,
-  TextField,
-  Reason,
-  SelectField,
-  Money,
-} from "@/components/phase3";
+import { DemoNotice, RecordId, TextField, Reason, SelectField, Money } from "@/components/phase3";
 import { updateTicket, assignTicket } from "@/app/phase3-actions";
 import type { Prisma } from "@prisma/client";
 function historyNote(details: Prisma.JsonValue) {
@@ -45,7 +37,6 @@ export default async function Ticket({ params }: { params: Promise<{ id: string 
         description={`${t.bay?.identifier ?? t.equipment?.name} · ${t.status.toLowerCase().replaceAll("_", " ")} · due ${t.targetDate}`}
       />
       <DemoNotice demo={data.demo} />
-      {management && <MaintenanceNav />}
       <section className="card card-body">
         <h2>Reported issue</h2>
         <p className="preserve-lines">{t.description}</p>

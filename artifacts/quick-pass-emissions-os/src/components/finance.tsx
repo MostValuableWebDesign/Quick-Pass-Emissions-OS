@@ -1,18 +1,7 @@
-import Link from "next/link";
 import { Field } from "./action-form";
 import { TextField, Reason } from "./phase3";
 import { businessDate } from "@/lib/time";
 import { Button } from "./ui/button";
-export function FinanceNav() {
-  return (
-    <nav className="module-links" aria-label="Finance navigation">
-      <Link href="/dealerships">Dealerships & contacts</Link>
-      <Link href="/invoices">Invoices</Link>
-      <Link href="/finance">Operational finance</Link>
-      <Link href="/finance/reports">Reports & exports</Link>
-    </nav>
-  );
-}
 export function AmountField({
   label,
   name = "amountCents",

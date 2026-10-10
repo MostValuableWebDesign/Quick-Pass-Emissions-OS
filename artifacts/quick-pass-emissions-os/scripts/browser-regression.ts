@@ -3,11 +3,12 @@ import { hashPassword } from "better-auth/crypto";
 import { request } from "@playwright/test";
 import { randomBytes, randomUUID } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdtemp, readFile, writeFile, rm, chmod } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, rm, chmod, access } from "node:fs/promises";
 import { createServer } from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { assertCompleteReport, assertOwnedDatabase } from "./e2e-safety.mjs";
+import { navigationFixtures } from "./navigation-fixtures";
 
 const app = process.cwd();
 let server: ChildProcess | undefined;
@@ -45,6 +46,17 @@ async function freePort(port: number) {
     probe.listen(port, "0.0.0.0", () => probe.close(() => resolve()));
   });
 }
+async function privatePort() {
+  return new Promise<number>((resolve, reject) => {
+    const probe = createServer();
+    probe.once("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const address = probe.address();
+      if (!address || typeof address === "string") return reject(new Error("No private port."));
+      probe.close(() => resolve(address.port));
+    });
+  });
+}
 function start(command: string, args: string[], env: NodeJS.ProcessEnv) {
   // Never relay framework, request, or Playwright logs that might contain auth state.
   const child = spawn(command, args, { cwd: app, env, detached: true, stdio: "ignore" });
@@ -70,14 +82,17 @@ async function halt(child?: ChildProcess) {
 async function main() {
   assertOwnedDatabase(process.env);
   const definition = await readFile(path.join(app, ".replit-artifact/artifact.toml"), "utf8");
-  const port = Number(definition.match(/localPort\s*=\s*(\d+)/)?.[1]);
-  if (!port || (process.env.PORT && Number(process.env.PORT) !== port)) {
+  const direct = process.env.E2E_DIRECT === "1";
+  const port = direct
+    ? await privatePort()
+    : Number(definition.match(/localPort\s*=\s*(\d+)/)?.[1]);
+  if (!port || (!direct && process.env.PORT && Number(process.env.PORT) !== port)) {
     throw new Error("Browser server must use the registered preview service port.");
   }
   const domain = process.env.REPLIT_DEV_DOMAIN!;
-  if (!/^[a-z0-9.-]+\.replit\.dev$/i.test(domain))
+  if (!direct && !/^[a-z0-9.-]+\.replit\.dev$/i.test(domain))
     throw new Error("A Replit development preview domain is required.");
-  const baseURL = `https://${domain}`;
+  const baseURL = direct ? `http://127.0.0.1:${port}` : `https://${domain}`;
   await freePort(port);
   stage = "private fixture setup";
   temporary = await mkdtemp(path.join(os.tmpdir(), "quick-pass-browser-"));
@@ -114,6 +129,7 @@ async function main() {
       password: await hashPassword(password),
     },
   });
+  const fixtures = await navigationFixtures(db, password, user.id);
   server = start(
     "pnpm",
     ["exec", "next", "dev", "--hostname", "0.0.0.0", "--port", String(port)],
@@ -173,6 +189,46 @@ async function main() {
   } finally {
     await api.dispose();
   }
+  for (const fixture of fixtures.users) {
+    const roleApi = await request.newContext({ baseURL });
+    try {
+      const response = await roleApi.post("/api/sign-in", {
+        form: { email: fixture.email, password },
+        maxRedirects: 0,
+        headers: { Origin: baseURL },
+      });
+      if (response.status() !== 303 || response.headers().location !== "/dashboard")
+        throw new Error("Private role authentication failed.");
+      await response.dispose();
+      const statePath = path.join(temporary, `${fixture.role}.json`);
+      await roleApi.storageState({ path: statePath });
+      await chmod(statePath, 0o600);
+    } finally {
+      await roleApi.dispose();
+    }
+  }
+  const fixturePath = path.join(temporary, "navigation.json");
+  await writeFile(
+    fixturePath,
+    JSON.stringify({ baseURL, directory: temporary, records: fixtures.records }),
+    { mode: 0o600 },
+  );
+  if (process.env.E2E_MANUAL_TEST === "1") {
+    console.log(`Private navigation preview ready: ${baseURL}`);
+    console.log(`Private fixture metadata: ${fixturePath}. Never print session files.`);
+    while (!interrupted && server.exitCode === null && server.signalCode === null) {
+      try {
+        await access(path.join(temporary, "run-tests"));
+        break;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      }
+      await delay(250);
+    }
+    if (interrupted) return;
+    if (server.exitCode !== null || server.signalCode !== null)
+      throw new Error("Private navigation preview stopped unexpectedly.");
+  }
   if (interrupted) throw new Error("Browser verification interrupted.");
   stage = "signed-in browser navigation and form persistence";
   tests = start("pnpm", ["exec", "playwright", "test"], env);
@@ -206,7 +262,9 @@ async function main() {
             .find((result) => result.error || result.errors?.length);
           const error = result?.error ?? result?.errors?.[0];
           const stack = error?.stack || error?.message || "";
-          const line = error?.location?.line ?? stack.match(/regression\.spec\.ts:(\d+):\d+/)?.[1];
+          const line =
+            error?.location?.line ??
+            stack.match(/(?:regression|navigation)\.spec\.ts:(\d+):\d+/)?.[1];
           console.error(
             `Regression check at test line ${Number(spec.line)} failed${line ? ` at assertion line ${Number(line)}` : ""}.`,
           );
@@ -248,16 +306,21 @@ async function main() {
   summarize(report.suites ?? []);
   if (status !== 0 || interrupted)
     throw new Error("Signed-in browser regression failed; sensitive diagnostics were not printed.");
-  assertCompleteReport(report);
+  assertCompleteReport(report, 9);
   console.log(
-    "Passed: public access guard, new signed-in navigation, protected vendor save and reload (3/3; no skips).",
+    "Passed: 9 signed-in browser checks, including four-role desktop/mobile navigation, return context, history, authorization and vendor persistence; no skips.",
   );
+  if (process.env.E2E_MANUAL_TEST === "1") {
+    console.log("Private browser checks completed; preview remains available for visual review.");
+    while (!interrupted && server.exitCode === null && server.signalCode === null) await delay(250);
+    if (!interrupted) throw new Error("Private navigation preview stopped unexpectedly.");
+  }
 }
 main()
   .catch(() => {
     // Exceptions from adapters/drivers may contain credentials; emit only a fixed failure.
     console.error(
-      `Browser regression failed during ${stage}. Check that the preview workflow is paused, the browser is available, and all regression checks pass. No coverage was counted as passing.`,
+      `Browser regression failed during ${stage}. Check the owned fixture, available server port and browser. No coverage was counted as passing.`,
     );
     process.exitCode = 1;
   })

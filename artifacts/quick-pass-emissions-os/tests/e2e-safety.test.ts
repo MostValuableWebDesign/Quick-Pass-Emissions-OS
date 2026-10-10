@@ -11,6 +11,13 @@ const env = {
   NODE_ENV: "development",
 };
 describe("Browser isolation gates", () => {
+  it("requires the full expanded navigation suite, not just the original checks", () => {
+    const stats = { expected: 9, skipped: 0, flaky: 0, unexpected: 0 };
+    expect(() => assertCompleteReport({ stats, errors: [] }, 9)).not.toThrow();
+    expect(() =>
+      assertCompleteReport({ stats: { ...stats, expected: 3 }, errors: [] }, 9),
+    ).toThrow();
+  });
   it("accepts only matching runner-owned database URLs", () => {
     expect(() => assertOwnedDatabase(env)).not.toThrow();
     for (const change of [

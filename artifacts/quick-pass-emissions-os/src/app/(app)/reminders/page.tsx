@@ -1,9 +1,9 @@
-import Link from "next/link";
+import { RecordLink } from "@/components/record-link";
 import { currentUser } from "@/lib/access";
 import { remindersForUser } from "@/modules/automation/service";
 import { ActionForm } from "@/components/action-form";
 import { Empty, PageHeader } from "@/components/shared";
-import { Badge, ExternalDisabled, Phase5Nav, fmtInstant } from "@/components/phase5";
+import { Badge, ExternalDisabled, fmtInstant } from "@/components/phase5";
 import { acknowledgeReminderAction } from "@/app/phase5-actions";
 export default async function Reminders() {
   const user = await currentUser();
@@ -14,7 +14,6 @@ export default async function Reminders() {
         title="My reminders"
         description="In-app reminders addressed to you. Acknowledging only records that you saw it."
       />
-      <Phase5Nav role={user.role} />
       <ExternalDisabled />
       <div className="notice">
         Acknowledging does not complete the underlying work. A reminder clears on its own only when
@@ -38,9 +37,9 @@ export default async function Reminders() {
                 <small>
                   Due {r.dueDate} · created {fmtInstant(r.createdAt)}
                 </small>
-                <Link className="text-link" href={r.href}>
+                <RecordLink className="text-link" href={r.href}>
                   Open source record
-                </Link>
+                </RecordLink>
               </div>
               <div>
                 <Badge

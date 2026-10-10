@@ -8,7 +8,6 @@ import {
   Boundary,
   InventoryTable,
   ItemsTable,
-  Phase5Nav,
   RowsTable,
   TotalsList,
   ErrorPanel,
@@ -36,7 +35,6 @@ export default async function SummaryDetail({ params }: { params: Promise<{ id: 
           Open live overview (current data)
         </Link>
       </PageHeader>
-      <Phase5Nav role={user.role} />
       {!parsed.success ? (
         <ErrorPanel message="This snapshot's stored content does not match the expected format and cannot be displayed safely." />
       ) : (

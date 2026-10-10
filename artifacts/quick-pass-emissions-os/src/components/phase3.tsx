@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Field } from "./action-form";
 export function DemoNotice({ demo }: { demo: boolean }) {
   return demo ? (
@@ -7,18 +6,6 @@ export function DemoNotice({ demo }: { demo: boolean }) {
       use.
     </div>
   ) : null;
-}
-export function MaintenanceNav() {
-  return (
-    <nav className="module-links" aria-label="Maintenance navigation">
-      <Link href="/carwash">Carwash & bays</Link>
-      <Link href="/maintenance">Maintenance tickets</Link>
-      <Link href="/maintenance/plans">Preventative schedules</Link>
-      <Link href="/equipment">Equipment</Link>
-      <Link href="/vendors">Vendors</Link>
-      <Link href="/chemicals">Chemicals</Link>
-    </nav>
-  );
 }
 export function RecordId({ id, version = 0 }: { id?: string; version?: number }) {
   return (

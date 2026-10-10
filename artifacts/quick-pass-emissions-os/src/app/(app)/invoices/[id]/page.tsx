@@ -6,7 +6,7 @@ import { receivable } from "@/modules/finance/rules";
 import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { DemoNotice, RecordId, Money } from "@/components/phase3";
-import { FinanceNav, PaymentFields, ReviewFields } from "@/components/finance";
+import { PaymentFields, ReviewFields } from "@/components/finance";
 import * as actions from "@/app/phase4-actions";
 export default async function Invoice({ params }: { params: Promise<{ id: string }> }) {
   const actor = await currentUser(),
@@ -33,7 +33,6 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
         title={`Invoice ${i.number}`}
         description={`${summary.status} · Issued ${i.issueDate} · Due ${i.dueDate}`}
       />
-      <FinanceNav />
       <DemoNotice demo={data.demo} />
       <section className="card card-body">
         <h2>Billing snapshot</h2>

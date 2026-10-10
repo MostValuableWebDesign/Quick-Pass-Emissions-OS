@@ -1,10 +1,9 @@
-import Link from "next/link";
+import { RecordLink } from "@/components/record-link";
 import { currentUser } from "@/lib/access";
 import { dealerOverview } from "@/modules/finance/service";
 import { PageHeader, Empty } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { DemoNotice, RecordId, TextField, ActiveField, Reason } from "@/components/phase3";
-import { FinanceNav } from "@/components/finance";
 import { saveDealer } from "@/app/phase4-actions";
 import { Button } from "@/components/ui/button";
 export default async function Dealers({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
@@ -17,7 +16,6 @@ export default async function Dealers({ searchParams }: { searchParams: Promise<
         title="Dealerships & contacts"
         description="Billing accounts, contact records, completed services, and owner-authorized terms."
       />
-      <FinanceNav />
       <DemoNotice demo={data.demo} />
       <section className="card card-body">
         <h2>Add dealership</h2>
@@ -57,9 +55,9 @@ export default async function Dealers({ searchParams }: { searchParams: Promise<
               {data.dealers.map((d) => (
                 <tr key={d.id}>
                   <td>
-                    <Link className="task-name" href={`/dealerships/${d.id}`}>
+                    <RecordLink className="task-name" href={`/dealerships/${d.id}`}>
                       {d.name}
-                    </Link>
+                    </RecordLink>
                     <small>{d.code}</small>
                   </td>
                   <td>{d.contacts.map((c) => c.name).join(", ") || "None entered"}</td>

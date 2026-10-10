@@ -5,7 +5,6 @@ import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import {
   DemoNotice,
-  MaintenanceNav,
   RecordId,
   TextField,
   Reason,
@@ -83,7 +82,6 @@ export default async function Plans() {
         description="Recurring inspections and maintenance, assigned to an active employee."
       />
       <DemoNotice demo={data.demo} />
-      <MaintenanceNav />
       <p className="notice">
         The operations check generates tickets up to 14 days ahead. Closed days are skipped;
         intervals remain anchored in calendar days. Changes affect future generation. Review

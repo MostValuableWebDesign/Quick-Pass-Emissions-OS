@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { RecordLink } from "@/components/record-link";
 import { manager } from "@/lib/access";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/shared";
@@ -47,9 +47,9 @@ export default async function Employees() {
               {employees.map((e) => (
                 <tr key={e.id}>
                   <td>
-                    <Link className="task-name" href={`/employees/${e.id}`}>
+                    <RecordLink className="task-name" href={`/employees/${e.id}`}>
                       {e.user.name}
-                    </Link>
+                    </RecordLink>
                     <small>{e.user.email}</small>
                   </td>
                   <td>{e.user.role.toLowerCase()}</td>

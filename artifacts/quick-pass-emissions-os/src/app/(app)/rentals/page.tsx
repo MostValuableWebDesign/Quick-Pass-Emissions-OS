@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { RecordLink } from "@/components/record-link";
 import { currentUser } from "@/lib/access";
 import { rentalOverview } from "@/modules/rentals/service";
 import { PageHeader } from "@/components/shared";
@@ -72,9 +72,9 @@ export default async function Rentals() {
               {data.agreements.map((a) => (
                 <tr key={a.id}>
                   <td>
-                    <Link className="task-name" href={`/rentals/${a.id}`}>
+                    <RecordLink className="task-name" href={`/rentals/${a.id}`}>
                       {a.tenant}
-                    </Link>
+                    </RecordLink>
                     <small>{a.reference}</small>
                   </td>
                   <td>{a.bay.identifier}</td>

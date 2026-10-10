@@ -5,13 +5,7 @@ import { financeReport, categories } from "@/modules/finance/service";
 import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { DemoNotice, Money, RecordId, TextField, Reason } from "@/components/phase3";
-import {
-  FinanceNav,
-  AmountField,
-  DateField,
-  RangeForm,
-  CompletenessNotice,
-} from "@/components/finance";
+import { AmountField, DateField, RangeForm, CompletenessNotice } from "@/components/finance";
 import { recordEntry, reviewEntry } from "@/app/phase4-actions";
 export default async function Finance({
   searchParams,
@@ -30,7 +24,6 @@ export default async function Finance({
         title="Operational finance"
         description="Recorded USD receipts and expenses, with manual, reviewed, and estimated amounts kept visible."
       />
-      <FinanceNav />
       <DemoNotice demo={data.demo} />
       <CompletenessNotice />
       <section className="card card-body">

@@ -4,6 +4,21 @@ const config: NextConfig = {
   // Each isolated browser run owns a separate build cache; leave .next untouched.
   ...(process.env.E2E_NEXT_DIST_DIR ? { distDir: process.env.E2E_NEXT_DIST_DIR } : {}),
   poweredByHeader: false,
+  // Runtime backup paths must never cause private sources/archives to enter server bundles.
+  outputFileTracingExcludes: {
+    "/*": [
+      "../../work/**/*",
+      "../../attached_assets/**/*",
+      "../../generated-artifacts/**/*",
+      "../../.local/**/*",
+      "../../.agents/**/*",
+      "**/backups/**/*",
+      "**/*.dump",
+      "**/*.dump.partial",
+      ".env*",
+      "../../.env*",
+    ],
+  },
   allowedDevOrigins: [
     "127.0.0.1",
     "localhost",

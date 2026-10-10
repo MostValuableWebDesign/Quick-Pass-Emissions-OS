@@ -19,7 +19,8 @@ function ItemForm({ data, item: i }: { data: Data; item?: Data["items"][number] 
       <RecordId id={i?.id} version={i?.version} />
       <TextField name="name" label="Chemical / supply name" value={i?.name} />
       <Field label="Stock unit · all quantities use whole units">
-        <select name="unit" defaultValue={i?.unit}>
+        <select name="unit" defaultValue={i?.unit ?? ""}>
+          <option value="">Unconfigured · confirm measurement unit</option>
           {[
             ["ML", "Milliliters"],
             ["GRAM", "Grams"],
@@ -37,8 +38,7 @@ function ItemForm({ data, item: i }: { data: Data; item?: Data["items"][number] 
           type="number"
           min="0"
           max="2000000000"
-          defaultValue={i?.reorderPoint}
-          required
+          defaultValue={i?.reorderPoint ?? ""}
         />
       </Field>
       <SelectField
@@ -76,21 +76,31 @@ export default async function Chemicals() {
           <section className="card card-body" key={i.id}>
             <h2>
               {i.name} ·{" "}
-              {i.balance === null ? "Unknown stock" : `${i.balance} ${i.unit.toLowerCase()}`}
+              {i.balance === null
+                ? "Unknown stock"
+                : `${i.balance} ${i.unit?.toLowerCase() ?? "unconfigured unit"}`}
             </h2>
-            {i.active && i.balance !== null && i.balance <= i.reorderPoint && (
-              <p className="notice warning">
-                Low recorded stock · Reorder threshold: {i.reorderPoint} {i.unit.toLowerCase()}
-              </p>
-            )}
+            {i.active &&
+              i.balance !== null &&
+              i.reorderPoint !== null &&
+              i.balance <= i.reorderPoint && (
+                <p className="notice warning">
+                  Low recorded stock · Reorder threshold: {i.reorderPoint} {i.unit?.toLowerCase()}
+                </p>
+              )}
             <p className="muted">
               {i.active ? "Active" : "Archived"} · {i.vendor?.name ?? "No supplier recorded"}
             </p>
+            {(!i.unit || i.reorderPoint === null) && (
+              <p className="notice">
+                Measurement unit or reorder threshold remains unconfigured. No stock is inferred.
+              </p>
+            )}
             <details>
               <summary>Edit item settings</summary>
               <ItemForm data={data} item={i} />
             </details>
-            {i.active && (
+            {i.active && i.unit && (
               <ActionForm action={moveChemical} submit="Record chemical movement">
                 <RecordId id={i.id} version={i.version} />
                 <Field label="Stock movement">

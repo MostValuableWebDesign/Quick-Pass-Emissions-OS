@@ -39,6 +39,7 @@ enum Frequency {
   ANNUAL
 }
 model User {
+  businessImports BusinessImport[]
   automationDeliveries AutomationDelivery[]
   maintenanceReports MaintenanceTicket[] @relation("TicketReporter")
   id String @id @default(cuid())
@@ -243,6 +244,18 @@ model JobRun {
   generated Int @default(0)
   message String?
 }
+model BusinessImport {
+  id String @id
+  sourceFingerprint String
+  sourceName String
+  actorId String
+  actor User @relation(fields:[actorId],references:[id])
+  storeId String @db.Uuid
+  createdAt DateTime @default(now())
+  items Json
+  counts Json
+  @@index([createdAt])
+}
 
 enum PayKind {
   FIXED
@@ -373,9 +386,9 @@ model PayrollLine {
 model CertificateSetting {
   id String @id @default("certificates")
   minimumOrder Int
-  reorderPoint Int
-  leadDays Int
-  windowDays Int
+   reorderPoint Int?
+   leadDays Int?
+   windowDays Int?
   updatedAt DateTime @updatedAt
 }
 model CertificateStock {
@@ -489,7 +502,7 @@ model Vendor {
   email String
   services String
   reference String
-  verifiedDate String
+   verifiedDate String?
   notes String @default("")
   active Boolean @default(true)
   version Int @default(0)
@@ -594,8 +607,8 @@ model MaintenanceEvent {
 model ChemicalItem {
   id String @id @default(cuid())
   name String
-  unit ChemicalUnit
-  reorderPoint Int
+   unit ChemicalUnit?
+   reorderPoint Int?
   vendorId String?
   vendor Vendor? @relation(fields:[vendorId],references:[id])
   notes String @default("")

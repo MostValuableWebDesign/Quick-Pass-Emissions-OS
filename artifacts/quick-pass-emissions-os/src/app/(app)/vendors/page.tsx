@@ -24,14 +24,14 @@ function VendorForm({ vendor: v }: { vendor?: Vendor }) {
       <TextField name="services" label="Services provided" value={v?.services} area />
       <TextField
         name="reference"
-        label="Contact verification source reference"
+        label="Business reference / contact verification evidence"
         value={v?.reference}
       />
       <Field label="Contact verification date">
         <input
           type="date"
           name="verifiedDate"
-          defaultValue={v?.verifiedDate ?? businessDate()}
+          defaultValue={v?.verifiedDate ?? ""}
           max={businessDate()}
           required
         />
@@ -60,8 +60,15 @@ export default async function Vendors() {
         {data.vendors.map((v) => (
           <section className="card card-body" key={v.id}>
             <h2>
-              {v.name} · {v.active ? "active" : "archived"}
+              {v.name} · {v.active ? "active" : "archived"} ·{" "}
+              {v.verifiedDate ? "verified" : "verification required"}
             </h2>
+            {!v.verifiedDate && (
+              <p className="notice">
+                Source-provided reference only. Confirm the contact independently before selecting
+                this vendor for operational work.
+              </p>
+            )}
             <details>
               <summary>Edit verified details</summary>
               <VendorForm vendor={v} />

@@ -87,7 +87,12 @@ try {
     );
     await fs.mkdir(path.join(upgradeDir, "migrations"));
     for (const entry of await fs.readdir(path.join(app, "prisma/migrations"))) {
-      if (entry.startsWith("202610100006") || entry.startsWith("202610100007")) continue;
+      if (
+        entry.startsWith("202610100006") ||
+        entry.startsWith("202610100007") ||
+        entry.startsWith("202610100009")
+      )
+        continue;
       await fs.cp(
         path.join(app, "prisma/migrations", entry),
         path.join(upgradeDir, "migrations", entry),
@@ -216,7 +221,7 @@ try {
     });
     if (before !== after) throw new Error("Upgrade changed a sentinel snapshot.");
     console.log(
-      "Phase 4 → Phase 5 + storage + station history upgrade retained approved payroll, approved invoice and signed reversal sentinel snapshots.",
+      "Phase 4 → Phase 5 + storage + station history + business import upgrade retained approved payroll, approved invoice and signed reversal sentinel snapshots.",
     );
     await fixture.$disconnect();
   }

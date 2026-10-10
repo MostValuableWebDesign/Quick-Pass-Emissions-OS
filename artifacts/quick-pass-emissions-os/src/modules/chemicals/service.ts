@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { id, dateString } from "../../lib/validation";
 import { businessDate } from "../../lib/time";
-import { phase3, managers, requireRule, audit } from "../phase3";
+import { phase3, managers, requireRule, audit, type Tx } from "../phase3";
 import { activeVendor } from "../maintenance/service";
 import { label, reason, notes, optionalId, version } from "../maintenance/validation";
 const amount = z.coerce.number().int().min(0).max(2000000000);
@@ -9,8 +9,8 @@ export const itemInput = z.object({
   id: optionalId,
   version,
   name: label,
-  unit: z.enum(["ML", "GRAM", "ITEM"]),
-  reorderPoint: amount,
+  unit: z.preprocess((v) => (v === "" ? null : v), z.enum(["ML", "GRAM", "ITEM"]).nullable()),
+  reorderPoint: z.preprocess((v) => (v === "" ? null : v), amount.nullable()),
   vendorId: optionalId,
   notes,
   active: z.boolean(),
@@ -26,40 +26,40 @@ export const movementInput = z.object({
   reason,
 });
 export async function saveChemical(actorId: string, input: unknown) {
+  const data = itemInput.parse(input);
+  return phase3(actorId, managers, (tx) => saveChemicalInTransaction(tx, actorId, data));
+}
+export async function saveChemicalInTransaction(tx: Tx, actorId: string, input: unknown) {
   const { id: recordId, version: expected, reason: why, ...data } = itemInput.parse(input);
-  return phase3(actorId, managers, async (tx) => {
-    const before = recordId ? await tx.chemicalItem.findUnique({ where: { id: recordId } }) : null;
-    if (recordId)
-      requireRule(
-        before?.version === expected,
-        "Stock or settings changed. Refresh and try again.",
-      );
-    if (before?.balance !== null && before)
-      requireRule(
-        before.unit === data.unit,
-        "Units cannot change after opening stock. Create a separate item.",
-      );
-    if (!data.active && before)
-      requireRule(
-        before.balance === 0 || before.balance === null,
-        "Record consumption/disposal or a physical reconciliation to zero before archiving.",
-      );
-    await activeVendor(tx, data.vendorId);
-    const row = recordId
-      ? await tx.chemicalItem.update({
-          where: { id: recordId },
-          data: { ...data, version: { increment: 1 } },
-        })
-      : await tx.chemicalItem.create({ data });
-    await audit(tx, actorId, "CHEMICAL_SAVED", row.id, { before, after: data, reason: why });
-    return row;
-  });
+  const before = recordId ? await tx.chemicalItem.findUnique({ where: { id: recordId } }) : null;
+  if (recordId)
+    requireRule(before?.version === expected, "Stock or settings changed. Refresh and try again.");
+  if (before?.balance !== null && before)
+    requireRule(
+      before.unit === data.unit,
+      "Units cannot change after opening stock. Create a separate item.",
+    );
+  if (!data.active && before)
+    requireRule(
+      before.balance === 0 || before.balance === null,
+      "Record consumption/disposal or a physical reconciliation to zero before archiving.",
+    );
+  await activeVendor(tx, data.vendorId);
+  const row = recordId
+    ? await tx.chemicalItem.update({
+        where: { id: recordId },
+        data: { ...data, version: { increment: 1 } },
+      })
+    : await tx.chemicalItem.create({ data });
+  await audit(tx, actorId, "CHEMICAL_SAVED", row.id, { before, after: data, reason: why });
+  return row;
 }
 export async function moveChemical(actorId: string, input: unknown) {
   const data = movementInput.parse(input);
   return phase3(actorId, managers, async (tx) => {
     const item = await tx.chemicalItem.findUnique({ where: { id: data.id } });
     requireRule(item?.active, "Choose an active chemical item.");
+    requireRule(item.unit, "Configure a measured stock unit before recording movements.");
     requireRule(item.version === data.version, "Stock changed. Refresh and verify the quantity.");
     requireRule(
       data.date <= businessDate() && (!item.lastMovementDate || data.date >= item.lastMovementDate),
@@ -123,7 +123,7 @@ export async function chemicalOverview(actorId: string) {
       },
     }),
     vendors: await tx.vendor.findMany({
-      where: { active: true },
+      where: { active: true, verifiedDate: { not: null } },
       select: { id: true, name: true },
     }),
     demo: (await tx.employee.count({ where: { demo: true } })) > 0,

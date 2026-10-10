@@ -21,32 +21,49 @@ let interrupted = false;
 let stage = "isolation and preview-port preflight";
 const stop = (child?: ChildProcess) => {
   if (child?.pid && child.exitCode === null) {
-    try { process.kill(-child.pid, "SIGTERM"); } catch { /* Already stopped. */ }
+    try {
+      process.kill(-child.pid, "SIGTERM");
+    } catch {
+      /* Already stopped. */
+    }
   }
 };
 for (const signal of ["SIGINT", "SIGTERM"]) {
-  process.on(signal, () => { interrupted = true; stop(tests); stop(server); });
+  process.on(signal, () => {
+    interrupted = true;
+    stop(tests);
+    stop(server);
+  });
 }
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 async function freePort(port: number) {
   await new Promise<void>((resolve, reject) => {
     const probe = createServer();
-    probe.once("error", () => reject(new Error("Pause the managed web workflow before running browser verification.")));
+    probe.once("error", () =>
+      reject(new Error("Pause the managed web workflow before running browser verification.")),
+    );
     probe.listen(port, "0.0.0.0", () => probe.close(() => resolve()));
   });
 }
 function start(command: string, args: string[], env: NodeJS.ProcessEnv) {
   // Never relay framework, request, or Playwright logs that might contain auth state.
   const child = spawn(command, args, { cwd: app, env, detached: true, stdio: "ignore" });
-  child.on("error", () => { interrupted = true; });
+  child.on("error", () => {
+    interrupted = true;
+  });
   return child;
 }
 async function halt(child?: ChildProcess) {
   stop(child);
-  for (let n = 0; child?.exitCode === null && child.signalCode === null && n < 50; n++) await delay(100);
+  for (let n = 0; child?.exitCode === null && child.signalCode === null && n < 50; n++)
+    await delay(100);
   if (child?.pid) {
     // Kill surviving descendants in this runner-owned process group, never another service.
-    try { process.kill(-child.pid, "SIGKILL"); } catch { /* Group already gone. */ }
+    try {
+      process.kill(-child.pid, "SIGKILL");
+    } catch {
+      /* Group already gone. */
+    }
   }
 }
 
@@ -58,7 +75,8 @@ async function main() {
     throw new Error("Browser server must use the registered preview service port.");
   }
   const domain = process.env.REPLIT_DEV_DOMAIN!;
-  if (!/^[a-z0-9.-]+\.replit\.dev$/i.test(domain)) throw new Error("A Replit development preview domain is required.");
+  if (!/^[a-z0-9.-]+\.replit\.dev$/i.test(domain))
+    throw new Error("A Replit development preview domain is required.");
   const baseURL = `https://${domain}`;
   await freePort(port);
   stage = "private fixture setup";
@@ -69,10 +87,15 @@ async function main() {
   originalConfig = await readFile(path.join(app, "tsconfig.json"), "utf8");
   const state = path.join(temporary, "session.json");
   const env: NodeJS.ProcessEnv = {
-    ...process.env, NODE_ENV: "development", PORT: String(port),
-    BETTER_AUTH_URL: baseURL, BETTER_AUTH_SECRET: randomBytes(32).toString("hex"),
-    E2E_NEXT_DIST_DIR: cache, E2E_BASE_URL: baseURL,
-    E2E_PRIVATE_DIR: temporary, E2E_STORAGE_STATE: state,
+    ...process.env,
+    NODE_ENV: "development",
+    PORT: String(port),
+    BETTER_AUTH_URL: baseURL,
+    BETTER_AUTH_SECRET: randomBytes(32).toString("hex"),
+    E2E_NEXT_DIST_DIR: cache,
+    E2E_BASE_URL: baseURL,
+    E2E_PRIVATE_DIR: temporary,
+    E2E_STORAGE_STATE: state,
     // NixOS workspace Chromium; other machines may use Playwright's installed browser.
     E2E_CHROMIUM_PATH: process.env.E2E_CHROMIUM_PATH ?? "/repl/tools/bin/chromium",
   };
@@ -83,10 +106,19 @@ async function main() {
     data: { name: "Regression Owner", email, role: "OWNER", emailVerified: true },
   });
   await db.account.create({
-    data: { id: randomUUID(), userId: user.id, accountId: user.id,
-      providerId: "credential", password: await hashPassword(password) },
+    data: {
+      id: randomUUID(),
+      userId: user.id,
+      accountId: user.id,
+      providerId: "credential",
+      password: await hashPassword(password),
+    },
   });
-  server = start("pnpm", ["exec", "next", "dev", "--hostname", "0.0.0.0", "--port", String(port)], env);
+  server = start(
+    "pnpm",
+    ["exec", "next", "dev", "--hostname", "0.0.0.0", "--port", String(port)],
+    env,
+  );
   stage = "isolated preview startup";
   const api = await request.newContext({ baseURL });
   try {
@@ -98,7 +130,9 @@ async function main() {
         ready = response.status() === 200;
         await response.dispose();
         if (ready) break;
-      } catch { /* Bounded startup polling; no request/error logging. */ }
+      } catch {
+        /* Bounded startup polling; no request/error logging. */
+      }
       await delay(500);
     }
     if (!ready || interrupted) throw new Error("Isolated preview server did not become ready.");
@@ -106,19 +140,25 @@ async function main() {
     // All credentials remain in this process, outside browser snapshots and test reports.
     stage = "native login with stale cookie through preview";
     const login = await api.post("/api/sign-in", {
-      form: { email, password }, maxRedirects: 0,
-      headers: { Origin: baseURL, Cookie: "regression_probe=harmless; better-auth.session_token=stale" },
+      form: { email, password },
+      maxRedirects: 0,
+      headers: {
+        Origin: baseURL,
+        Cookie: "regression_probe=harmless; better-auth.session_token=stale",
+      },
     });
     if (login.status() !== 303 || login.headers().location !== "/dashboard") {
       throw new Error("Native preview sign-in with a stale cookie failed.");
     }
     await login.dispose();
     const dashboard = await api.get("/dashboard", { maxRedirects: 0 });
-    if (dashboard.status() !== 200) throw new Error("Native sign-in did not create a usable private session.");
+    if (dashboard.status() !== 200)
+      throw new Error("Native sign-in did not create a usable private session.");
     await dashboard.dispose();
     stage = "unrelated-origin rejection";
     const blocked = await api.post("/api/sign-in", {
-      form: { email, password }, maxRedirects: 0,
+      form: { email, password },
+      maxRedirects: 0,
       headers: { Origin: "https://unrelated.example", Cookie: "regression_probe=harmless" },
     });
     if (blocked.status() !== 303 || blocked.headers().location !== "/login?error=security") {
@@ -127,7 +167,9 @@ async function main() {
     await blocked.dispose();
     await api.storageState({ path: state });
     await chmod(state, 0o600);
-    console.log("Native preview login and unrelated-origin rejection passed; private session prepared.");
+    console.log(
+      "Native preview login and unrelated-origin rejection passed; private session prepared.",
+    );
   } finally {
     await api.dispose();
   }
@@ -140,66 +182,126 @@ async function main() {
   });
   const report = JSON.parse(await readFile(path.join(temporary, "report.json"), "utf8"));
   // Emit only test-file line numbers and statuses, never serialized errors or request state.
-  function summarize(suites: Array<{ suites?: unknown[]; specs?: Array<{ line: number; ok: boolean; tests?: Array<{ annotations?: Array<{ type: string; description?: string }>; results?: Array<{ error?: { stack?: string; message?: string; location?: { line?: number } }; errors?: Array<{ stack?: string; message?: string; location?: { line?: number } }> }> }> }> }>) {
+  function summarize(
+    suites: Array<{
+      suites?: unknown[];
+      specs?: Array<{
+        line: number;
+        ok: boolean;
+        tests?: Array<{
+          annotations?: Array<{ type: string; description?: string }>;
+          results?: Array<{
+            error?: { stack?: string; message?: string; location?: { line?: number } };
+            errors?: Array<{ stack?: string; message?: string; location?: { line?: number } }>;
+          }>;
+        }>;
+      }>;
+    }>,
+  ) {
     for (const suite of suites) {
       for (const spec of suite.specs ?? []) {
         if (!spec.ok) {
-          const result = spec.tests?.flatMap((test) => test.results ?? []).find((result) => result.error || result.errors?.length);
+          const result = spec.tests
+            ?.flatMap((test) => test.results ?? [])
+            .find((result) => result.error || result.errors?.length);
           const error = result?.error ?? result?.errors?.[0];
           const stack = error?.stack || error?.message || "";
           const line = error?.location?.line ?? stack.match(/regression\.spec\.ts:(\d+):\d+/)?.[1];
-          console.error(`Regression check at test line ${Number(spec.line)} failed${line ? ` at assertion line ${Number(line)}` : ""}.`);
-          const stages = spec.tests?.flatMap((test) => test.annotations ?? []).filter((a) =>
-            a.type === "regression-stage" && ["opening", "form", "form-found", "name", "contact", "phone", "services", "reference", "submit", "confirm", "reload"].includes(a.description ?? ""));
-          console.error(`Last completed protected-form stage: ${stages?.at(-1)?.description ?? "not recorded"}.`);
+          console.error(
+            `Regression check at test line ${Number(spec.line)} failed${line ? ` at assertion line ${Number(line)}` : ""}.`,
+          );
+          const stages = spec.tests
+            ?.flatMap((test) => test.annotations ?? [])
+            .filter(
+              (a) =>
+                a.type === "regression-stage" &&
+                [
+                  "opening",
+                  "form",
+                  "form-found",
+                  "name",
+                  "contact",
+                  "phone",
+                  "services",
+                  "reference",
+                  "submit",
+                  "confirm",
+                  "reload",
+                ].includes(a.description ?? ""),
+            );
+          console.error(
+            `Last completed protected-form stage: ${stages?.at(-1)?.description ?? "not recorded"}.`,
+          );
           for (const [fragment, diagnosis] of [
             ["waitForResponse", "Protected POST response was not observed."],
             ["toHaveText", "Saved-success confirmation was not observed."],
             ["getByLabel", "A required fixture form field was not found."],
             ["toHaveCount", "Reloaded fixture record was not found uniquely."],
             ["toBe", "Protected POST did not return a successful status."],
-          ]) if (stack.includes(fragment)) console.error(diagnosis);
+          ])
+            if (stack.includes(fragment)) console.error(diagnosis);
         }
       }
       summarize((suite.suites ?? []) as Parameters<typeof summarize>[0]);
     }
   }
   summarize(report.suites ?? []);
-  if (status !== 0 || interrupted) throw new Error("Signed-in browser regression failed; sensitive diagnostics were not printed.");
+  if (status !== 0 || interrupted)
+    throw new Error("Signed-in browser regression failed; sensitive diagnostics were not printed.");
   assertCompleteReport(report);
-  console.log("Passed: public access guard, new signed-in navigation, protected vendor save and reload (3/3; no skips).");
+  console.log(
+    "Passed: public access guard, new signed-in navigation, protected vendor save and reload (3/3; no skips).",
+  );
 }
-main().catch(() => {
-  // Exceptions from adapters/drivers may contain credentials; emit only a fixed failure.
-  console.error(`Browser regression failed during ${stage}. Check that the preview workflow is paused, the browser is available, and all regression checks pass. No coverage was counted as passing.`);
-  process.exitCode = 1;
-}).finally(async () => {
-  async function cleanup(work: () => Promise<unknown>) {
-    try { await work(); } catch {
-      console.error("Runner-owned cleanup failed; no business data or other service was targeted.");
-      process.exitCode = 1;
+main()
+  .catch(() => {
+    // Exceptions from adapters/drivers may contain credentials; emit only a fixed failure.
+    console.error(
+      `Browser regression failed during ${stage}. Check that the preview workflow is paused, the browser is available, and all regression checks pass. No coverage was counted as passing.`,
+    );
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    async function cleanup(work: () => Promise<unknown>) {
+      try {
+        await work();
+      } catch {
+        console.error(
+          "Runner-owned cleanup failed; no business data or other service was targeted.",
+        );
+        process.exitCode = 1;
+      }
     }
-  }
-  await cleanup(() => halt(tests));
-  await cleanup(() => halt(server));
-  await cleanup(async () => db?.$disconnect());
-  // Next writes generated type paths in these shared files. Remove only this run's
-  // paths; restore exact formatting only if no other semantic edit was made.
-  await cleanup(async () => {
-    if (!cache || !originalConfig || !originalTypes) return;
-    const configFile = path.join(app, "tsconfig.json");
-    const config = JSON.parse(await readFile(configFile, "utf8"));
-    config.include = config.include.filter((entry: string) => !entry.startsWith(`${cache}/`));
-    await writeFile(configFile, JSON.stringify(config) === JSON.stringify(JSON.parse(originalConfig))
-      ? originalConfig : JSON.stringify(config, null, 2) + "\n");
-    const typesFile = path.join(app, "next-env.d.ts");
-    const currentTypes = await readFile(typesFile, "utf8");
-    const originalCache = originalTypes.match(/import "\.\/([^/]+)\//)?.[1] ?? ".next";
-    await writeFile(typesFile, currentTypes.replaceAll(`./${cache}/`, `./${originalCache}/`));
+    await cleanup(() => halt(tests));
+    await cleanup(() => halt(server));
+    await cleanup(async () => db?.$disconnect());
+    // Next writes generated type paths in these shared files. Remove only this run's
+    // paths; restore exact formatting only if no other semantic edit was made.
+    await cleanup(async () => {
+      if (!cache || !originalConfig || !originalTypes) return;
+      const configFile = path.join(app, "tsconfig.json");
+      const config = JSON.parse(await readFile(configFile, "utf8"));
+      config.include = config.include.filter((entry: string) => !entry.startsWith(`${cache}/`));
+      await writeFile(
+        configFile,
+        JSON.stringify(config) === JSON.stringify(JSON.parse(originalConfig))
+          ? originalConfig
+          : JSON.stringify(config, null, 2) + "\n",
+      );
+      const typesFile = path.join(app, "next-env.d.ts");
+      const currentTypes = await readFile(typesFile, "utf8");
+      const originalCache = originalTypes.match(/import "\.\/([^/]+)\//)?.[1] ?? ".next";
+      await writeFile(typesFile, currentTypes.replaceAll(`./${cache}/`, `./${originalCache}/`));
+    });
+    await cleanup(async () => {
+      if (temporary) await rm(temporary, { recursive: true, force: true });
+    });
+    await cleanup(async () => {
+      if (cache) await rm(path.join(app, cache), { recursive: true, force: true });
+    });
+    console.log(
+      process.exitCode
+        ? "Runner-owned cleanup attempted; any cleanup failure is reported above."
+        : "Removed only runner-owned browser state and build cache.",
+    );
   });
-  await cleanup(async () => { if (temporary) await rm(temporary, { recursive: true, force: true }); });
-  await cleanup(async () => { if (cache) await rm(path.join(app, cache), { recursive: true, force: true }); });
-  console.log(process.exitCode
-    ? "Runner-owned cleanup attempted; any cleanup failure is reported above."
-    : "Removed only runner-owned browser state and build cache.");
-});

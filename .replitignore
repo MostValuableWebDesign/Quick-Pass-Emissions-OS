@@ -5,4 +5,5 @@
 .local
 artifacts/quick-pass-emissions-os/.next-e2e-*/
 .cache
+**/.cache/
 /generated-artifacts/

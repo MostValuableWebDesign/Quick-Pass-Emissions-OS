@@ -6,7 +6,7 @@ This is Quick Pass Business OS, currently Phases 1–5. Read README, ARCHITECTUR
 
 ## Code conventions
 
-Use strict TypeScript, Next.js App Router, React, Tailwind/CSS variables, reusable components, Prisma/PostgreSQL and Zod. Use the configured Prettier formatter. Add domain logic in src/modules; infrastructure belongs in src/lib; pages/actions coordinate services. Keep client components limited to interaction. Do not introduce vendor lock-in, proprietary storage, microservices or unnecessary global state. Pin dependencies and retain package-lock.json. Build/deploy uses npm and standard Node. Keep setup portable; no hardcoded machine paths.
+Use strict TypeScript, Next.js App Router, React, Tailwind/CSS variables, reusable components, Prisma/PostgreSQL and Zod. Use the configured Prettier formatter. Add domain logic in src/modules; infrastructure belongs in src/lib; pages/actions coordinate services. Keep client components limited to interaction. Do not introduce vendor lock-in, proprietary storage, microservices or unnecessary global state. Pin dependencies and retain the root pnpm lockfile; use root pnpm workspace commands, not root npm ci. Keep setup portable; no hardcoded machine paths.
 
 ## Security boundaries
 

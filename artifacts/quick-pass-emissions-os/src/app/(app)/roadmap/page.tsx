@@ -6,7 +6,7 @@ export default async function Roadmap() {
     <>
       <PageHeader
         title="Built in deliberate steps"
-        description="Operations, payroll, inventory, maintenance, rentals, billing and internal automation are available locally. Publication and a real persistent scheduler require separate setup."
+        description="Operations, payroll, inventory, maintenance, rentals, billing and internal automation are available locally. A real persistent scheduler requires separate setup; see verification guidance for publication status."
       />
       <div className="roadmap-grid">
         {[

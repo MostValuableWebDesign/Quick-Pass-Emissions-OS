@@ -24,3 +24,9 @@ The native Git-provider connection is separate from an application GitHub connec
 **Why:** Native CLI pushes rejected the credential despite a healthy source-control connection status and again after the user reconnected to a new native connection. The independent GitHub App could read and write the same repository. Source-control connect/reconnect cards rejected native connection IDs.
 
 **How to apply:** Verify actual Git access rather than trusting connection status. For native reauthorization use account settings → Git Providers, following official documentation. Do not repeat reconnect loops after a confirmed reconnect still fails. An authorized GitHub App is an independent write path, not a repair of native Git authentication; verify its repository permission separately and never extract credentials.
+
+Published GitHub commits must remain ancestors even when project completion synchronizes the task onto a newer workspace main.
+
+**Why:** Completion synchronization rebased already-published task commits. Overwriting GitHub afterward would lose published ancestry or require an unauthorized force-push.
+
+**How to apply:** Finish the instructed project conflict resolution, then normally merge the already-published GitHub branch back into the rebased task before publishing again. Preserve the newer workspace's private verification infrastructure and the task's upgrade checks together. Inspect actual code/test scopes, not just conflict markers: automatic reconciliation can corrupt repeated test blocks without leaving markers. Run cheap type checks first, then affected suites, and compare the final remote hash.

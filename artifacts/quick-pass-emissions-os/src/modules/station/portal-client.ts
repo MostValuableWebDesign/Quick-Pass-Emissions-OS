@@ -54,12 +54,13 @@ export class PortalSession {
   private cookies = new Map<string, string>();
   private deadline = Date.now() + 60_000;
   private allowedPaths: Set<string>;
-  constructor(private transport: typeof fetch = fetch, allowCertificateReads = false) {
+  constructor(private transport: typeof fetch = fetch, allowCertificateReads = false, allowCertificateHistory = false) {
     this.allowedPaths = new Set(ALLOWED_PATHS);
     if (allowCertificateReads) {
       this.allowedPaths.add("/Purchasing/Purchasing.aspx");
       this.allowedPaths.add("/Purchasing/Purchasing.aspx/GetUnusedCertsForAnalyzer");
     }
+    if (allowCertificateHistory) this.allowedPaths.add("/Purchasing/TAReport.aspx");
   }
 
   async request(path: string, body?: URLSearchParams | string) {

@@ -4,32 +4,29 @@ import { approvalRoles } from "@/modules/phase2";
 import { certificateOverview } from "@/modules/certificates/service";
 import { PageHeader } from "@/components/shared";
 import { CertificatePortalBrowser } from "@/components/certificate-portal-browser";
-import { readCertificatePortalStatus } from "@/modules/certificates/portal";
+import { readCertificateInsights } from "@/modules/certificates/order-history";
+import { CertificateInsights } from "@/components/certificate-insights";
 import { ActionForm, Field } from "@/components/action-form";
 import {
   saveInventorySettings,
-  reconcileInventory,
-  consumeCertificates,
   createPurchaseRequest,
-  draftRecommendedPurchase,
   reviewPurchaseRequest,
   recordCertificateOrder,
   receiveCertificatePurchase,
 } from "@/app/phase2-actions";
 export default async function Certificates() {
   const actor = await currentUser();
-  const [data, portal] = await Promise.all([
+  const [data, insights] = await Promise.all([
     certificateOverview(actor.id),
-    readCertificatePortalStatus().catch(() => null),
+    readCertificateInsights(),
   ]);
   const approver = approvalRoles.includes(actor.role);
   const today = businessDate();
-  const estimate = data.estimate;
   return (
     <>
       <PageHeader
         title="Certificate inventory"
-        description="Buy certificates on the provider portal, then keep stock records here."
+        description="Provider stock, certificate order history and planning estimates. Purchasing stays manual."
       />
       {data.demo && (
         <div className="notice warning">
@@ -37,108 +34,8 @@ export default async function Certificates() {
           business records.
         </div>
       )}
-      <CertificatePortalBrowser initial={portal} canRefresh={approver} />
-      <p className="notice space-top">
-        Recorded stock below reflects entered movements and is separate from the portal balance.
-        Verify against the official system and physical count.
-      </p>
-      <section className="stats" aria-label="Certificate metrics">
-        {[
-          {
-            label: "Recorded stock",
-            value: data.stock?.balance ?? "Not reconciled",
-            note: data.stock
-              ? `Last physical count: ${data.stock.reconciledDate}`
-              : "Opening count required",
-          },
-          {
-            label: "Average daily usage",
-            value: estimate ? estimate.averageDailyUsage.toFixed(1) : "Unavailable",
-            note: estimate
-              ? `${estimate.used} consumed / ${estimate.days} calendar days`
-              : "Configure settings and opening stock",
-          },
-          {
-            label: "Estimated depletion",
-            value: estimate?.depletionDate ?? "Unknown",
-            note: "Estimate from recorded usage, including voids",
-          },
-          {
-            label: "Reorder at",
-            value: estimate?.reorderAt ?? "Not configured",
-            note: "Higher of configured threshold and estimated lead-time demand",
-          },
-        ].map((m) => (
-          <article className="stat" key={m.label}>
-            <div className="stat-top">
-              <span>{m.label}</span>
-            </div>
-            <strong style={{ fontSize: "1.35rem" }}>{m.value}</strong>
-            <small>{m.note}</small>
-          </article>
-        ))}
-      </section>
-      {estimate?.low && (
-        <section className="attention-card has-alert">
-          <h2>Certificate reorder needed</h2>
-          <p>
-            Recorded stock is at or below the reorder threshold. Estimated request:{" "}
-            {estimate.recommendedQuantity} certificates. Review open orders and the physical count.
-          </p>
-          <ActionForm action={draftRecommendedPurchase} submit="Draft recommended purchase" />
-        </section>
-      )}
-      <div className="two-columns space-top">
-        {approver && (
-          <section className="card card-body">
-            <h2>{data.stock ? "Reconcile physical stock" : "Record opening physical count"}</h2>
-            <p className="muted">
-              Reconciliation records an adjustment with a reason. Earlier ledger entries remain
-              intact. Refresh and recount if another movement has changed stock.
-            </p>
-            <ActionForm action={reconcileInventory} submit="Reconcile stock">
-              <input name="version" type="hidden" value={data.stock?.version ?? 0} />
-              <Field label="Observed physical certificates">
-                <input type="number" name="observed" min="0" max="2000000000" required />
-              </Field>
-              <Field label="Physical count date">
-                <input type="date" name="date" defaultValue={today} max={today} required />
-              </Field>
-              <Field label="Reconciliation reference">
-                <input name="reference" required maxLength={160} />
-              </Field>
-              <Field label="Reconciliation reason">
-                <textarea name="reason" required maxLength={2000} />
-              </Field>
-            </ActionForm>
-          </section>
-        )}
-        {approver && (
-          <section className="card card-body">
-            <h2>Record certificate consumption</h2>
-            <ActionForm action={consumeCertificates} submit="Record consumption">
-              <Field label="Consumption type">
-                <select name="kind">
-                  <option value="USAGE">Used in testing</option>
-                  <option value="VOID">Voided / spoiled</option>
-                </select>
-              </Field>
-              <Field label="Certificates consumed">
-                <input name="quantity" type="number" min="1" max="1000000" required />
-              </Field>
-              <Field label="Consumption date">
-                <input name="date" type="date" defaultValue={today} max={today} required />
-              </Field>
-              <Field label="Consumption reference">
-                <input name="reference" required maxLength={160} />
-              </Field>
-              <Field label="Consumption reason" wide>
-                <textarea name="reason" required maxLength={2000} />
-              </Field>
-            </ActionForm>
-          </section>
-        )}
-      </div>
+      <CertificatePortalBrowser initial={insights.portal} canRefresh={approver} />
+      <CertificateInsights initial={insights} canRefresh={approver} />
       <details className="card card-body space-top records-section" id="records">
         <summary>Optional records · purchase requests, ordering settings, purchase history</summary>
         <p className="muted">
@@ -274,7 +171,7 @@ export default async function Certificates() {
                 </Field>
               </ActionForm>
             )}
-            {approver && p.status === "ORDERED" && (
+            {approver && data.stock && p.status === "ORDERED" && (
               <ActionForm action={receiveCertificatePurchase} submit="Confirm certificate receipt">
                 <input name="id" type="hidden" value={p.id} />
                 <Field label="Certificates received">
@@ -300,10 +197,9 @@ export default async function Certificates() {
           </article>
         ))}
       </section>
-      </details>
       <section className="card space-top">
         <div className="card-heading">
-          <h2>Inventory movements · latest 100</h2>
+          <h2>Legacy inventory movements · latest 100</h2>
           <span className="muted">In recording order</span>
         </div>
         <div className="table-scroll">
@@ -341,10 +237,11 @@ export default async function Certificates() {
         </div>
         {!data.movements.length && (
           <p className="card-body muted">
-            Stock is unknown until the opening physical count is recorded.
+            No legacy stock ledger movements are recorded. Current provider stock is shown above.
           </p>
         )}
       </section>
+      </details>
     </>
   );
 }

@@ -39,6 +39,18 @@ Certificate balance discovery uses exact station/analyzer membership and a bound
 
 **How to apply:** Verify the analyzer belongs to the selected station, post only selection/validation state, and call only the provider's unused-count operation. Do not submit cart, receipt, quantity or payment controls.
 
+Certificate order history is not evidence of actual consumption, voids, receipts or settled payments. Ordering frequency may be used only as an explicitly labelled planning estimate; it must not create stock ledger entries.
+
+**Why:** The user's requested TA order report provides dates and quantities, including nonpositive-quantity historical transactions, but no measured usage or void totals. The meaning of its analyzer flag has not been verified.
+
+**How to apply:** Keep complete transaction history separate from the positive-order replenishment estimate and authoritative unused balance. Only replace that estimate with measured usage after verifying an appropriate provider source. Permission to read this station report does not extend to buying, receiving or paying.
+
+The user asked to remove “Record opening physical count” and “Record certificate consumption.”
+
+**Why:** The user wants certificate metrics connected to provider information, rather than those manual-entry sections.
+
+**How to apply:** Do not reintroduce those sections as prerequisites for displaying provider stock or order history. Preserve historical internal records independently.
+
 Daily station counts must be accessible by choosing one date, without a separate range-mode choice.
 
 **Why:** The user said, “i should be able to select a date and get the daily count.”

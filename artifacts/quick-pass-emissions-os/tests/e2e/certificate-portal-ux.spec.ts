@@ -76,6 +76,16 @@ test.describe("owner certificate portal and alert settings", () => {
     await expect(page.getByTestId("text-station")).toHaveText(CERTIFICATE_STATION);
     await expect(page.getByTestId("text-analyzer")).toHaveText(CERTIFICATE_ANALYZER);
     await expect(page.getByTestId("status-portal-balance")).toContainText("29");
+    await expect(page.getByRole("heading", { name: "Record opening physical count" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Record certificate consumption" })).toHaveCount(0);
+    await expect(page.getByTestId("certificate-metric-stock")).toContainText("29");
+    await expect(page.getByTestId("certificate-metric-reorder")).toContainText("30");
+    await expect(page.getByTestId("certificate-metric-usage")).not.toContainText("Not enough orders");
+    await expect(page.getByTestId("provider-order-table").locator("tbody tr")).toHaveCount(25);
+    await page.getByRole("button", { name: "Next orders" }).click();
+    await expect(page.getByTestId("provider-order-table").locator("tbody tr")).toHaveCount(2);
+    await page.getByLabel("Show HT111411 only").uncheck();
+    await expect(page.getByTestId("provider-order-table").locator("tbody tr")).toHaveCount(25);
     await expect(page.getByTestId("banner-low-certificates")).toBeVisible();
     const records = page.locator("details#records");
     await expect(records).not.toHaveAttribute("open", "");

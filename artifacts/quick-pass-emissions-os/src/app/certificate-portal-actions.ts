@@ -2,10 +2,24 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { currentUser } from "@/lib/access";
-import { BusinessError } from "@/modules/phase2";
+import { approvalRoles, BusinessError } from "@/modules/phase2";
+import { readCertificateInsights, refreshCertificateInsights } from "@/modules/certificates/order-history";
 import { refreshCertificateBalance, readCertificatePortalStatus, saveCertificateAlertThreshold } from "@/modules/certificates/portal";
 import type { ActionState } from "./actions";
 
+export async function refreshCertificateInsightsAction(force = false) {
+  const actor = await currentUser();
+  if (!approvalRoles.includes(actor.role)) return { ok: false, message: "Not authorized to refresh certificate reports." };
+  try {
+    const data = await refreshCertificateInsights(actor.id, z.boolean().parse(force));
+    revalidatePath("/certificates");
+    revalidatePath("/", "layout");
+    return { ok: !data.error && !data.portal.error, data };
+  } catch {
+    return { ok: false, message: "Unable to load the official certificate report. Saved history is unchanged.",
+      data: await readCertificateInsights() };
+  }
+}
 export async function refreshCertificateBalanceAction(force = false) {
   const actor = await currentUser();
   try {

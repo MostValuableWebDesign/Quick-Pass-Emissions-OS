@@ -24,6 +24,23 @@ Monetary fields/totals are bounded at 2,000,000,000 cents; unsupported overflow 
 5. A finance-role user creates a purchase request or clicks **Draft recommended purchase**. A single outstanding requested/approved/ordered purchase prevents duplicate recommendations. A different owner/manager approves or cancels a request; approved quantity and minimum-order snapshot cannot be edited. A finance-role user records an external order confirmation and optional payment reference after approval. The application never places an order or initiates payment.
 6. Owners/managers confirm physical receipt against an ORDERED purchase. Partial deliveries are supported up to the approved quantity; each delivery needs a unique reference. Only receipt adds ordered stock. A fully received purchase closes; its movements/history remain. There is no automatic official analyzer reconciliation or regulated-system integration.
 
+### Manual official ordering navigation
+
+**Order Certificates** opens `https://gadashboard.com/Purchasing/Purchasing.aspx` in an ordinary
+new browser tab (`noopener noreferrer`), not an embedded portal or purchase integration. Login
+and all purchasing decisions stay on the official Georgia dashboard. If login redirects elsewhere,
+return to the unchanged app and select the link again; destination preservation is not guaranteed.
+Opening or reopening the link writes nothing and does not acknowledge or resolve alerts.
+
+Finance roles can use the Inventory action. The existing management Dashboard and live
+owner-exception certificate low-stock surfaces retain their original audiences; setup,
+unknown-stock, chemical warnings and historical summaries are not given a certificate-order
+action. Notifications and Reminders currently have no certificate-stock alert source.
+Internal request/history links remain in the same tab. Use the existing request → different
+OWNER/ADMIN approval → manual external-order reference against approved quantity → confirmed
+physical receipt workflow. Navigation never grants approval, claims successful portal login or
+ordering, or adds stock.
+
 ## Roles and operating limits
 
 - OWNER: authorizes configuration; prepares records; approves another person's sources, drafts and purchases.

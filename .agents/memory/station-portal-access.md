@@ -14,3 +14,9 @@ Range coverage is not evidence of an empty station day. Until a provider zero-re
 **Why:** A correction can move all records out of a date; renewed owner review of the original report does not prove that a later source query returned zero. Empty-array equality and universal predicates otherwise authorize an unsupported payroll replacement.
 
 **How to apply:** Require affirmative nonempty station-day evidence for current report-based completeness and reconciliation. Keep supported employee zero counts on a nonempty, fully mapped station day distinct from unsupported station-wide zero totals.
+
+Certificate purchasing is deliberately user-controlled: “I must control the entire purchase. The app should only take me to the ordering screen.”
+
+**Why:** The user explicitly excluded automatic quantities, approvals, ordering, submission and payment. Successful portal login is not permission to expand this scope.
+
+**How to apply:** Treat any future automated certificate purchase proposal as a new authorization decision, not an extension of manual station access or report-import permission.

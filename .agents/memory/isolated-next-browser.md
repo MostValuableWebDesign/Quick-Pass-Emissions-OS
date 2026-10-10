@@ -33,6 +33,12 @@ Do not assume stopping a background verification shell runs its asynchronous cle
 
 **How to apply:** Prefer graceful runner shutdown and verify cleanup. If interrupted, confirm exact ownership before removing disposable resources; never use broad database or cache cleanup against the live preview.
 
+Private browser suite-selection flags must update the runner's expected-report count and success label together.
+
+**Why:** A dedicated smaller suite can complete its assertions but still be rejected by the default full-suite count gate. The generic private-error wrapper intentionally hides the underlying report exception.
+
+**How to apply:** Test the selector/count contract without running another browser pass after a straightforward gate fix. Record browser assertions, wrapper completion and any lost private report evidence separately; never infer a fully green run from screenshots alone.
+
 Keep privileged application-service fixture preparation in the native runner, not inside the browser driver's transformed test modules.
 
 **Why:** A continuation fixture failed before assertions when the driver imported server services, with an error location that did not identify the failing test selector. Native preparation completed successfully and allowed the remaining checks to pass; the earlier failure alone was not proof of an application defect.

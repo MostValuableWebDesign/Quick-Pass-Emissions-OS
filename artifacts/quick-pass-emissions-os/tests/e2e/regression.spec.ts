@@ -11,7 +11,9 @@ test("public clients cannot open protected pages", async ({ browser, baseURL }) 
     await expect(form).toHaveAttribute("method", "post");
     await expect(form).toHaveAttribute("action", "/api/sign-in");
     await expect(page.locator('input[type="password"]')).toHaveValue("");
-  } finally { await context.close(); }
+  } finally {
+    await context.close();
+  }
 });
 
 test("signed-in owner can use new operation navigation", async ({ page }) => {
@@ -27,13 +29,17 @@ test("signed-in owner can use new operation navigation", async ({ page }) => {
     await navigation.getByRole("link", { name: label, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`${route}$`));
     await expect(page.locator("main h1")).toBeVisible();
-    await expect(navigation.getByRole("link", { name: label, exact: true })).toHaveAttribute("aria-current", "page");
+    await expect(navigation.getByRole("link", { name: label, exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   }
 });
 
 test("protected vendor save survives reload through preview", async ({ page }) => {
   test.setTimeout(60000);
-  const checkpoint = (value: string) => test.info().annotations.push({ type: "regression-stage", description: value });
+  const checkpoint = (value: string) =>
+    test.info().annotations.push({ type: "regression-stage", description: value });
   checkpoint("opening");
   const name = `Regression Vendor ${randomUUID()}`;
   await page.goto("/carwash");
@@ -57,8 +63,9 @@ test("protected vendor save survives reload through preview", async ({ page }) =
   checkpoint("reference");
   await form.locator('textarea[name="reason"]').fill("Owned fixture browser regression");
   checkpoint("submit");
-  const response = page.waitForResponse((r) =>
-    r.request().method() === "POST" && !!r.request().headers()["next-action"]);
+  const response = page.waitForResponse(
+    (r) => r.request().method() === "POST" && !!r.request().headers()["next-action"],
+  );
   await form.getByRole("button", { name: "Save verified vendor", exact: true }).click();
   expect((await response).ok()).toBe(true);
   checkpoint("confirm");

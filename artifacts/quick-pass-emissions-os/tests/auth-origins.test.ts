@@ -19,7 +19,9 @@ describe("Development preview auth origin", () => {
         expect(config.experimental?.serverActions?.allowedOrigins).toEqual(
           NODE_ENV === "development" ? ["0.0.0.0:24786"] : [],
         );
-      } finally { vi.unstubAllEnvs(); }
+      } finally {
+        vi.unstubAllEnvs();
+      }
     }
   });
   it("uses the same exact development boundary for Next server actions", () => {
@@ -29,9 +31,12 @@ describe("Development preview auth origin", () => {
   it("trusts only the exact upstream preview origin", () => {
     expect(previewTrustedOrigins(previewEnv)).toEqual(["https://0.0.0.0:24786"]);
     for (const origin of [
-      "https://unrelated.example", "http://0.0.0.0:24786",
-      "https://0.0.0.0:24787", "https://localhost:24786",
-    ]) expect(previewTrustedOrigins(previewEnv)).not.toContain(origin);
+      "https://unrelated.example",
+      "http://0.0.0.0:24786",
+      "https://0.0.0.0:24787",
+      "https://localhost:24786",
+    ])
+      expect(previewTrustedOrigins(previewEnv)).not.toContain(origin);
   });
 
   it("does not add internal origins in production", () => {

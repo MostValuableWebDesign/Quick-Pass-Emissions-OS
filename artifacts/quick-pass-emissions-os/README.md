@@ -1,5 +1,10 @@
 # Quick Pass Business OS
 
+> This app now lives inside the shared pnpm workspace. Start with the
+> [repository README](../../README.md) for installation, builds, and normal Git
+> synchronization. The npm instructions below also apply to a standalone export
+> of this app; do not run root `npm ci` in the pnpm workspace.
+
 A PostgreSQL-backed Phases 1–3 business application for Quick Pass Emissions, Tag Renewal & Carwash. Next.js App Router, TypeScript, React, Tailwind, a shadcn-style Button primitive, Lucide, Prisma, Better Auth, and Zod. No real business records or financial balances are included.
 
 ## Quick start

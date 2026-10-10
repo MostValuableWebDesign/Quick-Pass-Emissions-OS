@@ -2,7 +2,7 @@
 
 ## Modular monolith
 
-`src/app` contains Next.js server-rendered pages, server actions and two route-handler surfaces: Better Auth and the authenticated operations job trigger. `src/components` contains reusable presentation primitives, the responsive shell and action forms. `src/lib` contains Prisma, authentication, access policy, validation and business-time helpers. `src/modules/tasks` contains recurrence decisions, task transitions and the operations job. `prisma` contains the relational schema and SQL migration history. `scripts` provides operator commands; `tests` contains unit, database and browser verification.
+`src/app` contains Next.js server-rendered pages, server actions and route handlers for Better Auth, the authenticated operations job trigger and approved payroll CSV export. `src/components` contains reusable presentation primitives, the responsive shell and action forms. `src/lib` contains Prisma, authentication, access policy, validation and business-time helpers. `src/modules/tasks` contains recurrence decisions, task transitions and the operations job. `prisma` contains the relational schema and SQL migration history. `scripts` provides operator commands; `tests` contains unit, database and browser verification.
 
 The application runs on one Node process per web replica and standard PostgreSQL. No platform-specific database API, browser cron, local-upload persistence or microservices are required. No Pages/Sites hosting service or proprietary runtime is part of the app.
 
@@ -12,7 +12,7 @@ Better Auth provides credential hashing (its supported scrypt implementation), d
 
 Managers can administer employee-role accounts. Only owners may grant or change privileged roles. Self-demotion/deactivation is prohibited. Email identity is immutable after provisioning. No user can edit a role through the auth client's user profile endpoint. Privileged application mutations never trust a client-supplied actor ID or role. Server actions use the authenticated actor, server-side Zod parsing, and transactional audit writes. Next.js server actions enforce same-origin submission; Better Auth handles origin checks for its endpoints. The scheduler uses a timing-safe bearer-token check instead of cookies.
 
-Employee task list queries filter by employee ID; task detail and mutations independently enforce ownership. Schedules are similarly scoped. Bookkeepers currently have an informational dashboard and no operational/financial records. The manager directory is inaccessible to employees. Employee queries deliberately select only needed names rather than private notes. No compensation model or endpoint exists yet.
+Employee task list queries filter by employee ID; task detail and mutations independently enforce ownership. Schedules are similarly scoped. Bookkeepers have payroll/inventory preparation access but no Phase 1 task management or Phase 2 approvals. The manager directory is inaccessible to employees. Employee queries deliberately select only needed names rather than private notes. Payroll and inventory services re-read current roles and active status inside each protected transaction; employees cannot read or mutate Phase 2 data.
 
 Invitations have 256-bit random tokens, hashed storage, atomic single-use consumption and 48-hour expiry. Raw tokens are returned only to the authorized inviter, never recorded in audit details. Invite links place the token in the URL fragment, then remove it from the visible URL on page load; server access logs do not receive the fragment. No automatic email transport is configured. Lost access is recovered through the documented operator procedure.
 
@@ -26,10 +26,24 @@ Overdue is a derived status, not a stale persisted state. Task completion has an
 
 The scheduler takes a transaction-scoped PostgreSQL advisory lock and creates instances with unique-key duplicate skipping. Each job has an observable run record. A failed job rolls back generation; a failed run is recorded outside that transaction. No web page secretly generates tasks on GET. Generation and alerts are the work of a separate CLI/endpoint trigger.
 
-## Future domains
+## Payroll and inventory
 
-Payroll, inventory, maintenance and receivables should have separate service modules with transaction boundaries, exact money values, explicit approvals and audit records. Add their tables in new migrations when authorized. Do not prepopulate financial tables or infer official test counts from tasks. Authenticated object-storage uploads, transactional email, report exports and state-system integrations need separate designs and authorization.
+`src/modules/payroll` contains exact-cent calculations, effective-dated configuration, source approval, payroll draft/review and CSV export. `src/modules/certificates` contains inventory reconciliation/consumption, forecasts, purchase approval and receipts. `src/modules/phase2.ts` centralizes the fresh-role check, transaction-scoped PostgreSQL advisory lock and audit helper. Pages authenticate then use these services; server actions never accept a client actor or role. A single Phase 2 transaction lock deliberately favors correctness over throughput for this small operation. READ COMMITTED queries after acquisition see the previous writer's committed state. Transactional audits roll back with rejected mutations.
+
+PayArrangement, CommissionPolicy, DailyEmission, PayrollPeriod/Input/Draft/Line and CertificateSetting/Stock/Movement/Purchase are added in versioned migrations, including check constraints for money, quantity and approval-pair bounds. Payroll drafts retain JSON calculation evidence plus relational exact-cent line items. Source corrections preserve previous values in audit and invalidate approval. Active period overlap is checked while holding the shared lock; cancelled period history remains. Inventory stock is a balance cache updated atomically with an append-only application ledger. Trusted database operators can still modify data directly; independent tamper-proof logging is not claimed.
+
+Read PHASE2.md for calculation semantics, roster completeness boundaries, locking, approvals and operational limits. Existing Phase 1 migrations are unchanged. Receivables, regulated integrations, external storage and advanced automation remain separate future domains.
 
 ## References
 
 The implementation uses the official [Better Auth Prisma adapter](https://better-auth.com/docs/adapters/prisma), [database/session model](https://better-auth.com/docs/concepts/database), and [security guidance](https://better-auth.com/docs/reference/security). Framework behavior follows [Next.js App Router documentation](https://nextjs.org/docs/app). Exact package versions are pinned in package.json and package-lock.json.
+
+Phase 2 transaction boundaries follow [PostgreSQL advisory-lock semantics](https://www.postgresql.org/docs/current/explicit-locking.html#ADVISORY-LOCKS); the application uses the pinned Prisma 6 client API, not newer ORM API examples.
+
+## Carwash, maintenance, chemicals and rentals
+
+`src/modules/maintenance` owns registries, role-scoped issue/work services and preventative generation. `src/modules/chemicals` owns exact-unit stock and movement history. `src/modules/rentals` owns owner-authorized terms, full-month snapshots, payments and reversals. `src/modules/phase3.ts` provides a separate advisory-lock transaction and fresh role/active check. Phase 2 services and locks remain intact. `phase3-actions.ts` supplies the authenticated actor; no browser role or actor ID is trusted.
+
+Migration 004 adds relational bay/equipment/vendor/ticket/event/plan/downtime, chemical item/movement and rental agreement/charge/payment entities. Check constraints bound quantities/cents and enforce target/sign consistency. Partial unique indexes permit only one open outage per target. Standard `btree_gist` plus an inclusive date-range exclusion prevents overlapping noncancelled contracts, including direct writes. Notification gains an optional maintenance FK for employee ownership filtering and links. There is no object/file upload subsystem.
+
+The existing observable scheduler transaction takes the job lock followed by Phase 3's lock, generates unique preventative occurrences with a persisted bounded catch-up cursor, and reconciles scoped overdue alerts. Domain mutations never take the job lock, avoiding reverse lock order. Services select an explicit employee-safe ticket shape before returning data; manager cost/history/vendor fields are omitted in SQL. Register edits, movement versions and payment checks serialize before audit commits. See PHASE3.md for workflows and limitations.

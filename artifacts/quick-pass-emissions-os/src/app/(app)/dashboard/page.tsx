@@ -5,7 +5,9 @@ import { currentUser } from "@/lib/access";
 import { db } from "@/lib/db";
 import { isManager } from "@/lib/policy";
 import { businessDate, dueInstant, addDays, formatDate } from "@/lib/time";
-import { Empty, PageHeader, TaskTable, employeeSelect } from "@/components/shared";
+import { PageHeader, TaskTable, employeeSelect } from "@/components/shared";
+import { maintenanceSummary } from "@/modules/maintenance/service";
+import { certificateOverview } from "@/modules/certificates/service";
 import { Button } from "@/components/ui/button";
 export default async function Dashboard() {
   const user = await currentUser();
@@ -15,14 +17,28 @@ export default async function Dashboard() {
       <>
         <PageHeader
           title="Welcome to Quick Pass"
-          description="Your account is ready. Accounting and payroll are planned for later phases."
+          description="Prepare and review payroll information and certificate purchase records."
         />
-        <Empty
-          title="Financial modules are not enabled"
-          text="Phase 1 contains no payroll, wages, revenue, or profit records."
-        />
+        <section className="card card-body">
+          <h2>Payroll preparation</h2>
+          <p>
+            Review approved source records and prepare payroll drafts for independent manager or
+            owner approval.
+          </p>
+          <Link className="text-link" href="/payroll">
+            Open payroll & commissions →
+          </Link>
+          <Link className="text-link" href="/certificates">
+            Open certificate records →
+          </Link>
+          <Link className="text-link" href="/rentals">
+            Open detailing rental records →
+          </Link>
+        </section>
       </>
     );
+  const certificates = management ? await certificateOverview(user.id) : null;
+  const maintenance = management ? await maintenanceSummary(user.id) : null;
   const today = businessDate();
   const now = new Date();
   const start = dueInstant(today, "00:00");
@@ -99,6 +115,38 @@ export default async function Dashboard() {
             "Ask your manager to complete setup."
           )}
         </div>
+      )}
+      {management &&
+        certificates &&
+        (!certificates.stock || !certificates.settings || certificates.estimate?.low) && (
+          <div className="notice warning">
+            <Link href="/certificates">
+              {!certificates.stock || !certificates.settings
+                ? "Certificate inventory setup requires a physical count and owner-confirmed ordering settings."
+                : `Certificate reorder needed: ${certificates.stock.balance} recorded in stock.`}{" "}
+              Review certificates →
+            </Link>
+          </div>
+        )}
+      {maintenance && (
+        <section className="card card-body space-top">
+          <h2>Carwash & maintenance</h2>
+          <p>
+            {maintenance.openTickets} open tickets · {maintenance.overdueTickets} overdue ·{" "}
+            {maintenance.offlineBays} bays offline · {maintenance.lowChemicals} supplies at low
+            recorded stock.
+          </p>
+          {maintenance.configuredBays < 6 || maintenance.unknownBays > 0 ? (
+            <p className="notice warning">
+              Confirm the six-bay layout and inspect unknown bay conditions.
+            </p>
+          ) : null}
+          <div className="module-links">
+            <Link href="/carwash">Review bays →</Link>
+            <Link href="/maintenance">Review maintenance →</Link>
+            <Link href="/chemicals">Review chemical stock →</Link>
+          </div>
+        </section>
       )}
       <section className="stats" aria-label="Operations metrics">
         {[

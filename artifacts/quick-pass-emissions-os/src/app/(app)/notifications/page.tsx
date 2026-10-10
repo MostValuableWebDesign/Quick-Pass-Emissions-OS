@@ -12,7 +12,12 @@ export default async function Notifications() {
       userId: actor.id,
       resolvedAt: null,
       ...(actor.role === "EMPLOYEE"
-        ? { task: { employeeId: actor.employee?.id ?? "none" } }
+        ? {
+            OR: [
+              { task: { employeeId: actor.employee?.id ?? "none" } },
+              { maintenance: { assignedId: actor.employee?.id ?? "none" } },
+            ],
+          }
         : actor.role === "BOOKKEEPER"
           ? { id: "none" }
           : {}),
@@ -31,7 +36,16 @@ export default async function Notifications() {
           alerts.map((a) => (
             <div className="list-row" key={a.id}>
               <div>
-                <Link className="task-name" href={a.taskId ? `/tasks/${a.taskId}` : "/dashboard"}>
+                <Link
+                  className="task-name"
+                  href={
+                    a.taskId
+                      ? `/tasks/${a.taskId}`
+                      : a.maintenanceId
+                        ? `/maintenance/${a.maintenanceId}`
+                        : "/dashboard"
+                  }
+                >
                   {a.title}
                 </Link>
                 <small>

@@ -21,7 +21,8 @@
     "jobs": "tsx scripts/jobs.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "recover-account": "tsx scripts/recover-account.ts"
+    "recover-account": "tsx scripts/recover-account.ts",
+    "sync:upstream": "node scripts/sync-upstream.mjs"
   },
   "dependencies": {
     "@js-temporal/polyfill": "0.5.1",

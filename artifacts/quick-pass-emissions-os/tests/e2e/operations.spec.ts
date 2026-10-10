@@ -12,7 +12,7 @@ test("unauthenticated access and public signup are denied", async ({ page, reque
   await page.goto("/employees");
   await expect(page).toHaveURL(/login/);
   const response = await request.post("/api/auth/sign-up/email", {
-    headers: { Origin: "http://localhost:3000" },
+    headers: { Origin: new URL(process.env.E2E_BASE_URL ?? "http://localhost:3000").origin },
     data: { name: "Unauthorized", email: "intruder@example.test", password: password! },
   });
   expect(response.ok()).toBe(false);
@@ -102,11 +102,23 @@ test("owner can provision, schedule, assign, complete and audit work", async ({
 });
 test("bookkeeper has no operations data and mobile layout fits", async ({ page }) => {
   await login(page, "bookkeeper@example.test");
-  await expect(page.getByText("Financial modules are not enabled")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Payroll preparation", exact: true }),
+  ).toBeVisible();
   await page.goto("/tasks");
   await expect(page.locator("tbody tr")).toHaveCount(0);
   await page.getByRole("button", { name: "Sign out" }).click();
   await login(page, "al@example.test");
+  await page.goto("/payroll");
+  await expect(
+    page.getByRole("heading", { name: "Payroll & commissions", exact: true }),
+  ).toHaveCount(0);
+  await page.goto("/certificates");
+  await expect(
+    page.getByRole("heading", { name: "Certificate inventory", exact: true }),
+  ).toHaveCount(0);
+  expect((await page.request.get("/api/payroll/unknown/export")).status()).toBe(403);
+  await page.goto("/dashboard");
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("button", { name: "Toggle navigation" })).toBeVisible();
   await expect

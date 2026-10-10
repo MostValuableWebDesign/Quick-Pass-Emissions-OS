@@ -2,7 +2,7 @@
 
 ## Transfer
 
-The repository is portable source code. No remote has been selected or pushed automatically. Create/select the intended private GitHub repository, add its remote, review `.gitignore`, and commit/push when authorized. Transfer only source, migrations, documentation and the lockfile. Never upload `.env`, `node_modules`, `.next`, browser traces or the parent work directory.
+The repository is portable source code. The configured remote is MostValuableWebDesign/Quick-Pass-Emissions-OS. Phase 1 was previously pushed; Phases 2–3 are local changes until separately published. Import the provided complete Phase 3 source or publish it when authorized before expecting GitHub/Replit to contain these workflows. Review `.gitignore` before any transfer. Transfer only source, migrations, documentation and the lockfile. Never upload `.env`, `node_modules`, `.next`, browser traces or the parent work directory.
 
 Import that GitHub repository into Replit. Use Node 22.12+ (22/24 LTS) and install with `npm ci`. The included `.replit` uses standard npm commands; verify the deployment UI and port mapping for the selected Replit deployment. No Replit-specific library is required. GitHub remains the shared source of truth.
 
@@ -57,4 +57,16 @@ Use a reliable external scheduler or a scheduled deployment to run `npm run jobs
 
 ## Prompt for the next Replit agent
 
-Read AGENTS.md, README.md, ARCHITECTURE.md, BUSINESS_RULES.md, OPEN_QUESTIONS.md and VERIFICATION.md. Inspect the current commit and working tree before edits. Continue Phase 1 deployment and owner configuration first. Preserve Better Auth sessions, server-enforced ownership, PostgreSQL transactions, template/date uniqueness, versioned task updates and audit history. Run the documented checks; distinguish passed checks from skipped/database-unavailable checks. Do not implement Phases 2–5, seed financial facts, enable public signup, send external email or add regulated-system integrations without explicit authorization.
+Read AGENTS.md, README.md, ARCHITECTURE.md, BUSINESS_RULES.md, OPEN_QUESTIONS.md and VERIFICATION.md. Inspect the current commit and working tree before edits. Continue Phases 1–3 deployment and owner configuration first; read PHASE2.md and PHASE3.md. Preserve Better Auth sessions, server-enforced ownership, PostgreSQL transactions, template/date uniqueness, versioned task updates and audit history. Run the documented checks; distinguish passed checks from skipped/database-unavailable checks. Do not implement Phases 4–5, seed financial facts, enable public signup, send external email or add regulated-system integrations without explicit authorization.
+
+## Phase 2 deployment smoke test
+
+Apply migrations 002 and 003 after backing up existing data. Read PHASE2.md and assign independent preparer/reviewer accounts. In a disposable environment, verify owner configuration, personal count recording/approval, approved minutes and completeness, draft source freezing, separate review, approved-only CSV and persisted snapshots after restart. Verify employee direct access to both modules and export returns no data. Exercise initial physical stock, concurrent consumption, stale reconciliation, duplicate references, low-stock recommendation, independent purchase approval, external order record and partial receipts. Real compensation/stock must be configured from verified records; test fixtures are never production facts. Validate payroll CSV mapping with the real processor before use.
+
+If the host blocks Turbopack's CSS-worker socket, `npm run build -- --webpack` is the supported alternative. Local verification uses this alternate build and does not prove Replit deployment readiness.
+
+## Phase 3 deployment smoke test
+
+Read PHASE3.md. Ensure `btree_gist` is available and back up existing data before migration 004. Confirm all four migrations are applied and repeat deployment finds no pending migrations. Verify the existing Phase 2 records remain intact. On an isolated environment, confirm six bays start unknown until inspected, equipment/vendor edits persist, downtime opens/closes once, an employee can report an issue and update only assigned work, and manager review/costs remain private. Test closure-aware duplicate-safe preventative generation, cursor catch-up and notification ownership after reassignment. Verify chemical opening count/usage/receipt/reconciliation, frozen units, stale versions and low-stock banners. Authorize a detailing agreement as owner, reject overlaps and self-service rentals, prepare a full-month charge, enter a partial payment, reverse it as manager and verify history persists after reload. Deny employee rental/chemical/vendor reads and bookkeeper maintenance/stock writes.
+
+Confirm actual labels, conditions, contacts, equipment, inspection rules, stock measurement/counts, tenants and monthly terms with the owner. No third-party ordering, collection, messaging or official equipment integration exists. Publication/deployment and actual business verification remain separate. The complete continuation prompt is REPLIT_PROMPT.md.

@@ -467,7 +467,7 @@ export async function triggerJobs() {
     });
     return {
       ok: true,
-      message: `Operations checked. ${result.generated} new task instances generated.`,
+      message: `Operations checked. ${result.generated} new tasks and maintenance tickets generated.`,
     };
   });
 }

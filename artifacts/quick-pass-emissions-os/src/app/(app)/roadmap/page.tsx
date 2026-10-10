@@ -6,7 +6,7 @@ export default async function Roadmap() {
     <>
       <PageHeader
         title="Built in deliberate steps"
-        description="Only Phase 1 operations are enabled. These future modules have no live actions or business data."
+        description="Operations, payroll, inventory, carwash, maintenance, and rentals are available. Phases 4–5 remain planned."
       />
       <div className="roadmap-grid">
         {[
@@ -32,7 +32,9 @@ export default async function Roadmap() {
           },
         ].map((p) => (
           <section className="card card-body" key={p.phase}>
-            <span className="badge neutral">Phase {p.phase} · Planned</span>
+            <span className="badge neutral">
+              Phase {p.phase} · {p.phase <= 3 ? "Implemented" : "Planned"}
+            </span>
             <h2>{p.title}</h2>
             <p className="muted">{p.text}</p>
           </section>

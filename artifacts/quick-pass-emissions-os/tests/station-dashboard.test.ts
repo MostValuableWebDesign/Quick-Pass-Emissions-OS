@@ -101,6 +101,23 @@ describe("Performance financial projections", () => {
     expect(data.summary.payCents).toBe(110000);
     expect(calendarDays(yesterday.date, today)).toHaveLength(2);
   });
+  it("keeps selected-day cars, outcomes, revenue and pay separate from today's station totals", () => {
+    const selected: PortalDay = {
+      ...day, date: "2026-01-14", total: 60, passed: 50, failed: 10, aborted: 0,
+      inspectors: [
+        { inspector: "Fixture One", total: 40, passed: 35, failed: 5, aborted: 0, other: 0 },
+        { inspector: "Fixture Two", total: 20, passed: 15, failed: 5, aborted: 0, other: 0 },
+      ],
+    };
+    const data = buildDashboard({ ...query, start: selected.date, end: selected.date }, today, [selected, day], plan);
+    expect(data.current?.total).toBe(95);
+    expect(data.summary).toMatchObject({
+      cars: 60, passed: 50, failed: 10, aborted: 0, revenueCents: 120000,
+      baseCents: 46000, commissionCents: 2000, payCents: 48000,
+    });
+    expect(data.employees.map((e) => e.cars)).toEqual([40, 20]);
+    expect(data.employees.map((e) => e.payCents)).toEqual([24000, 24000]);
+  });
   it("keeps a source employee filter available on a new uncached date", () => {
     const data = buildDashboard({ ...query, employee: inspectorKey("Fixture Two") }, today, [], plan);
     expect(data.employeeOptions.some((e) => e.id === inspectorKey("Fixture Two"))).toBe(true);

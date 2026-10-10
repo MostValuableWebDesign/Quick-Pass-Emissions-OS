@@ -45,13 +45,11 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
   }, [load]);
 
   const s = data.summary;
-  const c = data.current;
   const single = q.start === q.end;
   const partial = s.coveredDays < s.expectedDays;
   const filtered = !!q.employee;
   const empName = data.employeeOptions.find((e) => e.id === q.employee)?.name;
-  const tested = c ? c.passed + c.failed : 0;
-  const pct = (n: number) => (c && c.total ? `${(n / c.total) * 100}%` : "0%");
+  const pct = (n: number) => (s.cars ? `${(n / s.cars) * 100}%` : "0%");
 
   return (
     <div className="pd" aria-busy={loading}>
@@ -108,27 +106,29 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
 
       <section className="pd-hero" aria-label="Headline numbers">
         <div className="pd-today">
-          <div className="lab">TODAY · STATION</div>
-          <strong className="pd-num" data-testid="text-today-total">{c ? c.total : "--"}</strong>
-          {c ? (
+          <div className="lab" data-testid="text-headline-period">
+            {single ? longDate(q.start) : `${longDate(q.start)} to ${longDate(q.end)}`} · {filtered ? empName : "STATION"}
+          </div>
+          <strong className="pd-num" data-testid="text-today-total">{num(s.cars)}</strong>
+          {s.cars !== null ? (
             <>
               <div className="pd-split" aria-hidden>
-                <span style={{ width: pct(c.passed), background: "#47c99d" }} />
-                <span style={{ width: pct(c.failed), background: "#e5a24d" }} />
-                <span style={{ width: pct(c.aborted + c.other), background: "#6f8b94" }} />
+                <span style={{ width: pct(s.passed), background: "#47c99d" }} />
+                <span style={{ width: pct(s.failed), background: "#e5a24d" }} />
+                <span style={{ width: pct(s.aborted + s.other), background: "#6f8b94" }} />
               </div>
               <div className="pd-legend pd-num">
-                <span><i style={{ background: "#47c99d" }} />Pass {c.passed}</span>
-                <span><i style={{ background: "#e5a24d" }} />Fail {c.failed}</span>
-                <span><i style={{ background: "#6f8b94" }} />Abort {c.aborted}</span>
-                {c.other > 0 && <span><i style={{ background: "#6f8b94" }} />Other {c.other}</span>}
+                <span><i style={{ background: "#47c99d" }} />Pass {s.passed}</span>
+                <span><i style={{ background: "#e5a24d" }} />Fail {s.failed}</span>
+                <span><i style={{ background: "#6f8b94" }} />Abort {s.aborted}</span>
+                {s.other > 0 && <span><i style={{ background: "#6f8b94" }} />Other {s.other}</span>}
               </div>
               <small style={{ display: "block", marginTop: 10 }}>
-                {usd(tested * 2000, true)} estimated today · as of {instant(c.retrievedAt)}
+                {usd(s.revenueCents, true)} estimated revenue · selected {single ? "day" : "range"}
               </small>
             </>
           ) : (
-            <small>{loading ? "Fetching today's count..." : "Today's count not retrieved yet."}</small>
+            <small>{loading ? "Fetching selected counts..." : "Selected counts not available yet."}</small>
           )}
         </div>
         <div className="pd-kpis pd-num">

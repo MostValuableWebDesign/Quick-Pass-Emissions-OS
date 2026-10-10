@@ -22,3 +22,9 @@ Performance should be professional and quick to read, with automatic current cou
 **Why:** The user explicitly requested this visual and functional scope.
 
 **How to apply:** Preserve aggregate/report and financial evidence boundaries with concise labels, not lengthy dashboard instructions. Employee login emails are not prerequisites for station counts or separate pay estimates.
+
+All headline panels must reflect the selected day or range, including cars, outcomes, revenue and pay. Today is the default selection, not a separate persistent headline when another date is selected.
+
+**Why:** The user explicitly clarified that only the selected date's figures should appear in the panel; a simultaneous today count was misleading.
+
+**How to apply:** Keep the panel date label and every metric on the same selection and employee filter. Preserve daily shop-wide commission rules when summing a range.

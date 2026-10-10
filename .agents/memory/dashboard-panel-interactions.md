@@ -20,3 +20,9 @@ Resizing must use a visible corner grab handle, not a header toolbar button.
 **Why:** The user explicitly said panels should have a grab handle to resize, “not the button.”
 
 **How to apply:** Keep the resize grip at the panel corner while retaining keyboard resizing and browser-local persistence.
+
+Panels whose combined widths fit must sit side by side, including narrower workspace and tablet previews.
+
+**Why:** The user explicitly requested panels alongside one another when resized to dimensions that fit. A broad mobile breakpoint was forcing stacked layouts in workspace previews.
+
+**How to apply:** Keep the grid's stacking breakpoint and the resize handle's horizontal-resize breakpoint aligned. Stack on small phones without overwriting saved desktop widths.

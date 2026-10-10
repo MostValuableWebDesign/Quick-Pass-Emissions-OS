@@ -33,7 +33,7 @@ export function PanelResizeHandle({
   function move(event: PointerEvent<HTMLButtonElement>) {
     const start = origin.current;
     if (!start || start.pointer !== event.pointerId) return;
-    const narrow = window.matchMedia("(max-width: 760px)").matches;
+    const narrow = window.matchMedia("(max-width: 480px)").matches;
     const nextColumns = narrow ? start.columns : Math.max(4, Math.min(12,
       start.columns + Math.round((event.clientX - start.x) / start.columnWidth)));
     const nextHeight = Math.max(240, Math.min(720,
@@ -63,7 +63,7 @@ export function PanelResizeHandle({
         const change = changes[event.key];
         if (!change) return;
         event.preventDefault();
-        onResize(window.matchMedia("(max-width: 760px)").matches ? 0 : change[0], change[1]);
+        onResize(window.matchMedia("(max-width: 480px)").matches ? 0 : change[0], change[1]);
       }}
     >
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">

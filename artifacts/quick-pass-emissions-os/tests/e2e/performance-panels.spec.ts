@@ -50,4 +50,45 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   await page.getByTestId("button-reset-panel-layout").click();
   await expect(page.getByTestId("performance-panel-grid").locator(".pd-widget").first()).toHaveAttribute("data-testid", "panel-trend");
   await expect(page.getByTestId("panel-employees")).toHaveCSS("grid-column-start", "span 12");
+
+  // Panels whose combined spans fit the grid must share a row.
+  const trendCorner = trend.getByRole("button", { name: /Resize Trend panel/ });
+  const employeeCorner = employees.getByRole("button", { name: /Resize Employees panel/ });
+  for (const handle of [trendCorner, employeeCorner]) {
+    await handle.focus();
+    for (let step = 0; step < 6; step++) await handle.press("ArrowLeft");
+  }
+  async function expectSideBySide() {
+    await expect.poll(async () => {
+      const left = await trend.boundingBox();
+      const right = await employees.boundingBox();
+      const grid = await page.getByTestId("performance-panel-grid").boundingBox();
+      return !!left && !!right && !!grid && Math.abs(left.y - right.y) < 1 &&
+        left.x + left.width <= right.x &&
+        right.x + right.width <= grid.x + grid.width + 1;
+    }).toBe(true);
+  }
+  await expect(trend).toHaveCSS("grid-column-start", "span 6");
+  await expect(employees).toHaveCSS("grid-column-start", "span 6");
+  await expectSideBySide();
+  await page.reload();
+  await expectSideBySide();
+
+  await page.setViewportSize({ width: 700, height: 900 });
+  await expectSideBySide();
+  // An oversized pair wraps rather than overlapping; reducing it fits again.
+  await employeeCorner.press("ArrowRight");
+  await expect.poll(async () => {
+    const left = await trend.boundingBox();
+    const right = await employees.boundingBox();
+    return !!left && !!right && right.y >= left.y + left.height;
+  }).toBe(true);
+  await employeeCorner.press("ArrowLeft");
+  await expectSideBySide();
+
+  await page.setViewportSize({ width: 390, height: 900 });
+  await expect(trend).toHaveCSS("grid-column-start", "1");
+  await expect(employees).toHaveCSS("grid-column-start", "1");
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await expectSideBySide();
 });

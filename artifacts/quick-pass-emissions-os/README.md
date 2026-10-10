@@ -60,7 +60,7 @@ The server binds to `0.0.0.0`; set `PORT` for a different port. If npm 12 report
 - Owner-confirmed six-bay layout, equipment/vendor registry, downtime, corrective tickets, employee issue reporting, reviewed work and scheduled preventative maintenance.
 - Chemical stock ledger/low-stock alerts and owner-authorized detailing agreements, monthly charges, received payments and reversal history.
 
-Read [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md) and [PHASE4.md](PHASE4.md) for workflows, permissions, configuration and operating limits. Dealership accounts/contacts, owner-authorized billing terms, completed services, separately approved invoice snapshots, dated receipts/reversals, A/R aging, operational revenue/expense records and accounting CSV exports are available. Advanced Phase 5 automation remains planned. No business wage/stock values are seeded and no payments or external orders are executed.
+Read [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md) and [PHASE4.md](PHASE4.md) for workflows, permissions, configuration and operating limits. Dealership billing includes immutable approved snapshots, signed receipts/reversals, dated aging and complete CSV exports. Finance separates manual, independently reviewed and estimated records; it is not bank reconciliation or complete accounting. No business wage/stock values are seeded and no payments or external orders are executed.
 
 ## Local demonstration data
 

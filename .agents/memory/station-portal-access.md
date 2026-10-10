@@ -1,13 +1,13 @@
 ---
 name: Station portal access boundaries
-description: Why Georgia station history uses evidence-based manual reports until provider integration guarantees are established.
+description: Owner-triggered portal counts are authorized; identity, payroll and unattended automation remain separate evidence boundaries.
 ---
 
-Keep station access in manual original-report mode until the provider confirms supported unattended access, stable test identity/corrections, coverage and timestamp semantics. Successful login is not automation permission.
+The user authorized efficient read-only, owner-triggered portal lookup: “you might have to scan or export which ever is effecient . its not a api.” Prefer the original export with a matching portal total; no unattended polling is authorized.
 
 **Why:** Authorized read-only discovery established that an original report can be parsed, but its export omits identifiers present in on-page detail links and provides no payment evidence or timezone/cutoff guarantee. The export included more rows than the displayed first page; that observation is not a perpetual all-page guarantee.
 
-**How to apply:** Read the station operating documentation before extending ingestion. Do not turn certificates, names or vehicle/time similarities into automatic test identity, payment claims or complete live coverage. New source contracts need limited authorized verification, not guessed adapters.
+**How to apply:** Read the station operating documentation before extending ingestion. Keep on-demand aggregate portal snapshots separate from reviewed test identities and payroll. Do not turn certificates, names or vehicle/time similarities into automatic identity, payment claims or complete live coverage. Unattended access still needs separate authorization and source guarantees; do not bypass challenges.
 
 Range coverage is not evidence of an empty station day. Until a provider zero-report contract is separately verified, a historical nonempty report must never establish station-day zero through missing or moved records.
 
@@ -25,4 +25,4 @@ Daily station counts must be accessible by choosing one date, without a separate
 
 **Why:** The user said, “i should be able to select a date and get the daily count.”
 
-**How to apply:** Keep single-day lookup direct while retaining the source-evidence boundary: selecting a date does not authorize portal automation or prove a zero count when no report exists.
+**How to apply:** Keep single-day lookup direct while retaining the source-evidence boundary: selecting a date does not authorize unattended polling or prove a zero count when no report exists.

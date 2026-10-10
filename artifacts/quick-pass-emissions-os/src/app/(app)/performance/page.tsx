@@ -16,6 +16,7 @@ import {
   inclusiveDays,
 } from "@/components/station-ui";
 import { PerformanceDayFilter } from "@/components/performance-day-filter";
+import { PortalDailyCount } from "@/components/portal-daily-count";
 
 type Search = { preset?: string; date?: string; start?: string; end?: string; employeeId?: string };
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -112,6 +113,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
       )}
 
       <PerformanceDayFilter date={dailyDate} today={today} employeeId={employeeId} />
+      {start === end && <PortalDailyCount key={start} date={start} previous={data.portalTotal} />}
 
       <form
         className="card card-body"

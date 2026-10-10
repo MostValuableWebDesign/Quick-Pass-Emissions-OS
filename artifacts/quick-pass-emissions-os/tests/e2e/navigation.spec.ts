@@ -149,6 +149,22 @@ test.describe("Owner daily performance count", () => {
     await expect(page.getByLabel("Daily count date")).toHaveValue("2026-01-15");
     await expect(page.locator('main input[name="start"]')).toHaveValue("2026-01-15");
     await expect(page.locator('main input[name="end"]')).toHaveValue("2026-01-15");
+    if (process.env.E2E_PORTAL_LIVE === "1") {
+      test.setTimeout(180000);
+      await page.getByLabel("Daily count date").fill("2026-10-09");
+      if (new URL(page.url()).searchParams.get("date") !== "2026-10-09")
+        await dayForm.getByRole("button", { name: "Show daily count" }).click();
+      await expect(page).toHaveURL(/\/performance\?preset=day&date=2026-10-09$/);
+      const portal = page.getByRole("region", { name: "Portal daily count" });
+      await portal.getByRole("button", { name: "Get daily count from portal" }).click();
+      await expect(portal).toContainText("Retrieved 94 test rows for 2026-10-09.", {
+        timeout: 75000,
+      });
+      await expect(portal).toContainText("Pass: 77 · Fail: 15 · Abort: 2");
+      await page.reload();
+      await expect(portal.locator("strong")).toHaveText("94");
+      await expect(portal).toContainText("Saved snapshot");
+    }
   });
 });
 

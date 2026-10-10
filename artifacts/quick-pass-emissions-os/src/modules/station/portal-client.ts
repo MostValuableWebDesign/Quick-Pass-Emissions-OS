@@ -1,0 +1,270 @@
+import { parse, type DefaultTreeAdapterMap } from "parse5";
+import { dateString } from "@/lib/validation";
+import { businessDate } from "@/lib/time";
+import { BusinessError } from "../phase2";
+import { parseReport } from "./report";
+
+const ORIGIN = "https://gadashboard.com";
+export const REPORT_PATH = "/Applications/TestHistoryVirReprint.aspx";
+const ALLOWED_PATHS = new Set(["/", "/Login.aspx", "/Default.aspx", REPORT_PATH]);
+const LIMIT = 2_000_000;
+type Node = DefaultTreeAdapterMap["node"];
+type Element = DefaultTreeAdapterMap["element"];
+export const portalChildren = (n: Node): Node[] => ("childNodes" in n ? n.childNodes : []);
+export function portalElements(n: Node, tag: string): Element[] {
+  return [
+    ...("tagName" in n && n.tagName === tag ? [n] : []),
+    ...portalChildren(n).flatMap((c) => portalElements(c, tag)),
+  ];
+}
+export function portalText(n: Node): string {
+  if ("value" in n) return n.value;
+  if ("tagName" in n && ["script", "style"].includes(n.tagName)) return "";
+  return portalChildren(n).map(portalText).join("");
+}
+export const portalAttributes = (n: Element) =>
+  Object.fromEntries(n.attrs.map((a) => [a.name, a.value]));
+
+export function portalForm(html: string) {
+  const document = parse(html);
+  const form = portalElements(document, "form")[0];
+  if (!form) throw new BusinessError("Station portal form changed. Use a manual report export.");
+  const body = new URLSearchParams();
+  for (const input of portalElements(form, "input")) {
+    const a = portalAttributes(input);
+    if (!a.name || "disabled" in a) continue;
+    const type = a.type?.toLowerCase() ?? "text";
+    if (["submit", "image", "button", "reset", "file"].includes(type)) continue;
+    if (["radio", "checkbox"].includes(type) && !("checked" in a)) continue;
+    body.set(a.name, a.value ?? (["radio", "checkbox"].includes(type) ? "on" : ""));
+  }
+  for (const select of portalElements(form, "select")) {
+    const a = portalAttributes(select);
+    if (!a.name || "disabled" in a) continue;
+    const options = portalElements(select, "option");
+    const option = options.find((o) => "selected" in portalAttributes(o)) ?? options[0];
+    if (option) body.set(a.name, portalAttributes(option).value ?? portalText(option));
+  }
+  return { document, body, action: portalAttributes(form).action ?? REPORT_PATH };
+}
+
+/** Short-lived, same-origin session. Cookies, credentials and source HTML never leave the server. */
+export class PortalSession {
+  private cookies = new Map<string, string>();
+  private deadline = Date.now() + 60_000;
+  constructor(private transport: typeof fetch = fetch) {}
+
+  async request(path: string, body?: URLSearchParams) {
+    let url = new URL(path, ORIGIN);
+    for (let redirect = 0; redirect < 6; redirect++) {
+      if (url.origin !== ORIGIN || !ALLOWED_PATHS.has(url.pathname))
+        throw new BusinessError("Station portal redirected to an unsupported location.");
+      const remaining = this.deadline - Date.now();
+      if (remaining <= 0) throw new BusinessError("Station portal lookup timed out. Try later.");
+      let response: Response;
+      try {
+        response = await this.transport(url, {
+          method: body ? "POST" : "GET",
+          body: body?.toString(),
+          redirect: "manual",
+          cache: "no-store",
+          signal: AbortSignal.timeout(Math.min(15_000, remaining)),
+          headers: {
+            ...(body ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
+            ...(this.cookies.size
+              ? { Cookie: [...this.cookies].map(([k, v]) => `${k}=${v}`).join("; ") }
+              : {}),
+          },
+        });
+      } catch {
+        throw new BusinessError("Station portal is unavailable or timed out. Try later.");
+      }
+      for (const cookie of response.headers.getSetCookie()) {
+        const pair = cookie.split(";")[0];
+        const split = pair.indexOf("=");
+        if (split > 0) this.cookies.set(pair.slice(0, split), pair.slice(split + 1));
+      }
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
+        const location = response.headers.get("location");
+        await response.body?.cancel();
+        if (!location) throw new BusinessError("Station portal returned an invalid redirect.");
+        url = new URL(location, url);
+        if (![307, 308].includes(response.status)) body = undefined;
+        continue;
+      }
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw new BusinessError(
+          "Station portal rejected the request. Try later or sign in manually.",
+        );
+      }
+      const reader = response.body?.getReader();
+      if (!reader) throw new BusinessError("Station portal returned no report.");
+      const chunks: Uint8Array[] = [];
+      let bytes = 0;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          bytes += value.byteLength;
+          if (bytes > LIMIT) {
+            await reader.cancel();
+            throw new BusinessError("Station report exceeds the safe 2 MB limit. Export manually.");
+          }
+          chunks.push(value);
+        }
+      } catch (error) {
+        if (error instanceof BusinessError) throw error;
+        throw new BusinessError("Station report could not be read completely. Try again.");
+      }
+      const html = Buffer.concat(chunks).toString("utf8");
+      if (/captcha|recaptcha|one.time.password|multi.factor/i.test(html))
+        throw new BusinessError("Station portal requires a security check. Sign in manually.");
+      return { html, url: url.href, contentType: response.headers.get("content-type") ?? "" };
+    }
+    throw new BusinessError("Station portal redirected too many times. Sign in manually.");
+  }
+
+  dispose() {
+    this.cookies.clear();
+  }
+}
+
+export async function portalSearch(
+  date: string,
+  config: { username: string; password: string; station: string },
+  session = new PortalSession(),
+) {
+  dateString.parse(date);
+  if (date > businessDate()) throw new BusinessError("Choose today or an earlier business date.");
+  if (!config.username || !config.password || !/^[A-Za-z0-9_-]{1,40}$/.test(config.station))
+    throw new BusinessError("Station portal Secrets are missing or invalid.");
+  const login = await session.request("/Login.aspx?ReturnUrl=%2f");
+  const form = portalForm(login.html);
+  if (!form.body.has("Login1$UserName") || !form.body.has("Login1$Password"))
+    throw new BusinessError("Station portal login changed. Sign in manually.");
+  form.body.set("Login1$UserName", config.username);
+  form.body.set("Login1$Password", config.password);
+  form.body.set("Login1$LoginButton", "Log In");
+  const signedIn = await session.request(new URL(form.action, login.url).href, form.body);
+  if (
+    new URL(signedIn.url).pathname === "/Login.aspx" ||
+    portalElements(parse(signedIn.html), "input").some(
+      (n) => portalAttributes(n).type === "password",
+    )
+  )
+    throw new BusinessError(
+      "Unable to sign in to the station portal. Check the portal credentials.",
+    );
+  const report = await session.request(REPORT_PATH);
+  const search = portalForm(report.html);
+  const required = [
+    "txtWaiverDateStart",
+    "txtWaiverDateEnd",
+    "txtStationId",
+    "txtVin",
+    "txtCertNumber",
+    "txtLicNo",
+    "txtWaiverRecordNumber",
+  ];
+  for (const suffix of required)
+    if (!search.body.has(`ctl00$MainContent$${suffix}`))
+      throw new BusinessError("Station report filters changed. Use a manual export.");
+  const [year, month, day] = date.split("-");
+  search.body.set("ctl00$MainContent$txtWaiverDateStart", `${month}/${day}/${year}`);
+  search.body.set("ctl00$MainContent$txtWaiverDateEnd", `${month}/${day}/${year}`);
+  search.body.set("ctl00$MainContent$txtStationId", config.station);
+  for (const suffix of required.slice(3)) search.body.set(`ctl00$MainContent$${suffix}`, "");
+  search.body.set("ctl00$MainContent$btnGetReport", "Search");
+  return {
+    session,
+    page: await session.request(new URL(search.action, report.url).href, search.body),
+  };
+}
+
+export type PortalDailyTotal = {
+  date: string;
+  total: number;
+  passed: number;
+  failed: number;
+  aborted: number;
+  other: number;
+  retrievedAt: string;
+};
+
+export function expectedPortalTotal(html: string) {
+  const totals = portalElements(parse(html), "span")
+    .filter((n) => portalAttributes(n).id === "MainContent_gvMain_pgrApplus")
+    .map((n) => {
+      const match = /Page\s+(\d+)\s+of\s+(\d+)\s+\(([\d,]+)\s+items\)/i.exec(portalText(n));
+      if (!match || Number(match[1]) !== 1 || Number(match[2]) < 1)
+        throw new BusinessError("Portal page totals changed or are unavailable. No total shown.");
+      return Number(match[3].replaceAll(",", ""));
+    });
+  if (
+    !totals.length ||
+    totals.some((n) => !Number.isSafeInteger(n) || n < 1 || n > 10000 || n !== totals[0])
+  )
+    throw new BusinessError("Portal report total could not be verified. No total shown.");
+  return totals[0];
+}
+
+/** Count the requested day's original export, not the first paginated screen. */
+export async function portalDailyTotal(
+  date: string,
+  config: { username: string; password: string; station: string },
+  session = new PortalSession(),
+): Promise<PortalDailyTotal> {
+  try {
+    const { page } = await portalSearch(date, config, session);
+    const expected = expectedPortalTotal(page.html);
+    const form = portalForm(page.html);
+    const exportButton = portalElements(form.document, "input")
+      .map(portalAttributes)
+      .find(
+        (a) =>
+          a.type === "image" &&
+          a.alt === "Export" &&
+          /^ctl00\$MainContent\$gvMain\$ctl\d+\$pgrApplus\$btnExport$/.test(a.name ?? ""),
+      );
+    if (!exportButton)
+      throw new BusinessError(
+        "The portal returned no usable export for this date. A zero count cannot be verified.",
+      );
+    form.body.set(`${exportButton.name}.x`, "1");
+    form.body.set(`${exportButton.name}.y`, "1");
+    const exported = await session.request(new URL(form.action, page.url).href, form.body);
+    let report: ReturnType<typeof parseReport>;
+    try {
+      report = parseReport(exported.html, config.station);
+    } catch {
+      throw new BusinessError(
+        "Portal export could not be verified. Use an original manual export.",
+      );
+    }
+    if (report.start !== date || report.end !== date)
+      throw new BusinessError(
+        "Portal report dates did not match the requested day. No total shown.",
+      );
+    if (report.rows.length !== expected)
+      throw new BusinessError(
+        "Export row count differs from the portal total. Data may have changed; try again.",
+      );
+    const count = (outcome: string) =>
+      report.rows.filter((r) => r.outcome.toLowerCase() === outcome).length;
+    const passed = count("pass");
+    const failed = count("fail");
+    const aborted = count("abort");
+    return {
+      date,
+      total: report.rows.length,
+      passed,
+      failed,
+      aborted,
+      other: report.rows.length - passed - failed - aborted,
+      retrievedAt: new Date().toISOString(),
+    };
+  } finally {
+    session.dispose();
+  }
+}

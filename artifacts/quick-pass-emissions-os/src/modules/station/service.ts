@@ -15,7 +15,7 @@ export function stationConfig() {
   const station = process.env.GA_STATION_ID?.trim();
   requireRule(
     station && /^[A-Za-z0-9_-]{1,40}$/.test(station),
-    "Configure a valid GA_STATION_ID in Secrets. Live access is not enabled.",
+    "Configure a valid GA_STATION_ID in Secrets.",
   );
   return { station, hash: digest(station) };
 }

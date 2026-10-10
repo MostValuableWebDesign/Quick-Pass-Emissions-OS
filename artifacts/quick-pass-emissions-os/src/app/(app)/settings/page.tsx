@@ -4,8 +4,10 @@ import { formatDate } from "@/lib/time";
 import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { removeClosure, saveClosure, saveSettings, triggerJobs } from "@/app/actions";
+import { storageStatus } from "@/modules/storage/service";
 export default async function Settings() {
-  await manager();
+  const actor = await manager();
+  const storage = actor.role === "OWNER" ? await storageStatus(actor.id) : null;
   const [settings, closures, runs, audit] = await Promise.all([
     db.businessSetting.findUnique({ where: { id: "business" } }),
     db.closure.findMany({ orderBy: { date: "asc" } }),
@@ -22,7 +24,29 @@ export default async function Settings() {
         title="Business settings & accountability"
         description="Configure operating days, manage exceptions, and review the audit trail."
       />
-      <div className="two-columns">
+      {storage && (
+        <section className="card card-body">
+          <h2>Data storage & recovery</h2>
+          <p>
+            Saved records are kept in PostgreSQL, separately from application builds. Restarting or
+            updating this app keeps your saved data when it uses the same database.
+          </p>
+          <p className="muted">
+            Storage ID: <code className="audit-details">{storage.instanceId}</code>
+          </p>
+          <p>
+            {storage.employees} employee profiles · {storage.tasks} responsibilities ·{" "}
+            {storage.auditEntries} audit entries
+          </p>
+          <p className="muted">
+            Replit preview and the published app can use separate databases. If records appear
+            missing, compare this storage ID with your earlier record and check which database is
+            connected. Backups and database recovery are configured separately by your
+            administrator.
+          </p>
+        </section>
+      )}
+      <div className={`two-columns${storage ? " space-top" : ""}`}>
         <div className="stack">
           <section className="card card-body">
             <h2>Business operating days</h2>

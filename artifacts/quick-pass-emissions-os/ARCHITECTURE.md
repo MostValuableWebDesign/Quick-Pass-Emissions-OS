@@ -1,5 +1,9 @@
 # Architecture
 
+## Durable storage lifecycle
+
+All saved domain records remain in PostgreSQL across builds. Migration 007 adds a singleton storage identity without changing existing business data. The dev/start package scripts apply committed deploy migrations and verify the optional EXPECTED_DATABASE_ID before accepting traffic; builds never seed/reset/migrate. Infrastructure in src/lib/database-maintenance.ts provides complete private PostgreSQL dumps and transactional restore into a separate empty database. Optional DATA_BACKUP_DIR requires a successful full backup before pending migrations. Only fresh active owners can read storage identity/counts in Settings. Preview and production may use separate databases. See DATA_PERSISTENCE.md.
+
 ## Modular monolith
 
 `src/app` contains Next.js server-rendered pages, server actions and route handlers for Better Auth, the authenticated operations job trigger and approved payroll CSV export. `src/components` contains reusable presentation primitives, the responsive shell and action forms. `src/lib` contains Prisma, authentication, access policy, validation and business-time helpers. `src/modules/tasks` contains recurrence decisions, task transitions and the operations job. `prisma` contains the relational schema and SQL migration history. `scripts` provides operator commands; `tests` contains unit, database and browser verification.

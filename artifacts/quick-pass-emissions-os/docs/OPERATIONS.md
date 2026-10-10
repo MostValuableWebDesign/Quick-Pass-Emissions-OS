@@ -1,5 +1,7 @@
 # Operator runbook
 
+> Storage identity, safe startup, optional pre-migration full backups and guarded restore: [DATA_PERSISTENCE.md](../DATA_PERSISTENCE.md). Provider backups must still be configured independently.
+
 ## Phase 5 durable worker
 
 Read PHASE5.md. Run the existing CLI or authenticated POST independently every 15 minutes with the same deployment database and confirmed configuration. No traffic/page timer is needed. Check the owner **Automation** page for pending backlog, RUNNING lease expiry, attempts/backoff, terminal FAILED jobs and delivery revocations. A five-minute interrupted claim can be reclaimed on the next trigger; four attempts terminate with an observable failure. Fix connectivity/migration/configuration before using the audited owner **Authorize retry** action. Schedule revisions supersede unfinished old-revision work, never earlier saved summaries.
@@ -14,7 +16,7 @@ Private browser verification uses `scripts/phase5-browser-fixture.mjs create|job
 
 ## Backups and recovery
 
-Use managed PostgreSQL automated backups and point-in-time recovery where available. Set an owner-approved retention period and recovery time/data-loss objective. Store encrypted backups with access restricted separately from application credentials. A manual logical backup may use `pg_dump --format=custom --file=quickpass.dump "$DATABASE_URL"`; keep that file out of source control and chat attachments. Restore using `pg_restore` into a new isolated database, never over the only live copy. Verify users, task counts, audit history and migration status before switching a deployment. Schedule actual restore drills; no backup or recovery drill was configured for the user's real business during this delivery.
+Use managed PostgreSQL automated backups and point-in-time recovery where available. Set an owner-approved retention period and recovery time/data-loss objective. Store encrypted backups with access restricted separately from application credentials. For a manual complete logical backup, configure private persistent DATA_BACKUP_DIR and run the guarded db:backup command; keep its dump out of source control and chat attachments. Use db:restore with a separate empty RESTORE_DATABASE_URL, never the only live copy. See DATA_PERSISTENCE.md for exact commands and required PostgreSQL tools. Verify users, task counts, audit history and migration status before switching a deployment. Schedule actual restore drills; no backup or recovery drill was configured for the user's real business during this delivery.
 
 ## Account recovery
 

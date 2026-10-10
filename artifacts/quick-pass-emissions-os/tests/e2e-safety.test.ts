@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { assertOwnedDatabase, assertCompleteReport } from "../scripts/e2e-safety.mjs";
+import {
+  assertOwnedDatabase,
+  assertCompleteReport,
+  isolatedDatabaseEnvironment,
+} from "../scripts/e2e-safety.mjs";
 
 const name = `quick_pass_verify_${"a".repeat(32)}_test`;
 const url = `postgresql://localhost/${name}`;
@@ -11,6 +15,28 @@ const env = {
   NODE_ENV: "development",
 };
 describe("Browser isolation gates", () => {
+  it("keeps business storage pins, backups and recovery targets out of isolated verification", () => {
+    const business = {
+      ...env,
+      DATABASE_URL: "postgresql://localhost/business",
+      EXPECTED_DATABASE_ID: "business-id",
+      DATA_BACKUP_DIR: "/private/business-backups",
+      RESTORE_DATABASE_URL: "postgresql://localhost/recovery",
+    };
+    const isolated = isolatedDatabaseEnvironment(business, url);
+    expect(isolated).toMatchObject({
+      DATABASE_URL: url,
+      TEST_DATABASE_URL: url,
+      EXPECTED_DATABASE_ID: "",
+      DATA_BACKUP_DIR: "",
+      RESTORE_DATABASE_URL: "",
+    });
+    expect(business.EXPECTED_DATABASE_ID).toBe("business-id");
+    expect(() => isolatedDatabaseEnvironment(business, business.DATABASE_URL)).toThrow();
+    expect(() =>
+      isolatedDatabaseEnvironment(business, "postgresql://localhost/other_business"),
+    ).toThrow();
+  });
   it("accepts only matching runner-owned database URLs", () => {
     expect(() => assertOwnedDatabase(env)).not.toThrow();
     for (const change of [

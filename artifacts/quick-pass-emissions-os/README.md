@@ -1,5 +1,7 @@
 # Quick Pass Business OS
 
+> Saved records live in persistent PostgreSQL, outside build files. Normal startup applies safe migrations and checks the storage connection. Read [DATA_PERSISTENCE.md](DATA_PERSISTENCE.md) before entering live records, changing databases or restoring backups.
+
 > This app now lives inside the shared pnpm workspace. Start with the
 > [repository README](../../README.md) for installation, builds, and normal Git
 > synchronization. The npm instructions below also apply to a standalone export

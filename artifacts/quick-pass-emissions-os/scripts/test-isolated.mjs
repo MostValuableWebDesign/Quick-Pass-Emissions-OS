@@ -5,11 +5,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs/promises";
 import os from "node:os";
+import { isolatedDatabaseEnvironment } from "./e2e-safety.mjs";
 
 const app = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const original = process.env.DATABASE_URL;
 const name = `quick_pass_verify_${randomUUID().replaceAll("-", "")}_test`;
 let testUrl = "";
+let isolatedEnv;
 let created = false;
 let admin;
 let child;
@@ -61,6 +63,7 @@ try {
   const url = new URL(original);
   url.pathname = `/${name}`;
   testUrl = url.toString();
+  isolatedEnv = isolatedDatabaseEnvironment(process.env, testUrl);
   admin = new PrismaClient({ datasources: { db: { url: original } } });
   // The identifier is generated here, never accepted from user input.
   await admin.$executeRawUnsafe(`CREATE DATABASE "${name}"`);
@@ -76,7 +79,7 @@ try {
     );
     await fs.mkdir(path.join(upgradeDir, "migrations"));
     for (const entry of await fs.readdir(path.join(app, "prisma/migrations"))) {
-      if (entry.startsWith("202610100006")) continue;
+      if (entry.startsWith("202610100006") || entry.startsWith("202610100007")) continue;
       await fs.cp(
         path.join(app, "prisma/migrations", entry),
         path.join(upgradeDir, "migrations", entry),
@@ -89,7 +92,7 @@ try {
       {
         cwd: app,
         encoding: "utf8",
-        env: { ...process.env, DATABASE_URL: testUrl },
+        env: isolatedEnv,
         maxBuffer: 2000000,
       },
     );
@@ -188,7 +191,7 @@ try {
     const upgrade = spawnSync("npm", ["run", "db:migrate"], {
       cwd: app,
       encoding: "utf8",
-      env: { ...process.env, DATABASE_URL: testUrl },
+      env: isolatedEnv,
       maxBuffer: 2000000,
     });
     if (upgrade.status !== 0) throw new Error("Isolated Phase 5 upgrade failed.");
@@ -212,7 +215,7 @@ try {
   for (const script of ["db:migrate", browser ? "test:e2e:owned" : "test"]) {
     if (interrupted) throw new Error("Isolated verification interrupted.");
     const result = await run(script, {
-      ...process.env,
+      ...isolatedEnv,
       DATABASE_URL: testUrl,
       TEST_DATABASE_URL: testUrl,
       E2E_OWNED_DATABASE: browser ? name : "",

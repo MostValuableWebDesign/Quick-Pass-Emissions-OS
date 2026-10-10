@@ -1,3 +1,16 @@
+export function isolatedDatabaseEnvironment(env, url) {
+  if (!new URL(url).pathname.endsWith("_test") || url === env.DATABASE_URL)
+    throw new Error("Verification must use a separate isolated test database.");
+  return {
+    ...env,
+    DATABASE_URL: url,
+    TEST_DATABASE_URL: url,
+    EXPECTED_DATABASE_ID: "",
+    DATA_BACKUP_DIR: "",
+    RESTORE_DATABASE_URL: "",
+  };
+}
+
 export function assertOwnedDatabase(env) {
   const name = env.E2E_OWNED_DATABASE;
   if (

@@ -1,5 +1,7 @@
 # Replit and GitHub handoff
 
+> Current storage/startup instructions: [DATA_PERSISTENCE.md](DATA_PERSISTENCE.md). Keep DATABASE_URL stable, pin the permanent storage ID per environment and configure managed backups. Normal dev/start scripts apply committed migrations without seeding or resetting data. Older standalone transfer instructions below are historical; use the root pnpm workspace commands.
+
 ## Current workspace and Phase 5
 
 The shared GitHub main is intended to contain the full pnpm workspace, with the original standalone app under `artifacts/quick-pass-emissions-os`. Both histories have been joined after reviewed Phase 4 integration; authentication/origin, safe native credential POST, password-change and workspace compatibility fixes remain. Use root `pnpm install --frozen-lockfile`; do not run root `npm ci`. Existing managed artifact workflow: `artifacts/quick-pass-emissions-os: web`.
@@ -12,11 +14,16 @@ The current Replit standard Turbopack production build succeeds; the old CSS-wor
 
 No production deployment, production migration, external sending or real persistent scheduler provisioning has been performed. See VERIFICATION.md for actual development/disposable-database/browser results. Provision backups/restore drills and confirm real owner settings separately.
 
-## Transfer
+## Transfer and source control
 
-The repository is portable source code. The prior published repository is MostValuableWebDesign/Quick-Pass-Emissions-OS; this current imported checkout has no configured remote. Phase 1 was previously pushed; Phases 2–4 are local changes until separately published. Import the provided complete Phase 4 source or publish it when authorized before expecting GitHub/Replit to contain these workflows. Review `.gitignore` before any transfer. Transfer only source, migrations, documentation and the lockfile. Never upload `.env`, `node_modules`, `.next`, browser traces or the parent work directory.
+The full workspace is published at MostValuableWebDesign/Quick-Pass-Emissions-OS. Import or
+pull the shared repository normally, preserving both joined histories. The business app is
+under artifacts/quick-pass-emissions-os; use root pnpm workspace commands. Transfer only
+source, migrations, documentation and the root lockfile. Never transfer .env, node_modules,
+.next, private database dumps, browser traces or work directories.
 
-Import that GitHub repository into Replit. Use Node 22.12+ (22/24 LTS) and install with `npm ci`. The included `.replit` uses standard npm commands; verify the deployment UI and port mapping for the selected Replit deployment. No Replit-specific library is required. GitHub remains the shared source of truth.
+Use Node 22.12+ (22/24 LTS recommended) and pnpm 10.26.1. Keep the managed web workflow and
+its stable port/router manifest. GitHub is source control, not a backup of entered records.
 
 ## Secrets and database
 
@@ -31,9 +38,9 @@ Provision an empty standard PostgreSQL database, then set Replit Secrets:
 Do not enable ALLOW_DEMO_SEED for deployment. The demo seed intentionally rejects remote databases. Use real administrator-entered records after owner bootstrap. Never copy the local demonstration database into production.
 
 ```sh
-npm ci
-npm run db:generate
-npm run db:migrate
+pnpm install --frozen-lockfile
+pnpm --filter @workspace/quick-pass-emissions-os db:generate
+pnpm --filter @workspace/quick-pass-emissions-os db:migrate
 ```
 
 Temporarily set BOOTSTRAP_EMAIL, BOOTSTRAP_NAME and a unique BOOTSTRAP_PASSWORD in Secrets, run `npm run bootstrap`, and remove the password variable. Bootstrap refuses any database that already contains users. Do not put real passwords in terminal command history.
@@ -41,11 +48,12 @@ Temporarily set BOOTSTRAP_EMAIL, BOOTSTRAP_NAME and a unique BOOTSTRAP_PASSWORD 
 ## Build and start
 
 ```sh
-npm run typecheck
-npm run lint
-npm test
-npm run build
-npm start
+pnpm run typecheck
+pnpm --filter @workspace/quick-pass-emissions-os lint
+pnpm --filter @workspace/quick-pass-emissions-os format:check
+pnpm --filter @workspace/quick-pass-emissions-os test:isolated
+pnpm run build:app
+pnpm --filter @workspace/quick-pass-emissions-os start
 ```
 
 The `.replit` deployment commands build first, then apply migrations and start the web server. In a multi-replica deployment, prefer one explicit release migration step before rolling out replicas. Only `prisma migrate deploy` belongs in production; never use migrate reset or development migration commands there.
@@ -69,13 +77,13 @@ Use a reliable external scheduler or a scheduled deployment to run `npm run jobs
 
 ## Prompt for the next Replit agent
 
-Read AGENTS.md, README.md, ARCHITECTURE.md, BUSINESS_RULES.md, OPEN_QUESTIONS.md and VERIFICATION.md. Inspect the current commit and working tree before edits. Continue Phases 1–4 deployment and owner configuration first; read PHASE2.md, PHASE3.md and PHASE4.md. Preserve Better Auth sessions, server-enforced ownership, PostgreSQL transactions, template/date uniqueness, versioned task updates and audit history. Run the documented checks; distinguish passed checks from skipped/database-unavailable checks. Do not implement Phase 5, seed financial facts, enable public signup, send external email or add regulated-system integrations without explicit authorization.
+Read AGENTS.md, README.md, ARCHITECTURE.md, BUSINESS_RULES.md, OPEN_QUESTIONS.md and VERIFICATION.md. Inspect the current commit and working tree before edits. Maintain existing Phases 1–5; read PHASE2.md through PHASE5.md and DATA_PERSISTENCE.md. Preserve the configured PostgreSQL database and its storage identity across updates. Preserve Better Auth sessions, server-enforced ownership, PostgreSQL transactions, template/date uniqueness, versioned task updates and audit history. Run the documented checks; distinguish passed checks from skipped/database-unavailable checks. Do not add new scope, seed financial facts, enable public signup, send external email, deploy or add regulated-system integrations without explicit authorization.
 
 ## Phase 2 deployment smoke test
 
 Apply migrations 002 and 003 after backing up existing data. Read PHASE2.md and assign independent preparer/reviewer accounts. In a disposable environment, verify owner configuration, personal count recording/approval, approved minutes and completeness, draft source freezing, separate review, approved-only CSV and persisted snapshots after restart. Verify employee direct access to both modules and export returns no data. Exercise initial physical stock, concurrent consumption, stale reconciliation, duplicate references, low-stock recommendation, independent purchase approval, external order record and partial receipts. Real compensation/stock must be configured from verified records; test fixtures are never production facts. Validate payroll CSV mapping with the real processor before use.
 
-If the host blocks Turbopack's CSS-worker socket, `npm run build -- --webpack` is the supported alternative. Local verification uses this alternate build and does not prove Replit deployment readiness.
+The standard Turbopack build is the default. The historical webpack fallback is available if a host blocks CSS-worker sockets; see VERIFICATION.md for the current tested build. A local build is not a deployed Replit smoke test.
 
 ## Phase 3 deployment smoke test
 

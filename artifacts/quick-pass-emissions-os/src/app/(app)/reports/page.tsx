@@ -7,14 +7,7 @@ import { operationalDatasets, type OperationalDataset } from "@/modules/automati
 import { BusinessError } from "@/modules/phase2";
 import { datasets as financeDatasets } from "@/modules/finance/service";
 import { PageHeader } from "@/components/shared";
-import {
-  Boundary,
-  ErrorPanel,
-  Phase5Nav,
-  RowsTable,
-  TotalsList,
-  fmtInstant,
-} from "@/components/phase5";
+import { Boundary, ErrorPanel, RowsTable, TotalsList, fmtInstant } from "@/components/phase5";
 import { Phase5Field as Field } from "@/components/phase5-field";
 const finance: OperationalDataset[] = ["certificates", "rental-charges"];
 export default async function Reports({
@@ -50,7 +43,6 @@ export default async function Reports({
         title="Operational reports"
         description="Entered operational records by Eastern date range. Not complete frozen books."
       />
-      <Phase5Nav role={user.role} />
       <section className="card card-body">
         <form method="get" className="form-grid" aria-label="Report filters">
           <Field label="Report">

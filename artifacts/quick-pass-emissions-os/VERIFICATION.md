@@ -97,3 +97,15 @@ The previous delivery passed 27 logic/database tests and 3 browser workflows, in
 Phase 1 limits remain: one shift per employee/date; one certification-expiry field; no task attachments; recurrence changes use pause/replacement plus audited overrides; closure/open-day changes do not rewrite existing instances; no self-service password recovery email. No real business database, Replit deployment, backup service, external scheduler, email delivery or accounting/regulated integration was verified during that baseline.
 
 Database tests truncate their explicitly isolated `_test` fixtures. `npm test` without TEST_DATABASE_URL skips database suites; never report skipped tests as passed. Never point test credentials at business data.
+
+## Navigation reorganization — October 10, 2026
+
+Desktop and mobile now share one role-filtered navigation definition, with Overview, Team & Tasks, Payroll, Inventory, Carwash & Maintenance, Dealerships & Billing, Reports, and Settings. Competing module navigation bars were removed. Registered detail links carry validated list/date/filter/page context, and restricted related-module references remain readable without offering an inaccessible link. Existing routes and server permissions are retained.
+
+- The isolated application suite passed 172 tests with no skips, including 31 navigation tests and migration/snapshot protection checks. A subsequent focused run passed those 31 navigation tests plus three new rendered record-link tests; the latter cover owners/managers, bookkeepers and employee module-link restrictions.
+- All nine browser checks were verified across desktop and mobile for OWNER, ADMIN, BOOKKEEPER and EMPLOYEE: eight valid checks in the full run, followed by a passing focused Bookkeeper rerun after correcting the expectation for the intentionally empty legacy Tasks view. This is not a claim that the initial full run was entirely green.
+- Checks covered same-tab links, permitted destinations, explicit server denials, active states, breadcrumbs, filtered record returns, date ranges, direct URLs, reload, history, independent sidebar scrolling, drawer focus in both directions, Escape/backdrop dismissal and common action discoverability.
+- Typecheck, ESLint, Prettier and the webpack production build passed on the navigation changes.
+- Browser writes and sign-ins used a separately bound disposable server and owned test database, not business data. Private credentials, states and caches were cleaned up, and the managed preview was restarted.
+
+See `docs/NAVIGATION.md` for maintenance and verification commands.

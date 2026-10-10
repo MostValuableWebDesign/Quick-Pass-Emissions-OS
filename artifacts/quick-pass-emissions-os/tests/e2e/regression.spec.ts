@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
+import { expandGroups } from "./navigation-helpers";
 
 test("public clients cannot open protected pages", async ({ browser, baseURL }) => {
   const context = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] } });
@@ -18,21 +19,12 @@ test("public clients cannot open protected pages", async ({ browser, baseURL }) 
 
 test("signed-in owner can use new operation navigation", async ({ page }) => {
   await page.goto("/dashboard");
-  const navigation = page.getByRole("navigation", { name: "Main navigation" });
-  for (const [label, route] of [
-    ["Payroll & commissions", "/payroll"],
-    ["Certificates", "/certificates"],
-    ["Carwash & bays", "/carwash"],
-    ["Maintenance", "/maintenance"],
-    ["Detailing rentals", "/rentals"],
-  ]) {
-    await navigation.getByRole("link", { name: label, exact: true }).click();
+  for (const route of ["/payroll", "/certificates", "/carwash", "/maintenance", "/rentals"]) {
+    const navigation = await expandGroups(page);
+    await navigation.locator(`a[href="${route}"]`).click();
     await expect(page).toHaveURL(new RegExp(`${route}$`));
     await expect(page.locator("main h1")).toBeVisible();
-    await expect(navigation.getByRole("link", { name: label, exact: true })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    await expect(navigation.locator(`a[href="${route}"]`)).toHaveAttribute("aria-current", "page");
   }
 });
 
@@ -43,7 +35,8 @@ test("protected vendor save survives reload through preview", async ({ page }) =
   checkpoint("opening");
   const name = `Regression Vendor ${randomUUID()}`;
   await page.goto("/carwash");
-  await page.getByRole("link", { name: "Vendors", exact: true }).click();
+  const navigation = await expandGroups(page);
+  await navigation.locator('a[href="/vendors"]').click();
   await expect(page).toHaveURL(/\/vendors$/);
   checkpoint("form");
   const form = page.locator("form").filter({

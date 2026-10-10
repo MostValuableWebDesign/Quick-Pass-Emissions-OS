@@ -6,7 +6,7 @@ if (!process.env.E2E_STORAGE_STATE || !process.env.E2E_PRIVATE_DIR || !process.e
 }
 export default defineConfig({
   testDir: "tests/e2e",
-  testMatch: "regression.spec.ts",
+  testMatch: ["regression.spec.ts", "navigation.spec.ts"],
   timeout: 120000,
   workers: 1,
   fullyParallel: false,

@@ -2,7 +2,7 @@ import { requireRole } from "@/lib/require-role";
 import { automationSettings } from "@/modules/automation/service";
 import { reminderKinds } from "@/modules/automation/rules";
 import { Empty, PageHeader } from "@/components/shared";
-import { Badge, ExternalDisabled, Phase5Nav, fmtInstant, jobTone } from "@/components/phase5";
+import { Badge, ExternalDisabled, fmtInstant, jobTone } from "@/components/phase5";
 import { ForecastForm, PolicyForm, RetryForm, ScheduleForm } from "@/components/phase5-forms";
 export default async function Automation() {
   const user = await requireRole(["OWNER"]);
@@ -15,7 +15,6 @@ export default async function Automation() {
         title="Automation configuration"
         description="Summary schedules, reminder policies, forecast windows, and durable job history."
       />
-      <Phase5Nav role={user.role} />
       <ExternalDisabled />
       <section className="card card-body" aria-labelledby="semantics">
         <h2 id="semantics">How scheduling works</h2>

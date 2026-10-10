@@ -3,14 +3,7 @@ import { businessDate } from "@/lib/time";
 import { registry } from "@/modules/maintenance/service";
 import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
-import {
-  DemoNotice,
-  MaintenanceNav,
-  RecordId,
-  TextField,
-  Reason,
-  ActiveField,
-} from "@/components/phase3";
+import { DemoNotice, RecordId, TextField, Reason, ActiveField } from "@/components/phase3";
 import { saveVendor } from "@/app/phase3-actions";
 type Vendor = Awaited<ReturnType<typeof registry>>["vendors"][number];
 function VendorForm({ vendor: v }: { vendor?: Vendor }) {
@@ -59,7 +52,6 @@ export default async function Vendors() {
         description="Enter contacts checked against business records. Existing assignments retain archived vendor history."
       />
       <DemoNotice demo={data.demo} />
-      <MaintenanceNav />
       <section className="card card-body">
         <h2>Add a verified vendor</h2>
         <VendorForm />

@@ -1,11 +1,11 @@
-import Link from "next/link";
+import { RecordLink } from "@/components/record-link";
 import { currentUser } from "@/lib/access";
 import { businessDate } from "@/lib/time";
 import { financeReport, datasets, categories } from "@/modules/finance/service";
 import { sumCents } from "@/modules/finance/rules";
 import { PageHeader } from "@/components/shared";
 import { DemoNotice, Money } from "@/components/phase3";
-import { FinanceNav, RangeForm, CompletenessNotice } from "@/components/finance";
+import { RangeForm, CompletenessNotice } from "@/components/finance";
 export default async function Reports({
   searchParams,
 }: {
@@ -22,7 +22,6 @@ export default async function Reports({
         title="Finance reports & exports"
         description="Dealership A/R aging and complete source records for accounting reconciliation."
       />
-      <FinanceNav />
       <DemoNotice demo={data.demo} />
       <CompletenessNotice />
       <section className="card card-body">
@@ -159,7 +158,7 @@ export default async function Reports({
                   <td>
                     {i.dealership.name}
                     <small>
-                      <Link href={`/invoices/${i.id}`}>{i.number}</Link>
+                      <RecordLink href={`/invoices/${i.id}`}>{i.number}</RecordLink>
                     </small>
                   </td>
                   <td>{i.dueDate}</td>

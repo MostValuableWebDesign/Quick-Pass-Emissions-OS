@@ -5,7 +5,6 @@ import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import {
   DemoNotice,
-  MaintenanceNav,
   RecordId,
   TextField,
   Reason,
@@ -64,7 +63,6 @@ export default async function Chemicals() {
         description="Physical stock, recorded usage, receipts, disposal, and low-stock thresholds."
       />
       <DemoNotice demo={data.demo} />
-      <MaintenanceNav />
       <p className="notice">
         Record milliliters, grams, or individual items as whole numbers. Convert packaging
         quantities before entry. Stock stays unknown until physically counted.

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { RecordLink } from "@/components/record-link";
 import { formatDate } from "@/lib/time";
 import { Empty } from "./shared";
 export function fmtInstant(v: string | Date | null | undefined) {
@@ -10,20 +10,6 @@ export function usd(cents: number | null | undefined) {
   if (cents === null || cents === undefined) return "Not recorded";
   const a = BigInt(Math.abs(cents));
   return `${cents < 0 ? "-" : ""}$${a / 100n}.${(a % 100n).toString().padStart(2, "0")} USD`;
-}
-export function Phase5Nav({ role }: { role: string }) {
-  const owner = role === "OWNER";
-  return (
-    <nav className="module-links" aria-label="Automation and reporting navigation">
-      {owner && <Link href="/overview">Live exceptions</Link>}
-      {owner && <Link href="/summaries">Summary archive</Link>}
-      {owner && <Link href="/automation">Automation settings</Link>}
-      <Link href="/reminders">Reminders</Link>
-      {["OWNER", "ADMIN", "BOOKKEEPER"].includes(role) && (
-        <Link href="/reports">Operational reports</Link>
-      )}
-    </nav>
-  );
 }
 export function Skeleton({ rows = 4 }: { rows?: number }) {
   return (
@@ -146,9 +132,9 @@ export function RowsTable({
                 ))}
                 <td>
                   {typeof r.href === "string" ? (
-                    <Link className="text-link" href={r.href}>
+                    <RecordLink className="text-link" href={r.href}>
                       Open
-                    </Link>
+                    </RecordLink>
                   ) : null}
                 </td>
               </tr>
@@ -308,9 +294,9 @@ export function ItemsTable({
                 <td>{it.date.includes("T") ? fmtInstant(it.date) : it.date}</td>
                 <td>{it.amountCents === null ? "" : usd(it.amountCents)}</td>
                 <td>
-                  <Link className="text-link" href={it.href}>
+                  <RecordLink className="text-link" href={it.href}>
                     Open record
-                  </Link>
+                  </RecordLink>
                 </td>
               </tr>
             ))}

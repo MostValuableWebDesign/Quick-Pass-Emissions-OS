@@ -12,19 +12,19 @@ export function assertOwnedDatabase(env) {
   }
 }
 
-export function assertCompleteReport(report) {
+export function assertCompleteReport(report, expected = 3) {
   const stats = report?.stats;
   // Never count empty, skipped, flaky/retried, or interrupted coverage as passing.
   if (
     !stats ||
-    stats.expected !== 3 ||
+    stats.expected !== expected ||
     stats.unexpected !== 0 ||
     stats.skipped !== 0 ||
     stats.flaky !== 0 ||
     report.errors?.length
   ) {
     throw new Error(
-      "Browser coverage incomplete: all three regression checks must pass without skips.",
+      "Browser coverage incomplete: every expected regression check must pass without skips.",
     );
   }
 }

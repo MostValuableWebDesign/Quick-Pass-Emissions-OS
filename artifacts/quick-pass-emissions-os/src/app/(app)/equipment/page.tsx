@@ -5,7 +5,6 @@ import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import {
   DemoNotice,
-  MaintenanceNav,
   RecordId,
   TextField,
   Reason,
@@ -76,7 +75,6 @@ export default async function Equipment() {
         description="Bay equipment, analyzer, kiosk, drain pits, and property assets."
       />
       <DemoNotice demo={data.demo} />
-      <MaintenanceNav />
       <section className="card card-body">
         <h2>Register an asset</h2>
         <EquipmentForm data={data} />

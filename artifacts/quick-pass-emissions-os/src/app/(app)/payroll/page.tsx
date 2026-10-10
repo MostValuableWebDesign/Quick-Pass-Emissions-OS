@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { RecordLink } from "@/components/record-link";
 import { currentUser } from "@/lib/access";
 import { businessDate } from "@/lib/time";
 import { payrollOverview } from "@/modules/payroll/service";
@@ -58,9 +58,9 @@ export default async function Payroll() {
           </ActionForm>
           {data.periods.map((p) => (
             <div className="list-row" key={p.id}>
-              <Link className="task-name" href={`/payroll/${p.id}`}>
+              <RecordLink className="task-name" href={`/payroll/${p.id}`}>
                 {p.label}
-              </Link>
+              </RecordLink>
               <span>
                 {p.startDate} — {p.endDate}
               </span>

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { RecordLink } from "@/components/record-link";
 import { currentUser } from "@/lib/access";
 import { businessDate } from "@/lib/time";
 import { invoiceOverview } from "@/modules/finance/service";
@@ -6,7 +6,6 @@ import { receivable } from "@/modules/finance/rules";
 import { PageHeader } from "@/components/shared";
 import { Field } from "@/components/action-form";
 import { Money, DemoNotice } from "@/components/phase3";
-import { FinanceNav } from "@/components/finance";
 import { Button } from "@/components/ui/button";
 export default async function Invoices({
   searchParams,
@@ -22,7 +21,6 @@ export default async function Invoices({
         title="Dealership invoices"
         description="Draft, approve, record external delivery, and track received payments. Create drafts from a dealership’s completed services."
       />
-      <FinanceNav />
       <DemoNotice demo={data.demo} />
       <section className="card card-body">
         <form className="form-grid" method="get">
@@ -59,9 +57,9 @@ export default async function Invoices({
                 return (
                   <tr key={i.id}>
                     <td>
-                      <Link className="task-name" href={`/invoices/${i.id}`}>
+                      <RecordLink className="task-name" href={`/invoices/${i.id}`}>
                         {i.number}
-                      </Link>
+                      </RecordLink>
                       <small>{i.dealership.name}</small>
                     </td>
                     <td>

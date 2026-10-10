@@ -1,8 +1,9 @@
+import { RecordLink } from "@/components/record-link";
 import Link from "next/link";
 import { requireRole } from "@/lib/require-role";
 import { summaryArchive } from "@/modules/automation/service";
 import { Empty, PageHeader } from "@/components/shared";
-import { Boundary, Phase5Nav, fmtInstant } from "@/components/phase5";
+import { Boundary, fmtInstant } from "@/components/phase5";
 export default async function Summaries() {
   const user = await requireRole(["OWNER"]);
   const list = await summaryArchive(user.id);
@@ -12,7 +13,6 @@ export default async function Summaries() {
         title="Consolidated summary archive"
         description="Immutable snapshots captured when each scheduled summary ran."
       />
-      <Phase5Nav role={user.role} />
       <Boundary>
         Each summary is a historical snapshot, not current figures or frozen books. For current
         state use <Link href="/overview">live exceptions</Link>.
@@ -46,9 +46,9 @@ export default async function Summaries() {
                       {s.periodStart} to {s.periodEnd}
                     </td>
                     <td>
-                      <Link className="text-link" href={`/summaries/${s.id}`}>
+                      <RecordLink className="text-link" href={`/summaries/${s.id}`}>
                         Open snapshot
-                      </Link>
+                      </RecordLink>
                     </td>
                   </tr>
                 ))}

@@ -1,3 +1,4 @@
+import { RecordLink } from "@/components/record-link";
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import { CheckCheck, Clock3, AlertTriangle, Users, ArrowUpRight, CalendarDays } from "lucide-react";
@@ -99,12 +100,6 @@ export default async function Dashboard() {
   const active = todays.filter((t) => t.status !== "CANCELLED").length;
   return (
     <>
-      <nav className="module-links" aria-label="Automation and reporting">
-        {user.role === "OWNER" && <Link href="/overview">Owner live exceptions</Link>}
-        {user.role === "OWNER" && <Link href="/summaries">Summary archive</Link>}
-        <Link href="/reminders">My reminders</Link>
-        {management && <Link href="/reports">Operational reports</Link>}
-      </nav>
       <PageHeader
         title="Your operations, at a glance."
         description={new Intl.DateTimeFormat("en-US", {
@@ -287,7 +282,7 @@ export default async function Dashboard() {
                     <span className="timeline-dot" />
                     <p>
                       <strong>{a.actorName}</strong> · {a.action.toLowerCase().replaceAll("_", " ")}
-                      <Link href={`/tasks/${a.task.id}`}>{a.task.title}</Link>
+                      <RecordLink href={`/tasks/${a.task.id}`}>{a.task.title}</RecordLink>
                       <small>{formatDate(a.createdAt)}</small>
                     </p>
                   </div>

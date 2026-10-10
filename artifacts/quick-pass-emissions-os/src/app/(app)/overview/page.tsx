@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireRole } from "@/lib/require-role";
 import { ownerOverview } from "@/modules/automation/service";
 import { PageHeader } from "@/components/shared";
-import { Boundary, InventoryTable, ItemsTable, Phase5Nav, fmtInstant } from "@/components/phase5";
+import { Boundary, InventoryTable, ItemsTable, fmtInstant } from "@/components/phase5";
 export default async function Overview() {
   const user = await requireRole(["OWNER"]);
   const data = await ownerOverview(user.id);
@@ -18,7 +18,6 @@ export default async function Overview() {
           Historical summaries
         </Link>
       </PageHeader>
-      <Phase5Nav role={user.role} />
       <Boundary>{data.limits}</Boundary>
       <section aria-label="Exception counts" className="stats-grid">
         <div className="card stat-card">

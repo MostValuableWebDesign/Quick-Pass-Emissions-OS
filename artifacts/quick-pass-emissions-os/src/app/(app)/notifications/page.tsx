@@ -1,3 +1,4 @@
+import { RecordLink } from "@/components/record-link";
 import Link from "next/link";
 import { currentUser } from "@/lib/access";
 import { db } from "@/lib/db";
@@ -39,7 +40,7 @@ export default async function Notifications() {
           alerts.map((a) => (
             <div className="list-row" key={a.id}>
               <div>
-                <Link
+                <RecordLink
                   className="task-name"
                   href={
                     a.taskId
@@ -50,7 +51,7 @@ export default async function Notifications() {
                   }
                 >
                   {a.title}
-                </Link>
+                </RecordLink>
                 <small>
                   {formatDate(a.createdAt)} · {a.readAt ? "Acknowledged" : "Unread"}
                 </small>
@@ -80,9 +81,9 @@ export default async function Notifications() {
           inbox.reminders.map((r) => (
             <div className="list-row" key={r.id}>
               <div>
-                <Link href={r.href} className="task-name">
+                <RecordLink href={r.href} className="task-name">
                   {r.title}
-                </Link>
+                </RecordLink>
                 <small>
                   {r.stage} · Due {r.dueDate} · Acknowledgement does not complete the source.
                 </small>
@@ -118,9 +119,9 @@ export default async function Notifications() {
           {inbox.summaries.length ? (
             inbox.summaries.map((d) => (
               <div className="list-row" key={d.id}>
-                <Link href={`/summaries/${d.summaryId}`} className="task-name">
+                <RecordLink href={`/summaries/${d.summaryId}`} className="task-name">
                   Historical summary: {d.summary?.periodStart} to {d.summary?.periodEnd}
-                </Link>
+                </RecordLink>
                 <small>
                   Delivered {formatDate(d.deliveredAt)}. Captured figures, not live values.
                 </small>

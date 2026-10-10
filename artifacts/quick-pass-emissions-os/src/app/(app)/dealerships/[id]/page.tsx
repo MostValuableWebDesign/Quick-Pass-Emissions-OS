@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { RecordLink } from "@/components/record-link";
 import { notFound } from "next/navigation";
 import { currentUser } from "@/lib/access";
 import { businessDate } from "@/lib/time";
@@ -7,7 +7,7 @@ import { receivable } from "@/modules/finance/rules";
 import { PageHeader } from "@/components/shared";
 import { ActionForm } from "@/components/action-form";
 import { DemoNotice, RecordId, TextField, ActiveField, Reason, Money } from "@/components/phase3";
-import { FinanceNav, DateField, AmountField } from "@/components/finance";
+import { DateField, AmountField } from "@/components/finance";
 import * as actions from "@/app/phase4-actions";
 export default async function Dealer({ params }: { params: Promise<{ id: string }> }) {
   const actor = await currentUser(),
@@ -22,7 +22,6 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
         title={d.name}
         description={`${d.code} · ${d.active ? "Active account" : "Archived account"}`}
       />
-      <FinanceNav />
       <DemoNotice demo={data.demo} />
       <section className="card card-body">
         <h2>Account & billing details</h2>
@@ -183,7 +182,7 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
                     {s.voidDate ? (
                       `Voided ${s.voidDate}`
                     ) : s.invoice ? (
-                      <Link href={`/invoices/${s.invoice.id}`}>{s.invoice.number}</Link>
+                      <RecordLink href={`/invoices/${s.invoice.id}`}>{s.invoice.number}</RecordLink>
                     ) : (
                       <>
                         Unbilled
@@ -235,7 +234,7 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
         <h2>Account invoices · latest 100</h2>
         {d.invoices.map((i) => (
           <p key={i.id}>
-            <Link href={`/invoices/${i.id}`}>{i.number}</Link> ·{" "}
+            <RecordLink href={`/invoices/${i.id}`}>{i.number}</RecordLink> ·{" "}
             {
               receivable(
                 { ...i, state: i.approvedAt ? i.state : "DRAFT" },

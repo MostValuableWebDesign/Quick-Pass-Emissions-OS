@@ -1,17 +1,11 @@
+import { RecordLink } from "@/components/record-link";
 import Link from "next/link";
 import { currentUser } from "@/lib/access";
 import { formatDate } from "@/lib/time";
 import { registry } from "@/modules/maintenance/service";
 import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
-import {
-  DemoNotice,
-  MaintenanceNav,
-  RecordId,
-  TextField,
-  Reason,
-  SelectField,
-} from "@/components/phase3";
+import { DemoNotice, RecordId, TextField, Reason, SelectField } from "@/components/phase3";
 import { configureBays, updateBay } from "@/app/phase3-actions";
 export default async function Carwash() {
   const actor = await currentUser(),
@@ -23,7 +17,6 @@ export default async function Carwash() {
         description="Six physical bays, recorded condition, responsibility, and downtime."
       />
       <DemoNotice demo={data.demo} />
-      <MaintenanceNav />
       {!data.bays.length && (
         <section className="card card-body">
           <h2>Confirm the six-bay layout</h2>
@@ -85,7 +78,7 @@ export default async function Carwash() {
               <summary>Maintenance history · latest 20 direct bay tickets</summary>
               {b.tickets.map((t) => (
                 <p key={t.id}>
-                  <Link href={`/maintenance/${t.id}`}>{t.title}</Link> ·{" "}
+                  <RecordLink href={`/maintenance/${t.id}`}>{t.title}</RecordLink> ·{" "}
                   {t.status.toLowerCase().replaceAll("_", " ")} · {t.targetDate}
                 </p>
               ))}

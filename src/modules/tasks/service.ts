@@ -1,0 +1,65 @@
+import { Prisma, type Role } from "@prisma/client";
+import { z } from "zod";
+import { db } from "../../lib/db";
+import { canAccessTask, canTransition, isManager } from "../../lib/policy";
+import { id, note, status } from "../../lib/validation";
+export type TaskActor = { id: string; name: string; role: Role; employee?: { id: string } | null };
+export const taskChange = z.object({
+  taskId: id,
+  version: z.coerce.number().int().min(0),
+  status,
+  note,
+});
+export async function changeTask(actor: TaskActor, input: z.infer<typeof taskChange>) {
+  const data = taskChange.parse(input);
+  return db.$transaction(
+    async (tx) => {
+      const task = await tx.taskInstance.findUniqueOrThrow({ where: { id: data.taskId } });
+      if (!canAccessTask(actor.role, actor.employee?.id, task.employeeId))
+        throw new Error("Task access denied.");
+      if (!canTransition(task.status, data.status, isManager(actor.role)))
+        throw new Error("This status change is not allowed.");
+      if (
+        (data.status === "BLOCKED" ||
+          data.status === "CANCELLED" ||
+          ["COMPLETED", "CANCELLED"].includes(task.status)) &&
+        !data.note
+      )
+        throw new Error("Please record a reason for this change.");
+      const changed = await tx.taskInstance.updateMany({
+        where: { id: task.id, version: data.version },
+        data: {
+          status: data.status,
+          version: { increment: 1 },
+          completedAt: data.status === "COMPLETED" ? new Date() : null,
+          reviewedAt: null,
+          reviewedBy: null,
+        },
+      });
+      if (!changed.count) throw new Error("This task changed. Refresh before trying again.");
+      await tx.taskEvent.create({
+        data: {
+          taskId: task.id,
+          actorId: actor.id,
+          actorName: actor.name,
+          action: data.status,
+          note: data.note,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: actor.id,
+          action: "TASK_STATUS",
+          entityId: task.id,
+          details: { from: task.status, to: data.status, reason: data.note },
+        },
+      });
+      if (["COMPLETED", "CANCELLED"].includes(data.status))
+        await tx.notification.updateMany({
+          where: { taskId: task.id },
+          data: { resolvedAt: new Date() },
+        });
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
+}

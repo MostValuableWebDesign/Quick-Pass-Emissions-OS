@@ -8,13 +8,15 @@ export default defineConfig({
   ...(process.env.E2E_STATION_ONLY === "1" ? { grep: /station report →/ } : {}),
   testDir: "tests/e2e",
   testMatch:
-    process.env.E2E_STATION_ONLY === "1"
-      ? ["station.spec.ts"]
-      : [
-          "regression.spec.ts",
-          "navigation.spec.ts",
-          ...(process.env.E2E_STATION_HISTORY === "1" ? ["station.spec.ts"] : []),
-        ],
+    process.env.E2E_IMPORT_ONLY === "1"
+      ? ["business-import.spec.ts"]
+      : process.env.E2E_STATION_ONLY === "1"
+        ? ["station.spec.ts"]
+        : [
+            "regression.spec.ts",
+            "navigation.spec.ts",
+            ...(process.env.E2E_STATION_HISTORY === "1" ? ["station.spec.ts"] : []),
+          ],
   timeout: 120000,
   workers: 1,
   fullyParallel: false,

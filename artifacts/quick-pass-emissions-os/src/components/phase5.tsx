@@ -155,7 +155,7 @@ export type Inv = {
   averageDailyUsage?: number | null;
   estimatedDaysRemaining?: number | null;
   depletionDate?: string | null;
-  threshold: number;
+  threshold: number | null;
   low: boolean;
   coverageDays: number;
   recordedConsumption: number;
@@ -164,7 +164,7 @@ export type Inv = {
   limits?: string;
   coverageStart?: string | null;
   lastPhysicalCountDate?: string | null;
-  planningLeadDays?: number;
+  planningLeadDays?: number | null;
 };
 export function InventoryTable({ inventory }: { inventory: Inv[] }) {
   if (!inventory.length)

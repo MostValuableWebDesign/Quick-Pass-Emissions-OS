@@ -39,22 +39,29 @@ export const bayInput = z.object({
   notes,
   reason,
 });
-export const vendorInput = z
+export const vendorReferenceInput = z
   .object({
     id: optionalId,
     version,
     name: label,
-    contact: label,
+    contact: z.string().trim().max(160),
     phone: z.string().trim().max(50),
     email: z.union([z.email().max(254), z.literal("")]),
     services: reason,
-    reference: label,
-    verifiedDate: dateString,
+    reference: z.string().trim().max(160),
+    verifiedDate: dateString.nullable(),
     notes,
     active: z.boolean(),
     reason,
   })
-  .refine((v) => !!v.phone || !!v.email, "Enter a verified phone or email.");
+  .refine(
+    (v) => !v.verifiedDate || (!!v.contact && !!v.reference && (!!v.phone || !!v.email)),
+    "Verified vendors need contact, source reference and phone or email.",
+  );
+export const vendorInput = vendorReferenceInput.refine(
+  (v) => !!v.verifiedDate,
+  "Enter a contact verification date.",
+);
 export const equipmentInput = z.object({
   id: optionalId,
   version,

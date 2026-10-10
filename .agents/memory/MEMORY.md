@@ -3,3 +3,4 @@
 - [Isolated Next browser checks](isolated-next-browser.md) — separate build caches do not prevent Next dev from rewriting shared TypeScript files.
 - [Private workflow fixtures](workflow-fixtures.md) — managed env files preserve outer quotes literally; privately verify exact datasource overrides before browser testing.
 - [Station portal access](station-portal-access.md) — successful login does not authorize unattended automation or establish stable report identities, payments or coverage.
+- [Private build traces](private-build-traces.md) — Git/deployment ignores do not govern Next dependency tracing; dynamic backup paths require separate privacy checks.

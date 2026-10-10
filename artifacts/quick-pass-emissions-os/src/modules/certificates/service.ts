@@ -149,13 +149,28 @@ export async function recordUsage(actorId: string, input: unknown) {
 async function forecast(tx: Tx, today: string) {
   const settings = await tx.certificateSetting.findUnique({ where: { id: "certificates" } });
   const stock = await tx.certificateStock.findUnique({ where: { id: "certificates" } });
-  if (!settings || !stock) return null;
+  if (
+    !settings ||
+    !stock ||
+    settings.windowDays === null ||
+    settings.reorderPoint === null ||
+    settings.leadDays === null
+  )
+    return null;
   const start = [stock.openingDate, addDays(today, 1 - settings.windowDays)].sort().at(-1)!;
   const used = await tx.certificateMovement.aggregate({
     where: { kind: { in: ["USAGE", "VOID"] }, date: { gte: start, lte: today } },
     _sum: { delta: true },
   });
-  return certificateForecast({ ...settings, ...stock, today, used: -(used._sum.delta ?? 0) });
+  return certificateForecast({
+    ...settings,
+    ...stock,
+    windowDays: settings.windowDays,
+    reorderPoint: settings.reorderPoint,
+    leadDays: settings.leadDays,
+    today,
+    used: -(used._sum.delta ?? 0),
+  });
 }
 export async function requestPurchase(actorId: string, input: unknown) {
   const data = z.object({ quantity, reason }).parse(input);

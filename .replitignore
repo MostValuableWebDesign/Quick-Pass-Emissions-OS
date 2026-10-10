@@ -7,3 +7,8 @@ artifacts/quick-pass-emissions-os/.next-e2e-*/
 .cache
 **/.cache/
 /generated-artifacts/
+/work/
+**/backups/
+*.dump
+*.dump.partial
+/attached_assets/

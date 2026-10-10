@@ -181,7 +181,7 @@ export default async function Certificates() {
                   type="number"
                   min="0"
                   max="1000000"
-                  defaultValue={data.settings?.reorderPoint}
+                  defaultValue={data.settings?.reorderPoint ?? ""}
                   required
                 />
               </Field>
@@ -191,7 +191,7 @@ export default async function Certificates() {
                   type="number"
                   min="0"
                   max="365"
-                  defaultValue={data.settings?.leadDays}
+                  defaultValue={data.settings?.leadDays ?? ""}
                   required
                 />
               </Field>
@@ -201,7 +201,7 @@ export default async function Certificates() {
                   type="number"
                   min="7"
                   max="90"
-                  defaultValue={data.settings?.windowDays}
+                  defaultValue={data.settings?.windowDays ?? ""}
                   required
                 />
               </Field>

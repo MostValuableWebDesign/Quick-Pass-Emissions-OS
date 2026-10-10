@@ -8,8 +8,23 @@ export async function forecasts(tx: Tx, today: string) {
   const stock = await tx.certificateStock.findUnique({ where: { id: "certificates" } });
   const settings = await tx.certificateSetting.findUnique({ where: { id: "certificates" } });
   const cp = policy("certificates");
+  const configuredSettings =
+    settings &&
+    settings.windowDays !== null &&
+    settings.leadDays !== null &&
+    settings.reorderPoint !== null
+      ? {
+          ...settings,
+          windowDays: settings.windowDays,
+          leadDays: settings.leadDays,
+          reorderPoint: settings.reorderPoint,
+        }
+      : null;
   const certificateConfig =
-    cp ?? (settings ? { ...settings, minimumDays: settings.windowDays } : null);
+    cp ??
+    (configuredSettings
+      ? { ...configuredSettings, minimumDays: configuredSettings.windowDays }
+      : null);
   const result = [];
   if (certificateConfig) {
     const start = [stock?.openingDate ?? today, addDays(today, 1 - certificateConfig.windowDays)]
@@ -31,7 +46,7 @@ export async function forecasts(tx: Tx, today: string) {
         openingDate: stock?.openingDate ?? null,
         balance: stock?.balance ?? null,
         ...certificateConfig,
-        threshold: cp?.threshold ?? settings!.reorderPoint,
+        threshold: cp?.threshold ?? configuredSettings!.reorderPoint,
         used: sumCents(movements.map((m) => -m.delta)),
       }),
       lastPhysicalCountDate: stock?.reconciledDate ?? null,
@@ -82,8 +97,8 @@ export async function forecasts(tx: Tx, today: string) {
     result.push({
       key: item.id,
       name: item.name,
-      unit: item.unit,
-      configured: !!p,
+      unit: item.unit ?? "UNCONFIGURED",
+      configured: !!p && !!item.unit,
       ...depletion({
         today,
         openingDate: opening?.date ?? null,
@@ -91,7 +106,7 @@ export async function forecasts(tx: Tx, today: string) {
         windowDays: p?.windowDays ?? 7,
         minimumDays: p?.minimumDays ?? 7,
         leadDays: p?.leadDays ?? 0,
-        threshold: p?.threshold ?? item.reorderPoint,
+        threshold: p?.threshold ?? item.reorderPoint ?? 0,
         used: sumCents(movements.map((m) => -m.delta)),
       }),
       lastPhysicalCountDate:
@@ -101,7 +116,8 @@ export async function forecasts(tx: Tx, today: string) {
             orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           })
         )?.date ?? null,
-      ...(!p ? { state: "UNCONFIGURED" } : {}),
+      ...(!p || !item.unit ? { state: "UNCONFIGURED" } : {}),
+      ...(!p ? { threshold: item.reorderPoint, planningLeadDays: null } : {}),
       limits:
         "USAGE plus DISPOSAL measures physical depletion, not service demand. Receipts/count corrections excluded. No unit conversion; unrecorded days do not prove zero consumption.",
     });

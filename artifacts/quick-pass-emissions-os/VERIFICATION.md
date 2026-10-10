@@ -1,5 +1,54 @@
 # Verification and handoff status
 
+## Controlled configuration import — 2026-10-10
+
+Commands completed on the final implementation:
+
+- `pnpm run typecheck`: all workspace targets passed, including Canvas and the Next app.
+- `pnpm --filter @workspace/quick-pass-emissions-os lint`: passed.
+- `pnpm --filter @workspace/quick-pass-emissions-os format:check`: passed.
+- `pnpm --filter @workspace/quick-pass-emissions-os test:isolated`: **24 files, 217 tests passed**;
+  includes 13 dedicated import tests plus upgrade/historical snapshot sentinels.
+- `pnpm run build:app`: passed. One dynamically resolved backup-directory tracing
+  warning remains; explicit trace exclusions were added. Emitted server trace paths were
+  inspected separately for private inputs (not source contents).
+
+Actual application and code publication are separate:
+
+- Privately pinned, owner-verified **development-preview business database**, not the scaffold
+  database or production. Successful full custom-format backups were required before
+  additive migration and business application; archives stayed private/mode `0600` and
+  were checked with `pg_restore --list`.
+- Reviewed dry run: **14 created, 0 updated, 0 unchanged, 0 conflicted, 16 skipped/staged**.
+  Applied counts matched. Populated records: nine unverified vendor references, four chemical
+  catalog names/notes and the certificate minimum setting.
+- A repeat application made **0 created, 0 updated, 14 unchanged, 0 conflicted, 16 skipped**;
+  a final read-only preview reported those same counts. One durable import ledger remained.
+- Read-only persistence checks verified all 30 source sections/items, matching source/actor/
+  database provenance, supplier correction fields and retained protected identifiers.
+  No financial, stock-movement, compensation, schedule, bay/layout, rental or task records
+  were created. Unit, balances, thresholds, assignments and missing dates stayed unconfigured.
+- Private source, target IDs, actor identifiers, sealed manifests/receipts and backups are
+  intentionally excluded from this public verification note and Git.
+- No production deployment, production application, external order/message or ACH execution.
+
+**Browser limitation — do not count the focused suite as passed:** the isolated owner flow
+reached dry-run, backup/application, reloadable review history, chemical unknown states and
+supplier exclusion, and saved certificate minimum. A synthetic desktop screenshot confirms
+the unknown-unit/threshold/stock/supplier state. Two test-selector defects were corrected
+(collapsed evidence also contains review text; vendor submit is `Update vendor`).
+A narrowly attempted continuation fixture then failed before the remaining assertions;
+that unsuccessful continuation-only branch was removed rather than shipped.
+The full selected browser test currently exists but has not completed successfully.
+Independent verification, subsequent staff-edit UI, role-denial UI and **mobile checks remain
+unverified**, despite passing database tests for those backend restrictions/conflicts.
+Temporary test databases and private browser state were removed. The import task remains open
+pending this verification gap; do not infer completion from publication or saved data alone.
+
+See [BUSINESS_IMPORT.md](docs/BUSINESS_IMPORT.md) for mapping, preview/apply/retry procedures,
+the owner review list and missing evidence. Required decisions stay in owner-only saved
+review history; no compensation, commission or recurrence policy was activated.
+
 ## Navigation reorganization — October 10, 2026
 
 Desktop and mobile now share one role-filtered navigation definition, with Overview, Team & Tasks, Payroll, Inventory, Carwash & Maintenance, Dealerships & Billing, Reports, and Settings. Competing module navigation bars were removed. Registered detail links carry validated list/date/filter/page context, and restricted related-module references remain readable without offering an inaccessible link. Existing routes and server permissions are retained.

@@ -127,6 +127,9 @@ async function main() {
     E2E_BASE_URL: baseURL,
     E2E_PRIVATE_DIR: temporary,
     E2E_STORAGE_STATE: state,
+    ...(process.env.E2E_IMPORT_ONLY === "1"
+      ? { DATA_BACKUP_DIR: path.join(temporary, "backups") }
+      : {}),
     // NixOS workspace Chromium; other machines may use Playwright's installed browser.
     E2E_CHROMIUM_PATH: process.env.E2E_CHROMIUM_PATH ?? "/repl/tools/bin/chromium",
     ...(process.env.E2E_STATION_HISTORY === "1" ? { GA_STATION_ID: "SYNTHETIC" } : {}),
@@ -341,14 +344,22 @@ async function main() {
     throw new Error("Signed-in browser regression failed; sensitive diagnostics were not printed.");
   assertCompleteReport(
     report,
-    process.env.E2E_STATION_ONLY === "1" ? 1 : process.env.E2E_STATION_HISTORY === "1" ? 11 : 9,
+    process.env.E2E_IMPORT_ONLY === "1"
+      ? 1
+      : process.env.E2E_STATION_ONLY === "1"
+        ? 1
+        : process.env.E2E_STATION_HISTORY === "1"
+          ? 11
+          : 9,
   );
   console.log(
-    process.env.E2E_STATION_ONLY === "1"
-      ? "Passed: 1 targeted station lifecycle check; no skips."
-      : process.env.E2E_STATION_HISTORY === "1"
-        ? "Passed: 11 signed-in browser checks including station report review, reconciliation, coverage, export and access restrictions; no skips."
-        : "Passed: 9 signed-in browser checks, including four-role desktop/mobile navigation, return context, history, authorization and vendor persistence; no skips.",
+    process.env.E2E_IMPORT_ONLY === "1"
+      ? "Passed: 1 complete owner import desktop/mobile journey including backup, reloads, unknown configuration, verification gates, staff-edit conflicts and role restrictions; no skips."
+      : process.env.E2E_STATION_ONLY === "1"
+        ? "Passed: 1 targeted station lifecycle check; no skips."
+        : process.env.E2E_STATION_HISTORY === "1"
+          ? "Passed: 11 signed-in browser checks including station report review, reconciliation, coverage, export and access restrictions; no skips."
+          : "Passed: 9 signed-in browser checks, including four-role desktop/mobile navigation, return context, history, authorization and vendor persistence; no skips.",
   );
   if (process.env.E2E_MANUAL_TEST === "1") {
     console.log("Private browser checks completed; preview remains available for visual review.");

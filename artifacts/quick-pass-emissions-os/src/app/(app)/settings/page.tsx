@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { removeClosure, saveClosure, saveSettings, triggerJobs } from "@/app/actions";
 import { storageStatus } from "@/modules/storage/service";
+import Link from "next/link";
 export default async function Settings() {
   const actor = await manager();
   const storage = actor.role === "OWNER" ? await storageStatus(actor.id) : null;
@@ -26,6 +27,11 @@ export default async function Settings() {
       />
       {storage && (
         <section className="card card-body">
+          <p>
+            <Link href="/settings/import">
+              Business configuration import & unresolved decisions
+            </Link>
+          </p>
           <h2>Data storage & recovery</h2>
           <p>
             Saved records are kept in PostgreSQL, separately from application builds. Restarting or

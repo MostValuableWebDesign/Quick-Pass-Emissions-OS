@@ -1,5 +1,8 @@
 # Operator runbook
 
+For reviewed reference configuration, source mapping, backup-gated preview/apply and
+resumable conflict handling, read [Business configuration import](BUSINESS_IMPORT.md).
+
 > Storage identity, safe startup, optional pre-migration full backups and guarded restore: [DATA_PERSISTENCE.md](../DATA_PERSISTENCE.md). Provider backups must still be configured independently.
 
 ## Station reports and performance

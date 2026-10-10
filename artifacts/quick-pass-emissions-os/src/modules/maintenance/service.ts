@@ -12,11 +12,10 @@ export async function activeEmployee(tx: Tx, employeeId: string | null) {
   );
 }
 export async function activeVendor(tx: Tx, vendorId: string | null) {
-  if (vendorId)
-    requireRule(
-      (await tx.vendor.findUnique({ where: { id: vendorId } }))?.active,
-      "Choose an active verified vendor.",
-    );
+  if (vendorId) {
+    const vendor = await tx.vendor.findUnique({ where: { id: vendorId } });
+    requireRule(vendor?.active && vendor.verifiedDate, "Choose an active verified vendor.");
+  }
 }
 export async function validTarget(tx: Tx, bayId: string | null, equipmentId: string | null) {
   if (bayId)
@@ -101,20 +100,24 @@ export async function updateBay(actorId: string, input: unknown) {
   });
 }
 export async function saveVendor(actorId: string, input: unknown) {
-  const { id: recordId, version, reason, ...data } = v.vendorInput.parse(input);
-  return phase3(actorId, managers, async (tx) => {
+  const data = v.vendorInput.parse(input);
+  return phase3(actorId, managers, (tx) => saveVendorInTransaction(tx, actorId, data));
+}
+// Shared mutation boundary for validated manual records and unverified imported references.
+export async function saveVendorInTransaction(tx: Tx, actorId: string, input: unknown) {
+  const { id: recordId, version, reason, ...data } = v.vendorReferenceInput.parse(input);
+  if (data.verifiedDate)
     requireRule(data.verifiedDate <= businessDate(), "Verification date cannot be in the future.");
-    const before = recordId ? await tx.vendor.findUnique({ where: { id: recordId } }) : null;
-    if (recordId) current(before, version);
-    const row = recordId
-      ? await tx.vendor.update({
-          where: { id: recordId },
-          data: { ...data, version: { increment: 1 } },
-        })
-      : await tx.vendor.create({ data });
-    await audit(tx, actorId, "VENDOR_SAVED", row.id, { before, after: data, reason });
-    return row;
-  });
+  const before = recordId ? await tx.vendor.findUnique({ where: { id: recordId } }) : null;
+  if (recordId) current(before, version);
+  const row = recordId
+    ? await tx.vendor.update({
+        where: { id: recordId },
+        data: { ...data, version: { increment: 1 } },
+      })
+    : await tx.vendor.create({ data });
+  await audit(tx, actorId, "VENDOR_SAVED", row.id, { before, after: data, reason });
+  return row;
 }
 export async function saveEquipment(actorId: string, input: unknown) {
   const { id: recordId, version, reason, ...data } = v.equipmentInput.parse(input);
@@ -430,7 +433,7 @@ export async function maintenanceOverview(actorId: string) {
               select: { id: true, user: { select: { name: true } } },
             }),
             vendors: await tx.vendor.findMany({
-              where: { active: true },
+              where: { active: true, verifiedDate: { not: null } },
               select: { id: true, name: true },
             }),
           }
@@ -546,6 +549,9 @@ export async function maintenanceSummary(actorId: string) {
         where: { active: true, balance: { not: null } },
         select: { id: true, name: true, balance: true, reorderPoint: true },
       })
-      .then((items) => items.filter((i) => i.balance! <= i.reorderPoint).length),
+      .then(
+        (items) =>
+          items.filter((i) => i.reorderPoint !== null && i.balance! <= i.reorderPoint).length,
+      ),
   }));
 }

@@ -12,6 +12,13 @@ import { commissionCents, periodAmounts, sumCents, csvCell } from "../payroll/ca
 import { audit } from "../phase2";
 import { estimateTests, elapsedMinutes, operatingMinutes, type Hours } from "./projections";
 import { digest } from "./report";
+import {
+  compareTrends,
+  employeePerformance,
+  previousRange,
+  testBreakdown,
+  trendPeriod,
+} from "./analytics";
 
 async function payEvidence(
   tx: Tx,
@@ -209,24 +216,42 @@ export async function performance(actorId: string, input: unknown, now = new Dat
       ? pricedAll.filter((r) => r.employeeId === query.employeeId)
       : pricedAll;
     const estimated = pricedAll.filter((r) => r.estimatedCents !== null);
-    const days = [];
     const corrections = await correctionBoundaries(tx, hash);
-    for (let date = query.start; date <= query.end; date = addDays(date, 1)) {
-      const daily = all.filter((r) => r.source.businessDate === date);
-      days.push({
-        date,
-        attested:
-          daily.length > 0 &&
-          coverage.some(
-            (r) =>
-              r.startDate <= date &&
-              r.endDate >= date &&
-              coverageAfterCorrections(r.reviewedAt, date, corrections) &&
-              daily.every((v) => v.state === "CONFIRMED" && v.source.observedAt <= r.reviewedAt!),
-          ),
-        pending: daily.filter((r) => r.state !== "CONFIRMED").length,
-      });
-    }
+    const rangeCoverage = (records: typeof all, start: string, end: string) => {
+      const result = [];
+      for (let date = start; date <= end; date = addDays(date, 1)) {
+        const daily = records.filter((r) => r.source.businessDate === date);
+        result.push({
+          date,
+          attested:
+            daily.length > 0 &&
+            coverage.some(
+              (r) =>
+                r.startDate <= date &&
+                r.endDate >= date &&
+                coverageAfterCorrections(r.reviewedAt, date, corrections) &&
+                daily.every((v) => v.state === "CONFIRMED" && v.source.observedAt <= r.reviewedAt!),
+            ),
+          pending: daily.filter((r) => r.state !== "CONFIRMED").length,
+        });
+      }
+      return result;
+    };
+    const days = rangeCoverage(all, query.start, query.end);
+    const priorRange = previousRange(query.start, query.end);
+    const priorRecords = priorRange
+      ? await currentRecords(tx, hash, priorRange.start, priorRange.end)
+      : [];
+    const trendInputs = { settings, closures: closures.map((c) => c.date), now };
+    const trends = trendPeriod({ ...trendInputs, ...query, records: all, coverage: days });
+    const priorTrends = priorRange
+      ? trendPeriod({
+          ...trendInputs,
+          ...priorRange,
+          records: priorRecords,
+          coverage: rangeCoverage(priorRecords, priorRange.start, priorRange.end),
+        })
+      : null;
     const latestSettings = settings.find((s) => s.effectiveDate <= businessDate(now));
     const observations = [];
     if (latestSettings) {
@@ -344,6 +369,11 @@ export async function performance(actorId: string, input: unknown, now = new Dat
       stationRecorded: all.filter((r) => r.state === "CONFIRMED").length,
       stationPending: all.filter((r) => r.state !== "CONFIRMED").length,
       groups: [...groups.values()],
+      breakdown: testBreakdown(all),
+      trends,
+      priorTrends,
+      comparison: compareTrends(trends, priorTrends),
+      employeePerformance: employeePerformance({ ...query, records: priced, pay }),
       estimatedRevenueCents: estimated.length
         ? sumCents(estimated.map((r) => r.estimatedCents!))
         : null,

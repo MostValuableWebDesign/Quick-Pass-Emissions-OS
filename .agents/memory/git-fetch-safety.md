@@ -24,3 +24,11 @@ The native Git-provider connection is separate from an application GitHub connec
 **Why:** Native CLI pushes rejected the credential despite a healthy source-control connection status and again after the user reconnected to a new native connection. The independent GitHub App could read and write the same repository. Source-control connect/reconnect cards rejected native connection IDs.
 
 **How to apply:** Verify actual Git access rather than trusting connection status. For native reauthorization use account settings → Git Providers, following official documentation. Do not repeat reconnect loops after a confirmed reconnect still fails. An authorized GitHub App is an independent write path, not a repair of native Git authentication; verify its repository permission separately and never extract credentials.
+
+## Paused merge state
+
+Re-check both `HEAD` and `MERGE_HEAD` before finalizing manually resolved conflicts. A checkpoint alone is not proof that incoming changes were merged.
+
+**Why:** A workspace reset during a paused merge cleared the incoming staged changes and merge state, then left an empty checkpoint. The conflict-free working tree still lacked the incoming feature.
+
+**How to apply:** Confirm the intended merge state immediately before staging and committing. Verify that the resulting commit has both parents and includes the incoming tip before running long checks or pushing. If the merge state vanished, compare the current tree and retry a normal merge; never infer success from the absence of conflict markers.

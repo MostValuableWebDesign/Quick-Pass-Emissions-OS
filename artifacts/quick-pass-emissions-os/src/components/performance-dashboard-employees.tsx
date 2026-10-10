@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import type { DashboardEmployee, PayProfile } from "@/modules/station/dashboard-types";
 import { usd, num } from "./performance-dashboard-format";
@@ -19,7 +19,7 @@ const COLS: [Key, string, boolean][] = [
 const sumKnown = (rows: DashboardEmployee[], k: "baseCents" | "commissionCents" | "payCents" | "cars" | "revenueCents") =>
   rows.some((r) => r[k] === null) ? null : rows.reduce((a, r) => a + (r[k] ?? 0), 0);
 
-export function EmployeeTable({ employees, profiles = [] }: { employees: DashboardEmployee[]; profiles?: PayProfile[] }) {
+export function EmployeeTable({ employees, profiles = [], panelActions }: { employees: DashboardEmployee[]; profiles?: PayProfile[]; panelActions?: ReactNode }) {
   const [sort, setSort] = useState<{ key: Key; dir: 1 | -1 }>({ key: "payCents", dir: -1 });
   const [q, setQ] = useState("");
   const rows = useMemo(() => {
@@ -45,9 +45,10 @@ export function EmployeeTable({ employees, profiles = [] }: { employees: Dashboa
   return (
     <section className="pd-card" aria-label="Employees">
       <div className="pd-card-h">
-        <div>
+        <div className="pd-card-title">
           <h2>Employees</h2>
           <p>Estimated pay for the selected dates. Not payroll.</p>
+          {panelActions}
         </div>
         <input
           className="pd-search"

@@ -12,6 +12,8 @@ import { EmployeeTable } from "./performance-dashboard-employees";
 import { PerformanceCalendar } from "./performance-calendar";
 import { PayPlanDialog } from "./performance-dashboard-pay";
 import { instant, longDate, num, usd } from "./performance-dashboard-format";
+import { PerformanceDashboardPanels, usePerformanceDashboardLayout } from "./performance-dashboard-panels";
+import type { DashboardPanelId } from "./performance-dashboard-layout";
 
 export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
   const router = useRouter();
@@ -21,6 +23,7 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
   const busy = useRef(false);
   const { start, end, trendDays, employee } = initial.query;
   const q = useMemo(() => ({ start, end, trendDays, employee }), [start, end, trendDays, employee]);
+  const panelLayout = usePerformanceDashboardLayout();
 
   const load = useCallback(async (refresh: boolean) => {
     if (busy.current) return;
@@ -95,6 +98,9 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
           <Link className="button button-outline" href="/performance/settings" data-testid="link-setup">
             <SlidersHorizontal size={15} /> Records
           </Link>
+          <button type="button" className="button button-outline" onClick={panelLayout.reset} data-testid="button-reset-panel-layout">
+            Reset panels
+          </button>
         </div>
       </header>
 
@@ -163,10 +169,20 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
         />
       </div>
 
-      <div className="pd-grid">
-        <PerformanceTrend series={data.series} filtered={filtered} />
-        <EmployeeTable employees={data.employees} profiles={data.payPlan.profiles} />
-      </div>
+      <PerformanceDashboardPanels
+        layout={panelLayout.layout}
+        onMove={panelLayout.move}
+        onResize={panelLayout.resize}
+        onDrop={(id: DashboardPanelId, target: DashboardPanelId) => {
+          const targetIndex = panelLayout.layout.findIndex((panel) => panel.id === target);
+          panelLayout.move(id, targetIndex);
+        }}
+        renderPanel={(id, controls) => id === "trend" ? (
+          <PerformanceTrend series={data.series} filtered={filtered} panelActions={controls} />
+        ) : (
+          <EmployeeTable employees={data.employees} profiles={data.payPlan.profiles} panelActions={controls} />
+        )}
+      />
     </div>
   );
 }

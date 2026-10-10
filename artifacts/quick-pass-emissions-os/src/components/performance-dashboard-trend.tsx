@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import {
   Area,
   CartesianGrid,
@@ -16,7 +17,7 @@ import { shortDate, usd } from "./performance-dashboard-format";
 
 type Metric = "cars" | "revenue";
 
-export function PerformanceTrend({ series, filtered }: { series: DashboardData["series"]; filtered: boolean }) {
+export function PerformanceTrend({ series, filtered, panelActions }: { series: DashboardData["series"]; filtered: boolean; panelActions?: ReactNode }) {
   const [metric, setMetric] = useState<Metric>("cars");
   const rows = series.map((s) => ({
     date: s.date,
@@ -28,12 +29,13 @@ export function PerformanceTrend({ series, filtered }: { series: DashboardData["
   return (
     <section className="pd-card" aria-label="Trend">
       <div className="pd-card-h">
-        <div>
+        <div className="pd-card-title">
           <h2>Trend</h2>
           <p>
             {series.length} days{gaps ? ` · ${gaps} without data shown as gaps` : ""}
             {filtered && metric === "cars" ? " · line is station total" : ""}
           </p>
+          {panelActions}
         </div>
         <div className="pd-seg" role="group" aria-label="Trend metric">
           {(["cars", "revenue"] as Metric[]).map((m) => (

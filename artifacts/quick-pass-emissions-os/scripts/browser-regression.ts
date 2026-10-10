@@ -294,7 +294,10 @@ async function main() {
   }
   if (interrupted) throw new Error("Browser verification interrupted.");
   stage = "signed-in browser navigation and form persistence";
-  tests = start("pnpm", ["exec", "playwright", "test"], env);
+  const playwrightArgs = ["exec", "playwright", "test"];
+  if (process.env.E2E_PERFORMANCE_PANELS === "1")
+    playwrightArgs.push("tests/e2e/performance-panels.spec.ts");
+  tests = start("pnpm", playwrightArgs, env);
   const status = await new Promise<number | null>((resolve) => {
     tests!.once("close", resolve);
     tests!.once("error", () => resolve(null));
@@ -375,7 +378,9 @@ async function main() {
     throw new Error("Signed-in browser regression failed; sensitive diagnostics were not printed.");
   assertCompleteReport(
     report,
-    process.env.E2E_CERTIFICATE_UX === "1"
+    process.env.E2E_PERFORMANCE_PANELS === "1"
+      ? 1
+      : process.env.E2E_CERTIFICATE_UX === "1"
       ? 5
       : process.env.E2E_SUPPORT_ONLY === "1"
       ? 1
@@ -392,7 +397,9 @@ async function main() {
                 : 10,
   );
   console.log(
-    process.env.E2E_CERTIFICATE_UX === "1"
+    process.env.E2E_PERFORMANCE_PANELS === "1"
+      ? "Passed: 1 signed-in performance panel drag, resize, persistence, keyboard-accessibility and reset check; no skips."
+      : process.env.E2E_CERTIFICATE_UX === "1"
       ? "Passed: 5 focused protected certificate portal UX checks across owner, bookkeeper and employee roles; isolated synthetic balance, threshold persistence and access verified; no skips."
       : process.env.E2E_SUPPORT_ONLY === "1"
       ? "Passed: 1 complete Service & Support desktop/mobile flow with directory management, contact history, narrow employee provider association and private role exclusions; no skips."

@@ -50,6 +50,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "dashboard", roles: ALL },
       { href: "/overview", label: "Owner exceptions", icon: "gauge", roles: OWNER_ONLY },
+      { href: "/performance", label: "Performance", icon: "chart", roles: OWNER_ONLY },
       { href: "/reminders", label: "Reminders", icon: "reminder", roles: ALL },
       { href: "/notifications", label: "Notifications", icon: "bell", roles: ALL },
     ],
@@ -187,6 +188,8 @@ export const ROUTES: RouteDef[] = [
   detail("/invoices/:id", "Invoice", "/invoices", FINANCE),
   detail("/rentals/:id", "Rental agreement", "/rentals", FINANCE),
   detail("/summaries/:id", "Summary", "/summaries", OWNER_ONLY),
+  detail("/performance/settings", "Performance setup", "/performance", OWNER_ONLY),
+  detail("/performance/tests/:id", "Station test evidence", "/performance", OWNER_ONLY),
 ];
 
 const ID_SEGMENT = /^[A-Za-z0-9_-]{1,64}$/;

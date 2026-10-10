@@ -33,6 +33,10 @@ async function run(script, env) {
     let output = "";
     child.stdout.on("data", (chunk) => {
       output += chunk;
+      if (script === "test:e2e:owned" && env.E2E_MANUAL_TEST === "1") {
+        // Owned runner emits only fixed status and private paths, never auth/process logs.
+        process.stdout.write(redact(chunk));
+      }
     });
     child.stderr.on("data", (chunk) => {
       output += chunk;
@@ -76,7 +80,7 @@ try {
     );
     await fs.mkdir(path.join(upgradeDir, "migrations"));
     for (const entry of await fs.readdir(path.join(app, "prisma/migrations"))) {
-      if (entry.startsWith("202610100006")) continue;
+      if (entry.startsWith("202610100006") || entry.startsWith("202610100007")) continue;
       await fs.cp(
         path.join(app, "prisma/migrations", entry),
         path.join(upgradeDir, "migrations", entry),
@@ -205,7 +209,7 @@ try {
     });
     if (before !== after) throw new Error("Upgrade changed a sentinel snapshot.");
     console.log(
-      "Phase 4 → Phase 5 upgrade retained approved payroll, approved invoice and signed reversal sentinel snapshots.",
+      "Phase 4 → Phase 5 + station history upgrade retained approved payroll, approved invoice and signed reversal sentinel snapshots.",
     );
     await fixture.$disconnect();
   }

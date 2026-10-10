@@ -12,6 +12,7 @@ const config: NextConfig = {
   logging: { incomingRequests: false },
   experimental: {
     serverActions: {
+      bodySizeLimit: "3mb",
       allowedOrigins: previewServerActionHosts(process.env),
     },
   },

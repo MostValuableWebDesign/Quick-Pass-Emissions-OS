@@ -96,7 +96,7 @@ export async function navigationFixtures(db: PrismaClient, password: string, own
       },
       notes: "Disposable navigation fixture only",
       createdBy: ownerId,
-      approvedBy: ownerId,
+      approvedBy: users.find((user) => user.role === "ADMIN")!.id,
       approvedAt: new Date("2026-01-02T12:00:00Z"),
     },
   });

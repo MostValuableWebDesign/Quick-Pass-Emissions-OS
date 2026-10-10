@@ -2,3 +2,4 @@
 - [Git safety and synchronization](git-fetch-safety.md) — outer fetch permission is required; the user wants the full workspace synchronized on shared GitHub main without force-pushing.
 - [Isolated Next browser checks](isolated-next-browser.md) — separate build caches do not prevent Next dev from rewriting shared TypeScript files.
 - [Private workflow fixtures](workflow-fixtures.md) — managed env files preserve outer quotes literally; privately verify exact datasource overrides before browser testing.
+- [Station portal access](station-portal-access.md) — successful login does not authorize unattended automation or establish stable report identities, payments or coverage.

@@ -1,5 +1,9 @@
 # Operator runbook
 
+## Station reports and performance
+
+Read [STATION_HISTORY.md](../STATION_HISTORY.md) before importing or reconciling station data. Use **Performance → Setup & imports**, original portal HTML `.xls` files for the configured station only, explicit identity/exception review, all-page total comparison and owner coverage attestation. New source revisions require renewed coverage review. Reconciliation replaces an existing personal daily count and clears approval; a different authorized reviewer approves through Payroll. Draft/approved periods remain frozen. No raw exports/sessions are retained, no portal refresh scheduler runs, and forecasts with an unverified current cutoff say **Insufficient data**. Never combine station price estimates with global finance receipts or approved dealership billing.
+
 ## Phase 5 durable worker
 
 Read PHASE5.md. Run the existing CLI or authenticated POST independently every 15 minutes with the same deployment database and confirmed configuration. No traffic/page timer is needed. Check the owner **Automation** page for pending backlog, RUNNING lease expiry, attempts/backoff, terminal FAILED jobs and delivery revocations. A five-minute interrupted claim can be reclaimed on the next trigger; four attempts terminate with an observable failure. Fix connectivity/migration/configuration before using the audited owner **Authorize retry** action. Schedule revisions supersede unfinished old-revision work, never earlier saved summaries.

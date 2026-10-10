@@ -11,7 +11,7 @@ import {
   requireRule,
   type Tx,
 } from "../phase2";
-import { MAX_CENTS, commissionCents, hourlyCents, sumCents, csvCell } from "./calculations";
+import { MAX_CENTS, commissionCents, periodAmounts, sumCents, csvCell } from "./calculations";
 const integer = (max: number) => z.coerce.number().int().min(0).max(max);
 const reason = z.string().trim().min(1).max(2000);
 const version = integer(2147483647);
@@ -70,6 +70,69 @@ async function assertDatesOpen(tx: Tx, start: string, end: string) {
     !frozen,
     "This date is frozen by a payroll draft or approval. Return the draft before correcting its sources.",
   );
+}
+// Shared count correction path for explicit owner station reconciliation.
+// The caller holds personnel -> Phase 2 -> finance -> station locks; no nested transaction.
+export async function reconcileStationCount(
+  tx: Tx,
+  actorId: string,
+  data: {
+    employeeId: string;
+    date: string;
+    count: number;
+    expectedVersion: number;
+    sourceRef: string;
+    reason: string;
+  },
+) {
+  emissionInput.parse(data);
+  const actor = await tx.user.findUnique({ where: { id: actorId } });
+  requireRule(actor?.active && actor.role === "OWNER", "Owner access is required.");
+  await assertDatesOpen(tx, data.date, data.date);
+  const old = await tx.dailyEmission.findUnique({
+    where: { employeeId_date: { employeeId: data.employeeId, date: data.date } },
+  });
+  requireRule(
+    old ? old.version === data.expectedVersion : data.expectedVersion === 0,
+    "Personal count changed. Refresh before replacing it.",
+  );
+  if (!old) {
+    const row = await tx.dailyEmission.create({
+      data: {
+        employeeId: data.employeeId,
+        date: data.date,
+        count: data.count,
+        sourceRef: data.sourceRef,
+        reason: data.reason,
+        createdBy: actorId,
+      },
+    });
+    await audit(tx, actorId, "EMISSIONS_RECORDED", row.id, data);
+    return row;
+  }
+  const row = await tx.dailyEmission.update({
+    where: { id: old.id },
+    data: {
+      count: data.count,
+      reason: data.reason,
+      version: { increment: 1 },
+      createdBy: actorId,
+      approvedBy: null,
+      approvedAt: null,
+    },
+  });
+  await audit(tx, actorId, "EMISSIONS_CORRECTED", row.id, {
+    before: {
+      count: old.count,
+      version: old.version,
+      approvedBy: old.approvedBy,
+      sourceRef: old.sourceRef,
+    },
+    after: data,
+    sourceRefRetained: true,
+    approval: "Independent approval required again.",
+  });
+  return row;
 }
 async function openPeriod(tx: Tx, periodId: string) {
   const period = await tx.payrollPeriod.findUnique({
@@ -350,10 +413,6 @@ export async function generateDraft(actorId: string, periodId: string) {
         arrangement.kind === "HOURLY" || input.minutes === 0,
         "Choose zero minutes for fixed compensation; the configured amount covers one entire period.",
       );
-      const baseCents =
-        arrangement.kind === "FIXED"
-          ? arrangement.amountCents
-          : hourlyCents(arrangement.amountCents, input.minutes);
       const policies = await tx.commissionPolicy.findMany({
         where: { employeeId: input.employeeId, effectiveDate: { lte: period.endDate } },
         orderBy: { effectiveDate: "desc" },
@@ -386,13 +445,23 @@ export async function generateDraft(actorId: string, periodId: string) {
             cents: commissionCents(c.count, policy.threshold, policy.rateCents, policy.eligible),
           };
         });
-      const commission = sumCents(daily.map((d) => d.cents));
+      const amounts = periodAmounts(
+        arrangement,
+        input.minutes,
+        daily.map((d) => d.cents),
+      );
+      requireRule(
+        amounts.baseCents !== null &&
+          amounts.commissionCents !== null &&
+          amounts.totalCents !== null,
+        "Payroll period inputs are incomplete.",
+      );
       lines.push({
         employeeId: input.employeeId,
         employeeName: input.employee.user.name,
-        baseCents,
-        commissionCents: commission,
-        totalCents: sumCents([baseCents, commission]),
+        baseCents: amounts.baseCents,
+        commissionCents: amounts.commissionCents,
+        totalCents: amounts.totalCents,
         snapshot: {
           period: { startDate: period.startDate, endDate: period.endDate },
           arrangement: {

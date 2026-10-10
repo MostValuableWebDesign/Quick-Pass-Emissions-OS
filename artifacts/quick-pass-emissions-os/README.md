@@ -7,6 +7,8 @@
 
 A PostgreSQL-backed Phases 1–5 business application for Quick Pass Emissions, Tag Renewal & Carwash. Next.js App Router, TypeScript, React, Tailwind, a shadcn-style Button primitive, Lucide, Prisma, Better Auth, and Zod. No real business records or financial balances are included.
 
+**Station performance:** the owner-only **Performance** view adds verified original-report imports, explicit identity/coverage/count review, revenue evidence separation and existing-payroll explanations. Live portal synchronization and current-day earnings forecasts remain unverified/unsupported, not simulated. Read [STATION_HISTORY.md](STATION_HISTORY.md) for secure setup, source discovery, operating instructions and limitations.
+
 ## Quick start
 
 Use Node.js 22.12+ (22 or 24 LTS recommended), npm, and PostgreSQL 16+. Actual validation for this delivery is recorded in [VERIFICATION.md](VERIFICATION.md).

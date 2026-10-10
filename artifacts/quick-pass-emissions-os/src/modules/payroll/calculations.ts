@@ -30,6 +30,32 @@ export function commissionCents(
 export function sumCents(values: number[]) {
   return exactCents(values.reduce((sum, v) => sum + BigInt(boundedInteger(v)), 0n));
 }
+/** Shared actual-period engine for payroll drafts and provisional explanations.
+ * Approval/completeness checks belong to callers; missing inputs stay null.
+ */
+export function periodAmounts(
+  arrangement: { kind: "FIXED" | "HOURLY"; amountCents: number } | null,
+  minutes: number | null,
+  dailyCommissions: (number | null)[],
+) {
+  const baseCents =
+    arrangement && minutes !== null
+      ? arrangement.kind === "FIXED"
+        ? minutes === 0
+          ? boundedInteger(arrangement.amountCents)
+          : null
+        : hourlyCents(arrangement.amountCents, minutes)
+      : null;
+  const commission = dailyCommissions.every((n): n is number => n !== null)
+    ? sumCents(dailyCommissions)
+    : null;
+  return {
+    baseCents,
+    commissionCents: commission,
+    totalCents:
+      baseCents !== null && commission !== null ? sumCents([baseCents, commission]) : null,
+  };
+}
 export function formatMoney(cents: number) {
   boundedInteger(cents);
   return `$${Math.floor(cents / 100).toLocaleString("en-US")}.${String(cents % 100).padStart(2, "0")}`;

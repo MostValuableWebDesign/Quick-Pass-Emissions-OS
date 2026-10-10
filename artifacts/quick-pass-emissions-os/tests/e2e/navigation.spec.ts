@@ -41,10 +41,11 @@ for (const role of ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"] as const) {
               : [];
       for (const href of forbidden) {
         expect(hrefs).not.toContain(href);
-        const response = await context.request.get(href);
-        expect(response.status(), `Server must deny ${role} access to ${href}`).toBeGreaterThan(
-          399,
+        const response = await context.request.get(href, { maxRedirects: 0 });
+        expect([303, 307, 401, 403], `Server must deny ${role} access to ${href}`).toContain(
+          response.status(),
         );
+        if (response.status() < 400) expect(response.headers().location).toBe("/dashboard");
         await response.dispose();
       }
       await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
@@ -144,6 +145,7 @@ test("selected weeks and report dates survive navigation, refresh and Back/Forwa
 }) => {
   await page.goto("/schedule?date=2026-01-01");
   await page.getByRole("link", { name: /Next week/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("date")).toBe("2026-01-08");
   await page.goBack();
   await expect.poll(() => new URL(page.url()).searchParams.get("date")).toBe("2026-01-01");
   await page.reload();

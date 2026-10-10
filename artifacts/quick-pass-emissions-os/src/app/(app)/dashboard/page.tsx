@@ -1,4 +1,5 @@
 import { RecordLink } from "@/components/record-link";
+import { CertificateOrderLink } from "@/components/certificate-order-link";
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import { CheckCheck, Clock3, AlertTriangle, Users, ArrowUpRight, CalendarDays } from "lucide-react";
@@ -139,6 +140,9 @@ export default async function Dashboard() {
                 : `Certificate reorder needed: ${certificates.stock.balance} recorded in stock.`}{" "}
               Review certificates →
             </Link>
+            {certificates.stock && certificates.settings && certificates.estimate?.low && (
+              <CertificateOrderLink role={user.role} alert />
+            )}
           </div>
         )}
       {maintenance && (

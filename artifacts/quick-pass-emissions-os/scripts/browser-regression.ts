@@ -357,24 +357,28 @@ async function main() {
     throw new Error("Signed-in browser regression failed; sensitive diagnostics were not printed.");
   assertCompleteReport(
     report,
-    process.env.E2E_IMPORT_ONLY === "1"
+    process.env.E2E_SUPPORT_ONLY === "1"
       ? 1
-      : process.env.E2E_STATION_ONLY === "1"
+      : process.env.E2E_IMPORT_ONLY === "1"
         ? 1
-        : process.env.E2E_STATION_HISTORY === "1"
-          ? 11
-          : 9,
+        : process.env.E2E_STATION_ONLY === "1"
+          ? 1
+          : process.env.E2E_STATION_HISTORY === "1"
+            ? 11
+            : 9,
   );
   console.log(
-    process.env.E2E_IMPORT_ONLY === "1"
-      ? process.env.E2E_IMPORT_REMAINDER === "1"
-        ? "Passed: 1 targeted remaining import UI flow including supplier verification/dropdowns, saved staff changes, mobile repeat conflicts and role restrictions; no skips."
-        : "Passed: 1 complete owner import desktop/mobile journey including backup, reloads, unknown configuration, verification gates, staff-edit conflicts and role restrictions; no skips."
-      : process.env.E2E_STATION_ONLY === "1"
-        ? "Passed: 1 targeted station lifecycle check; no skips."
-        : process.env.E2E_STATION_HISTORY === "1"
-          ? "Passed: 11 signed-in browser checks including station report review, reconciliation, coverage, export and access restrictions; no skips."
-          : "Passed: 9 signed-in browser checks, including four-role desktop/mobile navigation, return context, history, authorization and vendor persistence; no skips.",
+    process.env.E2E_SUPPORT_ONLY === "1"
+      ? "Passed: 1 complete Service & Support desktop/mobile flow with directory management, contact history, narrow employee provider association and private role exclusions; no skips."
+      : process.env.E2E_IMPORT_ONLY === "1"
+        ? process.env.E2E_IMPORT_REMAINDER === "1"
+          ? "Passed: 1 targeted remaining import UI flow including supplier verification/dropdowns, saved staff changes, mobile repeat conflicts and role restrictions; no skips."
+          : "Passed: 1 complete owner import desktop/mobile journey including backup, reloads, unknown configuration, verification gates, staff-edit conflicts and role restrictions; no skips."
+        : process.env.E2E_STATION_ONLY === "1"
+          ? "Passed: 1 targeted station lifecycle check; no skips."
+          : process.env.E2E_STATION_HISTORY === "1"
+            ? "Passed: 11 signed-in browser checks including station report review, reconciliation, coverage, export and access restrictions; no skips."
+            : "Passed: 9 signed-in browser checks, including four-role desktop/mobile navigation, return context, history, authorization and vendor persistence; no skips.",
   );
   if (process.env.E2E_MANUAL_TEST === "1") {
     console.log("Private browser checks completed; preview remains available for visual review.");

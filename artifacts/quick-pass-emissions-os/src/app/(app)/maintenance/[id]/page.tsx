@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { currentUser } from "@/lib/access";
 import { formatDate } from "@/lib/time";
 import { managers } from "@/modules/phase3";
@@ -7,6 +8,8 @@ import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { DemoNotice, RecordId, TextField, Reason, SelectField, Money } from "@/components/phase3";
 import { updateTicket, assignTicket } from "@/app/phase3-actions";
+import { ticketSupport } from "@/modules/support/service";
+import { selectTicketProvider } from "@/app/support-actions";
 import type { Prisma } from "@prisma/client";
 function historyNote(details: Prisma.JsonValue) {
   if (!details || typeof details !== "object" || Array.isArray(details)) return "";
@@ -25,6 +28,7 @@ export default async function Ticket({ params }: { params: Promise<{ id: string 
     t = detail.ticket;
   if (!t) notFound();
   const managerTicket = detail.management ? detail.ticket : null;
+  const support = await ticketSupport(actor.id, id);
   const data = await maintenanceOverview(actor.id),
     management = managers.includes(actor.role),
     closed = ["COMPLETED", "CANCELLED"].includes(t.status);
@@ -37,6 +41,43 @@ export default async function Ticket({ params }: { params: Promise<{ id: string 
         description={`${t.bay?.identifier ?? t.equipment?.name} · ${t.status.toLowerCase().replaceAll("_", " ")} · due ${t.targetDate}`}
       />
       <DemoNotice demo={data.demo} />
+      <section className="card card-body">
+        <h2>Service &amp; Support</h2>
+        {support.assigned ? (
+          <p>
+            Associated provider:{" "}
+            <Link href={`/vendors/${support.assigned.id}`}>{support.assigned.name}</Link>
+            {!support.assigned.active && " · archived (historical reference)"}
+          </p>
+        ) : (
+          <p>No provider associated.</p>
+        )}
+        {support.relevant.map((p) => (
+          <p key={p.id}>
+            Supports this target: <Link href={`/vendors/${p.id}`}>{p.name}</Link>
+            {!p.active && " · archived"}
+          </p>
+        ))}
+        <p>
+          <Link href="/vendors">Open Service &amp; Support directory</Link>
+        </p>
+        {!closed && (
+          <ActionForm action={selectTicketProvider} submit="Associate provider only">
+            <RecordId id={t.id} version={t.version} />
+            <SelectField
+              name="vendorId"
+              label="Active verified provider"
+              options={support.choices}
+              value={support.assigned?.active ? support.assigned.id : null}
+            />
+            <Reason label="Provider association reason" />
+          </ActionForm>
+        )}
+        <p>
+          Provider selection does not change assignments, costs, deadlines, progress or manager
+          review.
+        </p>
+      </section>
       <section className="card card-body">
         <h2>Reported issue</h2>
         <p className="preserve-lines">{t.description}</p>

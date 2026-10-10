@@ -9,6 +9,12 @@ Performance revenue is estimated at $20 per Pass/Fail; aborts are excluded. Shop
 
 **How to apply:** Employee filtering may narrow personal tests/revenue/pay, but must never change the underlying shop-wide commission threshold. Keep these projections separate from reviewed identities and frozen/approved payroll.
 
+Retests are free tests and must not be counted as cars. Identify them by reading the individual VIR; the station test-history export alone cannot confirm a retest.
+
+**Why:** The user explicitly said retests are free and should not count as cars, and confirmed the VIR must be read to identify them.
+
+**How to apply:** Exclude only verified retests from car and paying-test totals. Do not infer retest status from the aggregate export alone.
+
 Monday–Saturday are available workdays, while emissions staff normally work five ten-hour shifts. Individual days off were not specified; some actual hours vary.
 
 **Why:** The user selected all six available weekdays but separately confirmed five ten-hour workdays. Automatically assigning all six would overstate base pay.

@@ -32,13 +32,15 @@ describe("role-filtered navigation", () => {
       expect.arrayContaining(["/payroll", "/invoices", "/reports", "/reminders", "/roadmap"]),
     );
   });
-  it("employees get operational routes only", () => {
+  it("employees get operational routes only, without the removed team section", () => {
     const h = hrefs("EMPLOYEE");
     expect(h).toEqual(
-      expect.arrayContaining(["/tasks", "/schedule", "/maintenance", "/notifications", "/vendors"]),
+      expect.arrayContaining(["/maintenance", "/notifications", "/vendors"]),
     );
     for (const r of [
       "/payroll",
+      "/tasks",
+      "/schedule",
       "/employees",
       "/tasks/templates",
       "/maintenance/plans",
@@ -46,7 +48,19 @@ describe("role-filtered navigation", () => {
     ])
       expect(h).not.toContain(r);
     expect(navForRole("EMPLOYEE").map((s) => s.id)).not.toContain("payroll");
+    expect(navForRole("EMPLOYEE").map((s) => s.id)).not.toContain("team");
     expect(matchRoute("/vendors/provider-1")?.parent).toBe("/vendors");
+  });
+  it("removes the Team & Tasks section from the navigation for all roles", () => {
+    for (const role of ["OWNER", "ADMIN", "MANAGER", "BOOKKEEPER", "EMPLOYEE"]) {
+      const sections = navForRole(role);
+      expect(sections.some((s) => s.id === "team" || s.label === "Team & Tasks")).toBe(false);
+      expect(sections.flatMap((s) => s.items).map((item) => item.href))
+        .not.toEqual(expect.arrayContaining(["/tasks", "/schedule", "/tasks/templates", "/employees"]));
+    }
+    // Pages/data remain intact and may still be opened directly by an authorized user.
+    expect(matchRoute("/tasks")).toBeDefined();
+    expect(matchRoute("/employees")).toBeDefined();
   });
   it("owner-only routes are owner-only; admin sees managers routes", () => {
     expect(hrefs("ADMIN")).not.toContain("/automation");
@@ -66,8 +80,8 @@ describe("route matching", () => {
   it("prefers static over id routes and longest nav match", () => {
     expect(matchRoute("/tasks/templates")?.title).toBe("Task templates");
     expect(matchRoute("/tasks/abc123")?.title).toBe("Task detail");
-    expect(activeNavHref("/tasks/templates", "OWNER")).toBe("/tasks/templates");
-    expect(activeNavHref("/tasks/abc", "OWNER")).toBe("/tasks");
+    expect(activeNavHref("/tasks/templates", "OWNER")).toBeUndefined();
+    expect(activeNavHref("/tasks/abc", "OWNER")).toBeUndefined();
     expect(activeNavHref("/finance/reports", "BOOKKEEPER")).toBe("/finance/reports");
     expect(activeNavHref("/maintenance/plans", "ADMIN")).toBe("/maintenance/plans");
     expect(activeNavHref("/maintenance/t1", "EMPLOYEE")).toBe("/maintenance");

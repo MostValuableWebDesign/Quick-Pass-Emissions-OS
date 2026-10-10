@@ -28,6 +28,12 @@ export default async function Dashboard() {
           <Link className="text-link" href="/payroll">
             Open payroll & commissions →
           </Link>
+          <Link className="text-link" href="/reminders">
+            Open my reminders →
+          </Link>
+          <Link className="text-link" href="/reports">
+            Open operational reports →
+          </Link>
           <Link className="text-link" href="/certificates">
             Open certificate records →
           </Link>
@@ -93,6 +99,12 @@ export default async function Dashboard() {
   const active = todays.filter((t) => t.status !== "CANCELLED").length;
   return (
     <>
+      <nav className="module-links" aria-label="Automation and reporting">
+        {user.role === "OWNER" && <Link href="/overview">Owner live exceptions</Link>}
+        {user.role === "OWNER" && <Link href="/summaries">Summary archive</Link>}
+        <Link href="/reminders">My reminders</Link>
+        {management && <Link href="/reports">Operational reports</Link>}
+      </nav>
       <PageHeader
         title="Your operations, at a glance."
         description={new Intl.DateTimeFormat("en-US", {

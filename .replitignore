@@ -4,3 +4,5 @@
 # No need to store the pnpm store twice.
 .local
 artifacts/quick-pass-emissions-os/.next-e2e-*/
+.cache
+/generated-artifacts/

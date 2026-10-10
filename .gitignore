@@ -47,6 +47,7 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+/generated-artifacts/
 
-# User uploads may contain private input; do not publish new uploads automatically.
+# New untracked user uploads may contain private input; do not publish automatically.
 /attached_assets/

@@ -1,3 +1,4 @@
 - [Preview authentication boundaries](preview-auth-boundaries.md) — imported Next APIs can conflict with the scaffold router; credential forms must be safe before hydration.
 - [Git safety and synchronization](git-fetch-safety.md) — outer fetch permission is required; the user wants the full workspace synchronized on shared GitHub main without force-pushing.
 - [Isolated Next browser checks](isolated-next-browser.md) — separate build caches do not prevent Next dev from rewriting shared TypeScript files.
+- [Private workflow fixtures](workflow-fixtures.md) — managed env files preserve outer quotes literally; privately verify exact datasource overrides before browser testing.

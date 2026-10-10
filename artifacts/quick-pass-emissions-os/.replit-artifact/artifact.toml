@@ -1,14 +1,14 @@
 kind = "web"
 previewPath = "/"
 title = "Quick Pass Emissions OS"
-description = "Quick Pass Business OS: workforce operations, payroll, inventory, maintenance, dealership billing and operational finance. Imports the Phases 1–4 GitHub application into the shared Replit workspace."
+description = "Quick Pass Business OS: operational responsibilities, payroll preparation, inventory, maintenance, dealership billing, finance, owner summaries and internal reminders."
 version = "1.0.0"
 id = "artifacts/quick-pass-emissions-os"
 router = "path"
 
 [[services]]
 name = "web"
-paths = [ "/", "/api/auth", "/api/sign-in", "/api/jobs", "/api/payroll", "/api/finance", "/_next/hmr" ]
+paths = [ "/", "/api/auth", "/api/sign-in", "/api/jobs", "/api/payroll", "/api/finance", "/api/reports", "/_next/hmr" ]
 localPort = 24786
 
 [services.development]

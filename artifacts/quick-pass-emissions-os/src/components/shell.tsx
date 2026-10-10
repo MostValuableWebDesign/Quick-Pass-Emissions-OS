@@ -23,6 +23,9 @@ import {
   Wrench,
   Car,
   KeyRound,
+  Gauge,
+  BarChart3,
+  BellRing,
 } from "lucide-react";
 import { Button } from "./ui/button";
 const authClient = createAuthClient();
@@ -67,6 +70,17 @@ export function Shell({
           { href: "/finance", label: "Finance & reports", icon: Wallet },
         ]
       : []),
+    ...(role === "OWNER"
+      ? [
+          { href: "/overview", label: "Owner exceptions", icon: Gauge },
+          { href: "/summaries", label: "Summary archive", icon: BarChart3 },
+          { href: "/automation", label: "Automation", icon: Settings },
+        ]
+      : []),
+    ...(["OWNER", "ADMIN", "BOOKKEEPER"].includes(role)
+      ? [{ href: "/reports", label: "Operational reports", icon: BarChart3 }]
+      : []),
+    { href: "/reminders", label: "Reminders", icon: BellRing },
     { href: "/notifications", label: "Notifications", icon: Bell },
     { href: "/account/password", label: "Account & password", icon: ShieldCheck },
     ...(manager ? [{ href: "/settings", label: "Settings & audit", icon: Settings }] : []),
@@ -181,7 +195,7 @@ export function Shell({
         </header>
         <main id="main">{children}</main>
         <footer className="page-footer">
-          Quick Pass Business OS <span>Phases 1–4 · Business workspace</span>
+          Quick Pass Business OS <span>Phases 1–5 · Business workspace</span>
         </footer>
       </div>
     </div>

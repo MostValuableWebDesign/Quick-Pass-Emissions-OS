@@ -6,7 +6,7 @@ export default async function Roadmap() {
     <>
       <PageHeader
         title="Built in deliberate steps"
-        description="Operations, payroll, inventory, carwash, maintenance, rentals, dealerships, and finance are available. Phase 5 remains planned."
+        description="Operations, payroll, inventory, maintenance, rentals, billing and internal automation are available locally. A real persistent scheduler requires separate setup; see verification guidance for publication status."
       />
       <div className="roadmap-grid">
         {[
@@ -28,13 +28,11 @@ export default async function Roadmap() {
           {
             phase: 5,
             title: "Automation & insight",
-            text: "Owner reporting, advanced notifications, inventory forecasts, and approved integrations.",
+            text: "Owner snapshots, source-linked internal reminders, inventory estimates, complete operational CSV and durable independently triggered jobs. External sending stays disabled.",
           },
         ].map((p) => (
           <section className="card card-body" key={p.phase}>
-            <span className="badge neutral">
-              Phase {p.phase} · {p.phase <= 4 ? "Implemented" : "Planned"}
-            </span>
+            <span className="badge neutral">Phase {p.phase} · Implemented locally</span>
             <h2>{p.title}</h2>
             <p className="muted">{p.text}</p>
           </section>

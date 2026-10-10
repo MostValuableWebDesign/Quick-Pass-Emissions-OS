@@ -70,7 +70,12 @@ export async function generateMaintenance(
     include: { assigned: { include: { user: true } } },
   });
   const liveKeys: string[] = [];
+  const automationPolicy = await tx.reminderPolicy.findFirst({
+    where: { kind: "MAINTENANCE" },
+    orderBy: { revision: "desc" },
+  });
   for (const ticket of late) {
+    if (automationPolicy?.active) continue; // Phase 5 replaces, rather than duplicates, these alerts.
     const recipients = new Set(managers.map((u) => u.id));
     if (ticket.assigned?.user.active && ticket.assigned.user.role !== "BOOKKEEPER")
       recipients.add(ticket.assigned.userId);

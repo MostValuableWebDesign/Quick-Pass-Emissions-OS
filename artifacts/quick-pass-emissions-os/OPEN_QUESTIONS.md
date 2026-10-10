@@ -1,5 +1,7 @@
 # Owner decisions before operational use
 
+Before live Phase 5 use: confirm daily/weekly Eastern summary times, weekday, closure behavior; policy advance/escalation days and authorized regular/escalation recipients for each domain; inventory observation windows, minimum usable history, planning leads and per-unit thresholds; person responsible for missed-run/terminal-failure review and persistent scheduler/dead-man monitoring. No values are inferred from business examples. Confirm whether zero days before escalation means immediate maintenance escalation once its due instant passes.
+
 1. Who is the owner account holder, who can be general manager, and who verifies employee identity before delivering an invite?
 2. Confirm actual opening days, operating hours, holiday calendar, task due times, weekend duties and the chosen DST rule.
 3. Confirm employee contact details, roles, work areas, active status, schedules, training/certification dates and responsibilities. Demo names and shifts are not authoritative.

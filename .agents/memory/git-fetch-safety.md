@@ -30,3 +30,10 @@ Published GitHub commits must remain ancestors even when project completion sync
 **Why:** Completion synchronization rebased already-published task commits. Overwriting GitHub afterward would lose published ancestry or require an unauthorized force-push.
 
 **How to apply:** Finish the instructed project conflict resolution, then normally merge the already-published GitHub branch back into the rebased task before publishing again. Preserve the newer workspace's private verification infrastructure and the task's upgrade checks together. Inspect actual code/test scopes, not just conflict markers: automatic reconciliation can corrupt repeated test blocks without leaving markers. Run cheap type checks first, then affected suites, and compare the final remote hash.
+## Paused merge state
+
+Re-check both `HEAD` and `MERGE_HEAD` before finalizing manually resolved conflicts. A checkpoint alone is not proof that incoming changes were merged.
+
+**Why:** A workspace reset during a paused merge cleared the incoming staged changes and merge state, then left an empty checkpoint. The conflict-free working tree still lacked the incoming feature.
+
+**How to apply:** Confirm the intended merge state immediately before staging and committing. Verify that the resulting commit has both parents and includes the incoming tip before running long checks or pushing. If the merge state vanished, compare the current tree and retry a normal merge; never infer success from the absence of conflict markers.

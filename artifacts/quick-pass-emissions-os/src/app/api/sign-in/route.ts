@@ -39,7 +39,14 @@ export async function POST(request: Request) {
     );
 
     if (!result.ok) {
-      const error = result.status === 429 ? "rate_limit" : "authentication";
+      const error =
+        result.status === 429
+          ? "rate_limit"
+          : result.status === 403
+            ? "security"
+            : result.status >= 500
+              ? "unavailable"
+              : "authentication";
       return redirectTo(`/login?error=${error}`);
     }
 

@@ -14,3 +14,9 @@ Credential forms must submit POST safely before or without client hydration; a c
 **Why:** A real sign-in attempt fell back to native GET and placed credentials in the URL and request logs. Never reuse or quote credentials exposed this way.
 
 **How to apply:** Keep credential submission server-handled, verify a dummy submission in a browser, and rotate any exposed credential through the documented recovery flow. Do not read or replay sensitive historical logs. Verify successful authentication, not merely the public screen.
+
+The development preview can forward an internal upstream Origin. Trust only the exact observed internal origin, only in Replit development; keep production origin and CSRF validation unchanged.
+
+**Why:** A secure, stateless HTTP login check succeeded, but the user's browser still failed because its cookies caused origin validation to run against the forwarded internal address.
+
+**How to apply:** Include a harmless cookie in browser-origin regression checks, verify unrelated origins remain rejected, and test that development-only trust is absent in production. Never solve this by disabling CSRF checks or accepting arbitrary request origins.

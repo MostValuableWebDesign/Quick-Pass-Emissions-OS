@@ -9,6 +9,8 @@ export default async function Login({
   const error =
     errorCode === "rate_limit"
       ? "Too many sign-in attempts. Wait a minute before trying again."
+      : errorCode === "security"
+        ? "Sign-in was blocked by browser security validation. Reload the preview and try again."
       : errorCode === "unavailable"
         ? "Cannot connect. Please try again."
         : errorCode

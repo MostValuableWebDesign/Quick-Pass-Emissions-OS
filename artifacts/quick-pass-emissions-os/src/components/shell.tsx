@@ -64,6 +64,7 @@ export function Shell({
       ? [{ href: "/rentals", label: "Detailing rentals", icon: KeyRound }]
       : []),
     { href: "/notifications", label: "Notifications", icon: Bell },
+    { href: "/account/password", label: "Account & password", icon: ShieldCheck },
     ...(manager ? [{ href: "/settings", label: "Settings & audit", icon: Settings }] : []),
   ];
   return (

@@ -26,3 +26,9 @@ Next.js Server Actions enforce their own Origin versus forwarded-host check inde
 **Why:** After authentication and protected page GETs worked, a native vendor form still failed because the forwarded public host did not match the internal preview Origin.
 
 **How to apply:** Keep the exact development-only Server Action host allowance aligned with the authentication origin allowance. Verify one native protected form POST, not just login and page GETs; production must not inherit internal development hosts.
+
+Authentication security tests must use the HTTP handler and explicitly retain origin/CSRF enforcement in test environments.
+
+**Why:** Better Auth automatically relaxes origin validation under test mode. An isolated database and real authentication calls alone do not prove that a cross-site request will be rejected in production.
+
+**How to apply:** Keep security checks explicitly enabled, include missing-origin and untrusted-origin requests with real fixture session cookies, and assert denial without printing credential-bearing responses.

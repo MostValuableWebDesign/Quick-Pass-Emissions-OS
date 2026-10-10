@@ -11,11 +11,11 @@ export default async function Login({
       ? "Too many sign-in attempts. Wait a minute before trying again."
       : errorCode === "security"
         ? "Sign-in was blocked by browser security validation. Reload the preview and try again."
-      : errorCode === "unavailable"
-        ? "Cannot connect. Please try again."
-        : errorCode
-          ? "Unable to sign in. Check your credentials or try again later."
-          : "";
+        : errorCode === "unavailable"
+          ? "Cannot connect. Please try again."
+          : errorCode
+            ? "Unable to sign in. Check your credentials or try again later."
+            : "";
   return (
     <div className="login-page">
       <section className="login-brand">
@@ -45,11 +45,7 @@ export default async function Login({
         <p>EMISSIONS · TAG RENEWAL · CARWASH</p>
       </section>
       <section className="login-panel">
-        <form
-          className="login-form"
-          method="post"
-          action="/api/sign-in"
-        >
+        <form className="login-form" method="post" action="/api/sign-in">
           <span className="login-symbol">
             <ShieldCheck size={27} />
           </span>

@@ -1,1 +1,2 @@
 - [Preview authentication boundaries](preview-auth-boundaries.md) — imported Next APIs can conflict with the scaffold router; credential forms must be safe before hydration.
+- [Git fetch safety gate](git-fetch-safety.md) — approved metadata fetches need the safety flag on the outer shell invocation, not only inside a subprocess.

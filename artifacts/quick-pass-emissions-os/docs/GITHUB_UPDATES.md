@@ -34,13 +34,17 @@ After an import, review `git diff`, then regenerate Prisma if the schema changed
 pnpm --filter @workspace/quick-pass-emissions-os db:generate
 pnpm --filter @workspace/quick-pass-emissions-os typecheck
 pnpm --filter @workspace/quick-pass-emissions-os lint
-pnpm --filter @workspace/quick-pass-emissions-os test
+pnpm --filter @workspace/quick-pass-emissions-os test:isolated
 ```
 
 Review new migrations before running `db:migrate` against the development
 database. Do not run reset, demonstration seed, or database tests against business
 data. Database tests require a separate isolated test database; skipped tests are
 not passes. The updater never runs migrations or changes Secrets automatically.
+`test:isolated` creates a uniquely named temporary test database on the development
+server, migrates it, runs the tests, and removes only that database afterward.
+It refuses production mode and requires database-creation permission. It never
+points truncating fixture tests at the business database.
 Replit-managed production schema changes belong to the Publish flow, not this
 development update command.
 

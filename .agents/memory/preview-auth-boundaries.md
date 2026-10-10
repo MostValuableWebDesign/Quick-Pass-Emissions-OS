@@ -20,3 +20,9 @@ The development preview can forward an internal upstream Origin. Trust only the 
 **Why:** A secure, stateless HTTP login check succeeded, but the user's browser still failed because its cookies caused origin validation to run against the forwarded internal address.
 
 **How to apply:** Include a harmless cookie in browser-origin regression checks, verify unrelated origins remain rejected, and test that development-only trust is absent in production. Never solve this by disabling CSRF checks or accepting arbitrary request origins.
+
+Next.js Server Actions enforce their own Origin versus forwarded-host check independently of Better Auth.
+
+**Why:** After authentication and protected page GETs worked, a native vendor form still failed because the forwarded public host did not match the internal preview Origin.
+
+**How to apply:** Keep the exact development-only Server Action host allowance aligned with the authentication origin allowance. Verify one native protected form POST, not just login and page GETs; production must not inherit internal development hosts.

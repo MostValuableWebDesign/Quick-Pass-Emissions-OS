@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { previewServerActionHosts } from "./src/lib/auth-origins";
 const config: NextConfig = {
   poweredByHeader: false,
   allowedDevOrigins: [
@@ -7,6 +8,11 @@ const config: NextConfig = {
     ...(process.env.REPLIT_DEV_DOMAIN ? [process.env.REPLIT_DEV_DOMAIN] : []),
   ],
   logging: { incomingRequests: false },
+  experimental: {
+    serverActions: {
+      allowedOrigins: previewServerActionHosts(process.env),
+    },
+  },
   async headers() {
     return [
       {

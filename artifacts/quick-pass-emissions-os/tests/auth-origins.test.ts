@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { previewTrustedOrigins } from "../src/lib/auth-origins";
+import { previewServerActionHosts, previewTrustedOrigins } from "../src/lib/auth-origins";
 
 const previewEnv = {
   NODE_ENV: "development",
@@ -8,6 +8,10 @@ const previewEnv = {
 };
 
 describe("Development preview auth origin", () => {
+  it("uses the same exact development boundary for Next server actions", () => {
+    expect(previewServerActionHosts(previewEnv)).toEqual(["0.0.0.0:24786"]);
+    expect(previewServerActionHosts({ ...previewEnv, NODE_ENV: "production" })).toEqual([]);
+  });
   it("trusts only the exact upstream preview origin", () => {
     expect(previewTrustedOrigins(previewEnv)).toEqual(["https://0.0.0.0:24786"]);
   });

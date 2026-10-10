@@ -32,3 +32,9 @@ Authentication security tests must use the HTTP handler and explicitly retain or
 **Why:** Better Auth automatically relaxes origin validation under test mode. An isolated database and real authentication calls alone do not prove that a cross-site request will be rejected in production.
 
 **How to apply:** Keep security checks explicitly enabled, include missing-origin and untrusted-origin requests with real fixture session cookies, and assert denial without printing credential-bearing responses.
+
+Top-level preview authentication tests do not establish that cookies work inside Replit's embedded Preview.
+
+**Why:** Direct-preview navigation passed while the user reported repeated login redirects when switching workspace/task views. Replit's Preview documentation identifies third-party cookie blocking as a common embedded-preview login issue and recommends the Preview's New tab action. This is a diagnostic distinction, not confirmation of a particular browser's cause.
+
+**How to apply:** Distinguish embedded Preview, direct preview, and published app before diagnosing session loss. Try direct preview in a new browser tab before weakening SameSite, CSRF, or production cookie protections; do not treat unexpired database sessions as proof that the browser sends their cookies.

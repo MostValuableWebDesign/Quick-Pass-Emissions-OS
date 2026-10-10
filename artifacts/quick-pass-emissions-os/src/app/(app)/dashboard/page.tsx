@@ -17,7 +17,7 @@ export default async function Dashboard() {
       <>
         <PageHeader
           title="Welcome to Quick Pass"
-          description="Prepare and review payroll information and certificate purchase records."
+          description="Prepare payroll, certificates, dealership invoices, rental receipts and finance records."
         />
         <section className="card card-body">
           <h2>Payroll preparation</h2>
@@ -33,6 +33,12 @@ export default async function Dashboard() {
           </Link>
           <Link className="text-link" href="/rentals">
             Open detailing rental records →
+          </Link>
+          <Link className="text-link" href="/dealerships">
+            Open dealerships & invoices →
+          </Link>
+          <Link className="text-link" href="/finance">
+            Open operational finance & reports →
           </Link>
         </section>
       </>

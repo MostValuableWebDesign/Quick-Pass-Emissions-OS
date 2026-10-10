@@ -5,8 +5,11 @@ import { formatDate } from "@/lib/time";
 import { Empty, PageHeader } from "@/components/shared";
 import { ActionForm } from "@/components/action-form";
 import { markRead } from "@/app/actions";
+import { automationInbox } from "@/modules/automation/service";
+import { acknowledgeReminderAction } from "@/app/phase5-actions";
 export default async function Notifications() {
   const actor = await currentUser();
+  const inbox = await automationInbox(actor.id);
   const alerts = await db.notification.findMany({
     where: {
       userId: actor.id,
@@ -66,6 +69,71 @@ export default async function Notifications() {
           />
         )}
       </section>
+      <section className="card space-top">
+        <div className="card-heading">
+          <h2>Actionable reminders</h2>
+          <Link href="/reminders" className="text-link">
+            All current reminders
+          </Link>
+        </div>
+        {inbox.reminders.length ? (
+          inbox.reminders.map((r) => (
+            <div className="list-row" key={r.id}>
+              <div>
+                <Link href={r.href} className="task-name">
+                  {r.title}
+                </Link>
+                <small>
+                  {r.stage} · Due {r.dueDate} · Acknowledgement does not complete the source.
+                </small>
+              </div>
+              {r.acknowledgedAt ? (
+                <span>Acknowledged</span>
+              ) : (
+                <ActionForm
+                  action={acknowledgeReminderAction}
+                  submit="Acknowledge"
+                  className="inline-form"
+                >
+                  <input type="hidden" name="id" value={r.id} />
+                </ActionForm>
+              )}
+            </div>
+          ))
+        ) : (
+          <Empty
+            title="No current actionable reminders"
+            text="Owner-configured reminders appear after an independent operations check. Source changes and current permissions are checked again on read."
+          />
+        )}
+      </section>
+      {actor.role === "OWNER" && (
+        <section className="card space-top">
+          <div className="card-heading">
+            <h2>Scheduled summary deliveries</h2>
+            <Link href="/summaries" className="text-link">
+              Summary archive
+            </Link>
+          </div>
+          {inbox.summaries.length ? (
+            inbox.summaries.map((d) => (
+              <div className="list-row" key={d.id}>
+                <Link href={`/summaries/${d.summaryId}`} className="task-name">
+                  Historical summary: {d.summary?.periodStart} to {d.summary?.periodEnd}
+                </Link>
+                <small>
+                  Delivered {formatDate(d.deliveredAt)}. Captured figures, not live values.
+                </small>
+              </div>
+            ))
+          ) : (
+            <Empty
+              title="No scheduled summaries delivered"
+              text="Configure a schedule and arrange an independent trigger. A page visit never generates a summary."
+            />
+          )}
+        </section>
+      )}
     </>
   );
 }

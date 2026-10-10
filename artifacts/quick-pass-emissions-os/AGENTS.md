@@ -2,7 +2,7 @@
 
 ## Scope and workflow
 
-This is Quick Pass Business OS, currently Phases 1–4. Read README, ARCHITECTURE, BUSINESS_RULES, OPEN_QUESTIONS and VERIFICATION before changes. Inspect source and git status; preserve existing work. Do not implement Phase 5 without explicit authorization. Standing user instruction: commit and push completed, verified Quick Pass OS changes to GitHub. Do not deploy unless requested. Never treat sample data as business fact.
+This is Quick Pass Business OS, currently Phases 1–5. Read README, ARCHITECTURE, BUSINESS_RULES, OPEN_QUESTIONS, PHASE4, PHASE5 and VERIFICATION before changes. Inspect source and git status; preserve existing work and both joined histories. Standing user instruction: commit and push completed, verified Quick Pass OS changes to shared GitHub main normally. Do not force-push or deploy unless requested. Never treat sample data as business fact. External sending and real persistent scheduler provisioning require separate setup; do not describe page visits or manual triggers as scheduled execution.
 
 ## Code conventions
 

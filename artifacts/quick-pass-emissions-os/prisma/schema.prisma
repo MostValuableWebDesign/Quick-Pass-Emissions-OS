@@ -33,6 +33,7 @@ enum Frequency {
   ANNUAL
 }
 model User {
+  automationDeliveries AutomationDelivery[]
   maintenanceReports MaintenanceTicket[] @relation("TicketReporter")
   id String @id @default(cuid())
   name String
@@ -800,4 +801,106 @@ model FinanceEntry {
   version Int @default(0)
   createdAt DateTime @default(now())
   @@index([date])
+}
+
+// Phase 5 configurations retain every revision. No external channel exists.
+model SummarySchedule {
+  id String @id @default(cuid())
+  key String
+  revision Int
+  active Boolean @default(true)
+  frequency String
+  weekday Int?
+  time String
+  openDaysOnly Boolean
+  nextDate String
+  createdBy String
+  createdAt DateTime @default(now())
+  @@unique([key,revision])
+}
+model ReminderPolicy {
+  id String @id @default(cuid())
+  kind String
+  revision Int
+  active Boolean
+  advanceDays Int
+  escalationDays Int
+  recipients String[]
+  escalationRecipients String[]
+  createdBy String
+  createdAt DateTime @default(now())
+  @@unique([kind,revision])
+}
+model ForecastPolicy {
+  id String @id @default(cuid())
+  key String
+  revision Int
+  windowDays Int
+  minimumDays Int
+  leadDays Int
+  threshold Int
+  createdBy String
+  createdAt DateTime @default(now())
+  @@unique([key,revision])
+}
+model AutomationJob {
+  id String @id @default(cuid())
+  key String @unique
+  kind String
+  scheduleId String?
+  occurrenceDate String?
+  dueAt DateTime
+  status String @default("PENDING")
+  attempts Int @default(0)
+  nextAttemptAt DateTime
+  leaseUntil DateTime?
+  leaseToken String?
+  completedAt DateTime?
+  failure String?
+  createdAt DateTime @default(now())
+  summary SavedSummary?
+  @@index([status,nextAttemptAt])
+}
+model SavedSummary {
+  id String @id @default(cuid())
+  jobId String @unique
+  job AutomationJob @relation(fields:[jobId],references:[id],onDelete:Restrict)
+  scheduleId String
+  generatedAt DateTime
+  periodStart String
+  periodEnd String
+  payload Json
+  deliveries AutomationDelivery[]
+}
+model ActionReminder {
+  id String @id @default(cuid())
+  key String @unique
+  kind String
+  sourceId String
+  fingerprint String
+  stage String
+  policyId String
+  userId String
+  title String
+  href String
+  dueDate String
+  acknowledgedAt DateTime?
+  resolvedAt DateTime?
+  resolution String?
+  createdAt DateTime @default(now())
+  deliveries AutomationDelivery[]
+  @@index([userId,resolvedAt])
+}
+model AutomationDelivery {
+  id String @id @default(cuid())
+  key String @unique
+  userId String
+  user User @relation(fields:[userId],references:[id],onDelete:Restrict)
+  summaryId String?
+  summary SavedSummary? @relation(fields:[summaryId],references:[id],onDelete:Restrict)
+  reminderId String?
+  reminder ActionReminder? @relation(fields:[reminderId],references:[id],onDelete:Restrict)
+  status String @default("DELIVERED")
+  deliveredAt DateTime @default(now())
+  failure String?
 }

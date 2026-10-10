@@ -1,5 +1,17 @@
 # Replit and GitHub handoff
 
+## Current workspace and Phase 5
+
+The shared GitHub main is intended to contain the full pnpm workspace, with the original standalone app under `artifacts/quick-pass-emissions-os`. Both histories have been joined after reviewed Phase 4 integration; authentication/origin, safe native credential POST, password-change and workspace compatibility fixes remain. Use root `pnpm install --frozen-lockfile`; do not run root `npm ci`. Existing managed artifact workflow: `artifacts/quick-pass-emissions-os: web`.
+
+Use `pnpm --filter @workspace/quick-pass-emissions-os run db:generate`, `db:migrate`, `typecheck`, `lint`, `format:check`, `test:isolated`, `build` and `jobs` from the workspace. Baseline migrations 001–005 remain unchanged; additive 006 is applied with migrate deploy, never a business-data reset. The authenticated Next export services own `/api/finance` and `/api/reports` explicitly in the artifact router, alongside auth/jobs/payroll paths.
+
+Read PHASE5.md for owner configuration, Eastern schedules, immutable archive, source-linked internal reminders, estimates, complete exports and failure recovery. Configure a real independent scheduler every 15 minutes to execute the jobs CLI, or authenticated HTTPS POST `/api/jobs` with an independently generated CRON_SECRET of at least 32 characters. A manual button or browser page is not a persistent scheduler. Test repeated triggers, a missed-run backlog and failure monitoring on the actual authorized environment before relying on delivery.
+
+The current Replit standard Turbopack production build succeeds; the old CSS-worker port failure is historical, not a reason to choose webpack unconditionally. Publication is blocked by a native Git credential rejection. Re-authenticate **Git Providers** in Replit account settings (not merely Connected Services), then retry the normal shared-main push and compare the remote main hash to the verified local commit. Never force-push.
+
+No production deployment, production migration, external sending or real persistent scheduler provisioning has been performed. See VERIFICATION.md for actual development/disposable-database/browser results. Provision backups/restore drills and confirm real owner settings separately.
+
 ## Transfer
 
 The repository is portable source code. The prior published repository is MostValuableWebDesign/Quick-Pass-Emissions-OS; this current imported checkout has no configured remote. Phase 1 was previously pushed; Phases 2–4 are local changes until separately published. Import the provided complete Phase 4 source or publish it when authorized before expecting GitHub/Replit to contain these workflows. Review `.gitignore` before any transfer. Transfer only source, migrations, documentation and the lockfile. Never upload `.env`, `node_modules`, `.next`, browser traces or the parent work directory.

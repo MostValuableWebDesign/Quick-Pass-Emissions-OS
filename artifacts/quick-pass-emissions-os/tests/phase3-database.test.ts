@@ -448,9 +448,16 @@ if (enabled) {
     await expect(
       c.moveChemical(owner, { ...input, version: 2, quantity: 31, reference: "too-much" }),
     ).rejects.toThrow("bounds");
-    await expect(c.moveChemical(owner, { ...input, version: 2, quantity: 1 })).rejects.toThrow(
-      "already exists",
-    );
+    const winner = result.find((x) => x.status === "fulfilled");
+    if (winner?.status !== "fulfilled") throw new Error("Expected one committed movement.");
+    await expect(
+      c.moveChemical(owner, {
+        ...input,
+        reference: winner.value.reference,
+        version: 2,
+        quantity: 1,
+      }),
+    ).rejects.toThrow("already exists");
     expect((await db.chemicalItem.findUniqueOrThrow({ where: { id: i.id } })).balance).toBe(30);
     expect(await db.chemicalMovement.count()).toBe(2);
   });

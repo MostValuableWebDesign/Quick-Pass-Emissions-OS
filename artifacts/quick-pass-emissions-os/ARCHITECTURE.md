@@ -34,7 +34,13 @@ PayArrangement, CommissionPolicy, DailyEmission, PayrollPeriod/Input/Draft/Line 
 
 Read PHASE2.md for calculation semantics, roster completeness boundaries, locking, approvals and operational limits. Existing Phase 1 migrations are unchanged. Receivables are covered by Phase 4 below; regulated integrations, external storage and advanced automation remain separate future domains.
 
-## References
+## Phase 5 automation and operational reports
+
+`src/modules/automation` extends the modular monolith with versioned owner policies, owner exception snapshots, per-ledger estimates, complete operational datasets and a durable independently triggered worker. The original Phase 4 finance services remain the financial calculation/export boundary; no domain database is moved to the scaffold API.
+
+Migration 006 adds summary schedule revisions/cursors, reminder and forecast policy revisions, unique job occurrences with committed claim leases, saved self-contained summary payloads, source-condition recipient reminders and unique internal deliveries. Combined read/processing transactions acquire personnel → Phase 2 → Phase 3 → Phase 4 → automation locks in that order; claim/enqueue-only transactions take the final lock alone. The existing generator lock is acquired before any domain lock, never from a domain mutation. The personnel lock serializes authorization/certification reads and delivery with existing employee/role edits. Job processing atomically commits business-side snapshot/reminder effects, in-app deliveries and success status; interrupted claims and bounded retry failures remain observable. See PHASE5.md for exact keys, boundaries, DST, revision, permission and failure-recovery behavior.
+
+Only current active owners can read consolidated payloads/configuration/job history. Other report permissions retain existing domains. Recipient reads/mutations revalidate current source/assignment/policy and active roles rather than treating an old delivery as a capability. Summary links lead to currently protected records while captured figures remain independent. Data operators remain trusted; application immutability is not cryptographic tamper-proof storage.
 
 The implementation uses the official [Better Auth Prisma adapter](https://better-auth.com/docs/adapters/prisma), [database/session model](https://better-auth.com/docs/concepts/database), and [security guidance](https://better-auth.com/docs/reference/security). Framework behavior follows [Next.js App Router documentation](https://nextjs.org/docs/app). Exact package versions are pinned in package.json and package-lock.json.
 

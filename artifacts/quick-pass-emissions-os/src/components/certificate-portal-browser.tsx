@@ -11,6 +11,7 @@ export function CertificatePortalBrowser({ initial, canRefresh }: { initial: Cer
   const router = useRouter();
   const [frameKey, setFrameKey] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const [embedded, setEmbedded] = useState(false);
   const [status, setStatus] = useState(initial);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -67,7 +68,18 @@ export function CertificatePortalBrowser({ initial, canRefresh }: { initial: Cer
         The portal loads directly from the provider. You sign in and place orders yourself; this app does
         not see, store or submit anything on it. Portal balance is read separately and is not ledger stock.
       </p>
-      <div ref={wrap} className={`portal-frame-wrap${expanded ? " expanded" : ""}`}>
+      <div className="portal-sign-in">
+        <p>The Georgia portal requires a separate browser tab for sign-in. Its session cookies do not support embedded login.</p>
+        <a className="button" href={CERTIFICATE_ORDER_URL} target="_blank" rel="noopener noreferrer" data-testid="link-open-portal">
+          <ExternalLink size={16} aria-hidden="true" /> Open Georgia dashboard
+        </a>
+        <button type="button" className="button button-outline" aria-expanded={embedded} aria-controls="embedded-georgia-portal"
+          data-testid="button-toggle-embedded-portal"
+          onClick={() => { setEmbedded((value) => !value); setExpanded(false); }}>
+          {embedded ? "Hide embedded preview" : "Show embedded preview"}
+        </button>
+      </div>
+      {embedded && <div ref={wrap} id="embedded-georgia-portal" className={`portal-frame-wrap${expanded ? " expanded" : ""}`}>
         <div className="portal-toolbar">
           <span className="portal-url">{CERTIFICATE_ORDER_URL}</span>
           <button type="button" className="button button-ghost button-sm" onClick={() => setFrameKey((k) => k + 1)} data-testid="button-reload-portal">
@@ -76,13 +88,12 @@ export function CertificatePortalBrowser({ initial, canRefresh }: { initial: Cer
           <button type="button" className="button button-ghost button-sm" onClick={() => setExpanded((v) => !v)} aria-pressed={expanded} data-testid="button-expand-portal">
             {expanded ? <Minimize2 size={14} aria-hidden="true" /> : <Maximize2 size={14} aria-hidden="true" />} {expanded ? "Exit full screen" : "Full screen"}
           </button>
-          <a className="button button-ghost button-sm" href={CERTIFICATE_ORDER_URL} target="_blank" rel="noopener noreferrer" data-testid="link-open-portal">
-            <ExternalLink size={14} aria-hidden="true" /> Open in browser
+          <a className="button button-ghost button-sm" href={CERTIFICATE_ORDER_URL} target="_blank" rel="noopener noreferrer">
+            <ExternalLink size={14} aria-hidden="true" /> Open sign-in tab
           </a>
         </div>
         <iframe key={frameKey} src={CERTIFICATE_ORDER_URL} title="Georgia dashboard certificate purchasing portal" className="portal-frame" referrerPolicy="no-referrer" />
-      </div>
-      <p className="muted">If the portal does not load or sign-in fails inside the app, use Open in browser.</p>
+      </div>}
     </section>
   );
 }

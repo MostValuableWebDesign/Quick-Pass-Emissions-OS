@@ -12,7 +12,7 @@ export default defineConfig({
   testDir: "tests/e2e",
   testMatch:
     process.env.E2E_PERFORMANCE_PANELS === "1"
-      ? ["performance-panels.spec.ts"]
+      ? ["performance-panels.spec.ts", ...(process.env.E2E_CERTIFICATE_UX === "1" ? ["certificate-portal-ux.spec.ts"] : [])]
       : process.env.E2E_CERTIFICATE_UX === "1"
       ? ["certificate-portal-ux.spec.ts"]
       : process.env.E2E_SUPPORT_ONLY === "1"

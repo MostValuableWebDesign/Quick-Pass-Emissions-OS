@@ -87,6 +87,7 @@
 /* cards */
 .pd-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; align-items: start; }
 .pd-widget { position: relative; min-width: 0; }
+.pd-widget[data-drag-over="true"] { outline: 2px solid var(--pd-teal); outline-offset: 3px; border-radius: 12px; }
 .pd-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-width: 0; height: 100%; display: flex; flex-direction: column; }
 .pd-card-h { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .pd-card-title { min-width: 0; }
@@ -97,10 +98,13 @@
 .pd-panel-tool:disabled { opacity: .4; cursor: not-allowed; }
 .pd-panel-drag { cursor: grab; }
 .pd-panel-drag:active { cursor: grabbing; }
-.pd-panel-resize { cursor: nwse-resize; }
+.pd-panel-resize-handle { position: absolute; right: 3px; bottom: 3px; width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: nwse-resize; touch-action: none; z-index: 2; }
+.pd-panel-resize-handle:hover, .pd-panel-resize-handle:active { color: var(--text); }
+.pd-panel-resize-handle:focus-visible { outline: 2px solid #43a990; outline-offset: -2px; border-radius: 4px; }
+.pd-widget > .pd-card { padding-bottom: 22px; }
 .pd-card-h p { font-size: 11px; color: var(--muted); margin-top: 3px; }
 .pd-chart { height: 280px; padding: 14px 10px 6px 0; }
-.pd-widget .pd-chart { flex: 1; min-height: 130px; height: auto; }
+.pd-widget .pd-chart { flex: 1; min-height: 80px; height: auto; }
 .pd-widget .table-scroll { min-height: 0; flex: 1; overflow: auto; }
 .pd-widget .pd-empty { flex: 1; display: grid; place-content: center; padding: 24px; }
 .pd-tip { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; font-size: 12px; box-shadow: 0 6px 20px #12394b18; }

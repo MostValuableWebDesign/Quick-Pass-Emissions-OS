@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useSyncExternalStore, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import { Grip, GripVertical, MoveDown, MoveUp } from "lucide-react";
+import { useRef, useSyncExternalStore, type ReactNode } from "react";
+import { GripVertical, MoveDown, MoveUp } from "lucide-react";
+import { PanelResizeHandle } from "./performance-panel-resize-handle";
 import {
   DASHBOARD_LAYOUT_KEY, DEFAULT_DASHBOARD_LAYOUT, parseDashboardLayout,
   reorderDashboardPanel, resizeDashboardPanel,
@@ -78,64 +79,56 @@ export function usePerformanceDashboardLayout() {
 }
 
 function PanelTools({
-  id, index, total, onMove, onResize,
+  id, index, total, onMove,
 }: {
   id: DashboardPanelId;
   index: number;
   total: number;
   onMove: (to: number) => void;
-  onResize: (columns: number, height: number) => void;
 }) {
-  const start = useRef<{
-    x: number; y: number; columns: number; height: number;
-    lastColumns: number; lastHeight: number; columnWidth: number; pointer: number;
-  } | null>(null);
+  const drag = useRef<{ pointer: number; x: number; y: number; moved: boolean } | null>(null);
 
-  function begin(event: ReactPointerEvent<HTMLButtonElement>) {
-    if (event.button !== 0) return;
-    event.preventDefault();
-    const widget = event.currentTarget.closest<HTMLElement>(".pd-widget");
-    const grid = widget?.parentElement;
-    if (!widget || !grid) return;
-    const style = getComputedStyle(grid);
-    const gap = Number.parseFloat(style.columnGap) || 0;
-    const columnWidth = (grid.clientWidth - gap * 11) / 12;
-    const rect = widget.getBoundingClientRect();
-    const columns = Number.parseInt(style.gridColumnEnd.replace("span ", ""), 10);
-    const safeColumns = Number.isFinite(columns) ? columns : 12;
-    start.current = {
-      x: event.clientX, y: event.clientY, columns: safeColumns,
-      height: rect.height, lastColumns: safeColumns, lastHeight: rect.height,
-      columnWidth, pointer: event.pointerId,
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-
-  function move(event: ReactPointerEvent<HTMLButtonElement>) {
-    const origin = start.current;
-    if (!origin || origin.pointer !== event.pointerId) return;
-    const targetColumns = window.matchMedia("(max-width: 760px)").matches
-      ? origin.columns : Math.max(4, Math.min(12, origin.columns + Math.round((event.clientX - origin.x) / origin.columnWidth)));
-    const targetHeight = Math.max(240, Math.min(720, origin.height + Math.round((event.clientY - origin.y) / 40) * 40));
-    const columnsDelta = targetColumns - origin.lastColumns;
-    const heightDelta = targetHeight - origin.lastHeight;
-    if (columnsDelta || heightDelta) onResize(columnsDelta, heightDelta);
-    start.current = {
-      ...origin, lastColumns: targetColumns, lastHeight: targetHeight,
-    };
+  function clearDrag(element: HTMLElement) {
+    element.closest(".pd-grid")?.querySelectorAll<HTMLElement>(".pd-widget")
+      .forEach((widget) => { delete widget.dataset.dragOver; });
+    drag.current = null;
   }
 
   return (
     <div className="pd-panel-tools" role="group" aria-label={`${titles[id]} panel layout controls`}>
       <button
-        type="button" draggable
+        type="button"
         className="pd-panel-tool pd-panel-drag"
         aria-label={`Drag to move ${titles[id]} panel`}
         title="Drag to move this panel"
-        onDragStart={(event) => {
-          event.dataTransfer.setData("text/plain", id);
-          event.dataTransfer.effectAllowed = "move";
+        onPointerDown={(event) => {
+          if (event.button !== 0) return;
+          event.preventDefault();
+          drag.current = { pointer: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+          event.currentTarget.setPointerCapture(event.pointerId);
         }}
+        onPointerMove={(event) => {
+          const origin = drag.current;
+          if (!origin || origin.pointer !== event.pointerId) return;
+          if (Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > 8) origin.moved = true;
+          if (!origin.moved) return;
+          const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>(".pd-widget");
+          event.currentTarget.closest(".pd-grid")?.querySelectorAll<HTMLElement>(".pd-widget")
+            .forEach((widget) => { delete widget.dataset.dragOver; });
+          if (target && target.dataset.panelId !== id) target.dataset.dragOver = "true";
+        }}
+        onPointerUp={(event) => {
+          const origin = drag.current;
+          const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>(".pd-widget");
+          const grid = event.currentTarget.closest(".pd-grid");
+          if (origin?.moved && target && grid?.contains(target)) {
+            const widgets = Array.from(grid.querySelectorAll<HTMLElement>(".pd-widget"));
+            const targetIndex = widgets.indexOf(target);
+            if (targetIndex >= 0) onMove(targetIndex);
+          }
+          clearDrag(event.currentTarget);
+        }}
+        onPointerCancel={(event) => clearDrag(event.currentTarget)}
       >
         <GripVertical size={15} aria-hidden="true" />
       </button>
@@ -144,27 +137,6 @@ function PanelTools({
       </button>
       <button type="button" className="pd-panel-tool" aria-label={`Move ${titles[id]} panel down`} title="Move down" disabled={index === total - 1} onClick={() => onMove(index + 1)}>
         <MoveDown size={14} aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        className="pd-panel-tool pd-panel-resize"
-        aria-label={`Resize ${titles[id]} panel. Drag horizontally or vertically; use arrow keys to resize.`}
-        title="Drag to resize · arrow keys also work"
-        onPointerDown={begin}
-        onPointerMove={move}
-        onPointerUp={() => { start.current = null; }}
-        onPointerCancel={() => { start.current = null; }}
-        onKeyDown={(event) => {
-          const changes: Record<string, [number, number]> = {
-            ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -40], ArrowDown: [0, 40],
-          };
-          const change = changes[event.key];
-          if (!change) return;
-          event.preventDefault();
-          onResize(window.matchMedia("(max-width: 760px)").matches ? 0 : change[0], change[1]);
-        }}
-      >
-        <Grip size={15} aria-hidden="true" />
       </button>
     </div>
   );
@@ -183,7 +155,7 @@ export function PerformanceDashboardPanels({
     const index = layout.findIndex((panel) => panel.id === id);
     return (
       <PanelTools key={id} id={id} index={index} total={layout.length}
-        onMove={(to) => onMove(id, to)} onResize={(columns, height) => onResize(id, columns, height)} />
+        onMove={(to) => onMove(id, to)} />
     );
   };
   return (
@@ -192,6 +164,7 @@ export function PerformanceDashboardPanels({
         <div
           key={panel.id}
           className="pd-widget"
+          data-panel-id={panel.id}
           data-testid={`panel-${panel.id}`}
           style={{ gridColumn: `span ${panel.columns}`, height: panel.height }}
           onDragOver={(event) => event.preventDefault()}
@@ -202,6 +175,8 @@ export function PerformanceDashboardPanels({
           }}
         >
           {renderPanel(panel.id, controls(panel.id))}
+          <PanelResizeHandle label={titles[panel.id]} columns={panel.columns} height={panel.height}
+            onResize={(columns, height) => onResize(panel.id, columns, height)} />
         </div>
       ))}
     </div>

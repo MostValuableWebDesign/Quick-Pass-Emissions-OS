@@ -11,8 +11,7 @@ export function CertificateOrderLink({ role, alert = false }: { role: Role; aler
     <div className="space-top">
       <Link className="button" href="/certificates#portal">Order Certificates</Link>
       <p className="muted">
-        Open the official purchasing portal inside the app. You control sign-in and ordering;
-        an external-browser option is available if the portal cannot run inside your browser.
+        Open the official purchasing portal in a secure browser tab. You control sign-in and ordering.
       </p>
       {alert && (
         <a className="text-link" href="/certificates#purchase-history">

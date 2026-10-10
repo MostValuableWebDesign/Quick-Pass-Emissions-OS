@@ -297,6 +297,8 @@ async function main() {
   const playwrightArgs = ["exec", "playwright", "test"];
   if (process.env.E2E_PERFORMANCE_PANELS === "1")
     playwrightArgs.push("tests/e2e/performance-panels.spec.ts");
+  if (process.env.E2E_PERFORMANCE_PANELS === "1" && process.env.E2E_CERTIFICATE_UX === "1")
+    playwrightArgs.push("tests/e2e/certificate-portal-ux.spec.ts");
   tests = start("pnpm", playwrightArgs, env);
   const status = await new Promise<number | null>((resolve) => {
     tests!.once("close", resolve);
@@ -379,7 +381,7 @@ async function main() {
   assertCompleteReport(
     report,
     process.env.E2E_PERFORMANCE_PANELS === "1"
-      ? 1
+      ? (process.env.E2E_CERTIFICATE_UX === "1" ? 6 : 1)
       : process.env.E2E_CERTIFICATE_UX === "1"
       ? 5
       : process.env.E2E_SUPPORT_ONLY === "1"
@@ -398,7 +400,9 @@ async function main() {
   );
   console.log(
     process.env.E2E_PERFORMANCE_PANELS === "1"
-      ? "Passed: 1 signed-in performance panel drag, resize, persistence, keyboard-accessibility and reset check; no skips."
+      ? (process.env.E2E_CERTIFICATE_UX === "1"
+        ? "Passed: 6 signed-in portal navigation, certificate alert and panel corner-resize checks; no skips."
+        : "Passed: 1 signed-in performance panel drag, resize, persistence, keyboard-accessibility and reset check; no skips.")
       : process.env.E2E_CERTIFICATE_UX === "1"
       ? "Passed: 5 focused protected certificate portal UX checks across owner, bookkeeper and employee roles; isolated synthetic balance, threshold persistence and access verified; no skips."
       : process.env.E2E_SUPPORT_ONLY === "1"

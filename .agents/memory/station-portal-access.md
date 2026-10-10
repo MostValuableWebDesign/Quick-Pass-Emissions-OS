@@ -27,6 +27,12 @@ The user wants manual purchasing within the app without app-imposed requests or 
 
 **How to apply:** The embedded portal must stay direct and cross-origin, with a browser fallback if embedding/cookies fail. Never proxy a payment page, share the server's authenticated cookies with the iframe, or handle the user's portal payment/login fields. Provider purchase rules still apply.
 
+Provider sign-in should use a top-level browser tab; embedded viewing is optional and must not promise a working login.
+
+**Why:** On 2026-10-10, the public Georgia purchasing redirect returned a login session cookie with explicit `SameSite=Lax`. That prevents its use inside a cross-site iframe and explained the user's failed embedded sign-in.
+
+**How to apply:** Make direct provider navigation the primary sign-in path. Recheck the provider policy before claiming embedded login is supported; never rewrite its cookie policy or proxy the login/payment pages.
+
 Certificate balance discovery uses exact station/analyzer membership and a bounded read-only operation. Report-import sessions must continue rejecting purchasing redirects.
 
 **Why:** Broadening the report client's global URL allowlist for certificate reads weakened an existing safety boundary; a dedicated opt-in read context preserves it.

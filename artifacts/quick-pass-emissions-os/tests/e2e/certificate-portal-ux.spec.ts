@@ -59,8 +59,18 @@ test.describe("owner certificate portal and alert settings", () => {
   test.use({ storageState: path.join(directory, "session.json") });
 
   test("direct portal, optional records, fullscreen, reload and fallback", async ({ page }) => {
+    await page.context().route("https://gadashboard.com/**", (route) =>
+      route.fulfill({ contentType: "text/html", body: "<h1>Official portal navigation fixture</h1>" }));
     await page.goto("/certificates");
     const frame = page.getByTitle("Georgia dashboard certificate purchasing portal");
+    await expect(frame).toHaveCount(0);
+    await expect(page.getByText("The Georgia portal requires a separate browser tab for sign-in.", { exact: false })).toBeVisible();
+    const popupPromise = page.waitForEvent("popup");
+    await page.getByTestId("link-open-portal").click();
+    const popup = await popupPromise;
+    await expect(popup).toHaveURL(CERTIFICATE_ORDER_URL);
+    await popup.close();
+    await page.getByTestId("button-toggle-embedded-portal").click();
     await expect(frame).toBeVisible();
     await expect(frame).toHaveAttribute("src", CERTIFICATE_ORDER_URL);
     await expect(page.getByTestId("text-station")).toHaveText(CERTIFICATE_STATION);
@@ -145,7 +155,8 @@ test.describe("certificate portal role access", () => {
     test.use({ storageState: path.join(directory, "BOOKKEEPER.json") });
     test("can see the portal but cannot refresh or manage alert settings", async ({ page }) => {
       await page.goto("/certificates");
-      await expect(page.getByTitle("Georgia dashboard certificate purchasing portal")).toBeVisible();
+      await expect(page.getByTestId("link-open-portal")).toBeVisible();
+      await expect(page.getByTitle("Georgia dashboard certificate purchasing portal")).toHaveCount(0);
       await expect(page.getByTestId("status-portal-balance")).toContainText("29");
       await expect(page.getByTestId("button-refresh-balance")).toHaveCount(0);
       await page.goto("/settings");

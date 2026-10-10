@@ -1,0 +1,32 @@
+kind = "web"
+previewPath = "/"
+title = "Quick Pass Emissions OS"
+description = "Quick Pass Emissions OS is an operations platform for employee records, schedules, recurring duties, task tracking, manager review, and audit history. This preview imports the Phase 1 application from the user's GitHub repository."
+version = "1.0.0"
+id = "artifacts/quick-pass-emissions-os"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24786
+
+[services.development]
+run = "pnpm --filter @workspace/quick-pass-emissions-os run dev"
+
+[services.production.build]
+args = ["pnpm", "--filter", "@workspace/quick-pass-emissions-os", "run", "build"]
+
+[services.production.build.env]
+NODE_ENV = "production"
+
+[services.production.run]
+args = ["pnpm", "--filter", "@workspace/quick-pass-emissions-os", "run", "start"]
+
+[services.production.run.env]
+PORT = "24786"
+NODE_ENV = "production"
+
+[services.env]
+PORT = "24786"
+BASE_PATH = "/"

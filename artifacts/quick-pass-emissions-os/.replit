@@ -1,0 +1,8 @@
+run = "npm run dev"
+modules = ["nodejs-22"]
+[deployment]
+build = ["sh", "-c", "npm ci && npm run db:generate && npm run build"]
+run = ["sh", "-c", "npm run db:migrate && npm start"]
+[[ports]]
+localPort = 3000
+externalPort = 80

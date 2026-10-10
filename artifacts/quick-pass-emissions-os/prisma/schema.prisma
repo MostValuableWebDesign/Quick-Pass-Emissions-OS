@@ -1,0 +1,226 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+enum Role {
+  OWNER
+  ADMIN
+  EMPLOYEE
+  BOOKKEEPER
+}
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+  CANCELLED
+}
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+enum Frequency {
+  ONCE
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+model User {
+  id String @id @default(cuid())
+  name String
+  email String @unique
+  emailVerified Boolean @default(false)
+  image String?
+  role Role @default(EMPLOYEE)
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions Session[]
+  accounts Account[]
+  employee Employee?
+  auditLogs AuditLog[]
+  notifications Notification[]
+}
+model Session {
+  id String @id
+  expiresAt DateTime
+  token String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId String
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  @@index([userId])
+}
+model Account {
+  id String @id
+  accountId String
+  providerId String
+  userId String
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  accessToken String?
+  refreshToken String?
+  idToken String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope String?
+  password String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([providerId,accountId])
+  @@index([userId])
+}
+model Verification {
+  id String @id
+  identifier String
+  value String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([identifier])
+}
+model RateLimit {
+  id String @id @default(cuid())
+  key String @unique
+  count Int
+  lastRequest BigInt
+}
+model Employee {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields:[userId],references:[id])
+  phone String @default("")
+  startDate String?
+  duties String @default("")
+  workAreas String @default("")
+  managerNotes String @default("")
+  certificationExpires String?
+  demo Boolean @default(false)
+  shifts EmployeeSchedule[]
+  templates TaskTemplate[]
+  tasks TaskInstance[]
+  invites Invite[]
+}
+model Invite {
+  id String @id @default(cuid())
+  tokenHash String @unique
+  employeeId String
+  employee Employee @relation(fields:[employeeId],references:[id])
+  expiresAt DateTime
+  usedAt DateTime?
+  createdAt DateTime @default(now())
+}
+model EmployeeSchedule {
+  id String @id @default(cuid())
+  employeeId String
+  employee Employee @relation(fields:[employeeId],references:[id])
+  date String
+  startTime String
+  endTime String
+  duties String
+  @@unique([employeeId,date])
+  @@index([date])
+}
+model BusinessSetting {
+  id String @id @default("business")
+  operatingDays Int[] @default([])
+  configured Boolean @default(false)
+  updatedAt DateTime @updatedAt
+}
+model Closure {
+  date String @id
+  reason String
+}
+model TaskTemplate {
+  id String @id @default(cuid())
+  title String
+  description String @default("")
+  frequency Frequency
+  startDate String
+  endDate String?
+  weekdays Int[] @default([])
+  dueTime String
+  priority Priority @default(NORMAL)
+  employeeId String
+  employee Employee @relation(fields:[employeeId],references:[id])
+  reviewRequired Boolean @default(false)
+  escalationHours Int @default(0)
+  active Boolean @default(true)
+  demo Boolean @default(false)
+  createdAt DateTime @default(now())
+  instances TaskInstance[]
+}
+model TaskInstance {
+  id String @id @default(cuid())
+  templateId String
+  template TaskTemplate @relation(fields:[templateId],references:[id])
+  occurrenceDate String
+  title String
+  description String
+  dueAt DateTime
+  employeeId String
+  employee Employee @relation(fields:[employeeId],references:[id])
+  priority Priority
+  reviewRequired Boolean
+  escalationHours Int
+  status TaskStatus @default(PENDING)
+  completedAt DateTime?
+  reviewedAt DateTime?
+  reviewedBy String?
+  version Int @default(0)
+  events TaskEvent[]
+  notifications Notification[]
+  @@unique([templateId,occurrenceDate])
+  @@index([employeeId,dueAt])
+  @@index([status,dueAt])
+}
+model TaskEvent {
+  id String @id @default(cuid())
+  taskId String
+  task TaskInstance @relation(fields:[taskId],references:[id])
+  actorId String
+  actorName String
+  action String
+  note String @default("")
+  createdAt DateTime @default(now())
+  @@index([taskId,createdAt])
+}
+model Notification {
+  id String @id @default(cuid())
+  key String @unique
+  userId String
+  user User @relation(fields:[userId],references:[id])
+  taskId String?
+  task TaskInstance? @relation(fields:[taskId],references:[id])
+  title String
+  readAt DateTime?
+  resolvedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId,resolvedAt])
+}
+model AuditLog {
+  id String @id @default(cuid())
+  actorId String?
+  actor User? @relation(fields:[actorId],references:[id])
+  action String
+  entityId String
+  details Json
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+}
+model JobRun {
+  id String @id @default(cuid())
+  startedAt DateTime @default(now())
+  completedAt DateTime?
+  status String @default("RUNNING")
+  generated Int @default(0)
+  message String?
+}

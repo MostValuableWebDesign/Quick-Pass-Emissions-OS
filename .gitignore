@@ -48,3 +48,6 @@ Thumbs.db
 .cache/
 .local/
 /generated-artifacts/
+
+# New untracked user uploads may contain private input; do not publish automatically.
+/attached_assets/

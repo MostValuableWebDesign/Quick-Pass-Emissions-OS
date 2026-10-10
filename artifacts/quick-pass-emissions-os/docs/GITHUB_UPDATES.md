@@ -1,13 +1,10 @@
 # GitHub updates in this Replit workspace
 
 The user chose to synchronize the full pnpm workspace on GitHub `main`. The app
-lives in `artifacts/quick-pass-emissions-os`. The initial transition must import
-all latest standalone changes, join both original histories, and successfully
-push before GitHub matches the workspace. The old standalone file mapper is being
-retired in favor of shared history.
-
-Do not run the normal pull commands below while the two histories are still
-unrelated. Complete the initial reviewed transition first.
+lives in `artifacts/quick-pass-emissions-os`. The transition imported the
+standalone changes through Phase 4 and joined both original histories without
+discarding either. The old standalone file mapper is retired in favor of
+shared history.
 
 ## Normal updates
 
@@ -56,3 +53,18 @@ If GitHub rejects a CLI push with an invalid-credential error, reconnect GitHub
 in Replit account settings under **Git Providers**. Reconnecting an app connector
 under Connected Services is not necessarily sufficient. Never put passwords or
 personal access tokens in chat, source files, logs or remote URLs.
+
+If reconnection does not fix CLI authentication, the separately authorized
+GitHub App can upload committed workspace changes:
+
+```sh
+pnpm git:check
+pnpm git:push
+git fetch origin main
+```
+
+Run from the repository root in Replit after reviewing and committing changes.
+The bridge verifies exact Git object identities, checks that local and remote
+commits have not changed during upload, and updates `main` with `force: false`.
+It refuses unsupported signed/custom/non-UTC commit metadata. It does not
+repair the native Git credential, publish the app, or modify business data.

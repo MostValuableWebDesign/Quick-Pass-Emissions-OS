@@ -8,3 +8,9 @@ Temporary managed-workflow `env_file` overrides treat surrounding quotes as lite
 **Why:** An isolated fixture database migrated and accepted direct Prisma connections, but native browser sign-in reported unavailable because the running workflow received a quote-wrapped datasource URL. Inherited auth settings were present; changing authentication would have addressed the wrong problem.
 
 **How to apply:** Only for disposable private-browser setup. Never print the registry, URL, credentials, cookies or tokens. Verify the exact running datasource privately, then restore the ordinary managed workflow and verify no process still uses the fixture before dropping it.
+
+Managed artifact manifests with Git conflict markers are immediately unregistered, including their workflows. The schema replacement tool parses the existing manifest as well as its temporary replacement, so it cannot replace an invalid conflicted original.
+
+**Why:** A normal shared-main merge temporarily removed the app from preview; validating a clean temporary manifest still failed on the original conflict markers.
+
+**How to apply:** Resolve the manifest through Git's normal conflict mechanics by restoring a committed valid side, then validate the complete intended merged manifest with the artifact replacement tool. Keep its stable ID, port and both branches' required route prefixes. The valid restored manifest re-registers the managed workflow; restart that exact workflow, not a replacement.

@@ -64,7 +64,7 @@ Read [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md) and [PHASE4.md](PHASE4.md) f
 
 ## Phase 5 automation
 
-Phase 5 adds **Owner exceptions**, **Automation**, **Summary archive**, **Reminders** and **Operational reports**. Read [PHASE5.md](PHASE5.md) before configuring schedules, recipients or forecasts. The independent CLI/POST worker persists duplicate-safe historical summaries and in-app deliveries; opening a page never schedules work. External sending remains disabled. GitHub publication is blocked until native Git authentication is restored; production deployment and actual persistent scheduler provisioning are separate.
+Phase 5 adds **Owner exceptions**, **Automation**, **Summary archive**, **Reminders** and **Operational reports**. Read [PHASE5.md](PHASE5.md) before configuring schedules, recipients or forecasts. The independent CLI/POST worker persists duplicate-safe historical summaries and in-app deliveries; opening a page never schedules work. External sending remains disabled. See VERIFICATION.md for publication status and the repository README for the authorized GitHub App fast-forward fallback when native Git authentication fails. Production deployment and actual persistent scheduler provisioning are separate.
 
 ## Local demonstration data
 

@@ -21,6 +21,6 @@ The user chose to synchronize the complete Replit workspace on GitHub `main`, ac
 
 The native Git-provider connection is separate from an application GitHub connector.
 
-**Why:** Native CLI pushes rejected the stored credential despite a healthy source-control connection status. Both reconnect and connect cards rejected the source-control connection ID, whereas its inspection explicitly said CLI authentication is managed automatically.
+**Why:** Native CLI pushes rejected the credential despite a healthy source-control connection status and again after the user reconnected to a new native connection. The independent GitHub App could read and write the same repository. Source-control connect/reconnect cards rejected native connection IDs.
 
-**How to apply:** Verify actual Git access with a non-mutating push dry run. If the native provider needs reauthorization and the cards cannot open it, use Replit account settings → Git Providers, following official documentation. Do not attach an unrelated app connector or expose credentials to work around native Git authentication.
+**How to apply:** Verify actual Git access rather than trusting connection status. For native reauthorization use account settings → Git Providers, following official documentation. Do not repeat reconnect loops after a confirmed reconnect still fails. An authorized GitHub App is an independent write path, not a repair of native Git authentication; verify its repository permission separately and never extract credentials.

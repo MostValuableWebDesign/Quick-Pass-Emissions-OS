@@ -4,6 +4,8 @@
   "license": "MIT",
   "packageManager": "pnpm@10.26.1",
   "scripts": {
+    "git:check": "pnpm --filter @workspace/scripts github:push --check",
+    "git:push": "pnpm --filter @workspace/scripts github:push --apply",
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "build:app": "pnpm --filter @workspace/quick-pass-emissions-os run build",

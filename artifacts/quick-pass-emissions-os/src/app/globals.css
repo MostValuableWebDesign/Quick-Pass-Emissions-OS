@@ -1309,6 +1309,15 @@ legend {
   margin: 0;
   font-size: 16px;
 }
+.vendor-directory-categories {
+  display: grid;
+  gap: 6px;
+}
+.vendor-category-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .vendor-directory-description {
   display: grid;
   gap: 5px;

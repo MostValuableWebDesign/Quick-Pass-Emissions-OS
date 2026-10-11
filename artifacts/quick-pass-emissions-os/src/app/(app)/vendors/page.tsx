@@ -87,7 +87,7 @@ export default async function Vendors({
       ) : (
         <div className="vendor-directory-grid">
           {data.providers.map((p) => {
-            const description = p.services?.trim() || p.supportedServices?.trim();
+            const description = p.supportedServices?.trim() || p.services?.trim();
             return (
               <section className="card vendor-directory-card" key={p.id}>
                 <div className="vendor-directory-heading">
@@ -97,8 +97,22 @@ export default async function Vendors({
                   {!p.active && <span className="badge neutral">Archived</span>}
                   {!p.verifiedDate && <span className="badge amber">Unconfirmed</span>}
                 </div>
+                <div className="vendor-directory-categories">
+                  <span className="eyebrow">Category</span>
+                  <div className="vendor-category-list">
+                    {p.categories.length ? (
+                      p.categories.map((category) => (
+                        <span className="badge neutral" key={category}>
+                          {category}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="muted">Not categorized</span>
+                    )}
+                  </div>
+                </div>
                 <div className="vendor-directory-description">
-                  <span className="eyebrow">Description</span>
+                  <span className="eyebrow">What they handle</span>
                   <p>{description || "No description recorded."}</p>
                 </div>
                 {p.phone ? (

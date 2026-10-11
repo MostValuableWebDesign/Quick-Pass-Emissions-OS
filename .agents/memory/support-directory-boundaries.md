@@ -20,3 +20,9 @@ An explicitly owner-requested named contact can be displayed as unconfirmed even
 **Why:** A useful camera-support contact was hidden in review instead of appearing with the contacts the owner requested.
 
 **How to apply:** Keep verification dates and assignment eligibility separate from contact visibility. This does not turn every incomplete name in an imported guide into a verified provider.
+
+The owner specifies KleenRite for hoses, guns, nozzles, brushes, carwash parts and cleaning supplies. The separate responsibility to stock foam soap, tire cleaner, high-pressure soap and clear wax does not assign those chemicals to KleenRite.
+
+**Why:** The owner clarified KleenRite's supply scope while keeping general chemical-stock duties distinct.
+
+**How to apply:** Show KleenRite under Wash Parts Supply with the stated capabilities. Do not infer that KleenRite supplies the listed wash chemicals.

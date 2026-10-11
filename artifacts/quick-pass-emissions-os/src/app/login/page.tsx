@@ -3,6 +3,7 @@ import { ArrowRight, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoginBrand } from "@/components/login-brand";
 import "./login.css";
+import "./login-brand.css";
 // Native form POSTs need their real same-origin identity. Keep external referrers
 // private and leave the global no-referrer policy on authenticated pages.
 export const metadata: Metadata = { referrer: "same-origin" };

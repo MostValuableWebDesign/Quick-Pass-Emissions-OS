@@ -1,8 +1,9 @@
+import Image from "next/image";
 import { CheckCheck } from "lucide-react";
 
 export function LoginBrand() {
   return (
-    <section className="login-brand" aria-label="Quick Pass Emissions">
+    <section className="login-brand qp-brand" aria-label="Quick Pass Emissions">
       <div className="login-wordmark">
         <span className="login-mark" aria-hidden="true">
           <CheckCheck size={27} strokeWidth={1.7} />
@@ -11,40 +12,38 @@ export function LoginBrand() {
           Quick Pass<span className="login-wordmark-detail">Emissions</span>
         </span>
       </div>
-      <div className="login-story">
-        <p className="login-kicker">THE BUSINESS, IN FOCUS</p>
+      <div className="login-story qp-story">
+        <p className="login-kicker">GEORGIA VEHICLE INSPECTIONS</p>
         <h1>
-          Every detail.
+          Quick Pass
           <br />
-          <span>Under control.</span>
+          <span>Emissions</span>
         </h1>
+        <p className="qp-greeting">How May I Help You?</p>
         <p className="login-story-copy">
-          A clear view of your testing, your team, and the work that keeps your business moving.
+          Friendly service. Clear results. Confidence on the road.
         </p>
-        <dl className="login-business-areas">
-          <div>
-            <dt>
-              <span aria-hidden="true">01</span> Emissions
-            </dt>
-            <dd>Test records & performance</dd>
-          </div>
-          <div>
-            <dt>
-              <span aria-hidden="true">02</span> People
-            </dt>
-            <dd>Payroll & commissions</dd>
-          </div>
-          <div>
-            <dt>
-              <span aria-hidden="true">03</span> Operations
-            </dt>
-            <dd>Inventory & maintenance</dd>
-          </div>
-        </dl>
       </div>
+      <figure className="qp-photo">
+        <Image
+          src="https://images.pexels.com/photos/4116198/pexels-photo-4116198.jpeg?auto=compress&cs=tinysrgb&w=1100"
+          alt="A technician using a diagnostic tablet inside a vehicle"
+          width={1100}
+          height={733}
+          unoptimized
+          loading="eager"
+          referrerPolicy="no-referrer"
+        />
+        <figcaption>
+          <span className="qp-photo-mark" aria-hidden="true">
+            <CheckCheck size={15} strokeWidth={1.8} />
+          </span>
+          A clear check. A confident drive.
+        </figcaption>
+      </figure>
       <footer className="login-brand-footer">
         <span>QUICK PASS EMISSIONS</span>
-        <span>OWNERS & MANAGEMENT</span>
+        <span>HERE TO HELP</span>
       </footer>
     </section>
   );

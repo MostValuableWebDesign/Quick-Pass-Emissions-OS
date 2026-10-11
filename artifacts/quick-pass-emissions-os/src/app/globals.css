@@ -1956,6 +1956,15 @@ details > summary {
 }
 
 /* Business dashboard: compact evidence, a prominent action list, then shortcuts. */
+.dashboard-sunday-closure {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+}
+.dashboard-sunday-closure svg {
+  flex: none;
+}
 .business-dashboard {
   display: grid;
   gap: 24px;

@@ -1,6 +1,15 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowUpRight, CheckCircle2, Gauge, Phone, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  CalendarDays,
+  CheckCircle2,
+  Gauge,
+  Phone,
+  Users,
+} from "lucide-react";
 import { currentUser } from "@/lib/access";
+import { isEmissionsClosedOn } from "@/modules/station/operating-hours";
 import { PageHeader } from "@/components/shared";
 import { RecordLink } from "@/components/record-link";
 import { CertificateOrderLink } from "@/components/certificate-order-link";
@@ -15,6 +24,7 @@ export default async function Dashboard({
 }) {
   const user = await currentUser();
   const data = await businessDashboard(user.id);
+  const emissionsClosedToday = isEmissionsClosedOn(data.today);
   const params = await searchParams;
   const requested = Number(params.attentionPage ?? 1);
   const pages = Math.max(1, Math.ceil(data.attention.length / 15));
@@ -29,6 +39,12 @@ export default async function Dashboard({
       {data.demo && (
         <div className="notice">
           <strong>DEMONSTRATION WORKSPACE</strong> · These figures may include sample data.
+        </div>
+      )}
+      {emissionsClosedToday && (
+        <div className="notice warning dashboard-sunday-closure" role="status">
+          <CalendarDays size={18} aria-hidden="true" />
+          <strong>Emissions testing is closed today (Sunday).</strong>
         </div>
       )}
       <section aria-labelledby="snapshot-heading">

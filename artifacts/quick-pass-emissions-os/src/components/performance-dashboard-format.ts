@@ -10,7 +10,7 @@ export const usd = (cents: number | null | undefined, whole = false) =>
 export const num = (n: number | null | undefined) =>
   n === null || n === undefined ? "No data" : n.toLocaleString("en-US");
 export const inspectionTime = (minutes: number | null) =>
-  minutes === null ? "No timing data" : `${minutes.toFixed(1)} min`;
+  minutes === null ? "No timing data" : `${minutes.toFixed(1)} min/car`;
 export const shortDate = (d: string) =>
   new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 export const longDate = (d: string) =>

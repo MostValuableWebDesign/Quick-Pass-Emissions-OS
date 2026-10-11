@@ -10,33 +10,29 @@ export function reportMinute(sourceDate: string): number | null {
   return (hour % 12 + (match[3] === "PM" ? 12 : 0)) * 60 + minute;
 }
 
-/** Pool individual intervals, not employee/day averages. Never cross dates or inspectors. */
+/** Sum daily first-to-last testing windows, then divide by cars, not gaps or daily averages. */
 export function inspectionCadence(days: PortalDay[], inspector?: string | null): InspectionCadence {
   let minutes = 0;
-  let intervals = 0;
+  let cars = 0;
   let coveredDays = 0;
   for (const day of days) {
     if (inspector === null) continue;
     if (!day.testTimes) { if (day.verifiedEmpty) coveredDays++; continue; }
-    const groups = new Map<string, (number | null)[]>();
-    for (const test of day.testTimes) {
-      if (inspector !== undefined && test.inspector !== inspector) continue;
-      const times = groups.get(test.inspector) ?? [];
-      times.push(test.minute);
-      groups.set(test.inspector, times);
-    }
-    let complete = true;
-    for (const times of groups.values()) {
-      // A missing clock time makes sequence adjacency unverifiable for this employee/day.
-      if (times.some((time) => time === null)) { complete = false; continue; }
-      const sorted = (times as number[]).toSorted((a, b) => a - b);
-      for (let i = 1; i < sorted.length; i++) {
-        const gap = sorted[i] - sorted[i - 1];
-        // Equal minute stamps cannot establish a zero-minute inspection.
-        if (gap > 0) { minutes += gap; intervals++; }
-      }
-    }
-    if (complete) coveredDays++;
+    // An employee uses their own window. The station uses one window for all staff,
+    // so overlapping employee windows never double-count station elapsed time.
+    const times = day.testTimes
+      .filter((test) => inspector === undefined || test.inspector === inspector)
+      .map((test) => test.minute);
+    // Unknown timestamps can hide the first/last test; omit that day's estimate.
+    if (times.some((time) => time === null)) continue;
+    coveredDays++;
+    if (times.length < 2) continue;
+    const known = times as number[];
+    const elapsed = Math.max(...known) - Math.min(...known);
+    // A single clock minute does not establish a zero-minute test duration.
+    if (elapsed <= 0) continue;
+    minutes += elapsed;
+    cars += times.length;
   }
-  return { averageMinutes: intervals ? minutes / intervals : null, intervals, coveredDays };
+  return { averageMinutes: cars ? minutes / cars : null, cars, coveredDays };
 }

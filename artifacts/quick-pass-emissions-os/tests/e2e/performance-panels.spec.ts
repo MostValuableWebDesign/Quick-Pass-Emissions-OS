@@ -5,9 +5,9 @@ import path from "node:path";
 test("signed-in owner can drag, resize, persist and reset performance panels", async ({ page }) => {
   await page.goto("/performance");
   await expect(page.getByRole("heading", { name: "Performance" })).toBeVisible();
-  await expect(page.getByTestId("text-inspection-interval")).toHaveText("5.8 min");
-  await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20One")).toContainText("5.0 min");
-  await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20Two")).toContainText("8.0 min");
+  await expect(page.getByTestId("text-inspection-interval")).toHaveText("3.6 min/car");
+  await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20One")).toContainText("4.9 min/car");
+  await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20Two")).toContainText("7.7 min/car");
   await page.getByTestId("button-sort-inspectionCadence").click();
   await expect(page.locator(".pd-table tbody tr").first()).toContainText("Fixture Two");
   await page.getByTestId("button-sort-inspectionCadence").click();

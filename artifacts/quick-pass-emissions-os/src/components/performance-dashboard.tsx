@@ -149,10 +149,10 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
             <strong data-testid="text-revenue">{usd(s.revenueCents, true)}</strong>
             <small>$20 per pass or fail</small>
           </div>
-          <div className="pd-kpi" title="Mean gap between consecutive same-employee tests within each day. Includes daytime pauses; report timestamps have minute precision, not measured inspection durations.">
-            <span className="lab">Avg. inspection interval (est.)</span>
+          <div className="pd-kpi" title="Daily elapsed time from first to last test divided by cars in those windows. Uses the station window for all staff, or the selected employee's window. Includes daytime pauses; not measured start-to-finish duration.">
+            <span className="lab">Avg. time per car (est.)</span>
             <strong data-testid="text-inspection-interval">{inspectionTime(s.inspectionCadence.averageMinutes)}</strong>
-            <small>{s.inspectionCadence.intervals} intervals · {s.inspectionCadence.coveredDays}/{s.expectedDays} timing days · includes pauses</small>
+            <small>{s.inspectionCadence.cars} cars in timed windows · {s.inspectionCadence.coveredDays}/{s.expectedDays} days · includes pauses</small>
           </div>
           <div className="pd-kpi">
             <span className="lab">Staff pay (est.)</span>
@@ -185,7 +185,7 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
         renderPanel={(id, controls) => id === "trend" ? (
           <PerformanceTrend series={data.series} filtered={filtered} panelActions={controls} />
         ) : (
-          <EmployeeTable employees={data.employees} profiles={data.payPlan.profiles} panelActions={controls} />
+          <EmployeeTable employees={data.employees} profiles={data.payPlan.profiles} overallCadence={s.inspectionCadence} panelActions={controls} />
         )}
       />
     </div>

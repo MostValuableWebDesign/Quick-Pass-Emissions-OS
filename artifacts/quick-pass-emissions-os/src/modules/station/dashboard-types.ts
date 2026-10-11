@@ -14,7 +14,7 @@ export type PortalDay = Counts & {
   /** Source-local minute precision; absent in legacy count-only caches. */
   testTimes?: { inspector: string; minute: number | null }[];
 };
-export type InspectionCadence = { averageMinutes: number | null; intervals: number; coveredDays: number };
+export type InspectionCadence = { averageMinutes: number | null; cars: number; coveredDays: number };
 export type DashboardQuery = {
   start: string;
   end: string;

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import type { DashboardEmployee, PayProfile } from "@/modules/station/dashboard-types";
+import type { DashboardEmployee, InspectionCadence, PayProfile } from "@/modules/station/dashboard-types";
 import { usd, num, inspectionTime } from "./performance-dashboard-format";
 
 type Key = "name" | "cars" | "workingDays" | "inspectionCadence" | "revenueCents" | "baseCents" | "commissionCents" | "payCents";
@@ -10,7 +10,7 @@ const COLS: [Key, string, boolean][] = [
   ["name", "Employee", false],
   ["cars", "Cars", true],
   ["workingDays", "Days", true],
-  ["inspectionCadence", "Avg. interval (est.)", true],
+  ["inspectionCadence", "Avg. time/car (est.)", true],
   ["revenueCents", "Revenue", true],
   ["baseCents", "Base", true],
   ["commissionCents", "Commission", true],
@@ -20,7 +20,7 @@ const COLS: [Key, string, boolean][] = [
 const sumKnown = (rows: DashboardEmployee[], k: "baseCents" | "commissionCents" | "payCents" | "cars" | "revenueCents") =>
   rows.some((r) => r[k] === null) ? null : rows.reduce((a, r) => a + (r[k] ?? 0), 0);
 
-export function EmployeeTable({ employees, profiles = [], panelActions }: { employees: DashboardEmployee[]; profiles?: PayProfile[]; panelActions?: ReactNode }) {
+export function EmployeeTable({ employees, profiles = [], overallCadence, panelActions }: { employees: DashboardEmployee[]; profiles?: PayProfile[]; overallCadence?: InspectionCadence; panelActions?: ReactNode }) {
   const [sort, setSort] = useState<{ key: Key; dir: 1 | -1 }>({ key: "payCents", dir: -1 });
   const [q, setQ] = useState("");
   const rows = useMemo(() => {
@@ -42,9 +42,6 @@ export function EmployeeTable({ employees, profiles = [], panelActions }: { empl
     setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: key === "name" ? 1 : -1 }));
   const cars = sumKnown(rows, "cars");
   const rev = sumKnown(rows, "revenueCents");
-  const intervals = rows.reduce((sum, row) => sum + row.inspectionCadence.intervals, 0);
-  const averageMinutes = intervals ? rows.reduce((sum, row) =>
-    sum + (row.inspectionCadence.averageMinutes ?? 0) * row.inspectionCadence.intervals, 0) / intervals : null;
 
   return (
     <section className="pd-card" aria-label="Employees">
@@ -94,9 +91,9 @@ export function EmployeeTable({ employees, profiles = [], panelActions }: { empl
                     {e.cars !== null && <div className="pd-bar"><span style={{ transform: `scaleX(${e.cars / maxCars})` }} /></div>}
                   </td>
                   <td className="r">{e.workingDays ?? "—"}</td>
-                  <td className="r" data-testid={`text-employee-interval-${e.id}`} title="Same-day gaps between this employee's tests, including daytime pauses. Not measured inspection duration.">
+                  <td className="r" data-testid={`text-employee-interval-${e.id}`} title="This employee's daily first-to-last testing time divided by their cars. Includes pauses; estimated, not measured inspection duration.">
                     {inspectionTime(e.inspectionCadence.averageMinutes)}
-                    <small>{e.inspectionCadence.intervals} intervals · {e.inspectionCadence.coveredDays} timing days</small>
+                    <small>{e.inspectionCadence.cars} cars in timed windows · {e.inspectionCadence.coveredDays} days</small>
                   </td>
                   <td className="r">{usd(e.revenueCents)}</td>
                   <td className="r">
@@ -119,7 +116,12 @@ export function EmployeeTable({ employees, profiles = [], panelActions }: { empl
                 <td>Total ({rows.length})</td>
                 <td className="r">{num(cars)}</td>
                 <td />
-                <td className="r">{inspectionTime(averageMinutes)}<small>{intervals} intervals</small></td>
+                <td className="r" title="Selected-period overall time per car, not a sum of overlapping employee testing windows.">
+                  {rows.length === employees.length && overallCadence ? <>
+                    {inspectionTime(overallCadence.averageMinutes)}
+                    <small>{overallCadence.cars} cars in timed windows</small>
+                  </> : "—"}
+                </td>
                 <td className="r">{usd(rev)}</td>
                 <td className="r">{usd(sumKnown(rows, "baseCents"))}</td>
                 <td className="r">{usd(sumKnown(rows, "commissionCents"))}</td>

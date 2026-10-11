@@ -27,7 +27,7 @@ const fixture = day([
 const query = { start: date, end: date, trendDays: 7 as const };
 const plan = { revision: 0, profiles: [], adjustments: [] };
 
-describe("report-based inspection interval estimates", () => {
+describe("report-based average time per car", () => {
   it("reads noon, midnight and source-local minutes without inventing a time for date-only rows", () => {
     expect(reportMinute("10/10/2026 12:00 AM")).toBe(0);
     expect(reportMinute("10/10/2026 12:00 PM")).toBe(720);
@@ -35,22 +35,23 @@ describe("report-based inspection interval estimates", () => {
     expect(reportMinute("10/10/2026")).toBeNull();
     expect(reportMinute("10/10/2026 13:00 PM")).toBeNull();
   });
-  it("sorts each employee's tests and pools intervals rather than averaging employee averages", () => {
-    expect(inspectionCadence([fixture], "A")).toEqual({ averageMinutes: 5, intervals: 2, coveredDays: 1 });
-    expect(inspectionCadence([fixture], "B").averageMinutes).toBe(20);
-    expect(inspectionCadence([fixture])).toEqual({ averageMinutes: 10, intervals: 3, coveredDays: 1 });
+  it("divides each testing window by cars, not gaps, without double-counting overlapping employee windows", () => {
+    expect(inspectionCadence([fixture], "A")).toEqual({ averageMinutes: 10 / 3, cars: 3, coveredDays: 1 });
+    expect(inspectionCadence([fixture], "B").averageMinutes).toBe(10);
+    expect(inspectionCadence([fixture])).toEqual({ averageMinutes: 4, cars: 5, coveredDays: 1 });
   });
   it("never compares tests across business dates", () => {
     const first = day([{ inspector: "A", minute: 1000 }], "2026-10-09");
     const second = day([{ inspector: "A", minute: 540 }]);
-    expect(inspectionCadence([first, second])).toEqual({ averageMinutes: null, intervals: 0, coveredDays: 2 });
+    expect(inspectionCadence([first, second])).toEqual({ averageMinutes: null, cars: 0, coveredDays: 2 });
   });
-  it("includes same-day pauses but excludes tied minute stamps and unknown sequences", () => {
+  it("includes pauses and cars with tied timestamps, but never invents zero-duration or unknown windows", () => {
     const pause = day([{ inspector: "A", minute: 540 }, { inspector: "A", minute: 540 }, { inspector: "A", minute: 660 }]);
-    expect(inspectionCadence([pause]).averageMinutes).toBe(120);
+    expect(inspectionCadence([pause]).averageMinutes).toBe(40);
     const missing = day([{ inspector: "A", minute: 540 }, { inspector: "A", minute: null }, { inspector: "A", minute: 550 }]);
-    expect(inspectionCadence([missing])).toEqual({ averageMinutes: null, intervals: 0, coveredDays: 0 });
+    expect(inspectionCadence([missing])).toEqual({ averageMinutes: null, cars: 0, coveredDays: 0 });
     expect(inspectionCadence([day([{ inspector: "A", minute: 540 }])]).averageMinutes).toBeNull();
+    expect(inspectionCadence([day([{ inspector: "A", minute: 540 }, { inspector: "A", minute: 540 }])]).averageMinutes).toBeNull();
   });
   it("preserves legacy count caches and requests timing backfill without treating missing times as zero", () => {
     const legacy = { ...fixture, testTimes: undefined };
@@ -70,23 +71,26 @@ describe("report-based inspection interval estimates", () => {
   it("uses only selected dates and honors employee filters in the headline", () => {
     const unrelated = day([{ inspector: "A", minute: 100 }, { inspector: "A", minute: 200 }], "2026-10-09");
     const data = buildDashboard(query, date, [fixture, unrelated], plan);
-    expect(data.summary.inspectionCadence.averageMinutes).toBe(10);
+    expect(data.summary.inspectionCadence.averageMinutes).toBe(4);
     const filtered = buildDashboard({ ...query, employee: inspectorKey("A") }, date, [fixture, unrelated], plan);
-    expect(filtered.summary.inspectionCadence.averageMinutes).toBe(5);
+    expect(filtered.summary.inspectionCadence.averageMinutes).toBe(10 / 3);
     expect(filtered.employees).toHaveLength(1);
-    const html = renderToStaticMarkup(createElement(EmployeeTable, { employees: data.employees }));
-    expect(html).toContain("Avg. interval (est.)");
-    expect(html).toContain("5.0 min");
-    expect(html).toContain("20.0 min");
-    expect(html).toContain("10.0 min");
+    const html = renderToStaticMarkup(createElement(EmployeeTable, {
+      employees: data.employees, overallCadence: data.summary.inspectionCadence,
+    }));
+    expect(html).toContain("Avg. time/car (est.)");
+    expect(html).toContain("3.3 min/car");
+    expect(html).toContain("10.0 min/car");
+    expect(html).toContain("4.0 min/car");
     expect(html).toContain("button-sort-inspectionCadence");
   });
-  it("weights multi-day intervals and exposes partial timing coverage", () => {
+  it("sums daily windows and divides by total timed cars for ranges, exposing partial coverage", () => {
     const second = day([{ inspector: "A", minute: 500 }, { inspector: "A", minute: 520 }], "2026-10-11");
     const data = buildDashboard({ ...query, end: second.date }, second.date, [fixture, second], plan);
-    expect(data.summary.inspectionCadence).toEqual({ averageMinutes: 12.5, intervals: 4, coveredDays: 2 });
+    expect(data.summary.inspectionCadence).toEqual({ averageMinutes: 40 / 7, cars: 7, coveredDays: 2 });
+    expect(data.employees.find((e) => e.inspector === "A")?.inspectionCadence.averageMinutes).toBe(6);
     const partial = buildDashboard({ ...query, end: second.date }, second.date, [fixture], plan);
-    expect(partial.summary.inspectionCadence).toEqual({ averageMinutes: 10, intervals: 3, coveredDays: 1 });
+    expect(partial.summary.inspectionCadence).toEqual({ averageMinutes: 4, cars: 5, coveredDays: 1 });
     expect(partial.summary.expectedDays).toBe(2);
   });
 });

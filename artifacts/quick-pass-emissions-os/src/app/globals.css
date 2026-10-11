@@ -346,6 +346,21 @@ svg {
 .nav-submenu.open {
   display: block;
 }
+.nav-flyout {
+  position: fixed;
+  z-index: 80;
+  width: 236px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  margin: 0;
+  border: 1px solid var(--nav-line);
+  border-radius: 10px;
+  background: var(--nav-bg);
+  box-shadow: 0 16px 38px #0004;
+}
+.nav-flyout .nav-submenu-group {
+  padding: 2px 4px;
+}
 .nav-submenu-group + .nav-submenu-group {
   margin-top: 10px;
   padding-top: 8px;
@@ -384,33 +399,8 @@ svg {
   outline-offset: 2px;
 }
 @media (min-width: 681px) {
-  .collapsed .nav-item-with-children .nav-main-row > .nav-link {
-    padding-right: 13px;
-  }
-  .collapsed .nav-submenu,
-  .collapsed .nav-submenu-toggle {
-    display: none;
-  }
-  .collapsed .sidebar:has(.nav-item-with-children:hover),
-  .collapsed .sidebar:has(.nav-item-with-children:focus-within) {
-    width: 244px;
-    box-shadow: 12px 0 24px #0002;
-  }
-  .collapsed .sidebar:has(.nav-item-with-children:hover) .nav-label,
-  .collapsed .sidebar:has(.nav-item-with-children:focus-within) .nav-label {
-    display: block;
-  }
-  .collapsed .nav-item-with-children:hover .nav-submenu.open,
-  .collapsed .nav-item-with-children:focus-within .nav-submenu.open {
-    display: block;
-  }
-  .collapsed .nav-item-with-children:hover .nav-submenu-toggle,
-  .collapsed .nav-item-with-children:focus-within .nav-submenu-toggle {
-    display: grid;
-  }
-  .collapsed .nav-item-with-children:hover .nav-main-row > .nav-link,
-  .collapsed .nav-item-with-children:focus-within .nav-main-row > .nav-link {
-    padding-right: 32px;
+  .nav-item-with-children > .nav-submenu {
+    display: none !important;
   }
 }
 .sidebar-bottom {

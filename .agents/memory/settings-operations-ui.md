@@ -15,11 +15,11 @@ Account & password belongs beneath Settings, and pay setup belongs in Payroll ra
 
 **How to apply:** Keep the Settings label concise, use nested account navigation, and retain extra spacing below the Settings navigation area. Retire the Performance setup screen without deleting saved data or station-import capabilities.
 
-Reminders and Notifications belong under Settings. Settings and Dealerships use nested navigation that opens on hover, with categorized Settings functions; Invoices and Payments belong under Dealerships.
+Reminders and Notifications belong under Settings. Settings and Dealerships use categorized side-menu flyouts that open on hover, focus, or their chevron; Invoices and Payments belong under Dealerships.
 
 **Why:** The user requested hover-revealed nesting and explicitly rejected an uncategorized Settings list.
 
-**How to apply:** Preserve these navigation groups, role restrictions, and keyboard/touch access when adding related pages. Do not return these tools to the top-level sidebar.
+**How to apply:** Preserve these navigation groups, role restrictions, and keyboard/touch access when adding related pages. Flyouts open beside their parent tab on desktop; keep mobile expansion usable within the drawer. Do not return these tools to the top-level sidebar.
 
 The user removed the Issued By mappings, Outcome rules & prices, Operations scheduler, Product roadmap, Data storage & recovery, and sidebar slogan panels as unnecessary.
 

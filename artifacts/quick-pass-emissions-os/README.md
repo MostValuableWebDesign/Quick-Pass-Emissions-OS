@@ -9,7 +9,14 @@
 
 A PostgreSQL-backed Phases 1–5 business application for Quick Pass Emissions, Tag Renewal & Carwash. Next.js App Router, TypeScript, React, Tailwind, a shadcn-style Button primitive, Lucide, Prisma, Better Auth, and Zod. No real business records or financial balances are included.
 
-**Station performance:** the owner-only **Performance** view adds verified original-report imports, explicit identity/coverage/count review, revenue evidence separation and existing-payroll explanations. Live portal synchronization and current-day earnings forecasts remain unverified/unsupported, not simulated. Read [STATION_HISTORY.md](STATION_HISTORY.md) for secure setup, source discovery, operating instructions and limitations.
+**Station performance:** the owner-only **Performance** view adds verified original-report imports, explicit identity/coverage/count review, revenue evidence separation, outcome breakdowns, daily/hourly trends, an employee payroll-evidence table, and draggable/resizable panels saved per owner in this browser. Comparisons require reviewed complete historical coverage; partial pay periods are not prorated. Live portal synchronization and current-day earnings forecasts remain unverified/unsupported, not simulated. Read [STATION_HISTORY.md](STATION_HISTORY.md) for secure setup, source discovery, operating instructions and limitations.
+
+**Payroll & commissions:** employee-first daily/weekly base rates, approved daily/weekly commissions,
+average commission per approved day, effective-dated exact/percentage pay changes, progressive
+personal-volume incentives, latest approved gross payroll and a durable transaction history.
+Payroll display lists use 15 items per page; approved exports include all rows. Owners configure
+rates and changes; management prepares/reviews records. Read [PHASE2.md](PHASE2.md) for pay
+bases, approval evidence and the additive migration that preserves existing data.
 
 ## Quick start
 
@@ -33,7 +40,7 @@ npm run bootstrap
 npm run dev
 ```
 
-Open [localhost:3000](http://localhost:3000). Configure operating days in **Settings & audit**, create employees, open each employee profile to issue an invitation, create recurring responsibilities, and record shifts. Share invitation links privately; the application does not send email. Invitation tokens are stored as hashes and expire after 48 hours.
+Open [localhost:3000](http://localhost:3000). Configure operating days in **Settings & audit**, create staff records, create recurring responsibilities, and record shifts. Staff records have no login. Owners may grant Owner or Manager access and issue a private invitation from that profile. Share invitation links privately; the application does not send email. Invitation tokens are stored as hashes and expire after 48 hours.
 
 Normal production commands:
 
@@ -47,13 +54,19 @@ npm start
 
 The server binds to `0.0.0.0`; set `PORT` for a different port. If npm 12 reports blocked lifecycle scripts, explicitly run `npm run db:generate` and approve only reviewed package install scripts if your environment needs them. Linux/macOS native packages must be installed on the target platform with `npm ci`; do not transfer `node_modules`.
 
+## Management-only access
+
+Only OWNER and ADMIN (Manager) accounts can sign in, use existing sessions, activate invitations or change passwords. Legacy EMPLOYEE and BOOKKEEPER identities are retained for business history but have no app access. Migration `202610100011_management_access` retires their credentials, sessions, unused invitations and unresolved personal alerts while retaining staff, payroll, schedules, tasks, maintenance and finance records. Startup applies migrations automatically; builds never reset data.
+
+Owners and managers enter all task progress, maintenance work, support history and approvals. Automated alerts go only to management. The employee self-service certification route has been removed. Staff records remain available for management's payroll, scheduling, certifications and assignment tracking.
+
 ## What works
 
-- Invite-only email/password accounts, server-stored sessions, four roles, active-account checks, login throttling, and session revocation on deactivation/role changes.
+- Invite-only email/password accounts, server-stored sessions, Owner and Manager access only, current role/active-account checks, login throttling, and session revocation on deactivation/role changes.
 - Employee profiles, role assignment, archival through deactivation, duties, work areas, manager-only notes and a certification expiry field. Compensation is configured separately in the owner-only payroll workflow.
 - One shift per employee/date, a navigable seven-day schedule, shift edits/removal and assigned duties.
 - One-time, daily, weekly, monthly, quarterly and annual task templates; assignments, deadlines, priorities, notes, blocked work, completion and manager review.
-- Persistent task history, audited corrections/reassignment, live overdue counts, role-scoped dashboard data and operational notifications.
+- Persistent task history, audited corrections/reassignment, live overdue counts, management dashboard data and operational notifications.
 - Dark/light themes, collapsible desktop navigation, mobile navigation and touch-friendly task actions.
 - Authenticated independently triggered operations jobs, PostgreSQL advisory locking, duplicate prevention, closure exclusions and job-run history.
 
@@ -61,7 +74,7 @@ The server binds to `0.0.0.0`; set `PORT` for a different port. If npm 12 report
 - Ended payroll periods, independently approved time inputs/completeness attestations, exact-cent gross drafts, retained calculation revisions, separate approval and approved CSV export.
 - Certificate opening/reconciliation counts, consumption/void ledger, estimated depletion/reorder alerts, independent purchase approval, external-order references and partial physical receipts.
 
-- Owner-confirmed six-bay layout, equipment/vendor registry, downtime, corrective tickets, employee issue reporting, reviewed work and scheduled preventative maintenance.
+- Owner-confirmed six-bay layout, equipment/vendor registry, downtime, corrective tickets, management-recorded issues and work progress, reviewed repairs and scheduled preventative maintenance.
 - Chemical stock ledger/low-stock alerts and owner-authorized detailing agreements, monthly charges, received payments and reversal history.
 
 Read [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md) and [PHASE4.md](PHASE4.md) for workflows, permissions, configuration and operating limits. Dealership billing includes immutable approved snapshots, signed receipts/reversals, dated aging and complete CSV exports. Finance separates manual, independently reviewed and estimated records; it is not bank reconciliation or complete accounting. No business wage/stock values are seeded and no payments or external orders are executed.
@@ -82,7 +95,7 @@ npm run seed:demo
 npm run dev
 ```
 
-Demo accounts: `owner@example.test`, `manager@example.test`, `al@example.test`, `john@example.test`, and `bookkeeper@example.test`. All use the password **you supplied**. The app shows a prominent demonstration banner. Sample shifts, operating days and completed duties are illustrative, never confirmed business facts. Demo employee names deliberately include “Demo.” Nothing sets real employee wages, actual certificates, revenue, rental terms or dealer rates.
+Demo login accounts: `owner@example.test` and `manager@example.test`. Staff records for Demo Al and Demo John have no credentials. Both management accounts use the password **you supplied**. The app shows a prominent demonstration banner. Sample shifts, operating days and completed duties are illustrative, never confirmed business facts. Demo employee names deliberately include “Demo.” Nothing sets real employee wages, actual certificates, revenue, rental terms or dealer rates.
 
 For this delivered workspace only, an ignored `.env` and isolated PostgreSQL data under the parent `work/` folder were used for verification. They are not in the portable source archive or Git. Provision your own PostgreSQL database for ongoing use.
 
@@ -103,14 +116,18 @@ DATABASE_URL="$TEST_DATABASE_URL" npm run db:migrate
 TEST_DATABASE_URL="$TEST_DATABASE_URL" npm test
 ```
 
-**Database tests truncate their isolated fixtures. Never point them at business data.** Browser tests require a running local app with the demo seed and `DEMO_PASSWORD` in the environment:
+**Database tests truncate their isolated fixtures. Never point them at business data.** The isolated runners create and remove their own temporary databases and synthetic accounts; they do not seed or restart the business app. The database connection must allow creating a temporary database.
 
 ```sh
 npx playwright install chromium
-npm run test:e2e
+# On a local development machine (uses a private ephemeral server port):
+E2E_DIRECT=1 npm run test:isolated
+E2E_DIRECT=1 npm run test:e2e
 ```
 
-Set `E2E_BASE_URL` if needed. Tests create clearly named E2E employees and tasks in the demo database. Use fresh disposable databases for clean reruns. Tests verify invitation activation/reuse, schedules, assignment, employee completion, persistence after reload, manager review, restricted reads, account deactivation, unauthenticated endpoints, bookkeeper isolation and mobile layout.
+In Replit, omit `E2E_DIRECT=1` to use the configured preview port; that port must be free. `DATABASE_URL` supplies the connection to the PostgreSQL server, and the runners generate their own database name, signing secret and private sessions. `DEMO_PASSWORD` and a pre-seeded app are unnecessary. `E2E_CHROMIUM_PATH` optionally selects an installed browser.
+
+The default browser command requires all 17 checks across navigation, personnel/invitations, tasks, payroll, certificates, maintenance, chemicals, rentals, dealer billing, finance and Phase 5 automation. Phase 5 covers configuration, summary delivery and immutability, reminders, CSV reports, failed-job retry and role restrictions. A missing workflow file, skipped test, failure or retry fails the completion guard. Targeted support/import/certificate/station modes remain available and report only their selected coverage. Browser traces, screenshots and video are disabled; temporary sessions and reports are private and removed on completion.
 
 ## Scheduling
 

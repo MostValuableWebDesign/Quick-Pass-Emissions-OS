@@ -73,6 +73,13 @@ describe("Phase 5 calendar, estimates and configuration", () => {
       state: "ESTIMATE",
     });
   });
+  it("keeps extreme valid forecasts available without overflowing Temporal", () => {
+    expect(depletion({ ...base, balance: 2000000000, used: 1 })).toMatchObject({
+      state: "ESTIMATE",
+      estimatedDaysRemaining: 20000000000,
+      depletionDate: null,
+    });
+  });
   it("uses bounded exponential retry times and rejects missing business numbers", () => {
     expect(retryAt(new Date(0), 4).getTime()).toBe(480000);
     expect(scheduleInput.safeParse({}).success).toBe(false);

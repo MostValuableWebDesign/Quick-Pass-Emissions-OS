@@ -6,7 +6,10 @@ import { ActionForm, Field } from "@/components/action-form";
 export default function Invite() {
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (input.current) input.current.value = window.location.hash.slice(1);
+    const token = window.location.hash.slice(1);
+    // Development Strict Mode replays effects after the fragment was removed.
+    // Preserve the captured one-time token on that replay.
+    if (input.current && token) input.current.value = token;
     window.history.replaceState(null, "", "/invite");
   }, []);
   return (

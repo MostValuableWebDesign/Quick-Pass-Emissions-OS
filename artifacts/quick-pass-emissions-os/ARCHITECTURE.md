@@ -63,3 +63,15 @@ The existing observable scheduler transaction takes the job lock followed by Pha
 `src/modules/finance` owns directory/contacts, owner-authorized billing configuration, completed services, invoice allocation/snapshots, separate reviews, signed receipts/reversals, manual/estimated finance entries, date-scoped reports and safe CSV. `src/modules/phase4.ts` rechecks active roles and takes rental lock 7183504 followed by finance lock 7183505 in READ COMMITTED transactions. The shared receipt-reference helper is also called by rental writes under lock 7183504. No Phase 4 service takes the job lock or Phase 2 lock. Audit and business writes commit together. Employees never enter this data boundary. `phase4-actions.ts` supplies the authenticated actor; `/api/finance/export` validates selection/dates, uses no-store responses and audits exports.
 
 Migration 005 adds dealerships/contacts/services/invoices/lines/payments/finance-entry tables, uniqueness and database bounds/lifecycle checks. Invoice calculations use BigInt intermediates and integer USD cents. Lists cap at 100; report totals/export queries do not truncate matching rows. Aging uses entered effective payment/void dates; review state is current rather than a historical frozen statement. Accounting exports preserve original invoice billing snapshots, signed reversals and provenance markers. The application does not infer complete books or profit. Read PHASE4.md for scope and limits.
+
+### Employee payroll overview
+
+`payroll/dashboard.ts` provides role-checked employee summaries and a paginated audit ledger.
+Display equivalents use explicit schedule inputs, while the shared calculation engine still uses
+approved minutes (hourly), approved paid days (daily), full seven-day weeks (weekly), or the
+original whole-period amount (fixed). Progressive personal daily commission boosts are selected
+by effective date and copied into immutable payroll snapshots. Percentage adjustments re-read
+the expected source version under the Phase 2 transaction lock and append a new dated version
+and audit record atomically. Migration 012 adds nullable schedule, paid-day and boost fields,
+leaving existing compensation and historical JSON snapshots unchanged. Presentation lists have
+a fixed 15-item page size; financial calculations and approved exports use complete source data.

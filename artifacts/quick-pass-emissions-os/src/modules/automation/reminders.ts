@@ -113,13 +113,10 @@ export async function reminderSources(tx: Tx, today: string): Promise<Source[]> 
   ];
 }
 export function allowedRecipient(
-  source: Source,
+  _source: Source,
   user: { role: Role; employee: { id: string } | null },
 ) {
-  if (source.kind === "DEALER" || source.kind === "RENTAL")
-    return ["OWNER", "ADMIN", "BOOKKEEPER"].includes(user.role);
-  if (user.role === "OWNER" || user.role === "ADMIN") return true;
-  return user.role === "EMPLOYEE" && !!source.employeeId && user.employee?.id === source.employeeId;
+  return user.role === "OWNER" || user.role === "ADMIN";
 }
 export function applicable(
   policy: ReminderPolicy,
@@ -189,10 +186,7 @@ export async function reconcileReminders(tx: Tx, now: Date) {
             policyId: policy.id,
             userId: user.id,
             title: source.title,
-            href:
-              user.role === "EMPLOYEE" && source.kind === "CERTIFICATION"
-                ? "/reminders/certification"
-                : source.href,
+            href: source.href,
             dueDate: source.dueDate,
           },
         }));

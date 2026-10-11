@@ -1,12 +1,11 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type Role } from "@prisma/client";
 import { businessDate } from "@/lib/time";
 import { id } from "@/lib/validation";
-import { phase3, managers, operators, audit, requireRule, type Tx } from "../phase3";
+import { phase3, managers, audit, requireRule, type Tx } from "../phase3";
 import { activeVendor } from "../maintenance/service";
 import * as r from "./rules";
 
-// Explicit SQL projection: no legacy reference/services/notes, account identifiers,
-// equipment details, financial terms, or manager history can reach employees.
+// Directory contact fields displayed to owners and management.
 export const operationalSelect = {
   id: true,
   name: true,
@@ -36,19 +35,9 @@ export const operationalSelect = {
 function current(row: { version: number } | null, version: number) {
   requireRule(row?.version === version, "This record changed. Refresh and try again.");
 }
-async function ticketAccess(
-  tx: Tx,
-  actor: { id: string; role: string; employee: { id: string } | null },
-  ticketId: string,
-) {
+async function ticketAccess(tx: Tx, actor: { role: Role }, ticketId: string) {
   const ticket = await tx.maintenanceTicket.findUnique({ where: { id: ticketId } });
-  requireRule(
-    ticket &&
-      (managers.includes(actor.role as never) ||
-        ticket.reportedBy === actor.id ||
-        (!!actor.employee && ticket.assignedId === actor.employee.id)),
-    "Access denied to this maintenance ticket.",
-  );
+  requireRule(ticket && managers.includes(actor.role), "Access denied to this maintenance ticket.");
   return ticket;
 }
 export async function directory(
@@ -57,8 +46,7 @@ export async function directory(
 ) {
   const search = (query.search ?? "").trim().slice(0, 160);
   const category = query.category ? r.category.parse(query.category) : null;
-  return phase3(actorId, operators, async (tx, actor) => {
-    const management = managers.includes(actor.role);
+  return phase3(actorId, managers, async (tx) => {
     const providers = await tx.vendor.findMany({
       where: {
         ...(query.archived ? {} : { active: true }),
@@ -78,15 +66,13 @@ export async function directory(
       orderBy: { name: "asc" },
     });
     return {
-      management,
+      management: true,
       providers,
-      preferenceChoices: management
-        ? await tx.vendor.findMany({
-            where: { active: true, verifiedDate: { not: null } },
-            select: { id: true, name: true, categories: true },
-            orderBy: { name: "asc" },
-          })
-        : [],
+      preferenceChoices: await tx.vendor.findMany({
+        where: { active: true, verifiedDate: { not: null } },
+        select: { id: true, name: true, categories: true },
+        orderBy: { name: "asc" },
+      }),
       preferences: await tx.supportPreference.findMany({
         select: { category: true, vendorId: true, version: true },
       }),
@@ -95,15 +81,14 @@ export async function directory(
   });
 }
 export async function providerDetail(actorId: string, vendorId: string) {
-  return phase3(actorId, operators, async (tx, actor) => {
-    const management = managers.includes(actor.role);
+  return phase3(actorId, managers, async (tx) => {
     const provider = await tx.vendor.findUnique({
       where: { id: id.parse(vendorId) },
       select: operationalSelect,
     });
     requireRule(provider, "Provider not found.");
     const history = await tx.supportContactHistory.findMany({
-      where: { vendorId, ...(management ? {} : { actorId }) },
+      where: { vendorId },
       select: {
         id: true,
         actorName: true,
@@ -119,51 +104,25 @@ export async function providerDetail(actorId: string, vendorId: string) {
       orderBy: { createdAt: "desc" },
       take: 100,
     });
-    // Employee history is self-only. References are reauthorized before returning.
-    const visibleHistory = [];
-    for (const entry of history) {
-      if (!management && entry.ticketId) {
-        const ticket = await tx.maintenanceTicket.findUnique({ where: { id: entry.ticketId } });
-        if (
-          !ticket ||
-          !(
-            ticket.reportedBy === actor.id ||
-            (actor.employee && ticket.assignedId === actor.employee.id)
-          )
-        )
-          continue;
-      }
-      visibleHistory.push(entry);
-    }
     return {
-      management,
+      management: true,
       provider,
-      history: visibleHistory,
-      privateProvider: management ? await tx.vendor.findUnique({ where: { id: vendorId } }) : null,
-      associations: management
-        ? await tx.supportAssociation.findMany({
-            where: { vendorId },
-            include: {
-              equipment: { select: { id: true, name: true } },
-              bay: { select: { id: true, identifier: true } },
-            },
-          })
-        : [],
-      equipment: management
-        ? await tx.equipment.findMany({ where: { active: true }, select: { id: true, name: true } })
-        : [],
-      bays: management
-        ? await tx.carwashBay.findMany({ select: { id: true, identifier: true } })
-        : [],
+      history,
+      privateProvider: await tx.vendor.findUnique({ where: { id: vendorId } }),
+      associations: await tx.supportAssociation.findMany({
+        where: { vendorId },
+        include: {
+          equipment: { select: { id: true, name: true } },
+          bay: { select: { id: true, identifier: true } },
+        },
+      }),
+      equipment: await tx.equipment.findMany({
+        where: { active: true },
+        select: { id: true, name: true },
+      }),
+      bays: await tx.carwashBay.findMany({ select: { id: true, identifier: true } }),
       tickets: await tx.maintenanceTicket.findMany({
-        where: management
-          ? {}
-          : {
-              OR: [
-                { reportedBy: actorId },
-                ...(actor.employee ? [{ assignedId: actor.employee.id }] : []),
-              ],
-            },
+        where: {},
         select: { id: true, title: true },
         orderBy: { createdAt: "desc" },
       }),
@@ -270,7 +229,7 @@ export async function associateSupport(actorId: string, raw: unknown) {
 }
 export async function selectTicketProvider(actorId: string, raw: unknown) {
   const data = r.ticketProviderInput.parse(raw);
-  return phase3(actorId, operators, async (tx, actor) => {
+  return phase3(actorId, managers, async (tx, actor) => {
     const ticket = await ticketAccess(tx, actor, data.id);
     current(ticket, data.version);
     requireRule(
@@ -295,7 +254,7 @@ export async function selectTicketProvider(actorId: string, raw: unknown) {
 }
 export async function logContact(actorId: string, raw: unknown) {
   const data = r.historyInput.parse(raw);
-  return phase3(actorId, operators, async (tx, actor) => {
+  return phase3(actorId, managers, async (tx, actor) => {
     const vendor = await tx.vendor.findUnique({ where: { id: data.vendorId } });
     requireRule(vendor?.active, "Choose an active provider for a new contact entry.");
     requireRule(
@@ -304,10 +263,6 @@ export async function logContact(actorId: string, raw: unknown) {
     );
     const ticket = data.ticketId ? await ticketAccess(tx, actor, data.ticketId) : null;
     if (data.equipmentId) {
-      requireRule(
-        managers.includes(actor.role) || ticket?.equipmentId === data.equipmentId,
-        "Equipment access requires your related ticket.",
-      );
       requireRule(
         await tx.equipment.findUnique({ where: { id: data.equipmentId } }),
         "Equipment not found.",
@@ -321,7 +276,7 @@ export async function logContact(actorId: string, raw: unknown) {
     const row = await tx.supportContactHistory.create({
       data: { ...data, contactedAt: new Date(data.contactedAt), actorId, actorName: name!.name },
     });
-    // Narrative is restricted to self/management history, not ordinary audit exports.
+    // Narrative is restricted to management history, not ordinary audit exports.
     await audit(tx, actorId, "SUPPORT_CONTACT_SELF_REPORTED", row.id, {
       vendorId: data.vendorId,
       method: data.method,
@@ -345,7 +300,7 @@ export async function targetProviders(
   });
 }
 export async function ticketSupport(actorId: string, ticketId: string) {
-  return phase3(actorId, operators, async (tx, actor) => {
+  return phase3(actorId, managers, async (tx, actor) => {
     const ticket = await ticketAccess(tx, actor, id.parse(ticketId));
     const assigned = ticket.vendorId
       ? await tx.vendor.findUnique({

@@ -15,12 +15,12 @@ export default async function Employees() {
     <>
       <PageHeader
         title="The people behind Quick Pass"
-        description="Manage your team, responsibilities, and access."
+        description="Staff records for management’s payroll, schedules, and responsibilities. Only owners and managers can sign in."
       />
       <details className="card card-body">
         <summary>+ Add an employee</summary>
         <p className="muted">
-          Create the employee, then open their profile to issue a private invitation.
+          Staff records have no login. Owners can also provision Owner or Manager access.
         </p>
         <ActionForm action={saveEmployee} submit="Create employee">
           <EmployeeFields owner={actor.role === "OWNER"} />
@@ -37,7 +37,7 @@ export default async function Employees() {
             <thead>
               <tr>
                 <th>Employee</th>
-                <th>Role</th>
+                <th>App access</th>
                 <th>Status</th>
                 <th>Responsibilities</th>
                 <th>Schedule records</th>
@@ -52,7 +52,13 @@ export default async function Employees() {
                     </RecordLink>
                     <small>{e.user.email}</small>
                   </td>
-                  <td>{e.user.role.toLowerCase()}</td>
+                  <td>
+                    {e.user.role === "OWNER"
+                      ? "Owner"
+                      : e.user.role === "ADMIN"
+                        ? "Manager"
+                        : "No app access"}
+                  </td>
                   <td>
                     <span className={`badge ${e.user.active ? "green" : "neutral"}`}>
                       {e.user.active ? "Active" : "Inactive"}

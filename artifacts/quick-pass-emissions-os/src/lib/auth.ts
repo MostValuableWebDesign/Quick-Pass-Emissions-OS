@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
+import { isManager } from "./policy";
 import { db } from "./db";
 import { previewTrustedOrigins } from "./auth-origins";
 export const auth = betterAuth({
@@ -16,16 +17,20 @@ export const auth = betterAuth({
   },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
-      if (ctx.path !== "/change-password") return;
+      if (!["/change-password", "/get-session"].includes(ctx.path)) return;
       const session = await getSessionFromCtx(ctx);
-      if (!session) throw new APIError("UNAUTHORIZED", { message: "Sign in to continue." });
+      if (!session) {
+        if (ctx.path === "/get-session") return;
+        throw new APIError("UNAUTHORIZED", { message: "Sign in to continue." });
+      }
       const user = await db.user.findUnique({
         where: { id: session.user.id },
-        select: { active: true },
+        select: { active: true, role: true },
       });
-      if (!user?.active) throw new APIError("FORBIDDEN", { message: "Account is inactive." });
+      if (!user?.active || !isManager(user.role))
+        throw new APIError("FORBIDDEN", { message: "Owner or manager access is required." });
       // Enforce this on the supported endpoint as well as the native form.
-      ctx.body.revokeOtherSessions = true;
+      if (ctx.path === "/change-password") ctx.body.revokeOtherSessions = true;
     }),
   },
   databaseHooks: {
@@ -51,9 +56,9 @@ export const auth = betterAuth({
         before: async (session) => {
           const user = await db.user.findUnique({
             where: { id: session.userId },
-            select: { active: true },
+            select: { active: true, role: true },
           });
-          return user?.active === true;
+          return user?.active === true && isManager(user.role);
         },
       },
     },

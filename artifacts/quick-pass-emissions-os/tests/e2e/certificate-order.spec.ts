@@ -74,12 +74,12 @@ for (const role of ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"] as const) {
       const before = await snapshot();
       await page.goto("/certificates");
       const action = page.getByRole("link", { name: /Order Certificates/ }).first();
-      if (role === "EMPLOYEE") {
+      if (role === "EMPLOYEE" || role === "BOOKKEEPER") {
         await expect(action).toHaveCount(0);
         await expect(
           page.getByRole("heading", { name: "Purchase history · latest 100" }),
         ).toHaveCount(0);
-        expect(await page.content()).toMatch(/You do not have permission|\/dashboard/);
+        await expect(page).toHaveURL(/\/login$/);
       } else {
         await expect(action).toBeVisible();
         await expect(action).toHaveAttribute("href", portal);

@@ -7,8 +7,29 @@ import {
   formatMoney,
 } from "../src/modules/payroll/calculations";
 import { certificateForecast } from "../src/modules/certificates/forecast";
-import { periodInput, policyInput } from "../src/modules/payroll/service";
+import {
+  periodInput,
+  policyInput,
+  emissionInput,
+  arrangementInput,
+  payrollInput,
+} from "../src/modules/payroll/service";
 describe("Phase 2 exact calculations", () => {
+  it.each(["", "  ", null, undefined, false, true, [], {}, "NaN", "Infinity", -1, 1.5])(
+    "rejects missing or invalid payroll numbers: %j",
+    (value) => {
+      expect(emissionInput.shape.count.safeParse(value).success).toBe(false);
+      expect(arrangementInput.shape.amountCents.safeParse(value).success).toBe(false);
+      expect(policyInput.shape.threshold.safeParse(value).success).toBe(false);
+      expect(policyInput.shape.rateCents.safeParse(value).success).toBe(false);
+      expect(payrollInput.shape.minutes.safeParse(value).success).toBe(false);
+    },
+  );
+  it.each([0, "0", " 0 "])("accepts explicit numeric zero: %j", (value) => {
+    expect(emissionInput.shape.count.parse(value)).toBe(0);
+    expect(arrangementInput.shape.amountCents.parse(value)).toBe(0);
+    expect(policyInput.shape.threshold.parse(value)).toBe(0);
+  });
   it("applies commission per person/day, above the threshold only", () => {
     expect([0, 49, 50, 51, 65].map((c) => commissionCents(c, 50, 100, true))).toEqual([
       0, 0, 0, 100, 1500,
@@ -67,6 +88,11 @@ describe("Recorded certificate forecasts", () => {
     reorderPoint: 50,
     leadDays: 7,
   };
+  it("omits an out-of-calendar depletion date for supported large stock and tiny usage", () => {
+    const result = certificateForecast({ ...base, balance: 2000000000, used: 1 });
+    expect(result.daysRemaining).toBe(20000000000);
+    expect(result.depletionDate).toBeNull();
+  });
   it("counts calendar days since opening and uses lead-time demand", () => {
     expect(certificateForecast(base)).toMatchObject({
       days: 10,

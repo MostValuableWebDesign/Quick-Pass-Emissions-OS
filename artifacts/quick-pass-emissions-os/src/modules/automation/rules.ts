@@ -1,6 +1,6 @@
 import { Temporal } from "@js-temporal/polyfill";
 import { z } from "zod";
-import { addDays, dueInstant } from "@/lib/time";
+import { addDays, dueInstant, forecastDate } from "@/lib/time";
 import { id, timeString } from "@/lib/validation";
 import { requiredInteger } from "../finance/rules";
 
@@ -110,7 +110,7 @@ export function depletion(input: {
     averageDailyUsage: average,
     state,
     balance: input.balance,
-    depletionDate: remaining === null ? null : addDays(input.today, remaining),
+    depletionDate: forecastDate(input.today, remaining),
     estimatedDaysRemaining: remaining,
     planningLeadDays: input.leadDays,
     threshold,

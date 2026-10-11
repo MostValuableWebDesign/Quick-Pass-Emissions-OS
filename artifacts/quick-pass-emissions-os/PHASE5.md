@@ -1,5 +1,7 @@
 # Phase 5 — Advanced automation and reporting
 
+Current access policy: this app is exclusively for owners and management (OWNER/ADMIN). Employees and legacy bookkeepers cannot sign in or use any workflow. Staff profiles remain business records for management; management records their progress and receives all alerts. See README's Management-only access section. Historical role descriptions below are superseded by this policy.
+
 Implemented in the existing Next.js/Prisma/PostgreSQL/Better Auth workspace. Phase 4 was imported at its reviewed GitHub revision; the standalone and workspace histories were joined without resetting, force-pushing or discarding the local security fixes. Phase 4 remains the billing/finance implementation. See VERIFICATION.md for exact checks and publication status.
 
 ## Pages and current server permissions
@@ -89,3 +91,5 @@ Migration 006 adds only Phase 5 tables, checks, indexes and delivery relations. 
 External email/SMS, orders, wage payments, collections, customer/dealership messages, bank feeds/reconciliation, complete-books/profit claims, richer training records, chemical conversions, financial lifecycle/proration changes and production deployment/migrations remain outside this delivery. Trusted database operators can modify records directly; cryptographic immutability is not claimed. Existing accessible-label and legacy approval-regression task drafts are separate work.
 
 Before live use confirm schedules/closure choices, responsibility windows, recipients/escalations, certification records, inventory opening/count quality, coverage/lead/threshold settings, exact CSV mapping, backups and failure-monitoring responsibility. Read REPLIT_SETUP.md, docs/OPERATIONS.md and VERIFICATION.md.
+
+Depletion dates beyond the supported four-digit calendar years are unavailable, while numeric days remaining are retained. Extreme valid balances and low recorded usage do not prevent overview or summary generation.

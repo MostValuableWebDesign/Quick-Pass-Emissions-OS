@@ -9,15 +9,14 @@ import { datasets as financeDatasets } from "@/modules/finance/service";
 import { PageHeader } from "@/components/shared";
 import { Boundary, ErrorPanel, RowsTable, TotalsList, fmtInstant } from "@/components/phase5";
 import { Phase5Field as Field } from "@/components/phase5-field";
-const finance: OperationalDataset[] = ["certificates", "rental-charges"];
 export default async function Reports({
   searchParams,
 }: {
   searchParams: Promise<{ dataset?: string; start?: string; end?: string }>;
 }) {
-  const user = await requireRole(["OWNER", "ADMIN", "BOOKKEEPER"]);
+  const user = await requireRole(["OWNER", "ADMIN"]);
   const q = await searchParams;
-  const allowed = user.role === "BOOKKEEPER" ? finance : [...operationalDatasets];
+  const allowed = [...operationalDatasets];
   const dataset = (allowed.find((d) => d === q.dataset) ?? allowed[0]) as OperationalDataset;
   const end = q.end ?? businessDate();
   const start = q.start ?? `${end.slice(0, 7)}-01`;
@@ -64,12 +63,6 @@ export default async function Reports({
             <button className="button button-primary">Run report</button>
           </div>
         </form>
-        {user.role === "BOOKKEEPER" && (
-          <p className="muted space-top">
-            Responsibility, maintenance, downtime and chemical reports are limited to owner and
-            general manager.
-          </p>
-        )}
       </section>
       {error && <ErrorPanel message={error} />}
       {report && (

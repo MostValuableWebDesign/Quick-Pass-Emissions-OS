@@ -34,7 +34,7 @@ if (enabled) {
     ).id;
     bookkeeper = (
       await db.user.create({
-        data: { name: "Bookkeeper", email: `${randomUUID()}@example.test`, role: "BOOKKEEPER" },
+        data: { name: "Preparing manager", email: `${randomUUID()}@example.test`, role: "ADMIN" },
       })
     ).id;
     const e = await db.employee.create({
@@ -111,6 +111,374 @@ if (enabled) {
       reason: "Physical opening count",
     });
   }
+  it("retains daily pay, volume commissions and frozen payroll while recording percentage adjustments", async () => {
+    const { payrollDashboard } = await import("../src/modules/payroll/dashboard");
+    const arrangement = await pay.saveArrangement(owner, {
+      employeeId: employee,
+      effectiveDate: date,
+      kind: "DAILY",
+      amountCents: 10000,
+      scheduledDaysPerWeek: 5,
+      reason: "Initial daily rate",
+    });
+    const policy = await pay.savePolicy(owner, {
+      employeeId: employee,
+      effectiveDate: date,
+      eligible: true,
+      threshold: 50,
+      rateCents: 100,
+      volumeThreshold: 60,
+      volumeIncreaseCents: 50,
+      attribution: "PERSONAL_APPROVED_DAILY",
+      reason: "Volume incentive",
+    });
+    await pay.importEmissions(bookkeeper, [
+      { employeeId: employee, date, count: 65, sourceRef: "tiered-day", reason: "Verified count" },
+    ]);
+    const count = await db.dailyEmission.findFirstOrThrow();
+    await pay.approveEmissions(manager, { id: count.id, version: count.version });
+    const period = await pay.createPeriod(bookkeeper, {
+      startDate: date,
+      endDate: "2026-10-02",
+      label: "Daily compensation",
+    });
+    await expect(
+      pay.savePayrollInput(bookkeeper, {
+        periodId: period.id,
+        employeeId: employee,
+        minutes: 0,
+        paidDays: 3,
+        emissionsComplete: true,
+        reason: "Invalid days",
+        version: 0,
+      }),
+    ).rejects.toThrow("duration");
+    let input = await pay.savePayrollInput(bookkeeper, {
+      periodId: period.id,
+      employeeId: employee,
+      minutes: 0,
+      emissionsComplete: true,
+      reason: "Missing days",
+      version: 0,
+    });
+    await pay.approvePayrollInput(manager, { id: input.id, version: input.version });
+    await expect(pay.generateDraft(bookkeeper, period.id)).rejects.toThrow("paid days");
+    input = await db.payrollInput.findUniqueOrThrow({ where: { id: input.id } });
+    input = await pay.savePayrollInput(bookkeeper, {
+      periodId: period.id,
+      employeeId: employee,
+      minutes: 0,
+      paidDays: 2,
+      emissionsComplete: true,
+      reason: "Approved days evidence",
+      version: input.version,
+    });
+    await pay.approvePayrollInput(manager, { id: input.id, version: input.version });
+    const draft = await pay.generateDraft(bookkeeper, period.id);
+    expect(draft.totalCents).toBe(21750);
+    await pay.reviewDraft(owner, {
+      id: draft.id,
+      decision: "APPROVED",
+      reason: "Independent review",
+    });
+    const line = await db.payrollLine.findFirstOrThrow({ where: { draftId: draft.id } });
+    expect(
+      (
+        await db.auditLog.findFirstOrThrow({
+          where: { action: "PAYROLL_APPROVED", entityId: draft.id },
+        })
+      ).details,
+    ).toMatchObject({ periodId: period.id, totalCents: 21750, reason: "Independent review" });
+    expect(line.snapshot).toMatchObject({
+      arrangement: { kind: "DAILY", amountCents: 10000 },
+      input: { paidDays: 2 },
+      daily: [{ cents: 1750, policy: { volumeThreshold: 60, volumeIncreaseCents: 50 } }],
+    });
+    const change = {
+      employeeId: employee,
+      expectedId: arrangement.id,
+      target: "BASE",
+      direction: "INCREASE",
+      percent: "10",
+      effectiveDate: "2026-10-03",
+      reason: "Owner raise",
+    };
+    await expect(pay.adjustCompensation(manager, change)).rejects.toThrow("permission");
+    const raise = await pay.adjustCompensation(owner, change);
+    expect("amountCents" in raise && raise.amountCents).toBe(11000);
+    await expect(
+      pay.adjustCompensation(owner, { ...change, effectiveDate: "2026-10-04" }),
+    ).rejects.toThrow("changed");
+    const decrease = await pay.adjustCompensation(owner, {
+      ...change,
+      expectedId: raise.id,
+      direction: "DECREASE",
+      effectiveDate: "2026-10-04",
+      reason: "Owner reduction",
+    });
+    expect("amountCents" in decrease && decrease.amountCents).toBe(9900);
+    await pay.adjustCompensation(owner, {
+      ...change,
+      expectedId: policy.id,
+      target: "COMMISSION",
+      percent: "20",
+      reason: "Commission raise",
+    });
+    const commission = await db.commissionPolicy.findFirstOrThrow({
+      orderBy: { effectiveDate: "desc" },
+    });
+    expect(commission).toMatchObject({
+      rateCents: 120,
+      volumeThreshold: 60,
+      volumeIncreaseCents: 50,
+    });
+    const overview = await payrollDashboard(manager, { date: "2026-10-04" });
+    expect(overview.employees[0]).toMatchObject({
+      base: { daily: 9900, weekly: 49500 },
+      commission: { weekly: 1750, average: 1750 },
+      approvedPayroll: { totalCents: 21750 },
+    });
+    expect(await db.payrollLine.findUniqueOrThrow({ where: { id: line.id } })).toEqual(line);
+    const audit = await db.auditLog.findFirstOrThrow({
+      where: { entityId: decrease.id, action: "PAY_ARRANGEMENT_CREATED" },
+    });
+    expect(audit.details).toMatchObject({
+      before: { amountCents: 11000 },
+      amountCents: 9900,
+      direction: "DECREASE",
+      percent: "10",
+      reason: "Owner reduction",
+    });
+    await expect(
+      pay.saveArrangement(owner, {
+        employeeId: employee,
+        effectiveDate: "2026-09-30",
+        kind: "DAILY",
+        amountCents: 9000,
+        reason: "Backdated rewrite",
+      }),
+    ).rejects.toThrow("frozen");
+  });
+  it("pays weekly rates only for full weeks and keeps tier validation atomic", async () => {
+    await pay.saveArrangement(owner, {
+      employeeId: employee,
+      effectiveDate: date,
+      kind: "WEEKLY",
+      amountCents: 75000,
+      scheduledDaysPerWeek: 5,
+      reason: "Weekly rate",
+    });
+    const policy = {
+      employeeId: employee,
+      effectiveDate: date,
+      eligible: false,
+      threshold: 50,
+      rateCents: 100,
+      attribution: "PERSONAL_APPROVED_DAILY",
+      reason: "No incentive",
+    };
+    await expect(pay.savePolicy(owner, { ...policy, volumeThreshold: 60 })).rejects.toThrow("both");
+    await expect(
+      pay.savePolicy(owner, { ...policy, volumeThreshold: 49, volumeIncreaseCents: 100 }),
+    ).rejects.toThrow("at least");
+    expect(await db.commissionPolicy.count()).toBe(0);
+    await pay.savePolicy(owner, policy);
+    const short = await pay.createPeriod(bookkeeper, {
+      startDate: date,
+      endDate: "2026-10-02",
+      label: "Short period",
+    });
+    const shortInput = await pay.savePayrollInput(bookkeeper, {
+      periodId: short.id,
+      employeeId: employee,
+      minutes: 0,
+      emissionsComplete: true,
+      reason: "Confirmed",
+      version: 0,
+    });
+    await pay.approvePayrollInput(manager, { id: shortInput.id, version: shortInput.version });
+    await expect(pay.generateDraft(bookkeeper, short.id)).rejects.toThrow("seven-day");
+    await pay.cancelPeriod(owner, { id: short.id, reason: "Use full week" });
+    const week = await pay.createPeriod(bookkeeper, {
+      startDate: date,
+      endDate: "2026-10-07",
+      label: "Whole week",
+    });
+    const input = await pay.savePayrollInput(bookkeeper, {
+      periodId: week.id,
+      employeeId: employee,
+      minutes: 0,
+      emissionsComplete: true,
+      reason: "Confirmed",
+      version: 0,
+    });
+    await pay.approvePayrollInput(manager, { id: input.id, version: input.version });
+    expect((await pay.generateDraft(bookkeeper, week.id)).totalCents).toBe(75000);
+  });
+  it("serializes simultaneous percentage changes and rejects the stale source", async () => {
+    const initial = await pay.saveArrangement(owner, {
+      employeeId: employee,
+      effectiveDate: date,
+      kind: "DAILY",
+      amountCents: 10000,
+      reason: "Initial",
+    });
+    const change = {
+      employeeId: employee,
+      expectedId: initial.id,
+      effectiveDate: "2026-10-03",
+      target: "BASE",
+      direction: "INCREASE",
+      percent: "10",
+      reason: "Concurrent increase",
+    };
+    const results = await Promise.allSettled([
+      pay.adjustCompensation(owner, change),
+      pay.adjustCompensation(owner, change),
+    ]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((r) => r.status === "rejected")).toHaveLength(1);
+    expect(await db.payArrangement.count()).toBe(2);
+    expect(await db.auditLog.count({ where: { action: "PAY_ARRANGEMENT_CREATED" } })).toBe(2);
+    expect(
+      (await db.payArrangement.findFirstOrThrow({ orderBy: { effectiveDate: "desc" } }))
+        .amountCents,
+    ).toBe(11000);
+  });
+  it("paginates employee summaries, transaction history and periods in groups of fifteen", async () => {
+    const { payrollDashboard } = await import("../src/modules/payroll/dashboard");
+    for (let i = 0; i < 16; i++) {
+      await db.employee.create({
+        data: {
+          user: {
+            create: {
+              name: `Paged staff ${String(i).padStart(2, "0")}`,
+              email: `${randomUUID()}@example.test`,
+              role: "EMPLOYEE",
+            },
+          },
+        },
+      });
+      await pay.saveArrangement(owner, {
+        employeeId: employee,
+        effectiveDate: `2026-09-${String(i + 1).padStart(2, "0")}`,
+        kind: "FIXED",
+        amountCents: 100 + i,
+        reason: `Dated change ${i}`,
+      });
+      await pay.createPeriod(bookkeeper, {
+        startDate: `2026-09-${String(i + 1).padStart(2, "0")}`,
+        endDate: `2026-09-${String(i + 1).padStart(2, "0")}`,
+        label: `Period ${i}`,
+      });
+    }
+    const first = await payrollDashboard(owner);
+    const second = await payrollDashboard(owner, {
+      employeesPage: 2,
+      historyPage: 2,
+      periodsPage: 2,
+    });
+    expect(first.employees).toHaveLength(15);
+    expect(second.employees).toHaveLength(2);
+    expect(new Set([...first.employees, ...second.employees].map((e) => e.id)).size).toBe(17);
+    expect(first.history).toHaveLength(15);
+    expect(second.history).toHaveLength(15);
+    expect(new Set([...first.history, ...second.history].map((h) => h.id)).size).toBe(30);
+    expect(first.periods).toHaveLength(15);
+    expect(second.periods).toHaveLength(1);
+    expect((await payrollDashboard(owner, { historyPage: 999 })).historyPaging.page).toBe(3);
+    await expect(payrollDashboard(employeeUser)).rejects.toThrow("permission");
+    await db.user.update({ where: { id: manager }, data: { active: false } });
+    await expect(payrollDashboard(manager)).rejects.toThrow("permission");
+  });
+  it("pages every count, drains 101 pending approvals, and generates the reviewed period", async () => {
+    const { addDays } = await import("../src/lib/time");
+    const startDate = "2026-01-01",
+      endDate = addDays(startDate, 100);
+    await pay.saveArrangement(owner, {
+      employeeId: employee,
+      effectiveDate: startDate,
+      kind: "FIXED",
+      amountCents: 1000,
+      reason: "Confirmed",
+    });
+    await pay.savePolicy(owner, {
+      employeeId: employee,
+      effectiveDate: startDate,
+      eligible: false,
+      threshold: 0,
+      rateCents: 0,
+      attribution: "PERSONAL_APPROVED_DAILY",
+      reason: "Confirmed",
+    });
+    const period = await pay.createPeriod(bookkeeper, {
+      startDate,
+      endDate,
+      label: "101-count period",
+    });
+    const rows = Array.from({ length: 101 }, (_, i) => ({
+      employeeId: employee,
+      date: addDays(startDate, i),
+      count: 0,
+      sourceRef: `paged-${i}`,
+      reason: "Explicit zero",
+    }));
+    await pay.importEmissions(bookkeeper, [
+      ...rows,
+      { ...rows[0], date, sourceRef: "outside-period" },
+    ]);
+    const first = await pay.payrollOverview(owner, { periodId: period.id });
+    const second = await pay.payrollOverview(owner, { periodId: period.id, page: 2 });
+    expect(first.countReview.total).toBe(101);
+    expect(first.counts).toHaveLength(15);
+    expect(second.counts).toHaveLength(15);
+    const pages = [first, second];
+    for (let page = 3; page <= first.countReview.totalPages; page++)
+      pages.push(await pay.payrollOverview(owner, { periodId: period.id, page }));
+    const all = pages.flatMap((p) => p.counts);
+    expect(new Set(all.map((c) => c.id)).size).toBe(101);
+    expect(pages.every((p) => p.counts.length <= 15)).toBe(true);
+    for (const c of all.slice(0, 90))
+      await pay.approveEmissions(owner, { id: c.id, version: c.version });
+    const remaining = await pay.payrollOverview(owner, {
+      status: "PENDING",
+      periodId: period.id,
+      page: 2,
+    });
+    expect(remaining.countReview).toMatchObject({ total: 11, page: 1 });
+    expect(remaining.counts.map((c) => c.id)).toEqual(all.slice(90).map((c) => c.id));
+    for (const c of remaining.counts)
+      await pay.approveEmissions(owner, { id: c.id, version: c.version });
+    expect(
+      (await pay.payrollOverview(owner, { status: "PENDING", periodId: period.id })).counts,
+    ).toHaveLength(0);
+    expect((await pay.payrollOverview(owner, { status: "PENDING" })).counts).toHaveLength(1);
+    const input = await pay.savePayrollInput(bookkeeper, {
+      periodId: period.id,
+      employeeId: employee,
+      minutes: 0,
+      emissionsComplete: true,
+      reason: "All 101 days verified",
+      version: 0,
+    });
+    await pay.approvePayrollInput(owner, { id: input.id, version: input.version });
+    const draft = await pay.generateDraft(bookkeeper, period.id);
+    expect(draft.totalCents).toBe(1000);
+  });
+  it.each(["", null, false])(
+    "rolls back an import containing a missing numeric count: %j",
+    async (count) => {
+      const row = {
+        employeeId: employee,
+        date,
+        sourceRef: "missing-number",
+        reason: "Verified",
+        count,
+      };
+      await expect(pay.importEmissions(bookkeeper, [row])).rejects.toThrow();
+      expect(await db.dailyEmission.count()).toBe(0);
+    },
+  );
   it("re-reads role and active status for all protected reads/mutations", async () => {
     await expect(pay.payrollOverview(employeeUser)).rejects.toThrow("permission");
     await expect(cert.certificateOverview(employeeUser)).rejects.toThrow("permission");
@@ -225,7 +593,7 @@ if (enabled) {
     ).rejects.toThrow("frozen");
     await expect(
       pay.reviewDraft(bookkeeper, { id: draft.id, decision: "APPROVED", reason: "Self" }),
-    ).rejects.toThrow("permission");
+    ).rejects.toThrow("prepared");
     await pay.reviewDraft(owner, {
       id: draft.id,
       decision: "APPROVED",
@@ -529,7 +897,7 @@ if (enabled) {
       cert.requestPurchase(bookkeeper, { quantity: 300, reason: "Duplicate" }),
     ).rejects.toThrow("open purchase");
     await expect(
-      cert.recordUsage(bookkeeper, {
+      cert.recordUsage(employeeUser, {
         kind: "USAGE",
         quantity: 1,
         date,
@@ -538,7 +906,7 @@ if (enabled) {
       }),
     ).rejects.toThrow("permission");
     await expect(
-      cert.reviewPurchase(bookkeeper, { id: results[0].id, decision: "APPROVED", reason: "x" }),
+      cert.reviewPurchase(employeeUser, { id: results[0].id, decision: "APPROVED", reason: "x" }),
     ).rejects.toThrow("permission");
     await expect(
       cert.saveCertificateSettings(manager, {

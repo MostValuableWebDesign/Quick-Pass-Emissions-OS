@@ -55,6 +55,7 @@ test("protected vendor save survives reload through preview", async ({ page }) =
   await form.locator('input[name="reference"]').fill("owned-regression");
   checkpoint("reference");
   await form.locator('textarea[name="reason"]').fill("Owned fixture browser regression");
+  await form.locator('input[name="verifiedDate"]').fill("2026-10-01");
   checkpoint("submit");
   const response = page.waitForResponse(
     (r) => r.request().method() === "POST" && !!r.request().headers()["next-action"],
@@ -65,11 +66,10 @@ test("protected vendor save survives reload through preview", async ({ page }) =
   await expect(form.getByRole("status")).toHaveText("Saved successfully.");
   await page.reload();
   checkpoint("reload");
-  const record = page.locator("section").filter({
-    has: page.getByRole("heading", { name: `${name} · active`, exact: true }),
-  });
-  await expect(record).toHaveCount(1);
-  await record.getByText("Edit verified details", { exact: true }).click();
+  await page.getByRole("link", { name, exact: true }).click();
+  const record = page
+    .locator("form")
+    .filter({ has: page.getByRole("button", { name: "Update verified contact", exact: true }) });
   await expect(record.locator('input[name="name"]')).toHaveValue(name);
   await expect(record.locator('textarea[name="services"]')).toHaveValue("Regression-only service");
 });

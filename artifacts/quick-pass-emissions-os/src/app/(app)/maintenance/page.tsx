@@ -18,12 +18,8 @@ export default async function Maintenance() {
   return (
     <>
       <PageHeader
-        title={data.manager ? "Maintenance" : "Your maintenance work & reports"}
-        description={
-          data.manager
-            ? "Review repairs, assign work, and follow up on equipment issues."
-            : "Report an issue and update work assigned to you. Completed work goes to a manager for review."
-        }
+        title="Maintenance"
+        description="Review repairs, assign work, and record progress on behalf of staff and vendors."
       />
       <DemoNotice demo={data.demo} />
       <section className="card card-body">

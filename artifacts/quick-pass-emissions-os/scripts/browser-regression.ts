@@ -12,6 +12,8 @@ import { navigationFixtures } from "./navigation-fixtures";
 import { stationBrowserFixture } from "./station-browser-fixtures";
 import { performanceBrowserFixtures } from "./performance-browser-fixtures";
 import { certificatePortalBrowserFixture } from "./certificate-portal-browser-fixtures";
+import { workflowBrowserFixtures } from "./workflow-browser-fixtures";
+import { browserSuite, assertSuiteReport } from "./e2e-suites.mjs";
 
 const app = process.cwd();
 let server: ChildProcess | undefined;
@@ -99,6 +101,7 @@ async function halt(child?: ChildProcess) {
 
 async function main() {
   assertOwnedDatabase(process.env);
+  const suite = browserSuite(process.env);
   const definition = await readFile(path.join(app, ".replit-artifact/artifact.toml"), "utf8");
   const direct = process.env.E2E_DIRECT === "1";
   const port = direct
@@ -133,8 +136,10 @@ async function main() {
       ? { DATA_BACKUP_DIR: path.join(temporary, "backups") }
       : {}),
     // NixOS workspace Chromium; other machines may use Playwright's installed browser.
-    E2E_CHROMIUM_PATH: process.env.E2E_CHROMIUM_PATH ?? "/repl/tools/bin/chromium",
-    ...(process.env.E2E_STATION_HISTORY === "1" ? { GA_STATION_ID: "SYNTHETIC" } : {}),
+    ...(process.env.E2E_CHROMIUM_PATH || !direct
+      ? { E2E_CHROMIUM_PATH: process.env.E2E_CHROMIUM_PATH ?? "/repl/tools/bin/chromium" }
+      : {}),
+    GA_STATION_ID: "SYNTHETIC",
   };
   if (process.env.E2E_CERTIFICATE_UX === "1") {
     // The owned UX run can only make unauthenticated public portal requests.
@@ -173,9 +178,29 @@ async function main() {
     stage = "owned synthetic certificate portal cache fixture";
     await certificatePortalBrowserFixture(db, user.id);
   }
+  const workflowUsers =
+    "operations.spec.ts" in suite ? await workflowBrowserFixtures(db, password) : [];
+  if (workflowUsers.length)
+    await writeFile(
+      path.join(temporary, "workflow.json"),
+      JSON.stringify({
+        password,
+        accounts: {
+          "owner@example.test": email,
+          "manager@example.test": fixtures.users.find((u) => u.role === "ADMIN")!.email,
+          "preparer@example.test": workflowUsers.find((u) => u.role === "PREPARER")!.email,
+          "bookkeeper@example.test": fixtures.users.find((u) => u.role === "BOOKKEEPER")!.email,
+          "al@example.test": workflowUsers.find((u) => u.role === "WORKER")!.email,
+          "john@example.test": workflowUsers.find((u) => u.role === "PEER")!.email,
+        },
+      }),
+      {
+        mode: 0o600,
+      },
+    );
   stage = "owned station fixture configuration";
   const station =
-    process.env.E2E_STATION_HISTORY === "1"
+    process.env.E2E_STATION_HISTORY === "1" || process.env.E2E_PERFORMANCE_ONLY === "1"
       ? await stationBrowserFixture(db, user.id, temporary)
       : undefined;
   stage = "owned import continuation fixture";
@@ -246,17 +271,44 @@ async function main() {
     await api.dispose();
   }
   stage = "private role authentication";
+  let clientNumber = 20;
   for (const fixture of fixtures.users) {
-    const roleApi = await request.newContext({ baseURL });
+    const roleApi = await request.newContext({
+      baseURL,
+      extraHTTPHeaders: { "x-forwarded-for": `198.51.100.${clientNumber++}` },
+    });
     try {
       const response = await roleApi.post("/api/sign-in", {
         form: { email: fixture.email, password },
         maxRedirects: 0,
         headers: { Origin: baseURL },
       });
-      if (response.status() !== 303 || response.headers().location !== "/dashboard")
-        throw new Error("Private role authentication failed.");
+      const allowed = fixture.role === "ADMIN";
+      if (
+        response.status() !== 303 ||
+        (allowed
+          ? response.headers().location !== "/dashboard"
+          : !response.headers().location?.startsWith("/login?error="))
+      )
+        throw new Error("Private management authorization failed.");
       await response.dispose();
+      if (!allowed) {
+        // Preserve a real formerly-authorized cookie to verify fresh role checks,
+        // in addition to the rejected legacy credential request above.
+        await db.user.update({ where: { id: fixture.id }, data: { role: "ADMIN" } });
+        try {
+          const prior = await roleApi.post("/api/sign-in", {
+            form: { email: fixture.email, password },
+            maxRedirects: 0,
+            headers: { Origin: baseURL },
+          });
+          if (prior.status() !== 303 || prior.headers().location !== "/dashboard")
+            throw new Error("Prior management session fixture failed.");
+          await prior.dispose();
+        } finally {
+          await db.user.update({ where: { id: fixture.id }, data: { role: fixture.role } });
+        }
+      }
       const statePath = path.join(temporary, `${fixture.role}.json`);
       await roleApi.storageState({ path: statePath });
       await chmod(statePath, 0o600);
@@ -305,7 +357,7 @@ async function main() {
     tests!.once("error", () => resolve(null));
   });
   const report = JSON.parse(await readFile(path.join(temporary, "report.json"), "utf8"));
-  // Emit only test-file line numbers and statuses, never serialized errors or request state.
+  // Emit only source locations and statuses, never serialized errors or request state.
   function summarize(
     suites: Array<{
       suites?: unknown[];
@@ -330,9 +382,13 @@ async function main() {
             .find((result) => result.error || result.errors?.length);
           const error = result?.error ?? result?.errors?.[0];
           const stack = error?.stack || error?.message || "";
+          const frames = [
+            ...stack.matchAll(/tests\/e2e\/([A-Za-z0-9_-]+(?:\.spec)?\.ts):(\d+):(\d+)/g),
+          ].map((m) => `${m[1]}:${Number(m[2])}`);
+          if (frames.length) console.error(`Failure source: ${[...new Set(frames)].join(", ")}.`);
           const line =
             error?.location?.line ??
-            stack.match(/(?:regression|navigation)\.spec\.ts:(\d+):\d+/)?.[1];
+            stack.match(/(?:regression|navigation|operations|phase[2-5])\.spec\.ts:(\d+):\d+/)?.[1];
           console.error(
             `Regression check at test line ${Number(spec.line)} failed${line ? ` at assertion line ${Number(line)}` : ""}.`,
           );
@@ -380,46 +436,23 @@ async function main() {
     throw new Error("Signed-in browser regression failed; sensitive diagnostics were not printed.");
   assertCompleteReport(
     report,
-    process.env.E2E_PERFORMANCE_PANELS === "1"
-      ? (process.env.E2E_CERTIFICATE_UX === "1" ? 6 : 1)
-      : process.env.E2E_CERTIFICATE_UX === "1"
-      ? 5
-      : process.env.E2E_SUPPORT_ONLY === "1"
-      ? 1
-      : process.env.E2E_CERTIFICATES_ONLY === "1"
-        ? 4
-        : process.env.E2E_IMPORT_ONLY === "1"
-          ? 1
-          : process.env.E2E_DAY_ONLY === "1"
-            ? 1
-            : process.env.E2E_STATION_ONLY === "1"
-              ? 1
-              : process.env.E2E_STATION_HISTORY === "1"
-                ? 12
-                : 10,
+    Object.values(suite).reduce((sum, n) => sum + n, 0),
   );
+  assertSuiteReport(report, suite);
   console.log(
-    process.env.E2E_PERFORMANCE_PANELS === "1"
-      ? (process.env.E2E_CERTIFICATE_UX === "1"
-        ? "Passed: 6 signed-in portal navigation, certificate alert and panel corner-resize checks; no skips."
-        : "Passed: 1 signed-in performance panel drag, resize, persistence, keyboard-accessibility and reset check; no skips.")
-      : process.env.E2E_CERTIFICATE_UX === "1"
-      ? "Passed: 5 focused protected certificate portal UX checks across owner, bookkeeper and employee roles; isolated synthetic balance, threshold persistence and access verified; no skips."
+    process.env.E2E_PERFORMANCE_ONLY === "1"
+      ? "Passed: 2 Performance checks covering trends, employee evidence, pointer/keyboard panel layout, browser persistence, mobile and role exclusions; no skips."
       : process.env.E2E_SUPPORT_ONLY === "1"
-      ? "Passed: 1 complete Service & Support desktop/mobile flow with directory management, contact history, narrow employee provider association and private role exclusions; no skips."
-      : process.env.E2E_CERTIFICATES_ONLY === "1"
-        ? "Passed: 4 manual certificate navigation role checks including intercepted new tabs/reopening, same-tab records, desktop/mobile, keyboard and unchanged purchase/stock/alert snapshots; no skips."
-        : process.env.E2E_IMPORT_ONLY === "1"
-          ? process.env.E2E_IMPORT_REMAINDER === "1"
-            ? "Passed: 1 targeted remaining import UI flow including supplier verification/dropdowns, saved staff changes, mobile repeat conflicts and role restrictions; no skips."
-            : "Passed: 1 complete owner import desktop/mobile journey including backup, reloads, unknown configuration, verification gates, staff-edit conflicts and role restrictions; no skips."
-          : process.env.E2E_DAY_ONLY === "1"
-            ? "Passed: 1 daily performance date selection and reload check; no skips."
+        ? "Passed: 1 complete Service & Support desktop/mobile flow with directory management, contact history, management provider association and private role exclusions; no skips."
+        : process.env.E2E_CERTIFICATES_ONLY === "1"
+          ? "Passed: 4 manual certificate navigation role checks including intercepted new tabs/reopening, same-tab records, desktop/mobile, keyboard and unchanged purchase/stock/alert snapshots; no skips."
+          : process.env.E2E_IMPORT_ONLY === "1"
+            ? process.env.E2E_IMPORT_REMAINDER === "1"
+              ? "Passed: 1 targeted remaining import UI flow including supplier verification/dropdowns, saved staff changes, mobile repeat conflicts and role restrictions; no skips."
+              : "Passed: 1 complete owner import desktop/mobile journey including backup, reloads, unknown configuration, verification gates, staff-edit conflicts and role restrictions; no skips."
             : process.env.E2E_STATION_ONLY === "1"
               ? "Passed: 1 targeted station lifecycle check; no skips."
-              : process.env.E2E_STATION_HISTORY === "1"
-                ? "Passed: 12 signed-in browser checks including daily date selection, station report review, reconciliation, coverage, export and access restrictions; no skips."
-                : "Passed: 10 signed-in browser checks, including four-role desktop/mobile navigation, daily performance date selection, return context, history, authorization and vendor persistence; no skips.",
+              : `Passed: ${Object.values(suite).reduce((sum, n) => sum + n, 0)} browser checks across navigation, operations, payroll, certificates, maintenance, rentals, finance and Phase 5 automation${process.env.E2E_STATION_HISTORY === "1" ? ", plus station history" : ""}; no skips.`,
   );
   if (process.env.E2E_MANUAL_TEST === "1") {
     console.log("Private browser checks completed; preview remains available for visual review.");

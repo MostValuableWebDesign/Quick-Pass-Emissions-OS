@@ -50,7 +50,7 @@ export default async function Login({
             <ShieldCheck size={27} />
           </span>
           <h2>Welcome back.</h2>
-          <p className="muted">Sign in to your Quick Pass workspace.</p>
+          <p className="muted">Owner and management sign-in.</p>
           <label className="field">
             <span>Email address</span>
             <input name="email" type="email" autoComplete="username" required />
@@ -76,7 +76,7 @@ export default async function Login({
             <ArrowRight size={17} />
           </Button>
           <p className="login-help">
-            Invite-only access. Contact your manager for an account or help signing in.
+            Restricted to owners and management. Staff records do not provide login access.
           </p>
         </form>
       </section>

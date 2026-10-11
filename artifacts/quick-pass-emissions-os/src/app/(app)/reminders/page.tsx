@@ -11,7 +11,7 @@ export default async function Reminders() {
   return (
     <>
       <PageHeader
-        title="My reminders"
+        title="Management reminders"
         description="In-app reminders addressed to you. Acknowledging only records that you saw it."
       />
       <ExternalDisabled />

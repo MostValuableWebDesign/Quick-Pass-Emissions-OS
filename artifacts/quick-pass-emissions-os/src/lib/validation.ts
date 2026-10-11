@@ -1,5 +1,11 @@
 import { z } from "zod";
 import { Temporal } from "@js-temporal/polyfill";
+export function requiredInteger(min: number, max: number) {
+  return z
+    .union([z.number(), z.string().trim().min(1)])
+    .transform((v) => Number(v))
+    .pipe(z.number().int().min(min).max(max));
+}
 export const dateString = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -15,7 +21,7 @@ export const timeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 export const text = z.string().trim().min(1).max(160);
 export const note = z.string().trim().max(2000);
 export const id = z.string().min(1).max(100);
-export const role = z.enum(["OWNER", "ADMIN", "EMPLOYEE", "BOOKKEEPER"]);
+export const role = z.enum(["OWNER", "ADMIN", "EMPLOYEE"]);
 export const status = z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "BLOCKED", "CANCELLED"]);
 export const days = z.array(z.coerce.number().int().min(1).max(7)).max(7);
 export const optionalDate = z.union([dateString, z.literal("")]).transform((v) => v || null);

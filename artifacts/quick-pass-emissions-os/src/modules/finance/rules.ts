@@ -4,12 +4,7 @@ import { dateString } from "@/lib/validation";
 import { requireRule } from "../phase4";
 export const cents = z.coerce.number().int().min(0).max(2000000000);
 export const positiveCents = cents.refine((v) => v > 0, "Enter a positive amount in cents.");
-export function requiredInteger(min: number, max: number) {
-  return z.preprocess(
-    (v) => (v == null || (typeof v === "string" && v.trim() === "") ? NaN : v),
-    z.coerce.number().int().min(min).max(max),
-  );
-}
+export { requiredInteger } from "@/lib/validation";
 export function bounded(n: bigint) {
   requireRule(n >= 0n && n <= 2000000000n, "Amount exceeds supported bounds.");
   return Number(n);

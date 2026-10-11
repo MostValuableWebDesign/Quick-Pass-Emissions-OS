@@ -30,7 +30,6 @@ async function main() {
       { name: "Demo Manager", email: "manager@example.test", role: "ADMIN" as const },
       { name: "Demo Al", email: "al@example.test", role: "EMPLOYEE" as const },
       { name: "Demo John", email: "john@example.test", role: "EMPLOYEE" as const },
-      { name: "Demo Bookkeeper", email: "bookkeeper@example.test", role: "BOOKKEEPER" as const },
     ];
     const employees = [];
     for (const p of people) {
@@ -47,15 +46,16 @@ async function main() {
         },
         include: { employee: true },
       });
-      await tx.account.create({
-        data: {
-          id: randomUUID(),
-          userId: user.id,
-          accountId: user.id,
-          providerId: "credential",
-          password,
-        },
-      });
+      if (p.role === "OWNER" || p.role === "ADMIN")
+        await tx.account.create({
+          data: {
+            id: randomUUID(),
+            userId: user.id,
+            accountId: user.id,
+            providerId: "credential",
+            password,
+          },
+        });
       employees.push(user.employee!);
     }
     await tx.businessSetting.create({

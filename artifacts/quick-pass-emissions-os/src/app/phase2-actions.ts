@@ -32,6 +32,9 @@ export async function saveCommissionPolicy(_: ActionState, form: FormData) {
     payroll.savePolicy(actor, { ...fields(form), eligible: form.get("eligible") === "true" }),
   );
 }
+export async function adjustCompensation(_: ActionState, form: FormData) {
+  return perform((actor) => payroll.adjustCompensation(actor, fields(form)));
+}
 export async function saveEmission(_: ActionState, form: FormData) {
   return perform((actor) => payroll.importEmissions(actor, [fields(form)]));
 }

@@ -11,12 +11,18 @@ async function main() {
     z.string().min(12).max(128).parse(process.env.RECOVERY_PASSWORD),
   );
   await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(7183502)`;
     const actor = await tx.user.findUniqueOrThrow({ where: { email: actorEmail } });
     const target = await tx.user.findUniqueOrThrow({
       where: { email },
       include: { employee: true },
     });
-    if (actor.role !== "OWNER" || !actor.active || !target.active)
+    if (
+      actor.role !== "OWNER" ||
+      !actor.active ||
+      !target.active ||
+      !["OWNER", "ADMIN"].includes(target.role)
+    )
       throw new Error("Recovery requires an active owner and target.");
     const result = await tx.account.updateMany({
       where: { userId: target.id, providerId: "credential" },

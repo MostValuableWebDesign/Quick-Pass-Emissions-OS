@@ -16,7 +16,10 @@ export async function stationBrowserFixture(db: PrismaClient, ownerId: string, d
     revision: 0,
     effectiveDate: addDays(date, -10),
     weekStart: 1,
-    hours: [],
+    hours:
+      process.env.E2E_PERFORMANCE_ONLY === "1"
+        ? Array.from({ length: 7 }, (_, i) => ({ weekday: i + 1, open: "08:00", close: "17:00" }))
+        : [],
     observationDays: 7,
     minimumDays: 3,
     sourceTimezoneConfirmed: true,
@@ -46,7 +49,7 @@ export async function stationBrowserFixture(db: PrismaClient, ownerId: string, d
       reason: "Owned continuation after verified initial import",
     });
   }
-  if (process.env.E2E_STATION_FINAL_READ === "1") {
+  if (process.env.E2E_STATION_FINAL_READ === "1" || process.env.E2E_PERFORMANCE_ONLY === "1") {
     const run = await s.importReport(ownerId, {
       body: reportFixture(date),
       reason: "Owned read-only visual continuation fixture",

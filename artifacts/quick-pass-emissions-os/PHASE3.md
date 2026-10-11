@@ -1,5 +1,7 @@
 # Phase 3 — carwash and maintenance
 
+Current access policy: this app is exclusively for owners and management (OWNER/ADMIN). Employees and legacy bookkeepers cannot sign in or use any workflow. Staff profiles remain business records for management; management records their progress and receives all alerts. See README's Management-only access section. Historical role descriptions below are superseded by this policy.
+
 Implemented locally on the complete Phase 2 delivery. This source includes Phases 1–3; GitHub publication and deployment are separate steps. No actual bays, equipment, vendor contacts, chemical stock, tenants, rental prices, repair costs or payments are seeded. The local browser fixtures are explicitly illustrative.
 
 ## Bays, assets and downtime
@@ -65,3 +67,5 @@ Every service rechecks current active status/role in its transaction. A Phase 3 
 Back up existing data, then apply migration 004 using `npm run db:migrate`. It adds Phase 3 tables and an optional maintenance link to notifications; earlier migrations are unchanged. PostgreSQL's standard `btree_gist` extension is required for the overlap constraint. A hosting database administrator may need to provision that extension before migration if the release role lacks extension permissions. No secrets or local filesystem storage are required beyond existing configuration. Photo attachments remain unavailable until authenticated object storage is configured and authorized.
 
 Read VERIFICATION.md for checks and deployment status. Confirm actual bay labels/condition, equipment, vendor contacts, inspection intervals/closure behavior, staff responsibilities, chemical units/opening quantities, tenants, agreement terms and rent history before live use. Review OPEN_QUESTIONS.md. Publication, Replit deployment, production migration, real-data verification, backups and actual scheduler provisioning were not performed by this Phase 3 delivery.
+
+Rental receipts and reversals must use a business date on or after the charge’s latest payment/reversal. A replacement receipt cannot be backdated into a period before its preceding reversal; same-date corrections remain supported.

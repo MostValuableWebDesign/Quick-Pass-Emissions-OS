@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { manager } from "@/lib/access";
 import { db } from "@/lib/db";
-import { canManageRole } from "@/lib/policy";
+import { canManageRole, isManager } from "@/lib/policy";
 import { PageHeader, TaskTable, employeeSelect } from "@/components/shared";
 import { ActionForm } from "@/components/action-form";
 import { EmployeeFields } from "@/components/employee-fields";
@@ -23,7 +23,7 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
     <>
       <PageHeader
         title={employee.user.name}
-        description={`${employee.user.role.toLowerCase()} · ${employee.user.active ? "Active" : "Inactive"}`}
+        description={`${isManager(employee.user.role) ? (employee.user.role === "OWNER" ? "Owner" : "Manager") : "Staff record · No app access"} · ${employee.user.active ? "Active" : "Inactive"}`}
       />
       {canManageRole(actor.role, employee.user.role) ? (
         <section className="card card-body">
@@ -33,9 +33,11 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
             <EmployeeFields employee={employee} owner={actor.role === "OWNER"} />
           </ActionForm>
           <div className="account-actions">
-            <ActionForm action={issueInvite} submit="Issue private invitation">
-              <input type="hidden" name="id" value={employee.id} />
-            </ActionForm>
+            {isManager(employee.user.role) && (
+              <ActionForm action={issueInvite} submit="Issue private invitation">
+                <input type="hidden" name="id" value={employee.id} />
+              </ActionForm>
+            )}
             <ActionForm
               action={setEmployeeActive}
               submit={employee.user.active ? "Deactivate employee" : "Reactivate employee"}
@@ -45,8 +47,9 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
             </ActionForm>
           </div>
           <p className="muted">
-            Deactivation revokes sessions and invitations. Existing tasks and shifts remain visible
-            for manager reassignment.
+            Inactive staff remain in payroll and operational history. Owners and managers record all
+            updates; staff do not sign in. Deactivating management access also revokes sessions and
+            invitations.
           </p>
         </section>
       ) : (

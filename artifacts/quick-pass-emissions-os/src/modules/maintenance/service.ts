@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { id, dateString } from "../../lib/validation";
 import { businessDate, dueInstant } from "../../lib/time";
-import { phase3, managers, operators, requireRule, audit, type Tx } from "../phase3";
+import { phase3, managers, requireRule, audit, type Tx } from "../phase3";
 import * as v from "./validation";
 export async function activeEmployee(tx: Tx, employeeId: string | null) {
   if (!employeeId) return;
@@ -188,14 +188,8 @@ export async function equipmentDowntime(actorId: string, input: unknown) {
   });
 }
 export async function createTicket(actorId: string, input: unknown) {
-  return phase3(actorId, operators, async (tx, actor) => {
-    // Employee input cannot select an assignee, vendor, target deadline, cost or review status.
-    const base =
-      actor.role === "EMPLOYEE" ? v.reportInput.parse(input) : v.ticketInput.parse(input);
-    const data =
-      actor.role === "EMPLOYEE"
-        ? { ...base, assignedId: null, vendorId: null, targetDate: businessDate() }
-        : v.ticketInput.parse(input);
+  return phase3(actorId, managers, async (tx) => {
+    const data = v.ticketInput.parse(input);
     await validTarget(tx, data.bayId, data.equipmentId);
     await activeEmployee(tx, data.assignedId);
     await activeVendor(tx, data.vendorId);
@@ -215,7 +209,7 @@ export async function createTicket(actorId: string, input: unknown) {
   });
 }
 export async function updateTicket(actorId: string, input: unknown) {
-  return phase3(actorId, operators, async (tx, actor) => {
+  return phase3(actorId, managers, async (tx) => {
     const data = z
       .object({
         id,
@@ -238,48 +232,29 @@ export async function updateTicket(actorId: string, input: unknown) {
       row!.status !== "COMPLETED" && row!.status !== "CANCELLED",
       "Closed tickets retain history. Create a follow-up ticket.",
     );
-    const manager = managers.includes(actor.role);
-    requireRule(
-      manager || (row!.assignedId && row!.assignedId === actor.employee?.id),
-      "Access denied to this maintenance work.",
-    );
-    if (!manager)
-      requireRule(
-        ["IN_PROGRESS", "BLOCKED", "AWAITING_REVIEW"].includes(data.status) &&
-          row!.status !== "AWAITING_REVIEW",
-        "This work requires manager review.",
-      );
     requireRule(data.status !== row!.status, "Choose a different work status.");
     if (["AWAITING_REVIEW", "COMPLETED"].includes(data.status))
       requireRule(data.workPerformed.trim(), "Describe the work performed before completing work.");
-    const management = manager
-      ? z
-          .object({
-            assignedId: v.optionalId,
-            vendorId: v.optionalId,
-            targetDate: dateString,
-            repairCostCents: v.optionalCents,
-          })
-          .parse(input)
-      : null;
-    if (management) {
-      await activeEmployee(tx, management.assignedId);
-      await activeVendor(tx, management.vendorId);
-    }
+    const management = z
+      .object({
+        assignedId: v.optionalId,
+        vendorId: v.optionalId,
+        targetDate: dateString,
+        repairCostCents: v.optionalCents,
+      })
+      .parse(input);
+    await activeEmployee(tx, management.assignedId);
+    await activeVendor(tx, management.vendorId);
     const changed = await tx.maintenanceTicket.update({
       where: { id: data.id },
       data: {
         status: data.status,
         workPerformed: data.workPerformed,
-        ...(management
-          ? {
-              ...management,
-              dueAt:
-                management.targetDate === row!.targetDate
-                  ? row!.dueAt
-                  : dueInstant(management.targetDate, "17:00"),
-            }
-          : {}),
+        ...management,
+        dueAt:
+          management.targetDate === row!.targetDate
+            ? row!.dueAt
+            : dueInstant(management.targetDate, "17:00"),
         completedAt: data.status === "COMPLETED" ? new Date() : null,
         reviewedBy: data.status === "COMPLETED" ? actorId : null,
         version: { increment: 1 },
@@ -389,17 +364,9 @@ export async function savePlan(actorId: string, input: unknown) {
   });
 }
 export async function maintenanceOverview(actorId: string) {
-  return phase3(actorId, operators, async (tx, actor) => {
-    const manager = managers.includes(actor.role);
+  return phase3(actorId, managers, async (tx) => {
     const tickets = await tx.maintenanceTicket.findMany({
-      where: manager
-        ? {}
-        : {
-            OR: [
-              { reportedBy: actorId },
-              ...(actor.employee ? [{ assignedId: actor.employee.id }] : []),
-            ],
-          },
+      where: {},
       select: {
         id: true,
         title: true,
@@ -415,7 +382,7 @@ export async function maintenanceOverview(actorId: string) {
       take: 100,
     });
     return {
-      manager,
+      manager: true,
       tickets,
       bays: await tx.carwashBay.findMany({
         select: { id: true, identifier: true },
@@ -426,56 +393,21 @@ export async function maintenanceOverview(actorId: string) {
         select: { id: true, name: true, code: true },
         orderBy: { name: "asc" },
       }),
-      ...(manager
-        ? {
-            employees: await tx.employee.findMany({
-              where: { user: { active: true, role: { not: "BOOKKEEPER" } } },
-              select: { id: true, user: { select: { name: true } } },
-            }),
-            vendors: await tx.vendor.findMany({
-              where: { active: true, verifiedDate: { not: null } },
-              select: { id: true, name: true },
-            }),
-          }
-        : { employees: [], vendors: [] }),
+      employees: await tx.employee.findMany({
+        where: { user: { active: true, role: { not: "BOOKKEEPER" } } },
+        select: { id: true, user: { select: { name: true } } },
+      }),
+      vendors: await tx.vendor.findMany({
+        where: { active: true, verifiedDate: { not: null } },
+        select: { id: true, name: true },
+      }),
       demo: (await tx.employee.count({ where: { demo: true } })) > 0,
     };
   });
 }
 export async function ticketDetail(actorId: string, ticketId: string) {
-  return phase3(actorId, operators, async (tx, actor) => {
-    const access = {
-      id: id.parse(ticketId),
-      ...(managers.includes(actor.role)
-        ? {}
-        : {
-            OR: [
-              { reportedBy: actorId },
-              ...(actor.employee ? [{ assignedId: actor.employee.id }] : []),
-            ],
-          }),
-    };
-    // Select restricted employee data in SQL. Manager notes, costs and vendor contacts never leave this service.
-    if (!managers.includes(actor.role))
-      return {
-        management: false as const,
-        ticket: await tx.maintenanceTicket.findFirst({
-          where: access,
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            priority: true,
-            status: true,
-            targetDate: true,
-            version: true,
-            workPerformed: true,
-            assignedId: true,
-            bay: { select: { identifier: true } },
-            equipment: { select: { name: true, code: true } },
-          },
-        }),
-      };
+  return phase3(actorId, managers, async (tx) => {
+    const access = { id: id.parse(ticketId) };
     return {
       management: true as const,
       ticket: await tx.maintenanceTicket.findFirst({

@@ -1,11 +1,13 @@
 # Phase 2 — payroll and certificates
 
+Current access policy: this app is exclusively for owners and management (OWNER/ADMIN). Employees and legacy bookkeepers cannot sign in or use any workflow. Staff profiles remain business records for management; management records their progress and receives all alerts. See README's Management-only access section. Historical role descriptions below are superseded by this policy.
+
 Phase 2 is implemented locally on top of the Phase 1 repository. No business rates, eligibility, actual counts, wages, stock, order confirmations or payments are seeded. Test fixtures are illustrative. GitHub publication and deployment require a separate instruction.
 
 ## Payroll workflow
 
 1. An owner authorizes a dated pay arrangement and dated commission eligibility/policy for each payroll employee. Amounts are **integer USD cents**. FIXED is the amount for one entire payroll period; HOURLY is cents per hour. Configure dates carefully; existing versions cannot be edited or deleted. New versions require a reason. Station totals are not accepted as personal attribution.
-2. Owners, managers (ADMIN), and bookkeepers record personal daily counts or paste a JSON array of up to 1,000 rows with `employeeId`, `date`, `count`, `sourceRef`, and `reason`. The batch is atomic. Identical source retries are ignored; conflicting references or a second record for the same employee/date are rejected. Explicit zero counts are supported.
+2. Owners, managers (ADMIN), and bookkeepers record personal daily counts or paste a JSON array of up to 1,000 rows with `employeeId`, `date`, `count`, `sourceRef`, and `reason`. The batch is atomic. Identical source retries are ignored; conflicting references or a second record for the same employee/date are rejected. Explicit numeric zero counts are supported; blank, null and boolean values are rejected for counts, compensation amounts and commission thresholds.
 3. A different owner/manager approves each count. Nobody may approve their own entry or their own personal count. Corrections use the displayed version, preserve before/after audit details, and clear approval.
 4. Create a nonoverlapping payroll period, then record each employee's worked minutes and attest that all personal counts have been checked, including zero-test days. Enter zero minutes for FIXED. Shifts never become approved work hours automatically. Only ended periods can be prepared. A different owner/manager approves each payroll input; self-compensation approval is prohibited.
 5. Generate a draft after all sources are approved. Include active employees with a pay arrangement effective during the period and every employee with recorded period counts. Employees outside that configured roster may be included explicitly. Missing days require the preparer's completeness attestation; the application cannot independently verify an official report's completeness. Ended employment/final pay must be reviewed explicitly. Periods cannot cross a pay arrangement change; cancel a mistaken open period with a reason and create correctly bounded periods.
@@ -50,10 +52,54 @@ ordering, or adds stock.
 
 At least two appropriately authorized people are required for approvals. Every service re-reads current active status and roles on the server. All sensitive mutations/exports are transactionally audited. Database operators remain trusted; this is not tamper-proof audit storage. No SSNs or bank account credentials are collected.
 
-Lists show the latest 100 records (and 100 of each configuration type). All history stays in PostgreSQL; payroll period details remain addressable by ID. Advanced filtered history/export, employee payslips, overtime/taxes, amended payroll, bulk time imports, multi-stock locations, ordered-purchase disputes/cancellation after ordering, stock attachment storage and automatic notifications are outside this Phase 2 implementation.
+Daily-count review has 100 rows per page, all/pending-approval filtering and an optional payroll-period date range. Period details link directly to their count review. Payroll periods remain selectable across the full history. Other lists show the latest 100 records (and 100 of each configuration type). Forecast depletion dates beyond year 9999 are unavailable; the numeric estimate remains visible. All history stays in PostgreSQL; payroll period details remain addressable by ID. Advanced filtered history/export, employee payslips, overtime/taxes, amended payroll, bulk time imports, multi-stock locations, ordered-purchase disputes/cancellation after ordering, stock attachment storage and automatic notifications are outside this Phase 2 implementation.
 
 ## Deployment and verification
 
 Read VERIFICATION.md for actual results. Apply all version-controlled migrations (including Phase 3 migration 004 when using this complete source) with `npm run db:migrate`; never reset business data. Configure real owners/approvers, current compensation, attribution, periods, export mapping, actual opening inventory and ordering terms before live use. Keep production, demo and `_test` databases separate. Existing Phase 1 scheduling/backup requirements still apply.
 
 The generic Next.js production command remains `npm run build`. This host blocks Turbopack's CSS-worker port binding; `npm run build -- --webpack` uses the supported alternate builder for local verification. On hosts where Turbopack works, the ordinary build is unchanged.
+
+## Employee pay overview and dated adjustments
+
+**Payroll & commissions** opens with a paginated employee overview. Choose an Eastern business
+date and the first day of the display week (Monday initially). Daily and weekly base columns
+show configured rates/equivalents, not worked-time evidence. Optional configured paid days/week
+and minutes/day supply equivalents; missing schedule inputs remain unavailable. Legacy FIXED
+arrangements remain amounts for an entire payroll period and are never silently prorated.
+Daily/weekly commission columns use independently approved personal counts and the policy
+effective on each count date. Weekly amounts are approved-record subtotals; the average is
+rounded half up across approved record days in that week, including explicit zero days, excluding
+pending/missing days. Missing policies remain unavailable. Latest approved payroll links to its
+immutable period snapshot, with base, commission and gross shown separately.
+
+Owners may authorize FIXED, HOURLY, DAILY or WEEKLY base rates in integer cents. DAILY payroll
+requires explicit approved whole paid days, bounded by the period duration. WEEKLY payroll
+requires complete seven-day periods (or whole multiples), using the authorized weekly amount
+once per week. Enter zero worked minutes for all non-hourly arrangements. No schedule, daily
+count or shift is substituted for approved paid days/minutes. Split periods at base-rate changes.
+Existing arrangements, inputs and approved snapshots retain their original meaning.
+
+To change an exact amount, authorize another dated arrangement/policy below the overview. To
+apply a percentage, open **Adjust [employee]** in the employee row, choose increase/decrease,
+enter a percentage (10 means 10%, up to two decimal places), effective date and reason. A stale
+source rate is rejected inside the shared transaction lock. Increases support up to 10,000%;
+decreases up to 100%; cents round half up once. Commission percentage adjustments change the
+base per-test rate and retain the explicitly configured eligibility, thresholds and volume boost.
+Frozen payroll dates cannot be rewritten; earlier versions remain in the database and audit.
+
+An optional progressive volume boost uses each employee's approved daily personal count:
+`max(0, count - threshold) × rateCents + max(0, count - volumeThreshold) × volumeIncreaseCents`.
+Both boost fields must be entered together, and the volume threshold must be at least the base
+threshold. Only tests above the higher threshold receive the extra amount. No eligibility,
+rates, thresholds or employee schedules are preconfigured. Draft snapshots retain both boost
+fields. The Performance view shares these commission and actual-period base calculations.
+
+Employee rows, daily count review, payroll periods, transaction history, period inputs, draft
+revisions and each draft's employee lines display at most **15 items per page**. Page links
+retain the selected date/week and other page/filter parameters; shrinking lists clamp to the
+last available page. Dropdowns retain all choices and approved CSV exports remain uncapped.
+The transaction ledger includes the actor, recording time in Eastern time, effective date,
+reason and retained calculation/change details for pay, commissions, counts and payroll actions.
+These are compensation/preparation records, not proof of a bank payment. All saved information
+continues to use persistent PostgreSQL storage; additive migration 012 does not reset business data.

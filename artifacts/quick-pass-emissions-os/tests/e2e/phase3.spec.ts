@@ -1,18 +1,11 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
-const password = process.env.DEMO_PASSWORD;
-test.skip(!password, "Set DEMO_PASSWORD and use a fresh isolated demo database.");
+import { login } from "./workflow-helpers";
 function form(page: Page, button: string) {
   return page
     .locator("form")
     .filter({ has: page.getByRole("button", { name: button, exact: true }) });
 }
-async function login(page: Page, email: string) {
-  await page.goto("/login");
-  await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password!);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/dashboard/);
-}
+
 async function save(
   f: Locator,
   button: string,
@@ -29,7 +22,7 @@ async function save(
   if (disappears) await expect(f).toHaveCount(0);
   else await expect(f.getByRole("status")).toHaveText(expected);
 }
-test("six bays, employee issue and reviewed repair, preventative work, chemical stock and rental payment", async ({
+test("six bays, management-recorded issue and reviewed repair, preventative work, chemical stock and rental payment", async ({
   page,
   browser,
 }) => {
@@ -43,8 +36,8 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
     }),
     book = await bookContext.newPage();
   await login(page, "owner@example.test");
-  await login(employee, "al@example.test");
-  await login(book, "bookkeeper@example.test");
+  await login(employee, "manager@example.test");
+  await login(book, "preparer@example.test");
   await page.goto("/carwash");
   let f = form(page, "Confirm six bays");
   for (let n = 1; n <= 6; n++) await f.locator(`[name="bay${n}"]`).fill(`E2E Bay ${n}`);
@@ -68,7 +61,10 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await f.getByLabel("Verified contact person / department").fill("Fixture support desk");
   await f.getByLabel("Verified phone", { exact: false }).fill("555-fixture");
   await f.getByLabel("Services provided").fill("Fixture pump service");
-  await f.getByLabel("Contact verification source reference").fill("e2e-contact-reference");
+  await f
+    .getByLabel("Business reference / contact verification evidence")
+    .fill("e2e-contact-reference");
+  await f.getByLabel("Contact verification date").fill("2026-10-01");
   await f.getByLabel("Change reason").fill("E2E checked contact");
   await save(f, "Save verified vendor");
   await page.goto("/equipment");
@@ -92,7 +88,7 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await expect(employee).toHaveURL(/\/maintenance\/[^/]+$/);
   const ticketUrl = employee.url();
   await expect(employee.getByRole("heading", { name: "E2E hose leak", exact: true })).toBeVisible();
-  await expect(employee.getByRole("heading", { name: "Assignment & deadline" })).toHaveCount(0);
+  await expect(employee.getByRole("heading", { name: "Assignment & deadline" })).toBeVisible();
   await page.goto(ticketUrl);
   f = form(page, "Update maintenance assignment");
   await f.getByLabel("Assigned employee").selectOption({ label: "Demo Al" });
@@ -104,7 +100,7 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await f.getByLabel("Maintenance work status").selectOption("AWAITING_REVIEW");
   await f.getByLabel("Work performed / findings").fill("E2E replaced leaking hose");
   await f.getByLabel("Work update / review reason").fill("E2E work ready for inspection");
-  await save(f, "Save maintenance progress", true);
+  await save(f, "Save maintenance progress");
   await page.reload();
   f = form(page, "Save maintenance progress");
   await f.getByLabel("Maintenance work status").selectOption("COMPLETED");
@@ -114,8 +110,8 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await expect(page.getByText("Recorded repair cost: $25.00 USD", { exact: true })).toBeVisible();
   await employee.reload();
   await expect(employee.getByText("E2E replaced leaking hose", { exact: true })).toBeVisible();
-  await expect(employee.getByText("Recorded repair cost", { exact: false })).toHaveCount(0);
-  await expect(employee.getByRole("heading", { name: "Maintenance history" })).toHaveCount(0);
+  await expect(employee.getByText("Recorded repair cost", { exact: false })).toBeVisible();
+  await expect(employee.getByRole("heading", { name: "Maintenance history" })).toBeVisible();
   await page.goto("/maintenance/plans");
   f = form(page, "Create preventative schedule");
   await f
@@ -141,6 +137,7 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await page.goto("/chemicals");
   f = form(page, "Add chemical item");
   await f.getByLabel("Chemical / supply name").fill("E2E Wash Soap");
+  await f.getByLabel("Stock unit", { exact: false }).selectOption("ML");
   await f.getByLabel("Low-stock threshold · chosen units").fill("500");
   await f.getByLabel("Change reason").fill("E2E stock settings");
   await save(f, "Add chemical item");
@@ -149,7 +146,7 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await f.getByLabel("Unique chemical movement reference").fill("e2e-soap-opening");
   await f.getByLabel("Stock movement reason").fill("E2E physical opening count");
   await save(f, "Record chemical movement");
-  await f.getByLabel("Stock movement", { exact: true }).selectOption("USAGE");
+  await f.getByRole("combobox", { name: /^Stock movement/ }).selectOption("USAGE");
   await f.getByLabel("Quantity", { exact: false }).fill("600");
   await f.getByLabel("Unique chemical movement reference").fill("e2e-soap-used");
   await f.getByLabel("Stock movement reason").fill("E2E soap consumed");
@@ -161,7 +158,7 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await expect(page.getByText("Low recorded stock", { exact: false })).toBeVisible();
   await page.goto("/rentals");
   f = form(page, "Authorize rental agreement");
-  await f.getByLabel("Detailing bay", { exact: true }).selectOption({ label: "E2E Bay 4" });
+  await f.getByLabel(/^Detailing\ bay/).selectOption({ label: "E2E Bay 4" });
   await f.getByLabel("Tenant / business name").fill("E2E Detailing Tenant");
   await f.getByLabel("Verified tenant contact").fill("Fixture contact");
   await f.getByLabel("Unique agreement reference").fill("e2e-rental-agreement");
@@ -202,30 +199,14 @@ test("six bays, employee issue and reviewed repair, preventative work, chemical 
   await page.reload();
 
   await expect(page.getByText("-$40.00 USD", { exact: false })).toBeVisible();
-  await employee.goto("/carwash");
-  await expect(
-    employee.getByRole("heading", { name: "We couldn’t open this view.", exact: true }),
-  ).toBeVisible();
-  await expect(employee.getByRole("heading", { name: "Carwash & bays", exact: true })).toHaveCount(
-    0,
-  );
-  await employee.goto(rentalUrl);
-  await expect(
-    employee.getByRole("heading", { name: "We couldn’t open this view.", exact: true }),
-  ).toBeVisible();
-  await expect(
-    employee.getByRole("heading", { name: "Authorized terms", exact: true }),
-  ).toHaveCount(0);
   await page.goto("/carwash");
   await expect(page.getByRole("heading", { name: "E2E Bay 1", exact: true })).toBeVisible();
-  await page.screenshot({ path: "test-results/phase3-bays-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await expect(page.getByRole("heading", { name: "E2E Bay 1", exact: true })).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);
-  await page.screenshot({ path: "test-results/phase3-bays-mobile.png", fullPage: false });
   await employee.goto(ticketUrl);
   await employee.setViewportSize({ width: 390, height: 844 });
   await expect(employee.getByRole("heading", { name: "E2E hose leak", exact: true })).toBeVisible();

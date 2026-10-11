@@ -113,6 +113,9 @@ if (enabled) {
     const overview = await p.performance(owner, { start: date, end: date });
     expect(overview.stationRecorded).toBe(0);
     expect(overview.stationPending).toBe(1);
+    expect(overview.breakdown).toEqual([{ outcome: "Pass", confirmed: 0, pending: 1 }]);
+    expect(overview.trends.testsPerHour).toBeNull();
+    expect(overview.comparison.ready).toBe(false);
     expect(overview.groups[0].label).toContain("Unmapped");
     expect(overview.days[0].attested).toBe(false);
   });
@@ -130,6 +133,95 @@ if (enabled) {
       message: expect.stringContaining("Imported 1"),
     });
     expect(await records()).toHaveLength(1);
+  });
+  it("compares reviewed station-wide history with equal prior dates and preserves employee filtering", async () => {
+    const prior = addDays(date, -1);
+    await s.saveSettings(owner, {
+      revision: 0,
+      effectiveDate: prior,
+      weekStart: 1,
+      hours: Array.from({ length: 7 }, (_, i) => ({
+        weekday: i + 1,
+        open: "08:00",
+        close: "16:00",
+      })),
+      observationDays: 7,
+      minimumDays: 2,
+      sourceTimezoneConfirmed: true,
+      reason: "Synthetic schedule",
+    });
+    await s.saveMapping(owner, {
+      inspector: "Fixture Inspector",
+      employeeId: empId,
+      effectiveDate: prior,
+      reason: "Synthetic attribution",
+    });
+    await s.saveRule(owner, {
+      outcome: "Pass",
+      effectiveDate: prior,
+      eligible: true,
+      priceCents: 2501,
+      reason: "Synthetic policy",
+    });
+    for (const [day, certificate] of [
+      [prior, "SYN00001"],
+      [date, "SYN00002"],
+    ]) {
+      const run = await imported(
+        reportFixture(day, [
+          {
+            vin: `1SYNTHETIC${certificate.slice(-7)}`,
+            inspector: "Fixture Inspector",
+            certificate,
+            result: "Pass",
+            time: "12:00 AM",
+          },
+        ]),
+      );
+      const row = (await p.performance(owner, { start: day, end: day })).records[0];
+      await s.reviewRecord(owner, {
+        recordId: row.id,
+        version: row.version,
+        disposition: "RETAIL",
+        eligibility: "RULE",
+        reattribute: false,
+        dealerServiceId: "",
+        financeEntryId: "",
+        reason: "Synthetic identity review",
+      });
+      await s.attestCoverage(owner, {
+        importId: run.id,
+        expectedRows: 1,
+        reason: "Synthetic complete day",
+      });
+    }
+    const result = await p.performance(owner, { start: date, end: date, employeeId: empId });
+    expect(result.trends.days[0]).toMatchObject({ status: "Covered", confirmed: 1, minutes: 480 });
+    expect(result.priorTrends).toMatchObject({
+      start: prior,
+      end: prior,
+      confirmed: 1,
+      complete: true,
+    });
+    expect(result.comparison).toMatchObject({
+      ready: true,
+      countChange: 0,
+      rateChange: 0,
+      percentRateChange: 0,
+    });
+    expect(result.trends.hours[0].confirmed).toBe(1);
+    expect(result.employeePerformance).toHaveLength(1);
+    expect(result.employeePerformance[0]).toMatchObject({
+      employeeId: empId,
+      commissionCents: null,
+      status: "No payroll period",
+    });
+    const other = await db.employee.create({ data: { userId: manager } });
+    const filtered = await p.performance(owner, { start: date, end: date, employeeId: other.id });
+    expect(filtered.records).toHaveLength(0);
+    expect(filtered.trends.confirmed).toBe(1);
+    expect(filtered.breakdown[0].confirmed).toBe(1);
+    expect(await db.dailyEmission.count()).toBe(0);
   });
   it("invalidates both dates when a correction leaves a previously attested day", async () => {
     await setup();
@@ -407,9 +499,70 @@ if (enabled) {
     expect(overview.pay.periods[0].snapshot?.baseCents).toBe(17);
     expect(overview.pay.periods[0].snapshot?.commissionCents).toBe(101);
     expect(overview.pay.periods[0].snapshot?.totalCents).toBe(118);
+    expect(overview.employeePerformance.find((r) => r.employeeId === empId)).toMatchObject({
+      commissionCents: 101,
+      baseCents: 17,
+      grossCents: 118,
+      status: "Approved payroll snapshots",
+    });
     await review((await records())[0].id, { eligibility: "NO" });
     expect((await db.payrollLine.findFirst())!.totalCents).toBe(118);
     expect(before).toContain('"totalCents":118');
+  });
+  it("shares daily base and progressive volume calculations with payroll drafts", async () => {
+    await setup();
+    await payroll.saveArrangement(owner, {
+      employeeId: empId,
+      effectiveDate: date,
+      kind: "DAILY",
+      amountCents: 10000,
+      reason: "Daily base",
+    });
+    await payroll.savePolicy(owner, {
+      employeeId: empId,
+      effectiveDate: date,
+      eligible: true,
+      threshold: 1,
+      rateCents: 101,
+      volumeThreshold: 2,
+      volumeIncreaseCents: 50,
+      attribution: "PERSONAL_APPROVED_DAILY",
+      reason: "Progressive volume",
+    });
+    await payroll.importEmissions(owner, [
+      {
+        employeeId: empId,
+        date,
+        count: 3,
+        sourceRef: "volume-commission",
+        reason: "Personal count",
+      },
+    ]);
+    const count = await db.dailyEmission.findFirstOrThrow();
+    await payroll.approveEmissions(manager, { id: count.id, version: count.version });
+    const period = await payroll.createPeriod(owner, {
+      startDate: date,
+      endDate: date,
+      label: "Daily pay",
+    });
+    const input = await payroll.savePayrollInput(owner, {
+      periodId: period.id,
+      employeeId: empId,
+      minutes: 0,
+      paidDays: 1,
+      emissionsComplete: true,
+      version: 0,
+      reason: "Verified paid day",
+    });
+    await payroll.approvePayrollInput(manager, { id: input.id, version: input.version });
+    const provisional = await p.performance(owner, { start: date, end: date });
+    expect(provisional.pay.daily[0].commissionCents).toBe(252);
+    expect(provisional.pay.periods[0]).toMatchObject({
+      baseCents: 10000,
+      commissionCents: 252,
+      grossCents: 10252,
+    });
+    expect((await payroll.generateDraft(owner, period.id)).totalCents).toBe(10252);
   });
   it("never invents worked time or period totals from a daily/weekly screen", async () => {
     await setup();
@@ -444,6 +597,20 @@ if (enabled) {
     expect(overview.pay.periods[0].baseCents).toBeNull();
     expect(overview.pay.periods[0].grossCents).toBeNull();
     expect(overview.pay.periods[0].status).toBe("Incomplete");
+    expect(overview.employeePerformance.find((r) => r.employeeId === empId)).toMatchObject({
+      commissionCents: null,
+      baseCents: null,
+      grossCents: null,
+      unapprovedDays: 2,
+      status: "Incomplete inputs",
+    });
+    const partial = await p.performance(owner, { start: date, end: date });
+    expect(partial.employeePerformance.find((r) => r.employeeId === empId)).toMatchObject({
+      baseCents: null,
+      grossCents: null,
+      partialPeriods: 1,
+      status: "Partial period — pay not allocated",
+    });
     expect(overview.projection.projected).toBeNull();
   });
   it("separates estimated charges from finance and rejects duplicate evidence allocation", async () => {

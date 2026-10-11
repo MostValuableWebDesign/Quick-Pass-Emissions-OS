@@ -41,7 +41,7 @@ if (enabled) {
       ).id;
     owner = await user("OWNER");
     manager = await user("ADMIN");
-    book = await user("BOOKKEEPER");
+    book = await user("ADMIN");
     employee = await user("EMPLOYEE");
     peer = await user("EMPLOYEE");
     employeeId = (await db.employee.create({ data: { userId: employee } })).id;
@@ -139,14 +139,65 @@ if (enabled) {
     const a = await agreement();
     return r.createCharge(book, { agreementId: a.id, month: "2026-02", reason: why });
   }
+  it("prevents a backdated replacement payment from making historical rent negative", async () => {
+    const c = await charge();
+    const payment = await r.recordPayment(book, {
+      chargeId: c.id,
+      amountCents: 10000,
+      date: "2026-09-10",
+      reference: "first",
+      reason: why,
+    });
+    await r.reversePayment(owner, {
+      id: payment.id,
+      date: "2026-09-20",
+      reference: "reverse",
+      reason: why,
+    });
+    const before = await db.auditLog.count();
+    await expect(
+      r.recordPayment(book, {
+        chargeId: c.id,
+        amountCents: 10000,
+        date: "2026-09-15",
+        reference: "replacement",
+        reason: why,
+      }),
+    ).rejects.toThrow("latest payment/reversal");
+    expect(await db.rentalPayment.count()).toBe(2);
+    expect(await db.auditLog.count()).toBe(before);
+    const { paymentSummary } = await import("../src/modules/rentals/rules");
+    const ledger = await db.rentalPayment.findMany();
+    expect(
+      paymentSummary(
+        c.amountCents,
+        ledger.filter((p) => p.date <= "2026-09-15"),
+        c.dueDate,
+        "2026-09-15",
+      ).remainingCents,
+    ).toBe(0);
+    await r.recordPayment(book, {
+      chargeId: c.id,
+      amountCents: 10000,
+      date: "2026-09-20",
+      reference: "replacement",
+      reason: why,
+    });
+    for (const date of ["2026-09-09", "2026-09-10", "2026-09-15", "2026-09-20", today]) {
+      const payments = (await db.rentalPayment.findMany()).filter((p) => p.date <= date);
+      expect(
+        paymentSummary(c.amountCents, payments, c.dueDate, date).remainingCents,
+      ).toBeGreaterThanOrEqual(0);
+    }
+  });
   it("denies unauthorized reads, mutations and stale active/role claims", async () => {
-    for (const actor of [employee, book]) {
+    for (const actor of [employee, peer]) {
       await expect(m.registry(actor)).rejects.toThrow("permission");
       await expect(c.chemicalOverview(actor)).rejects.toThrow("permission");
       await expect(m.saveEquipment(actor, {})).rejects.toThrow();
     }
     await expect(r.rentalOverview(employee)).rejects.toThrow("permission");
-    await expect(m.maintenanceOverview(book)).rejects.toThrow("permission");
+    await expect(m.maintenanceOverview(employee)).rejects.toThrow("permission");
     await db.user.update({ where: { id: owner }, data: { active: false } });
     await expect(m.registry(owner)).rejects.toThrow("permission");
     await db.user.update({ where: { id: manager }, data: { role: "EMPLOYEE" } });
@@ -235,74 +286,42 @@ if (enabled) {
       m.saveEquipment(manager, { ...e, id: "", code: e.code, active: true, reason: why }),
     ).rejects.toThrow("already exists");
   });
-  it("limits employee reports and detail reads without returning private fields", async () => {
-    const e = await equipment();
-    const t = await m.createTicket(employee, {
-      equipmentId: e.id,
-      title: "Employee issue",
-      description: "Broken hose",
-      priority: "NORMAL",
-      assignedId: employeeId,
-      vendorId: "fake",
-      repairCostCents: 123,
-      status: "COMPLETED",
-    });
-    expect(t.assignedId).toBeNull();
-    expect(t.vendorId).toBeNull();
-    expect(t.repairCostCents).toBeNull();
-    expect(t.status).toBe("OPEN");
-    const own = await m.ticketDetail(employee, t.id);
-    expect(own.management).toBe(false);
-    expect(own.ticket).not.toHaveProperty("repairCostCents");
-    expect(own.ticket).not.toHaveProperty("events");
-    expect((await m.ticketDetail(peer, t.id)).ticket).toBeNull();
-    await expect(
-      m.updateTicket(employee, { id: t.id, version: 0, status: "IN_PROGRESS", reason: why }),
-    ).rejects.toThrow("Access denied");
-  });
-  it("persists employee work, manager cost review, history and terminal locks", async () => {
+  it("denies staff issue reports, reads and work updates", async () => {
     const t = await ticket();
-    await m.updateTicket(employee, {
+    for (const actor of [employee, peer]) {
+      await expect(m.createTicket(actor, {})).rejects.toThrow("permission");
+      await expect(m.ticketDetail(actor, t.id)).rejects.toThrow("permission");
+      await expect(m.updateTicket(actor, {})).rejects.toThrow("permission");
+    }
+    expect((await db.maintenanceTicket.findUniqueOrThrow({ where: { id: t.id } })).version).toBe(0);
+  });
+  it("persists management-recorded work, cost review, history and terminal locks", async () => {
+    const t = await ticket();
+    const work = {
       id: t.id,
-      version: 0,
-      status: "IN_PROGRESS",
-      reason: "Started work",
-      repairCostCents: 123,
-    });
-    await expect(
-      m.updateTicket(employee, {
-        id: t.id,
-        version: 1,
-        status: "COMPLETED",
-        workPerformed: "Done",
-        reason: why,
-      }),
-    ).rejects.toThrow("review");
-    await m.updateTicket(employee, {
-      id: t.id,
-      version: 1,
-      status: "AWAITING_REVIEW",
-      workPerformed: "Replaced hose",
-      reason: why,
-      repairCostCents: 999,
-    });
-    expect(
-      (await db.maintenanceTicket.findUniqueOrThrow({ where: { id: t.id } })).repairCostCents,
-    ).toBeNull();
-    await m.updateTicket(manager, {
-      id: t.id,
-      version: 2,
-      status: "COMPLETED",
       assignedId: employeeId,
       vendorId: "",
       targetDate: today,
+      repairCostCents: "",
+      reason: why,
+    };
+    await m.updateTicket(manager, { ...work, version: 0, status: "IN_PROGRESS" });
+    await m.updateTicket(manager, {
+      ...work,
+      version: 1,
+      status: "AWAITING_REVIEW",
+      workPerformed: "Replaced hose",
+    });
+    await m.updateTicket(owner, {
+      ...work,
+      version: 2,
+      status: "COMPLETED",
       repairCostCents: 2500,
       workPerformed: "Verified replacement",
-      reason: why,
     });
     const fresh = await m.ticketDetail(owner, t.id);
-    expect(fresh.management && fresh.ticket?.repairCostCents).toBe(2500);
-    expect(fresh.management && fresh.ticket?.events).toHaveLength(4);
+    expect(fresh.ticket?.repairCostCents).toBe(2500);
+    expect(fresh.ticket?.events).toHaveLength(4);
     await expect(
       m.assignTicket(manager, {
         id: t.id,
@@ -317,8 +336,20 @@ if (enabled) {
     const t = await ticket(),
       input = { id: t.id, version: 0, status: "IN_PROGRESS", reason: why };
     const result = await Promise.allSettled([
-      m.updateTicket(employee, input),
-      m.updateTicket(employee, input),
+      m.updateTicket(manager, {
+        ...input,
+        assignedId: employeeId,
+        vendorId: "",
+        targetDate: today,
+        repairCostCents: "",
+      }),
+      m.updateTicket(manager, {
+        ...input,
+        assignedId: employeeId,
+        vendorId: "",
+        targetDate: today,
+        repairCostCents: "",
+      }),
     ]);
     expect(result.filter((x) => x.status === "fulfilled")).toHaveLength(1);
     expect(await db.maintenanceEvent.count({ where: { ticketId: t.id } })).toBe(2);
@@ -559,7 +590,7 @@ if (enabled) {
       r.recordPayment(book, { ...input, amountCents: 1, reference: p.reference }),
     ).rejects.toThrow("already exists");
     await expect(
-      r.reversePayment(book, { id: p.id, date: today, reference: "rev", reason: why }),
+      r.reversePayment(employee, { id: p.id, date: today, reference: "rev", reason: why }),
     ).rejects.toThrow("permission");
     await r.reversePayment(owner, { id: p.id, date: today, reference: "rev", reason: why });
     await expect(

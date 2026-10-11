@@ -28,6 +28,27 @@ export const categories = [
 ] as const;
 const currentPast = (date: string) =>
   requireRule(date <= businessDate(), "Use a current or past business date.");
+async function assertBillingHistory(
+  tx: Tx,
+  serviceIds: string[],
+  issueDate: string,
+  invoiceId?: string,
+) {
+  const history = await tx.dealerInvoiceLine.findMany({
+    where: {
+      serviceId: { in: serviceIds },
+      ...(invoiceId ? { invoiceId: { not: invoiceId } } : {}),
+    },
+    include: { invoice: { select: { state: true, voidDate: true } } },
+  });
+  requireRule(
+    history.every(
+      ({ invoice }) =>
+        invoice.state === "VOIDED" && invoice.voidDate !== null && invoice.voidDate <= issueDate,
+    ),
+    "A service has prior invoice history. Reissue on or after the previous invoice's void date.",
+  );
+}
 export async function saveDealer(actorId: string, input: unknown) {
   const {
     id: key,
@@ -228,6 +249,7 @@ export async function createInvoice(actorId: string, input: unknown) {
       services.length === data.serviceIds.length,
       "A service changed, is already billed, or is after the issue date. Refresh and review.",
     );
+    await assertBillingHistory(tx, data.serviceIds, data.issueDate);
     const totals = invoiceTotals(services, dealer.taxBps);
     const row = await tx.dealerInvoice.create({
       data: {
@@ -297,7 +319,7 @@ export async function reviewInvoice(actorId: string, input: unknown) {
     currentPast(data.date);
     const row = await tx.dealerInvoice.findUnique({
       where: { id: data.id },
-      include: { payments: true },
+      include: { payments: true, lines: true },
     });
     requireRule(
       row?.version === data.version && row.state !== "VOIDED",
@@ -308,6 +330,12 @@ export async function reviewInvoice(actorId: string, input: unknown) {
       requireRule(
         row.state === "DRAFT" && row.createdBy !== actorId,
         "A different owner or manager must approve the draft.",
+      );
+      await assertBillingHistory(
+        tx,
+        row.lines.map((line) => line.serviceId),
+        row.issueDate,
+        row.id,
       );
       await tx.dealerInvoice.update({
         where: { id: row.id },

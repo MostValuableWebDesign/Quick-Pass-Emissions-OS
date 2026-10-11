@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Temporal } from "@js-temporal/polyfill";
-import { dateString, id } from "../../lib/validation";
+import { dateString, id, requiredInteger } from "../../lib/validation";
 import { businessDate } from "../../lib/time";
 import {
   audit,
@@ -11,16 +11,30 @@ import {
   requireRule,
   type Tx,
 } from "../phase2";
-import { MAX_CENTS, commissionCents, periodAmounts, sumCents, csvCell } from "./calculations";
-const integer = (max: number) => z.coerce.number().int().min(0).max(max);
+import {
+  MAX_CENTS,
+  commissionCents,
+  periodAmounts,
+  sumCents,
+  csvCell,
+  adjustedCents,
+} from "./calculations";
+const integer = (max: number) => requiredInteger(0, max);
 const reason = z.string().trim().min(1).max(2000);
 const version = integer(2147483647);
 const cents = integer(MAX_CENTS);
+const optionalInteger = (min: number, max: number) =>
+  z.preprocess(
+    (v) => (v === "" || v === undefined ? null : v),
+    requiredInteger(min, max).nullable(),
+  );
 export const arrangementInput = z.object({
   employeeId: id,
   effectiveDate: dateString,
-  kind: z.enum(["FIXED", "HOURLY"]),
+  kind: z.enum(["FIXED", "HOURLY", "DAILY", "WEEKLY"]),
   amountCents: cents,
+  scheduledDaysPerWeek: optionalInteger(1, 7),
+  scheduledMinutesPerDay: optionalInteger(1, 1440),
   reason,
 });
 export const policyInput = z.object({
@@ -29,6 +43,8 @@ export const policyInput = z.object({
   eligible: z.boolean(),
   threshold: integer(100000),
   rateCents: cents,
+  volumeThreshold: optionalInteger(0, 100000),
+  volumeIncreaseCents: optionalInteger(0, MAX_CENTS),
   attribution: z.literal("PERSONAL_APPROVED_DAILY"),
   reason,
 });
@@ -54,6 +70,7 @@ export const payrollInput = z.object({
   periodId: id,
   employeeId: id,
   minutes: integer(60 * 24 * 366),
+  paidDays: optionalInteger(0, 366),
   emissionsComplete: z.literal(true),
   reason,
   version,
@@ -145,45 +162,148 @@ async function openPeriod(tx: Tx, periodId: string) {
   );
   return period;
 }
+async function saveArrangementTx(
+  tx: Tx,
+  actorId: string,
+  data: z.infer<typeof arrangementInput>,
+  adjustment?: { percent: string; direction: string },
+) {
+  await employeeExists(tx, data.employeeId);
+  const next = await tx.payArrangement.findFirst({
+    where: { employeeId: data.employeeId, effectiveDate: { gt: data.effectiveDate } },
+    orderBy: { effectiveDate: "asc" },
+  });
+  await assertDatesOpen(tx, data.effectiveDate, next?.effectiveDate ?? "9999-12-31");
+  requireRule(
+    !(await tx.payArrangement.count({
+      where: { employeeId: data.employeeId, effectiveDate: data.effectiveDate },
+    })),
+    "This effective date already has a pay arrangement. Create a new dated version.",
+  );
+  const before = await tx.payArrangement.findFirst({
+    where: { employeeId: data.employeeId, effectiveDate: { lt: data.effectiveDate } },
+    orderBy: { effectiveDate: "desc" },
+  });
+  const row = await tx.payArrangement.create({ data: { ...data, createdBy: actorId } });
+  await audit(tx, actorId, "PAY_ARRANGEMENT_CREATED", row.id, {
+    ...data,
+    before: before ? { id: before.id, kind: before.kind, amountCents: before.amountCents } : null,
+    ...(adjustment ?? {}),
+  });
+  return row;
+}
 export async function saveArrangement(actorId: string, input: unknown) {
   const data = arrangementInput.parse(input);
-  return phase2(actorId, ["OWNER"], async (tx) => {
-    await employeeExists(tx, data.employeeId);
-    // A later policy must not change the effective selection of any frozen historical period.
-    const next = await tx.payArrangement.findFirst({
-      where: { employeeId: data.employeeId, effectiveDate: { gt: data.effectiveDate } },
-      orderBy: { effectiveDate: "asc" },
-    });
-    await assertDatesOpen(tx, data.effectiveDate, next?.effectiveDate ?? "9999-12-31");
-    requireRule(
-      !(await tx.payArrangement.count({
-        where: { employeeId: data.employeeId, effectiveDate: data.effectiveDate },
-      })),
-      "This effective date already has a pay arrangement. Create a new dated version.",
-    );
-    const row = await tx.payArrangement.create({ data: { ...data, createdBy: actorId } });
-    await audit(tx, actorId, "PAY_ARRANGEMENT_CREATED", row.id, data);
-    return row;
+  return phase2(actorId, ["OWNER"], (tx) => saveArrangementTx(tx, actorId, data));
+}
+async function savePolicyTx(
+  tx: Tx,
+  actorId: string,
+  data: z.infer<typeof policyInput>,
+  adjustment?: { percent: string; direction: string },
+) {
+  await employeeExists(tx, data.employeeId);
+  requireRule(
+    (data.volumeThreshold === null) === (data.volumeIncreaseCents === null),
+    "Enter both volume boost fields, or leave both blank.",
+  );
+  requireRule(
+    data.volumeThreshold === null || data.volumeThreshold >= data.threshold,
+    "Volume boost threshold must be at least the daily test threshold.",
+  );
+  const next = await tx.commissionPolicy.findFirst({
+    where: { employeeId: data.employeeId, effectiveDate: { gt: data.effectiveDate } },
+    orderBy: { effectiveDate: "asc" },
   });
+  await assertDatesOpen(tx, data.effectiveDate, next?.effectiveDate ?? "9999-12-31");
+  requireRule(
+    !(await tx.commissionPolicy.count({
+      where: { employeeId: data.employeeId, effectiveDate: data.effectiveDate },
+    })),
+    "This effective date already has a commission policy. Create a new dated version.",
+  );
+  const before = await tx.commissionPolicy.findFirst({
+    where: { employeeId: data.employeeId, effectiveDate: { lt: data.effectiveDate } },
+    orderBy: { effectiveDate: "desc" },
+  });
+  const row = await tx.commissionPolicy.create({ data: { ...data, createdBy: actorId } });
+  await audit(tx, actorId, "COMMISSION_POLICY_CREATED", row.id, {
+    ...data,
+    before: before
+      ? {
+          id: before.id,
+          rateCents: before.rateCents,
+          threshold: before.threshold,
+          eligible: before.eligible,
+          volumeThreshold: before.volumeThreshold,
+          volumeIncreaseCents: before.volumeIncreaseCents,
+        }
+      : null,
+    ...(adjustment ?? {}),
+  });
+  return row;
 }
 export async function savePolicy(actorId: string, input: unknown) {
   const data = policyInput.parse(input);
+  return phase2(actorId, ["OWNER"], (tx) => savePolicyTx(tx, actorId, data));
+}
+export const adjustmentInput = z.object({
+  employeeId: id,
+  expectedId: id,
+  effectiveDate: dateString,
+  target: z.enum(["BASE", "COMMISSION"]),
+  direction: z.enum(["INCREASE", "DECREASE"]),
+  percent: z
+    .string()
+    .trim()
+    .regex(/^\d{1,5}(\.\d{1,2})?$/, "Enter a positive percentage with at most two decimal places."),
+  reason,
+});
+export async function adjustCompensation(actorId: string, input: unknown) {
+  const data = adjustmentInput.parse(input);
+  const [whole, fraction = ""] = data.percent.split(".");
+  const points = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
+  requireRule(
+    points >= 1 && points <= 1000000 && (data.direction !== "DECREASE" || points <= 10000),
+    "Choose an increase up to 10,000% or a decrease up to 100%.",
+  );
   return phase2(actorId, ["OWNER"], async (tx) => {
-    await employeeExists(tx, data.employeeId);
-    const next = await tx.commissionPolicy.findFirst({
-      where: { employeeId: data.employeeId, effectiveDate: { gt: data.effectiveDate } },
-      orderBy: { effectiveDate: "asc" },
-    });
-    await assertDatesOpen(tx, data.effectiveDate, next?.effectiveDate ?? "9999-12-31");
+    const where = { employeeId: data.employeeId, effectiveDate: { lte: data.effectiveDate } };
+    const previous =
+      data.target === "BASE"
+        ? await tx.payArrangement.findFirst({ where, orderBy: { effectiveDate: "desc" } })
+        : await tx.commissionPolicy.findFirst({ where, orderBy: { effectiveDate: "desc" } });
     requireRule(
-      !(await tx.commissionPolicy.count({
-        where: { employeeId: data.employeeId, effectiveDate: data.effectiveDate },
-      })),
-      "This effective date already has a commission policy. Create a new dated version.",
+      previous?.id === data.expectedId,
+      "The effective compensation changed. Select the adjustment date in the pay overview, then review the current rate before adjusting.",
     );
-    const row = await tx.commissionPolicy.create({ data: { ...data, createdBy: actorId } });
-    await audit(tx, actorId, "COMMISSION_POLICY_CREATED", row.id, data);
-    return row;
+    const metadata = { percent: data.percent, direction: data.direction };
+    if (data.target === "BASE") {
+      const old = arrangementInput.parse(previous);
+      return saveArrangementTx(
+        tx,
+        actorId,
+        {
+          ...old,
+          effectiveDate: data.effectiveDate,
+          amountCents: adjustedCents(old.amountCents, points, data.direction),
+          reason: data.reason,
+        },
+        metadata,
+      );
+    }
+    const old = policyInput.parse(previous);
+    return savePolicyTx(
+      tx,
+      actorId,
+      {
+        ...old,
+        effectiveDate: data.effectiveDate,
+        rateCents: adjustedCents(old.rateCents, points, data.direction),
+        reason: data.reason,
+      },
+      metadata,
+    );
   });
 }
 export async function importEmissions(actorId: string, input: unknown) {
@@ -266,6 +386,8 @@ export async function approveEmissions(actorId: string, input: unknown) {
     await audit(tx, actorId, "EMISSIONS_APPROVED", row.id, {
       version: row.version,
       count: row.count,
+      employeeId: row.employeeId,
+      date: row.date,
     });
   });
 }
@@ -301,6 +423,10 @@ export async function savePayrollInput(actorId: string, input: unknown) {
       data.minutes <= days * 24 * 60,
       "Choose minutes within the payroll period's duration.",
     );
+    requireRule(
+      data.paidDays === null || data.paidDays <= days,
+      "Paid days cannot exceed the period duration.",
+    );
     const old = await tx.payrollInput.findUnique({
       where: { periodId_employeeId: { periodId: data.periodId, employeeId: data.employeeId } },
     });
@@ -312,6 +438,7 @@ export async function savePayrollInput(actorId: string, input: unknown) {
       periodId: data.periodId,
       employeeId: data.employeeId,
       minutes: data.minutes,
+      paidDays: data.paidDays,
       emissionsComplete: data.emissionsComplete,
       reason: data.reason,
     };
@@ -329,7 +456,12 @@ export async function savePayrollInput(actorId: string, input: unknown) {
       : await tx.payrollInput.create({ data: { ...values, version: 1, createdBy: actorId } });
     await audit(tx, actorId, "PAYROLL_INPUT_SAVED", row.id, {
       before: old
-        ? { minutes: old.minutes, version: old.version, approvedBy: old.approvedBy }
+        ? {
+            minutes: old.minutes,
+            paidDays: old.paidDays,
+            version: old.version,
+            approvedBy: old.approvedBy,
+          }
         : null,
       after: data,
     });
@@ -354,7 +486,13 @@ export async function approvePayrollInput(actorId: string, input: unknown) {
       where: { id: row.id },
       data: { approvedBy: actorId, approvedAt: new Date(), version: { increment: 1 } },
     });
-    await audit(tx, actorId, "PAYROLL_INPUT_APPROVED", row.id, { version: row.version });
+    await audit(tx, actorId, "PAYROLL_INPUT_APPROVED", row.id, {
+      version: row.version,
+      employeeId: row.employeeId,
+      periodId: row.periodId,
+      minutes: row.minutes,
+      paidDays: row.paidDays,
+    });
   });
 }
 export async function generateDraft(actorId: string, periodId: string) {
@@ -411,7 +549,7 @@ export async function generateDraft(actorId: string, periodId: string) {
       );
       requireRule(
         arrangement.kind === "HOURLY" || input.minutes === 0,
-        "Choose zero minutes for fixed compensation; the configured amount covers one entire period.",
+        "Choose zero minutes for fixed, daily or weekly compensation.",
       );
       const policies = await tx.commissionPolicy.findMany({
         where: { employeeId: input.employeeId, effectiveDate: { lte: period.endDate } },
@@ -441,20 +579,32 @@ export async function generateDraft(actorId: string, periodId: string) {
               threshold: policy.threshold,
               rateCents: policy.rateCents,
               attribution: policy.attribution,
+              volumeThreshold: policy.volumeThreshold,
+              volumeIncreaseCents: policy.volumeIncreaseCents,
             },
-            cents: commissionCents(c.count, policy.threshold, policy.rateCents, policy.eligible),
+            cents: commissionCents(
+              c.count,
+              policy.threshold,
+              policy.rateCents,
+              policy.eligible,
+              policy,
+            ),
           };
         });
       const amounts = periodAmounts(
         arrangement,
         input.minutes,
         daily.map((d) => d.cents),
+        {
+          paidDays: input.paidDays,
+          periodDays: Temporal.PlainDate.from(period.startDate).until(period.endDate).days + 1,
+        },
       );
       requireRule(
         amounts.baseCents !== null &&
           amounts.commissionCents !== null &&
           amounts.totalCents !== null,
-        "Payroll period inputs are incomplete.",
+        "Payroll inputs are incomplete: daily pay needs approved paid days; weekly pay needs a complete seven-day period (or whole number of weeks).",
       );
       lines.push({
         employeeId: input.employeeId,
@@ -469,18 +619,21 @@ export async function generateDraft(actorId: string, periodId: string) {
             effectiveDate: arrangement.effectiveDate,
             kind: arrangement.kind,
             amountCents: arrangement.amountCents,
+            scheduledDaysPerWeek: arrangement.scheduledDaysPerWeek,
+            scheduledMinutesPerDay: arrangement.scheduledMinutesPerDay,
           },
           input: {
             id: input.id,
             version: input.version,
             minutes: input.minutes,
+            paidDays: input.paidDays,
             emissionsComplete: input.emissionsComplete,
             approvedBy: input.approvedBy,
             approvedAt: input.approvedAt!.toISOString(),
           },
           daily,
           rounding:
-            "Hourly cents rounded half up once per employee/period. Daily commission exact cents.",
+            "Hourly cents rounded half up once per employee/period. Daily base uses approved paid days. Weekly base uses whole seven-day weeks. Progressive daily commission exact cents.",
         },
       });
     }
@@ -529,42 +682,63 @@ export async function reviewDraft(actorId: string, input: unknown) {
         where: { id: draft.periodId },
         data: { status: "APPROVED" },
       });
-    await audit(tx, actorId, `PAYROLL_${data.decision}`, draft.id, { reason: data.reason });
+    await audit(tx, actorId, `PAYROLL_${data.decision}`, draft.id, {
+      reason: data.reason,
+      periodId: draft.periodId,
+      totalCents: draft.totalCents,
+    });
   });
 }
-export async function payrollOverview(actorId: string) {
-  return phase2(actorId, financeRoles, async (tx) => ({
-    employees: await tx.employee.findMany({
-      select: { id: true, demo: true, user: { select: { name: true, active: true } } },
-      orderBy: { user: { name: "asc" } },
-    }),
-    arrangements: await tx.payArrangement.findMany({
-      orderBy: { effectiveDate: "desc" },
-      take: 100,
-      include: { employee: { select: { user: { select: { name: true } } } } },
-    }),
-    policies: await tx.commissionPolicy.findMany({
-      orderBy: { effectiveDate: "desc" },
-      take: 100,
-      include: { employee: { select: { user: { select: { name: true } } } } },
-    }),
-    periods: await tx.payrollPeriod.findMany({ orderBy: { startDate: "desc" }, take: 100 }),
-    counts: await tx.dailyEmission.findMany({
-      orderBy: [{ date: "desc" }, { id: "asc" }],
-      take: 100,
-      include: { employee: { select: { user: { select: { name: true } } } } },
-    }),
-  }));
+export const countReviewInput = z.object({
+  page: requiredInteger(1, 1000000000).default(1),
+  status: z.enum(["ALL", "PENDING"]).default("ALL"),
+  periodId: z.preprocess((v) => (v === "" ? undefined : v), id.optional()),
+});
+export async function payrollOverview(actorId: string, review: unknown = {}) {
+  const filter = countReviewInput.parse(review);
+  return phase2(actorId, financeRoles, async (tx) => {
+    const period = filter.periodId
+      ? await tx.payrollPeriod.findUnique({ where: { id: filter.periodId } })
+      : null;
+    requireRule(!filter.periodId || period, "Choose an existing payroll period.");
+    const where = {
+      ...(filter.status === "PENDING" ? { approvedAt: null } : {}),
+      ...(period ? { date: { gte: period.startDate, lte: period.endDate } } : {}),
+    };
+    const total = await tx.dailyEmission.count({ where });
+    const pageSize = 15;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    // Pending approvals disappear as they are reviewed; keep the current page reachable.
+    const page = Math.min(filter.page, totalPages);
+    return {
+      countReview: { ...filter, page, pageSize, total, totalPages, period },
+      employees: await tx.employee.findMany({
+        select: { id: true, demo: true, user: { select: { name: true, active: true } } },
+        orderBy: { user: { name: "asc" } },
+      }),
+      periods: await tx.payrollPeriod.findMany({ orderBy: [{ startDate: "desc" }, { id: "asc" }] }),
+      counts: await tx.dailyEmission.findMany({
+        where,
+        orderBy: [{ date: "desc" }, { id: "asc" }],
+        take: pageSize,
+        skip: (page - 1) * pageSize,
+        include: { employee: { select: { user: { select: { name: true } } } } },
+      }),
+    };
+  });
 }
 export async function payrollDetail(actorId: string, periodId: string) {
   return phase2(actorId, financeRoles, (tx) =>
     tx.payrollPeriod.findUnique({
       where: { id: id.parse(periodId) },
       include: {
-        inputs: { include: { employee: { select: { user: { select: { name: true } } } } } },
+        inputs: {
+          orderBy: [{ employee: { user: { name: "asc" } } }, { id: "asc" }],
+          include: { employee: { select: { user: { select: { name: true } } } } },
+        },
         drafts: {
           orderBy: { revision: "desc" },
-          include: { lines: { orderBy: { employeeName: "asc" } } },
+          include: { lines: { orderBy: [{ employeeName: "asc" }, { id: "asc" }] } },
         },
       },
     }),

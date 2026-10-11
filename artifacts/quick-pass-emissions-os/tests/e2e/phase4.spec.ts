@@ -1,18 +1,11 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
-const password = process.env.DEMO_PASSWORD;
-test.skip(!password, "Set DEMO_PASSWORD and use an isolated demo database.");
+import { login } from "./workflow-helpers";
 function form(page: Page, button: string) {
   return page
     .locator("form")
     .filter({ has: page.getByRole("button", { name: button, exact: true }) });
 }
-async function login(page: Page, email: string) {
-  await page.goto("/login");
-  await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password!);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/dashboard/);
-}
+
 async function save(f: Locator, button: string, disappears = false) {
   const response = f
     .page()
@@ -37,9 +30,9 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
       extraHTTPHeaders: { "x-forwarded-for": "198.51.100.43" },
     }),
     employee = await employeeContext.newPage();
+  await employeeContext.clearCookies();
   await login(page, "owner@example.test");
-  await login(book, "bookkeeper@example.test");
-  await login(employee, "john@example.test");
+  await login(book, "preparer@example.test");
   await book.goto("/dealerships");
   let f = form(book, "Add dealership");
   await f.getByLabel("Unique dealership code").fill("E2E-DEALER");
@@ -96,7 +89,10 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
   await expect(
     book.getByRole("heading", { name: "Total: $107.50 USD", exact: true }),
   ).toBeVisible();
-  await expect(book.getByRole("button", { name: "Record invoice decision" })).toHaveCount(0);
+  f = form(book, "Record invoice decision");
+  await f.getByLabel("Change reason").fill("E2E own draft approval denied");
+  await f.getByRole("button", { name: "Record invoice decision" }).click();
+  await expect(f.getByRole("status")).toHaveText(/different owner or manager/);
   await page.goto(invoiceUrl);
   f = form(page, "Record invoice decision");
   await f.getByLabel("Change reason").fill("E2E separate review of services and tax");
@@ -128,7 +124,12 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
     book.getByRole("heading", { name: "Finance reports & exports", exact: true }),
   ).toBeVisible();
   await expect(book.getByRole("link", { name: "E2E-INV-001", exact: true })).toBeVisible();
-  await expect(book.getByRole("cell", { name: "91+ days", exact: true })).toBeVisible();
+  await expect(
+    book
+      .locator("tr")
+      .filter({ has: book.getByRole("link", { name: "E2E-INV-001", exact: true }) })
+      .getByRole("cell", { name: "91+ days", exact: true }),
+  ).toBeVisible();
   await book.goto("/finance");
   f = form(book, "Record finance entry");
   await f.getByLabel("Record direction").selectOption("EXPENSE");
@@ -153,7 +154,7 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
   const downloadPromise = book.waitForEvent("download");
   await book.getByRole("link", { name: "Download dealer payments CSV", exact: true }).click();
   const download = await downloadPromise;
-  await download.saveAs("test-results/phase4-dealer-payments.csv");
+
   const stream = await download.createReadStream();
   let csv = "";
   for await (const part of stream!) csv += part.toString();
@@ -163,7 +164,6 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
   await expect(
     page.getByRole("heading", { name: "Operational finance", exact: true }),
   ).toBeVisible();
-  await page.screenshot({ path: "test-results/phase4-finance-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await expect(
@@ -172,19 +172,18 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);
-  await page.screenshot({ path: "test-results/phase4-finance-mobile.png", fullPage: false });
   for (const path of ["/dealerships", dealerUrl, invoiceUrl, "/finance", "/finance/reports"]) {
     await employee.goto(path);
-    await expect(
-      employee.getByRole("heading", { name: "We couldn’t open this view.", exact: true }),
-    ).toBeVisible();
+    await expect(employee).toHaveURL(/\/login$/);
     await expect(employee.getByText("Private account notes", { exact: true })).toHaveCount(0);
   }
   const denied = await employee.request.get(
     "/api/finance/export?dataset=entries&start=2026-01-01&end=2026-10-10",
+    { maxRedirects: 0 },
   );
-  expect(denied.status()).toBe(403);
-  expect(denied.headers()["cache-control"]).toContain("no-store");
+  expect(denied.status()).toBe(307);
+  expect(denied.headers().location).toBe("/login");
+  expect(denied.headers()["content-disposition"]).toBeUndefined();
   await bookContext.close();
   await employeeContext.close();
 });

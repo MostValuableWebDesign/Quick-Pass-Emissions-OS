@@ -1,5 +1,7 @@
 # Phase 4 — Dealerships & finance
 
+Current access policy: this app is exclusively for owners and management (OWNER/ADMIN). Employees and legacy bookkeepers cannot sign in or use any workflow. Staff profiles remain business records for management; management records their progress and receives all alerts. See README's Management-only access section. Historical role descriptions below are superseded by this policy.
+
 Implemented locally on the complete Phases 1–3 source. No business accounts, rates, tax assumptions, opening balances or finance transactions are seeded. Read VERIFICATION.md for checks and publication/deployment status.
 
 ## Permissions and setup
@@ -44,3 +46,5 @@ Reports use entered effective dates and **current** approval/verification state;
 Migration 005 is additive; migrations 001–004 remain unchanged. Prisma/PostgreSQL tables represent dealerships, contacts, completed services, invoices, retained lines, signed receipts/reversals and finance entries. Exact BigInt intermediates, per-record 2,000,000,000-cent bounds, database check constraints, fresh server role checks, transaction locks and transactional audits protect supported workflows. Phase 4 acquires Phase 3's rental lock before its own lock; rental mutations use the shared reference helper. No reverse lock order is introduced. Trusted database operators can still alter records directly; cryptographic tamper-proof accounting is not claimed.
 
 Limits: USD only; whole service quantities; one configured percentage tax applied to the whole invoice subtotal with half-up rounding once; no discounts, credits, multiple tax jurisdictions, separate surcharges, foreign currency, customer portal, import automation, reconciliation feed, partial reversals, refunds or write-offs. Additional approved charges can be recorded as distinct completed service lines only when they accurately represent the business transaction. Opening A/R cannot be invented: enter documented historical services/invoices and receipts through the reviewed workflow or keep the authoritative opening balance in accounting. No data or external integration is inferred.
+
+Reissuing services from a voided invoice requires an issue date on or after every prior invoice’s void date. Draft creation and independent approval check immutable invoice-line history to prevent overlapping historical receivables.

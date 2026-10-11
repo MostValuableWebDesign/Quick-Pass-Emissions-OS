@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import type { Role } from "@prisma/client";
 import Overview from "../src/app/(app)/overview/page";
+import { browserSuite } from "../scripts/e2e-suites.mjs";
 import { assertCompleteReport } from "../scripts/e2e-safety.mjs";
 import {
   CertificateOrderLink,
@@ -31,10 +32,9 @@ vi.mock("@/modules/automation/service", () => ({
 
 describe("manual certificate portal navigation", () => {
   it("keeps the dedicated four-role browser suite and its completion gate aligned", () => {
-    const runner = readFileSync("scripts/browser-regression.ts", "utf8");
-    expect(runner).toMatch(/E2E_CERTIFICATES_ONLY === "1"\s*\? 4/);
-    const config = readFileSync("playwright.config.ts", "utf8");
-    expect(config).toMatch(/E2E_CERTIFICATES_ONLY === "1"\s*\? \["certificate-order\.spec\.ts"\]/);
+    expect(browserSuite({ E2E_CERTIFICATES_ONLY: "1" })).toEqual({
+      "certificate-order.spec.ts": 4,
+    });
     const report = { stats: { expected: 4, unexpected: 0, skipped: 0, flaky: 0 }, errors: [] };
     expect(() => assertCompleteReport(report, 4)).not.toThrow();
     expect(() => assertCompleteReport(report, 9)).toThrow();
@@ -75,7 +75,9 @@ describe("manual certificate portal navigation", () => {
     it(`retains inventory and management-alert boundaries for ${role}`, () => {
       const render = (alert: boolean) =>
         renderToStaticMarkup(createElement(CertificateOrderLink, { role, alert }));
-      expect(render(false).includes("Order Certificates")).toBe(role !== "EMPLOYEE");
+      expect(render(false).includes("Order Certificates")).toBe(
+        role === "OWNER" || role === "ADMIN",
+      );
       expect(render(true).includes("Order Certificates")).toBe(
         role === "OWNER" || role === "ADMIN",
       );

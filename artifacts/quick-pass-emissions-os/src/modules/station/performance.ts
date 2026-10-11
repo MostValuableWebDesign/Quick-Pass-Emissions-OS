@@ -1,3 +1,4 @@
+import { Temporal } from "@js-temporal/polyfill";
 import { businessDate, addDays } from "@/lib/time";
 import { type Tx } from "../phase2";
 import {
@@ -13,6 +14,13 @@ import { audit } from "../phase2";
 import { estimateTests, elapsedMinutes, operatingMinutes, type Hours } from "./projections";
 import { digest } from "./report";
 import { portalTotalSchema } from "./portal-service";
+import {
+  compareTrends,
+  employeePerformance,
+  previousRange,
+  testBreakdown,
+  trendPeriod,
+} from "./analytics";
 
 async function payEvidence(
   tx: Tx,
@@ -40,7 +48,7 @@ async function payEvidence(
       count: c.count,
       approved: !!c.approvedAt,
       policy: p,
-      commissionCents: p ? commissionCents(c.count, p.threshold, p.rateCents, p.eligible) : null,
+      commissionCents: p ? commissionCents(c.count, p.threshold, p.rateCents, p.eligible, p) : null,
       calculationPeriod: "Daily qualifying personal count. Not a weekly threshold.",
       sourceRef: c.sourceRef,
       version: c.version,
@@ -107,15 +115,15 @@ async function payEvidence(
           : []),
         ...(personal.some((c) => !c.approvedAt) ? ["Independent daily count approval"] : []),
         ...(!policyConfigured ? ["Effective commission eligibility/policy at period start"] : []),
-        ...(arrangement?.kind === "FIXED" && input?.minutes !== 0
-          ? ["Fixed compensation requires explicit zero minutes"]
+        ...(arrangement && arrangement.kind !== "HOURLY" && input?.minutes !== 0
+          ? ["Non-hourly compensation requires explicit zero minutes"]
           : []),
       ];
       const amounts = personal.map((c) => {
         const p = periodPolicies.find(
           (p) => p.employeeId === employee.id && p.effectiveDate <= c.date,
         );
-        return p ? commissionCents(c.count, p.threshold, p.rateCents, p.eligible) : null;
+        return p ? commissionCents(c.count, p.threshold, p.rateCents, p.eligible, p) : null;
       });
       if (amounts.some((n) => n === null))
         missing.push("Effective commission policy for every test date");
@@ -123,7 +131,13 @@ async function payEvidence(
         arrangement && !crosses ? arrangement : null,
         input?.approvedAt && input.emissionsComplete ? input.minutes : null,
         amounts,
+        {
+          paidDays: input?.paidDays,
+          periodDays: Temporal.PlainDate.from(period.startDate).until(period.endDate).days + 1,
+        },
       );
+      if (calculated.baseCents === null && !missing.length)
+        missing.push("Approved paid days or whole weekly period required for configured pay basis");
       const base = calculated.baseCents;
       const commission = calculated.commissionCents;
       const snapshot = period.drafts
@@ -210,24 +224,42 @@ export async function performance(actorId: string, input: unknown, now = new Dat
       ? pricedAll.filter((r) => r.employeeId === query.employeeId)
       : pricedAll;
     const estimated = pricedAll.filter((r) => r.estimatedCents !== null);
-    const days = [];
     const corrections = await correctionBoundaries(tx, hash);
-    for (let date = query.start; date <= query.end; date = addDays(date, 1)) {
-      const daily = all.filter((r) => r.source.businessDate === date);
-      days.push({
-        date,
-        attested:
-          daily.length > 0 &&
-          coverage.some(
-            (r) =>
-              r.startDate <= date &&
-              r.endDate >= date &&
-              coverageAfterCorrections(r.reviewedAt, date, corrections) &&
-              daily.every((v) => v.state === "CONFIRMED" && v.source.observedAt <= r.reviewedAt!),
-          ),
-        pending: daily.filter((r) => r.state !== "CONFIRMED").length,
-      });
-    }
+    const rangeCoverage = (records: typeof all, start: string, end: string) => {
+      const result = [];
+      for (let date = start; date <= end; date = addDays(date, 1)) {
+        const daily = records.filter((r) => r.source.businessDate === date);
+        result.push({
+          date,
+          attested:
+            daily.length > 0 &&
+            coverage.some(
+              (r) =>
+                r.startDate <= date &&
+                r.endDate >= date &&
+                coverageAfterCorrections(r.reviewedAt, date, corrections) &&
+                daily.every((v) => v.state === "CONFIRMED" && v.source.observedAt <= r.reviewedAt!),
+            ),
+          pending: daily.filter((r) => r.state !== "CONFIRMED").length,
+        });
+      }
+      return result;
+    };
+    const days = rangeCoverage(all, query.start, query.end);
+    const priorRange = previousRange(query.start, query.end);
+    const priorRecords = priorRange
+      ? await currentRecords(tx, hash, priorRange.start, priorRange.end)
+      : [];
+    const trendInputs = { settings, closures: closures.map((c) => c.date), now };
+    const trends = trendPeriod({ ...trendInputs, ...query, records: all, coverage: days });
+    const priorTrends = priorRange
+      ? trendPeriod({
+          ...trendInputs,
+          ...priorRange,
+          records: priorRecords,
+          coverage: rangeCoverage(priorRecords, priorRange.start, priorRange.end),
+        })
+      : null;
     const latestSettings = settings.find((s) => s.effectiveDate <= businessDate(now));
     const observations = [];
     if (latestSettings) {
@@ -358,6 +390,11 @@ export async function performance(actorId: string, input: unknown, now = new Dat
       stationRecorded: all.filter((r) => r.state === "CONFIRMED").length,
       stationPending: all.filter((r) => r.state !== "CONFIRMED").length,
       groups: [...groups.values()],
+      breakdown: testBreakdown(all),
+      trends,
+      priorTrends,
+      comparison: compareTrends(trends, priorTrends),
+      employeePerformance: employeePerformance({ ...query, records: priced, pay }),
       estimatedRevenueCents: estimated.length
         ? sumCents(estimated.map((r) => r.estimatedCents!))
         : null,

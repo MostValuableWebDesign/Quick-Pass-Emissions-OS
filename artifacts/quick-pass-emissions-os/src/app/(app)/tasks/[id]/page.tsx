@@ -15,7 +15,7 @@ export default async function Detail({ params }: { params: Promise<{ id: string 
       events: { orderBy: { createdAt: "desc" } },
     },
   });
-  if (!task || !canAccessTask(actor.role, actor.employee?.id, task.employeeId)) notFound();
+  if (!task || !canAccessTask(actor.role)) notFound();
   const management = isManager(actor.role);
   const employees = management
     ? await db.employee.findMany({
@@ -46,10 +46,7 @@ export default async function Detail({ params }: { params: Promise<{ id: string 
                 <input type="hidden" name="version" value={task.version} />
                 <Field label="New status">
                   <select name="status" defaultValue="COMPLETED">
-                    {(management
-                      ? ["PENDING", "IN_PROGRESS", "COMPLETED", "BLOCKED", "CANCELLED"]
-                      : ["IN_PROGRESS", "COMPLETED", "BLOCKED"]
-                    ).map((s) => (
+                    {["PENDING", "IN_PROGRESS", "COMPLETED", "BLOCKED", "CANCELLED"].map((s) => (
                       <option key={s} value={s}>
                         {s.replaceAll("_", " ")}
                       </option>

@@ -102,11 +102,33 @@ suite("Isolated authenticated password changes", () => {
     await db.$disconnect();
   });
 
-  it.each(["OWNER", "ADMIN", "EMPLOYEE", "BOOKKEEPER"] as const)(
+  it.each(["EMPLOYEE", "BOOKKEEPER"] as const)(
+    "denies legacy %s credentials and demoted sessions",
+    async (role) => {
+      const user = await fixture(role);
+      expect((await login(user.email)).ok).toBe(false);
+      expect(await db.session.count({ where: { userId: user.id } })).toBe(0);
+      await db.user.update({ where: { id: user.id }, data: { role: "ADMIN" } });
+      const cookie = cookies(await login(user.email));
+      expect(await session(cookie)).toBe(user.id);
+      await db.user.update({ where: { id: user.id }, data: { role } });
+      expect(await session(cookie)).toBeNull();
+      expect(
+        (await call("change-password", { currentPassword: oldPassword, newPassword }, cookie))
+          .status,
+      ).toBe(403);
+      const credential = await db.account.findFirstOrThrow({ where: { userId: user.id } });
+      expect(await verifyPassword({ hash: credential.password!, password: oldPassword })).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each(["OWNER", "ADMIN"] as const)(
     "%s changes only their own password, rotates sessions and records a safe audit",
     async (role) => {
       const user = await fixture(role);
-      const other = await fixture("EMPLOYEE");
+      const other = await fixture("ADMIN");
       const first = await login(user.email);
       const second = await login(user.email);
       expect(first.ok && second.ok).toBe(true);
@@ -148,7 +170,7 @@ suite("Isolated authenticated password changes", () => {
   );
 
   it("rejects unauthenticated, cross-site and missing-origin submissions", async () => {
-    const user = await fixture("EMPLOYEE");
+    const user = await fixture("ADMIN");
     const cookie = cookies(await login(user.email));
     expect((await form("")).headers.get("location")).toBe("/login");
     for (const requestOrigin of ["https://attacker.example.test", null]) {
@@ -222,7 +244,7 @@ suite("Isolated authenticated password changes", () => {
   });
 
   it("direct supported endpoint cannot target someone else or disable session revocation", async () => {
-    const user = await fixture("BOOKKEEPER");
+    const user = await fixture("ADMIN");
     const other = await fixture("OWNER");
     const first = cookies(await login(user.email)),
       second = cookies(await login(user.email));
@@ -250,7 +272,7 @@ suite("Isolated authenticated password changes", () => {
   });
 
   it("throttles repeated failed current-password attempts", async () => {
-    const user = await fixture("EMPLOYEE");
+    const user = await fixture("ADMIN");
     const cookie = cookies(await login(user.email));
     for (let attempt = 0; attempt < 5; attempt++) {
       expect((await form(cookie, { currentPassword: wrongPassword })).headers.get("location")).toBe(

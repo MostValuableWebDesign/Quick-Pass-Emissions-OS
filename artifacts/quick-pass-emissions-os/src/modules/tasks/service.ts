@@ -14,10 +14,11 @@ export async function changeTask(actor: TaskActor, input: z.infer<typeof taskCha
   const data = taskChange.parse(input);
   return db.$transaction(
     async (tx) => {
+      const current = await tx.user.findUnique({ where: { id: actor.id } });
+      if (!current?.active || !isManager(current.role)) throw new Error("Task access denied.");
       const task = await tx.taskInstance.findUniqueOrThrow({ where: { id: data.taskId } });
-      if (!canAccessTask(actor.role, actor.employee?.id, task.employeeId))
-        throw new Error("Task access denied.");
-      if (!canTransition(task.status, data.status, isManager(actor.role)))
+      if (!canAccessTask(current.role)) throw new Error("Task access denied.");
+      if (!canTransition(task.status, data.status, isManager(current.role)))
         throw new Error("This status change is not allowed.");
       if (
         (data.status === "BLOCKED" ||
@@ -41,7 +42,7 @@ export async function changeTask(actor: TaskActor, input: z.infer<typeof taskCha
         data: {
           taskId: task.id,
           actorId: actor.id,
-          actorName: actor.name,
+          actorName: current.name,
           action: data.status,
           note: data.note,
         },

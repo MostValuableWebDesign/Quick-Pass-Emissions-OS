@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useId, isValidElement, cloneElement } from "react";
+import { useActionState } from "react";
 import type { ActionState } from "@/app/actions";
 import { Button } from "./ui/button";
 export function ActionForm({
@@ -45,13 +45,12 @@ export function Field({
   children?: React.ReactNode;
   wide?: boolean;
 }) {
-  const fieldId = useId();
   return (
     <div className={wide ? "field wide" : "field"}>
-      <label htmlFor={fieldId}>{label}</label>
-      {isValidElement<{ id?: string }>(children)
-        ? cloneElement(children, { id: fieldId })
-        : children}
+      <label>
+        <span>{label}</span>
+        {children}
+      </label>
     </div>
   );
 }

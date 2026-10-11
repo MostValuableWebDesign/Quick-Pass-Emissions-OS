@@ -64,9 +64,7 @@ export async function runJobs(now = new Date()) {
           where: { active: true, role: { in: ["OWNER", "ADMIN"] } },
         });
         for (const task of late) {
-          const users = new Set([task.employee.userId]);
-          if (now.getTime() >= task.dueAt.getTime() + task.escalationHours * 3600000)
-            managers.forEach((u) => users.add(u.id));
+          const users = new Set(managers.map((u) => u.id));
           for (const userId of users)
             await tx.notification.upsert({
               where: { key: `overdue:${task.id}:${userId}` },

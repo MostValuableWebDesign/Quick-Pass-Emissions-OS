@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 // Native implicit association needs no generated IDs across server/client boundaries.
-// Keep this limited to Phase 5; legacy form-label work is a separate task.
+// The shared legacy Field uses the same association for operational forms.
 export function Phase5Field({
   label,
   children,

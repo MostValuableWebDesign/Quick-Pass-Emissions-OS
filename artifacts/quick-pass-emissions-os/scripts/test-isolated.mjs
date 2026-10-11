@@ -1,8 +1,11 @@
 import { PrismaClient } from "@prisma/client";
-import { randomUUID } from "node:crypto";
-import { spawn } from "node:child_process";
+import { randomUUID, randomBytes } from "node:crypto";
+import { spawn, spawnSync } from "node:child_process";
+import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isolatedDatabaseEnvironment } from "./e2e-safety.mjs";
 
 const app = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const original = process.env.DATABASE_URL;
@@ -11,6 +14,9 @@ let testUrl = "";
 let created = false;
 let admin;
 let child;
+let isolatedEnv;
+let upgradeDir;
+let fixture;
 let interrupted = false;
 for (const signal of ["SIGINT", "SIGTERM"]) {
   process.on(signal, () => {
@@ -44,23 +50,172 @@ try {
     throw new Error("Use test:isolated with optional --browser.");
   }
   const browser = args.includes("--browser");
-  if (process.env.NODE_ENV === "production" || !process.env.REPLIT_DEV_DOMAIN || !original) {
+  if (
+    process.env.NODE_ENV === "production" ||
+    (!process.env.REPLIT_DEV_DOMAIN && process.env.E2E_DIRECT !== "1") ||
+    !original
+  ) {
     throw new Error("Isolated verification is restricted to this development workspace.");
   }
   const url = new URL(original);
   url.pathname = `/${name}`;
   testUrl = url.toString();
+  isolatedEnv = {
+    ...isolatedDatabaseEnvironment(process.env, testUrl),
+    BETTER_AUTH_SECRET: randomBytes(32).toString("hex"),
+  };
   admin = new PrismaClient({ datasources: { db: { url: original } } });
   // The identifier is generated here, never accepted from user input.
   await admin.$executeRawUnsafe(`CREATE DATABASE "${name}"`);
   created = true;
   console.log("Created a separate temporary test database. Business data is not used.");
+  if (!browser) {
+    // Apply the unchanged Phase 4 baseline first, retain genuine-shaped sentinel snapshots,
+    // then upgrade with the additive Phase 5 migration. Never move/remove workspace migrations.
+    upgradeDir = await fs.mkdtemp(path.join(os.tmpdir(), "quick-pass-upgrade-"));
+    await fs.copyFile(
+      path.join(app, "prisma/schema.prisma"),
+      path.join(upgradeDir, "schema.prisma"),
+    );
+    await fs.mkdir(path.join(upgradeDir, "migrations"));
+    for (const entry of await fs.readdir(path.join(app, "prisma/migrations"))) {
+      if (/^\d{12}_.+$/.test(entry) && entry >= "202610100006_") continue;
+      await fs.cp(
+        path.join(app, "prisma/migrations", entry),
+        path.join(upgradeDir, "migrations", entry),
+        { recursive: true },
+      );
+    }
+    const baseline = spawnSync(
+      "pnpm",
+      ["exec", "prisma", "migrate", "deploy", "--schema", path.join(upgradeDir, "schema.prisma")],
+      {
+        cwd: app,
+        encoding: "utf8",
+        env: isolatedEnv,
+        maxBuffer: 2000000,
+      },
+    );
+    if (baseline.status !== 0) throw new Error("Isolated baseline migration failed.");
+    fixture = new PrismaClient({ datasources: { db: { url: testUrl } } });
+    const user = await fixture.user.create({
+      data: {
+        name: "Migration sentinel owner",
+        email: "migration-sentinel@example.test",
+        role: "OWNER",
+      },
+    });
+    const employee = await fixture.employee.create({ data: { userId: user.id } });
+    const period = await fixture.payrollPeriod.create({
+      data: {
+        startDate: "2026-01-01",
+        endDate: "2026-01-07",
+        label: "Migration sentinel",
+        createdBy: user.id,
+      },
+    });
+    const payroll = await fixture.payrollDraft.create({
+      data: {
+        periodId: period.id,
+        revision: 1,
+        status: "APPROVED",
+        preparedBy: user.id,
+        totalCents: 1234,
+        reviewedBy: "independent-sentinel",
+        reviewedAt: new Date("2026-01-08T12:00Z"),
+        lines: {
+          create: {
+            employeeId: employee.id,
+            employeeName: "Migration sentinel",
+            baseCents: 1234,
+            commissionCents: 0,
+            totalCents: 1234,
+            snapshot: { sentinel: "approved payroll evidence" },
+          },
+        },
+      },
+    });
+    const dealership = await fixture.dealership.create({
+      data: { code: "SENTINEL", name: "Migration sentinel", billingAddress: "Fixture only" },
+    });
+    const invoice = await fixture.dealerInvoice.create({
+      data: {
+        number: "SENTINEL",
+        dealershipId: dealership.id,
+        issueDate: "2026-01-01",
+        dueDate: "2026-01-31",
+        state: "APPROVED",
+        subtotalCents: 1000,
+        taxBps: 0,
+        taxCents: 0,
+        totalCents: 1000,
+        snapshot: { sentinel: "immutable approved invoice" },
+        notes: "Fixture only",
+        createdBy: user.id,
+        approvedBy: "independent-sentinel",
+        approvedAt: new Date("2026-01-02T12:00Z"),
+      },
+    });
+    const payment = await fixture.dealerPayment.create({
+      data: {
+        invoiceId: invoice.id,
+        date: "2026-01-03",
+        amountCents: 1000,
+        reference: "sentinel-receipt",
+        evidence: "Fixture only",
+        createdBy: user.id,
+      },
+    });
+    await fixture.dealerPayment.create({
+      data: {
+        invoiceId: invoice.id,
+        date: "2026-01-04",
+        amountCents: -1000,
+        reference: "sentinel-reversal",
+        evidence: "Fixture only",
+        createdBy: user.id,
+        reversesId: payment.id,
+      },
+    });
+    const before = JSON.stringify({
+      payroll: await fixture.payrollDraft.findUnique({
+        where: { id: payroll.id },
+        include: { lines: true },
+      }),
+      invoice: await fixture.dealerInvoice.findUnique({
+        where: { id: invoice.id },
+        include: { payments: { orderBy: { reference: "asc" } } },
+      }),
+      employee: employee.id,
+    });
+    const upgrade = spawnSync("npm", ["run", "db:migrate"], {
+      cwd: app,
+      encoding: "utf8",
+      env: isolatedEnv,
+      maxBuffer: 2000000,
+    });
+    if (upgrade.status !== 0) throw new Error("Isolated Phase 5 upgrade failed.");
+    const after = JSON.stringify({
+      payroll: await fixture.payrollDraft.findUnique({
+        where: { id: payroll.id },
+        include: { lines: true },
+      }),
+      invoice: await fixture.dealerInvoice.findUnique({
+        where: { id: invoice.id },
+        include: { payments: { orderBy: { reference: "asc" } } },
+      }),
+      employee: employee.id,
+    });
+    if (before !== after) throw new Error("Upgrade changed a sentinel snapshot.");
+    console.log(
+      "Phase 4 → Phase 5 + storage + station history + business import upgrade retained approved payroll, approved invoice and signed reversal sentinel snapshots.",
+    );
+    await fixture.$disconnect();
+  }
   for (const script of ["db:migrate", browser ? "test:e2e:owned" : "test"]) {
     if (interrupted) throw new Error("Isolated verification interrupted.");
     const result = await run(script, {
-        ...process.env,
-        DATABASE_URL: testUrl,
-        TEST_DATABASE_URL: testUrl,
+        ...isolatedEnv,
         // This generated, disposable database receives its own identity during migration.
         // Never inherit the business database's pin into an empty owned test database.
         EXPECTED_DATABASE_ID: "",
@@ -74,6 +229,8 @@ try {
   console.error(redact(error.message));
   process.exitCode = 1;
 } finally {
+  await fixture?.$disconnect();
+  if (upgradeDir) await fs.rm(upgradeDir, { recursive: true, force: true });
   if (created && admin) {
     try {
       await admin.$queryRaw`SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = ${name} AND pid <> pg_backend_pid()`;

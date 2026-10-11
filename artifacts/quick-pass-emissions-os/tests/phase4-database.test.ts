@@ -33,7 +33,7 @@ if (enabled) {
       ).id;
     owner = await user("OWNER");
     manager = await user("ADMIN");
-    book = await user("BOOKKEEPER");
+    book = await user("ADMIN");
     employee = await user("EMPLOYEE");
   });
   async function dealer(configure = true) {
@@ -94,6 +94,36 @@ if (enabled) {
     await f.reviewInvoice(owner, decision(i.id));
     return db.dealerInvoice.findUniqueOrThrow({ where: { id: i.id } });
   }
+  it("rejects overlapping backdated invoice reissues and preserves historical receivables", async () => {
+    const old = await approved();
+    const line = await db.dealerInvoiceLine.findFirstOrThrow({ where: { invoiceId: old.id } });
+    await f.reviewInvoice(owner, decision(old.id, old.version, "VOID"));
+    const input = {
+      dealershipId: old.dealershipId,
+      number: "REISSUE",
+      issueDate: addDays(today, -1),
+      serviceIds: [line.serviceId],
+      notes: "Correction",
+    };
+    const before = await db.auditLog.count();
+    await expect(f.createInvoice(book, input)).rejects.toThrow("void date");
+    expect(await db.auditLog.count()).toBe(before);
+    expect(await db.dealerInvoice.count()).toBe(1);
+    expect(
+      (await db.dealerService.findUniqueOrThrow({ where: { id: line.serviceId } })).invoiceId,
+    ).toBeNull();
+    const replacement = await f.createInvoice(book, { ...input, issueDate: today });
+    await f.reviewInvoice(owner, decision(replacement.id));
+    const { receivable } = await import("../src/modules/finance/rules");
+    const invoices = await db.dealerInvoice.findMany({ include: { payments: true } });
+    for (const date of [past, addDays(today, -1), today]) {
+      const outstanding = invoices.reduce(
+        (sum, i) => sum + receivable(i, i.payments, date).remainingCents,
+        0,
+      );
+      expect(outstanding).toBe(old.totalCents);
+    }
+  });
   const payment = (
     invoiceId: string,
     amountCents = 4000,
@@ -242,7 +272,7 @@ if (enabled) {
   });
   it("separates invoice preparation/approval and versions review/delivery", async () => {
     const i = await draft();
-    await expect(f.reviewInvoice(book, decision(i.id))).rejects.toThrow("permission");
+    await expect(f.reviewInvoice(book, decision(i.id))).rejects.toThrow("different");
     await db.dealerInvoice.update({ where: { id: i.id }, data: { createdBy: owner } });
     await expect(f.reviewInvoice(owner, decision(i.id))).rejects.toThrow("different");
     await f.reviewInvoice(manager, decision(i.id));
@@ -262,7 +292,12 @@ if (enabled) {
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
     const p = await db.dealerPayment.findFirstOrThrow();
     await expect(
-      f.reverseDealerPayment(book, { id: p.id, date: today, reference: "reverse", evidence: why }),
+      f.reverseDealerPayment(employee, {
+        id: p.id,
+        date: today,
+        reference: "reverse",
+        evidence: why,
+      }),
     ).rejects.toThrow("permission");
     await f.reverseDealerPayment(owner, {
       id: p.id,
@@ -384,7 +419,7 @@ if (enabled) {
     const e = await f.recordEntry(book, entry());
     await expect(
       f.reviewEntry(book, { id: e.id, version: 0, decision: "VERIFY", reason: why }),
-    ).rejects.toThrow("permission");
+    ).rejects.toThrow("different");
     await f.reviewEntry(owner, { id: e.id, version: 0, decision: "VERIFY", reason: why });
     await expect(
       f.reviewEntry(manager, { id: e.id, version: 0, decision: "VOID", reason: why }),
@@ -442,7 +477,7 @@ if (enabled) {
   it("retains voided service history and allows a separately referenced replacement", async () => {
     const d = await dealer(),
       s = await service(d.id);
-    await expect(f.voidService(book, { id: s.id, reason: why })).rejects.toThrow("permission");
+    await expect(f.voidService(employee, { id: s.id, reason: why })).rejects.toThrow("permission");
     await f.voidService(owner, { id: s.id, reason: why });
     await expect(
       f.createInvoice(book, {

@@ -47,7 +47,7 @@ if (enabled) {
       ).id;
     owner = await user("OWNER");
     manager = await user("ADMIN");
-    book = await user("BOOKKEEPER");
+    book = await user("ADMIN");
     employee = await user("EMPLOYEE");
     peer = await user("EMPLOYEE");
     empId = (await db.employee.create({ data: { userId: employee, certificationExpires: past } }))
@@ -67,7 +67,7 @@ if (enabled) {
   }
   async function policy(
     kind = "MAINTENANCE",
-    recipients = [manager, employee],
+    recipients = [manager, book],
     advanceDays = 2,
     escalationDays = 3,
   ) {
@@ -98,6 +98,77 @@ if (enabled) {
       },
     });
   }
+  it("generates a complete summary with extreme valid certificate and chemical forecasts", async () => {
+    await cert.saveCertificateSettings(owner, {
+      minimumOrder: 300,
+      reorderPoint: 0,
+      leadDays: 0,
+      windowDays: 7,
+      reason: "Verified",
+    });
+    await cert.reconcileStock(owner, {
+      observed: 2000000000,
+      version: 0,
+      date: past,
+      reference: "extreme-opening",
+      reason: "Verified",
+    });
+    await cert.recordUsage(owner, {
+      kind: "USAGE",
+      quantity: 1,
+      date: today,
+      reference: "extreme-usage",
+      reason: "Verified",
+    });
+    const item = await chemicals.saveChemical(owner, {
+      id: "",
+      version: 0,
+      name: "Large balance",
+      unit: "ML",
+      reorderPoint: 0,
+      vendorId: "",
+      active: true,
+      reason: "Verified",
+    });
+    await chemicals.moveChemical(owner, {
+      id: item.id,
+      version: 0,
+      kind: "RECONCILE",
+      quantity: 2000000000,
+      date: past,
+      reference: "chemical-opening",
+      reason: "Verified",
+    });
+    await chemicals.moveChemical(owner, {
+      id: item.id,
+      version: 1,
+      kind: "USAGE",
+      quantity: 1,
+      date: today,
+      reference: "chemical-usage",
+      reason: "Verified",
+    });
+    for (const key of ["certificates", item.id])
+      await s.saveForecastPolicy(owner, {
+        key,
+        windowDays: 7,
+        minimumDays: 1,
+        leadDays: 0,
+        threshold: 0,
+        revision: 0,
+      });
+    expect((await cert.certificateOverview(owner)).estimate?.depletionDate).toBeNull();
+    expect(
+      (await s.ownerOverview(owner)).inventory.every(
+        (i) => i.state === "ESTIMATE" && i.depletionDate === null,
+      ),
+    ).toBe(true);
+    await schedule();
+    const result = await jobs.runAutomation(now);
+    expect(result.failed).toBe(0);
+    expect(await db.savedSummary.count()).toBe(1);
+    expect(await db.automationDelivery.count({ where: { summaryId: { not: null } } })).toBe(1);
+  });
   it("rejects all protected consolidated reads/config for nonowners and deactivated owners", async () => {
     for (const id of [manager, book, employee]) {
       await expect(s.ownerOverview(id)).rejects.toThrow("permission");
@@ -120,10 +191,15 @@ if (enabled) {
   });
   it("produces one immutable summary and owner-only delivery under simultaneous repeated triggers", async () => {
     const scheduleRow = await schedule();
+    await db.chemicalItem.create({
+      data: { name: "Unconfigured supply", unit: null, reorderPoint: null },
+    });
     await Promise.all([jobs.runAutomation(now), jobs.runAutomation(now), jobs.runAutomation(now)]);
     expect(await db.savedSummary.count()).toBe(1);
     expect(await db.automationDelivery.count({ where: { summaryId: { not: null } } })).toBe(1);
     const summary = await db.savedSummary.findFirstOrThrow();
+    const { parseSnapshot } = await import("../src/components/phase5-snapshot");
+    expect(parseSnapshot(summary.payload).success).toBe(true);
     expect(summary.scheduleId).toBe(scheduleRow.id);
     expect(JSON.stringify(summary.payload)).toContain("Historical snapshot");
     const before = JSON.stringify(summary.payload);
@@ -246,21 +322,21 @@ if (enabled) {
     const t = await ticket();
     await policy();
     await jobs.runAutomation(now);
-    const own = await s.remindersForUser(employee);
+    const own = await s.remindersForUser(manager);
     expect(own).toHaveLength(1);
-    expect(await s.remindersForUser(peer)).toHaveLength(0);
-    await s.acknowledgeReminder(employee, { id: own[0].id });
+    await expect(s.remindersForUser(peer)).rejects.toThrow("permission");
+    await s.acknowledgeReminder(manager, { id: own[0].id });
     expect((await db.maintenanceTicket.findUniqueOrThrow({ where: { id: t.id } })).status).toBe(
       "OPEN",
     );
-    expect((await s.remindersForUser(employee))[0].acknowledgedAt).not.toBeNull();
+    expect((await s.remindersForUser(manager))[0].acknowledgedAt).not.toBeNull();
     await jobs.runAutomation(now);
     expect(await db.actionReminder.count({ where: { kind: "MAINTENANCE" } })).toBe(3);
-    await expect(s.acknowledgeReminder(peer, { id: own[0].id })).rejects.toThrow("not yours");
+    await expect(s.acknowledgeReminder(peer, { id: own[0].id })).rejects.toThrow("permission");
     await db.maintenanceTicket.update({ where: { id: t.id }, data: { assignedId: peerId } });
-    expect(await s.remindersForUser(employee)).toHaveLength(0);
+    expect(await s.remindersForUser(manager)).toHaveLength(0);
     await jobs.runAutomation(new Date(now.getTime() + 900000));
-    expect(await s.remindersForUser(peer)).toHaveLength(0); // Not configured recipient.
+    await expect(s.remindersForUser(peer)).rejects.toThrow("permission"); // Not configured recipient.
     expect(
       (await db.actionReminder.findUniqueOrThrow({ where: { id: own[0].id } })).resolution,
     ).toBe("SUPERSEDED");
@@ -280,16 +356,16 @@ if (enabled) {
     });
     const p = await policy();
     await jobs.runAutomation(now);
-    expect((await s.remindersForUser(employee))[0].stage).toBe("ADVANCE");
+    expect((await s.remindersForUser(book))[0].stage).toBe("ADVANCE");
     await db.maintenanceTicket.update({
       where: { id: t.id },
       data: { targetDate: past, dueAt: dueInstant(past, "17:00") },
     });
-    expect(await s.remindersForUser(employee)).toHaveLength(0);
+    expect(await s.remindersForUser(book)).toHaveLength(0);
     await jobs.runAutomation(new Date(now.getTime() + 900000));
-    expect((await s.remindersForUser(employee))[0].stage).toBe("ESCALATED");
-    await db.user.update({ where: { id: employee }, data: { active: false } });
-    await expect(s.remindersForUser(employee)).rejects.toThrow("permission");
+    expect((await s.remindersForUser(book))[0].stage).toBe("ESCALATED");
+    await db.user.update({ where: { id: book }, data: { active: false } });
+    await expect(s.remindersForUser(book)).rejects.toThrow("permission");
     await s.saveReminderPolicy(owner, {
       kind: p.kind,
       advanceDays: 2,
@@ -301,34 +377,33 @@ if (enabled) {
     });
     expect(await s.remindersForUser(manager)).toHaveLength(0);
   });
-  it("delivers certification only to configured own employee or manager, never bookkeeper or peers", async () => {
-    await policy("CERTIFICATION", [employee, manager]);
+  it("delivers staff certification alerts only to management", async () => {
+    await policy("CERTIFICATION", [manager]);
     await jobs.runAutomation(now);
-    const own = await s.remindersForUser(employee);
-    expect(own).toHaveLength(1);
-    expect(own[0].sourceId).toBe(empId);
-    expect(own[0].href).toBe("/reminders/certification");
-    expect(await s.remindersForUser(peer)).toHaveLength(0);
-    await expect(
-      s.saveReminderPolicy(owner, {
-        kind: "CERTIFICATION",
-        advanceDays: 2,
-        escalationDays: 3,
-        recipients: [book],
-        escalationRecipients: [owner],
-        active: true,
-        revision: 1,
-      }),
-    ).rejects.toThrow("permission");
+    const alerts = await s.remindersForUser(manager);
+    expect(alerts).toHaveLength(2);
+    expect(alerts.find((r) => r.sourceId === empId)?.href).toBe(`/employees/${empId}`);
+    for (const actor of [employee, peer]) {
+      await expect(s.remindersForUser(actor)).rejects.toThrow("permission");
+      await expect(
+        s.saveReminderPolicy(owner, {
+          kind: "CERTIFICATION",
+          advanceDays: 2,
+          escalationDays: 3,
+          recipients: [actor],
+          escalationRecipients: [owner],
+          active: true,
+          revision: 1,
+        }),
+      ).rejects.toThrow("permission");
+    }
     await db.employee.update({
       where: { id: empId },
       data: { certificationExpires: addDays(today, 30) },
     });
-    expect(await s.remindersForUser(employee)).toHaveLength(0);
+    expect(await s.remindersForUser(manager)).toHaveLength(1);
     await jobs.runAutomation(new Date(now.getTime() + 900000));
-    expect(await db.actionReminder.count({ where: { userId: employee, resolvedAt: null } })).toBe(
-      0,
-    );
+    expect(await db.actionReminder.count({ where: { userId: { in: [employee, peer] } } })).toBe(0);
   });
   async function invoice() {
     const dealer = await finance.saveDealer(book, {
@@ -380,7 +455,7 @@ if (enabled) {
     const i = await invoice();
     await policy("DEALER", [book]);
     await jobs.runAutomation(now);
-    expect(await s.remindersForUser(employee)).toHaveLength(0);
+    await expect(s.remindersForUser(employee)).rejects.toThrow("permission");
     const first = (await s.remindersForUser(book))[0];
     expect(first).toBeTruthy();
     await s.acknowledgeReminder(book, { id: first.id });
@@ -548,7 +623,7 @@ if (enabled) {
     expect(exported.trim().split("\r\n")).toHaveLength(126);
     expect(exported).toContain("'=FORMULA");
     await expect(reports.exportOperational(employee, raw)).rejects.toThrow("permission");
-    await expect(reports.getOperationalReport(book, raw)).rejects.toThrow("permission");
+    expect((await reports.getOperationalReport(book, raw)).rows).toHaveLength(125);
     await db.user.update({ where: { id: owner }, data: { active: false } });
     await expect(reports.exportOperational(owner, raw)).rejects.toThrow("permission");
   });
@@ -658,13 +733,13 @@ if (enabled) {
     await jobs.runAutomation(now);
     const alert = (await s.remindersForUser(book))[0];
     await db.user.update({ where: { id: book }, data: { role: "EMPLOYEE" } });
-    expect(await s.remindersForUser(book)).toHaveLength(0);
-    await expect(s.acknowledgeReminder(book, { id: alert.id })).rejects.toThrow("not yours");
+    await expect(s.remindersForUser(book)).rejects.toThrow("permission");
+    await expect(s.acknowledgeReminder(book, { id: alert.id })).rejects.toThrow("permission");
     await jobs.runAutomation(new Date(now.getTime() + 900000));
     expect(
       (await db.automationDelivery.findFirstOrThrow({ where: { reminderId: alert.id } })).status,
     ).toBe("REVOKED");
-    await db.user.update({ where: { id: book }, data: { role: "BOOKKEEPER" } });
+    await db.user.update({ where: { id: book }, data: { role: "ADMIN" } });
     await finance.recordDealerPayment(book, {
       invoiceId: i.id,
       date: today,

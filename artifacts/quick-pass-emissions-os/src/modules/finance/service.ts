@@ -276,6 +276,7 @@ export async function createInvoice(actorId: string, input: unknown) {
           code: dealer.code,
           name: dealer.name,
           billingAddress: dealer.billingAddress,
+          phone: dealer.phone,
           contacts: dealer.contacts.map((c) => ({
             name: c.name,
             email: c.email,

@@ -712,6 +712,29 @@ main#main {
   align-self: start;
   width: 100%;
 }
+.dealership-add-card {
+  padding: 16px 20px;
+}
+.dealership-add-toggle {
+  justify-content: space-between;
+  width: min(100%, 230px);
+  min-height: 42px;
+  list-style: none;
+}
+.dealership-add-toggle::-webkit-details-marker {
+  display: none;
+}
+.dealership-add-toggle::after {
+  content: "+";
+  font-size: 18px;
+  line-height: 1;
+}
+.dealership-add-card[open] > .dealership-add-toggle::after {
+  content: "−";
+}
+.dealership-add-card > .card-body {
+  padding: 22px 3px 3px;
+}
 .card-heading {
   display: flex;
   align-items: center;

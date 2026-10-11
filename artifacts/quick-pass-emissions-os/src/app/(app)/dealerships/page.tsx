@@ -19,18 +19,22 @@ export default async function Dealers({ searchParams }: { searchParams: Promise<
         description="Billing accounts, contact records, completed services, and owner-authorized terms."
       />
       <DemoNotice demo={data.demo} />
-      <section className="card card-body">
-        <h2>Add dealership</h2>
-        <ActionForm action={saveDealer} submit="Add dealership">
-          <RecordId />
-          <TextField name="name" label="Dealership name" />
-          <Field label="Phone">
-            <input name="phone" type="tel" maxLength={50} />
-          </Field>
-          <TextField name="billingAddress" label="Billing address" area />
-          <TextField name="notes" label="Private account notes" required={false} area />
-        </ActionForm>
-      </section>
+      <details className="card dealership-add-card">
+        <summary className="button button-primary dealership-add-toggle">
+          <span>Add dealership</span>
+        </summary>
+        <div className="card-body">
+          <ActionForm action={saveDealer} submit="Add dealership">
+            <RecordId />
+            <TextField name="name" label="Dealership name" />
+            <Field label="Phone">
+              <input name="phone" type="tel" maxLength={50} />
+            </Field>
+            <TextField name="billingAddress" label="Billing address" area />
+            <TextField name="notes" label="Private account notes" required={false} area />
+          </ActionForm>
+        </div>
+      </details>
       <section className="card space-top">
         <div className="card-heading">
           <h2>{scope === "active" ? "Active dealership partners" : "Dealership directory"} · up to 100 matches</h2>

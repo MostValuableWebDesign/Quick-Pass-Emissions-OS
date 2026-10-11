@@ -278,7 +278,11 @@ if (enabled) {
     const failed = await db.automationJob.findFirstOrThrow({ where: { status: "FAILED" } });
     await db.summarySchedule.update({ where: { id: row.id }, data: { createdBy: owner } });
     await s.retryAutomationJob(owner, { id: failed.id });
-    await jobs.runAutomation(clock);
+    // Claim the retried job directly: advancing backoff past Eastern midnight
+    // must not enqueue an unrelated next-day summary into this retry assertion.
+    const retried = await jobs.claimAutomation(clock);
+    expect(retried?.id).toBe(failed.id);
+    await jobs.processAutomation(retried!, clock);
     expect(await db.savedSummary.count()).toBe(1);
     expect(await db.auditLog.count({ where: { action: "AUTOMATION_RETRY_AUTHORIZED" } })).toBe(1);
   });

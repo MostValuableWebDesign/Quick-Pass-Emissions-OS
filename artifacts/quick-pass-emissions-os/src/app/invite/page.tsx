@@ -15,7 +15,7 @@ export default function Invite() {
   return (
     <main className="invite-page">
       <section className="card card-body">
-        <p className="eyebrow">QUICK PASS BUSINESS OS</p>
+        <p className="eyebrow">QUICK PASS EMISSIONS</p>
         <h1>Your workspace is ready.</h1>
         <p className="muted">
           Set a password of at least 12 characters to activate your invited account.

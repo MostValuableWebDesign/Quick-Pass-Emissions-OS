@@ -1,7 +1,11 @@
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import type { Metadata } from "next";
+import { ArrowRight, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoginBrand } from "@/components/login-brand";
 import "./login.css";
+// Native form POSTs need their real same-origin identity. Keep external referrers
+// private and leave the global no-referrer policy on authenticated pages.
+export const metadata: Metadata = { referrer: "same-origin" };
 export default async function Login({
   searchParams,
 }: {
@@ -19,18 +23,26 @@ export default async function Login({
             ? "Unable to sign in. Check your credentials or try again later."
             : "";
   return (
-    <div className="login-page login-redesign">
+    <div className="login-page login-professional">
       <LoginBrand />
-      <section className="login-panel">
+      <section className="login-panel" aria-labelledby="sign-in-heading">
         <form className="login-form" method="post" action="/api/sign-in">
-          <span className="login-symbol">
-            <ShieldCheck size={27} />
-          </span>
-          <h2>Welcome back.</h2>
-          <p className="muted">Owner and management sign-in.</p>
+          <p className="login-access-label">
+            <LockKeyhole size={14} aria-hidden="true" /> MANAGEMENT WORKSPACE
+          </p>
+          <h2 id="sign-in-heading">Sign in.</h2>
+          <p className="muted">Welcome back to Quick Pass Emissions.</p>
           <label className="field">
             <span>Email address</span>
-            <input name="email" type="email" autoComplete="username" required />
+            <input
+              name="email"
+              type="email"
+              autoComplete="username"
+              placeholder="name@company.com"
+              spellCheck={false}
+              autoCapitalize="none"
+              required
+            />
           </label>
           <label className="field">
             <span>Password</span>
@@ -38,6 +50,7 @@ export default async function Login({
               name="password"
               type="password"
               autoComplete="current-password"
+              placeholder="Enter your password"
               minLength={12}
               maxLength={128}
               required
@@ -50,10 +63,12 @@ export default async function Login({
           )}
           <Button type="submit">
             Sign in
-            <ArrowRight size={17} />
+            <ArrowRight size={17} aria-hidden="true" />
           </Button>
           <p className="login-help">
-            Restricted to owners and management. Staff records do not provide login access.
+            For owners and management only.
+            <br />
+            Need access? Contact your account owner.
           </p>
         </form>
       </section>

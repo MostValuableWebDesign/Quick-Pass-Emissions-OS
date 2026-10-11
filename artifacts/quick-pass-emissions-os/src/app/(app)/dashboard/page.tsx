@@ -10,6 +10,9 @@ import {
 } from "lucide-react";
 import { currentUser } from "@/lib/access";
 import { isEmissionsClosedOn } from "@/modules/station/operating-hours";
+import { BusinessError } from "@/modules/phase2";
+import { readDashboard } from "@/modules/station/dashboard-service";
+import type { DashboardData } from "@/modules/station/dashboard-types";
 import { PageHeader } from "@/components/shared";
 import { RecordLink } from "@/components/record-link";
 import { CertificateOrderLink } from "@/components/certificate-order-link";
@@ -23,7 +26,21 @@ export default async function Dashboard({
   searchParams: Promise<{ attentionPage?: string }>;
 }) {
   const user = await currentUser();
-  const data = await businessDashboard(user.id);
+  const now = new Date();
+  const data = await businessDashboard(user.id, now);
+  let performanceData: DashboardData | null = null;
+  if (user.role === "OWNER") {
+    try {
+      performanceData = await readDashboard(
+        user.id,
+        { start: data.today, end: data.today, trendDays: 7 },
+        now,
+      );
+    } catch (error) {
+      if (!(error instanceof BusinessError)) throw error;
+    }
+  }
+  const performanceSummary = performanceData?.summary ?? null;
   const emissionsClosedToday = isEmissionsClosedOn(data.today);
   const params = await searchParams;
   const requested = Number(params.attentionPage ?? 1);
@@ -57,25 +74,14 @@ export default async function Dashboard({
               <h3>Tests performed today</h3>
               <Gauge size={19} aria-hidden="true" />
             </div>
-            <strong>{data.tests.performed ?? "Unavailable"}</strong>
-            {data.tests.performed !== null ? (
-              <>
-                <p>
-                  <b>{data.tests.eligible}</b> confirmed commission-eligible
-                </p>
-                <p className="muted">
-                  {data.tests.awaitingReview} awaiting eligibility review. Imported tests only;
-                  today may be incomplete.
-                </p>
-              </>
-            ) : (
-              <p className="muted">
-                No reviewed station import for today. Missing data does not mean zero tests.
-              </p>
-            )}
+            <strong>
+              {performanceSummary?.cars == null
+                ? "Unavailable"
+                : performanceSummary.cars.toLocaleString("en-US")}
+            </strong>
+            <p>Paid cars · same daily count as the Performance report.</p>
             <small>
-              {data.tests.approvedEmployeeCounts} approved employee test counts for commissions.
-              Separate from station totals.
+              Free 30-day retests excluded · {performanceSummary?.freeRetests ?? "—"} today.
             </small>
           </article>
           <article className="stat">
@@ -83,46 +89,14 @@ export default async function Dashboard({
               <h3>Revenue today</h3>
               <ArrowUpRight size={19} aria-hidden="true" />
             </div>
-            <strong>{money(data.revenue.received)}</strong>
-            <p>Received · dealer & rental payments, net of reversals</p>
-            {data.revenue.received === 0 && <p className="muted">No payment receipts recorded today.</p>}
-            <dl className="snapshot-breakdown">
-              <div>
-                <dt>Billed · dealer invoices</dt>
-                <dd>{money(data.revenue.billed)}</dd>
-              </div>
-              <div>
-                <dt>Estimated · imported retail tests</dt>
-                <dd>
-                  {data.revenue.retailEstimate === null
-                     ? data.tests.performed === null ? "No station import" : "Pricing/review required"
-                    : money(data.revenue.retailEstimate)}
-                </dd>
-              </div>
-            </dl>
-            <details className="revenue-details">
-              <summary>More revenue details</summary>
-              <dl className="snapshot-breakdown">
-                <div>
-                  <dt>Other recorded estimates</dt>
-                  <dd>{money(data.revenue.otherEstimates)}</dd>
-                </div>
-                <div>
-                  <dt>Verified manual revenue</dt>
-                  <dd>{money(data.revenue.verifiedManual)}</dd>
-                </div>
-              </dl>
-              <p className="muted">
-                Received includes dated dealer and rental payments, net of reversals. Estimates are
-                not receipts. Unrecorded revenue is not included.
-              </p>
-            </details>
+            <strong>
+              {performanceSummary?.revenueCents == null
+                ? "Unavailable"
+                : money(performanceSummary.revenueCents)}
+            </strong>
+            <p>Estimated at $20 per paid Pass/Fail test.</p>
             <small>
-              Separate measures; do not add them together.{" "}
-              {data.revenue.unpricedRetail > 0 &&
-                `${data.revenue.unpricedRetail} retail tests lack pricing. `}
-              {data.revenue.unverifiedManual > 0 &&
-                `${money(data.revenue.unverifiedManual)} manual revenue awaits verification. `}
+              Same counted tests and free-retest rules as the Performance report.
             </small>
           </article>
           <article className="stat">
@@ -130,43 +104,37 @@ export default async function Dashboard({
               <h3>Employee gross pay so far</h3>
               <Users size={19} aria-hidden="true" />
             </div>
-            <strong>
-              {data.pay.grossCents === null ? "Incomplete" : money(data.pay.grossCents)}
-            </strong>
+            <strong>{performanceSummary?.payCents == null ? "Incomplete" : money(performanceSummary.payCents)}</strong>
             <dl className="snapshot-breakdown">
               <div>
-                <dt>Base pay{data.pay.baseCents === null ? " · recorded subtotal" : ""}</dt>
-                <dd>{money(data.pay.knownBaseCents)}</dd>
+                <dt>Estimated base pay</dt>
+                <dd>
+                  {performanceSummary?.baseCents == null
+                    ? "Unavailable"
+                    : money(performanceSummary.baseCents)}
+                </dd>
               </div>
               <div>
-                <dt>
-                  Commissions{data.pay.commissionCents === null ? " · recorded subtotal" : ""}
-                </dt>
-                <dd>{money(data.pay.knownCommissionCents)}</dd>
+                <dt>Estimated commission</dt>
+                <dd>
+                  {performanceSummary?.commissionCents == null
+                    ? "Unavailable"
+                    : money(performanceSummary.commissionCents)}
+                </dd>
               </div>
             </dl>
             <p className="muted">
-              Approved payroll inputs only; Performance pay estimates are separate.
+              Performance pay-plan estimate; approved payroll is tracked separately.
             </p>
-            {data.pay.grossCents === null && <Link href="/payroll">Review payroll inputs</Link>}
-            {data.pay.missing.length > 0 && (
-              <details className="pay-input-gaps">
-                <summary>{data.pay.missing.length} employees have incomplete inputs</summary>
-                <ul>
-                  {data.pay.missing.slice(0, 15).map((p) => (
-                    <li key={p.id}>
-                      {p.name}: {p.missing.join("; ")}.
-                    </li>
-                  ))}
-                </ul>
-                {data.pay.missing.length > 15 && <p>More employees need review in Payroll.</p>}
-              </details>
-            )}
-            {data.pay.employees === 0 && (
+            {!performanceData && (
               <p className="muted">No employee payroll records configured.</p>
             )}
-            {data.pay.grossCents === null && (
-              <small>Subtotals exclude missing inputs; they are not complete gross pay.</small>
+            {performanceSummary?.payCents == null && (
+              <small>
+                {user.role === "OWNER"
+                  ? "Performance pay inputs or daily test coverage are incomplete."
+                  : "Performance pay estimates require owner access."}
+              </small>
             )}
           </article>
         </div>

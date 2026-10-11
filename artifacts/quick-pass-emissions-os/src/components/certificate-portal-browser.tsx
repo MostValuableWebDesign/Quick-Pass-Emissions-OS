@@ -51,12 +51,7 @@ export function CertificatePortalBrowser({ initial, canRefresh }: { initial: Cer
           {msg && <small role="status">{msg}</small>}
         </div>
       </div>
-      <p className="muted">
-        The portal loads directly from the provider. You sign in and place orders yourself; this app does
-        not see, store or submit anything on it. Portal balance is read separately and is not ledger stock.
-      </p>
       <div className="portal-sign-in">
-        <p>The Georgia portal requires a separate browser tab for sign-in. Its session cookies do not support embedded login.</p>
         <a className="button button-primary" href={CERTIFICATE_ORDER_URL} target="_blank" rel="noopener noreferrer" data-testid="link-open-portal">
           <ExternalLink size={16} aria-hidden="true" /> Open Georgia dashboard
         </a>

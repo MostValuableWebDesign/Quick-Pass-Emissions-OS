@@ -85,7 +85,6 @@ for (const role of ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"] as const) {
         await expect(action).toHaveAttribute("href", portal);
         await expect(action).toHaveAttribute("target", "_blank");
         await expect(action).toHaveAttribute("rel", "noopener noreferrer");
-        await expect(page.getByText(/First create a purchase request here/)).toBeVisible();
         const parentURL = page.url();
         // Reach the native anchor using Tab, then activate using Enter, not a popup script.
         await page.locator("body").click({ position: { x: 1, y: 1 } });
@@ -112,10 +111,10 @@ for (const role of ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"] as const) {
         await expect(reopened).toHaveURL(portal);
         await reopened.close();
         expect(await snapshot()).toBe(before);
-        await page
-          .getByRole("link", { name: "Review purchase requests & order records", exact: true })
-          .click();
-        await expect(page).toHaveURL(/\/certificates#purchase-history$/);
+        await expect(
+          page.getByRole("link", { name: "Review purchase requests & order records", exact: true }),
+        ).toHaveCount(0);
+        await expect(page.locator("details#records")).toHaveCount(0);
         expect(context.pages()).toHaveLength(1);
         const screenshots = path.resolve("../../generated-artifacts/certificate-order");
         await mkdir(screenshots, { recursive: true });

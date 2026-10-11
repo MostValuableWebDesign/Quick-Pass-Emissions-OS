@@ -81,19 +81,17 @@ describe("manual certificate portal navigation", () => {
       );
     });
   }
-  it("opens the internal manual portal with browser fallback guidance", () => {
+  it("opens the manual portal without an internal purchase-record link", () => {
     const html = renderToStaticMarkup(
       createElement(CertificateOrderLink, { role: "OWNER", alert: true }),
     );
     expect(CERTIFICATE_ORDER_URL).toBe("https://gadashboard.com/Purchasing/Purchasing.aspx");
-    expect(html).toContain(
-      'href="/certificates#portal"',
-    );
+    expect(html).toContain('href="/certificates#portal"');
     expect(html).toContain("You control sign-in and ordering");
-    expect(html).toContain('href="/certificates#purchase-history"');
+    expect(html).not.toContain('href="/certificates#purchase-history"');
     expect(html).not.toMatch(/<form|<iframe|<script|onclick=|formaction=/i);
   });
-  it("keeps existing workflows and adds no mutation, credentials or popup script", () => {
+  it("removes internal bookkeeping panels while preserving provider and dashboard alerts", () => {
     const component = readFileSync("src/components/certificate-order-link.tsx", "utf8");
     expect(component).not.toMatch(/onClick|window\.open|fetch\(|use server|process\.env|password/i);
     const inventory = readFileSync("src/app/(app)/certificates/page.tsx", "utf8");
@@ -103,11 +101,10 @@ describe("manual certificate portal navigation", () => {
       "recordCertificateOrder",
       "receiveCertificatePurchase",
     ])
-      expect(inventory).toContain(`action={${action}}`);
-    expect(inventory).toContain('id="purchase-history"');
-    expect(inventory).toContain('id="purchase-request"');
-    expect(inventory).toContain('id="records"');
-    expect(inventory).toContain("You do not need a request or approval here before buying");
+      expect(inventory).not.toContain(action);
+    expect(inventory).not.toContain('id="purchase-history"');
+    expect(inventory).not.toContain('id="purchase-request"');
+    expect(inventory).not.toContain('id="records"');
     expect(inventory).toContain("CertificatePortalBrowser");
     const dashboard = readFileSync("src/app/(app)/dashboard/page.tsx", "utf8");
     expect(dashboard).toContain(

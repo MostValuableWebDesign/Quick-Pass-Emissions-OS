@@ -13,11 +13,6 @@ export function CertificateOrderLink({ role, alert = false }: { role: Role; aler
       <p className="muted">
         Open the official purchasing portal in a secure browser tab. You control sign-in and ordering.
       </p>
-      {alert && (
-        <a className="text-link" href="/certificates#purchase-history">
-          Review purchase requests & order records
-        </a>
-      )}
     </div>
   );
 }

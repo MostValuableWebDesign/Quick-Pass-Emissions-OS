@@ -6,7 +6,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
   const user = await currentUser();
   const certificateStatus = await readCertificatePortalStatus().catch(() => null);
   return (
-    <Shell name={user.name} role={user.role} certificateStatus={certificateStatus}>
+    <Shell role={user.role} certificateStatus={certificateStatus}>
       {children}
     </Shell>
   );

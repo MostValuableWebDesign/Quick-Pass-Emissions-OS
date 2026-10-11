@@ -247,6 +247,43 @@ svg {
 .settings-card-grid {
   align-items: start;
 }
+.settings-appearance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 16px;
+}
+.account-row-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.account-self-label {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.account-menu-link {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: var(--muted);
+  transition: color 160ms ease, background-color 160ms ease;
+}
+.account-menu-link:hover {
+  color: var(--text);
+  background: var(--soft);
+}
+.account-menu-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
 .primary-nav ul {
   list-style: none;
   margin: 0;
@@ -1111,6 +1148,19 @@ td small {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 19px;
   margin-top: 20px;
+}
+.contact-address-fields {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  margin: 0;
+}
+.contact-address-fields legend {
+  font-size: 12px;
+  font-weight: 600;
+}
+.contact-address-fields .form-grid {
+  margin-top: 10px;
 }
 .field {
   display: flex;

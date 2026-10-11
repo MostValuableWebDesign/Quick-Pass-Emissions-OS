@@ -289,7 +289,7 @@ describe("Credential form safety", () => {
     const source = readFileSync(path.resolve("src/app/(app)/settings/account/page.tsx"), "utf8");
     expect(source.includes('method="post"')).toBe(true);
     expect(source.includes('action="/api/auth/change-own-password"')).toBe(true);
-    expect(source.includes("await currentUser()")).toBe(true);
+    expect(/await (?:currentUser|manager)\(\)/.test(source)).toBe(true);
     expect(source.includes('type="password"')).toBe(true);
     expect(source.includes('autoComplete="current-password"')).toBe(true);
     expect(source.includes('autoComplete="new-password"')).toBe(true);

@@ -146,9 +146,9 @@ export const NAV_SECTIONS: NavSection[] = [
           },
           {
             href: "/settings/account",
-            label: "Account & password",
+            label: "Account",
             icon: "shield",
-            roles: ALL,
+            roles: MANAGERS,
             category: "Account & security",
           },
           {

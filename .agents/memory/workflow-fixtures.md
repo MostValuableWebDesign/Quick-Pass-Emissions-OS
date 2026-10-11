@@ -26,3 +26,9 @@ Do not accept native-login success or a tester's summary as proof the browser su
 **Why:** A browser tester incorrectly matched a generic success occurrence while the owned runner later reported assertion failures and removed its private database. Its screenshots showed only empty state.
 
 **How to apply:** Inspect safe runner status independently before claiming passing counts. Keep failure diagnostics to named stages, local source positions and fixed classifications; never dump private exception/request/authentication objects.
+
+Verify that the testing browser can reach an isolated fixture URL before relying on that fixture for browser verification. A shell-local sign-in can succeed even when the separate browser tool cannot reach the fixture's loopback server.
+
+**Why:** A private fixture passed native authentication but the testing browser received connection-refused errors at its loopback URL; no signed-in journey assertions completed.
+
+**How to apply:** Check reachability from the actual browser early. Distinguish a local Playwright process from the browser tool; report blocked coverage honestly instead of treating fixture initialization as a passing user journey.

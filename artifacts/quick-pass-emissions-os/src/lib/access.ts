@@ -19,7 +19,7 @@ export async function currentUser() {
   if (!session) redirect("/login");
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    include: { employee: { select: { id: true } } },
+    include: { employee: { select: { id: true, phone: true } } },
   });
   if (!user?.active || !isManager(user.role)) redirect("/login");
   return user;

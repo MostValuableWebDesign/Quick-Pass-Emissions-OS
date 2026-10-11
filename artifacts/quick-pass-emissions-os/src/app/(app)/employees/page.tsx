@@ -6,14 +6,15 @@ import { PageHeader } from "@/components/shared";
 import { ActionForm } from "@/components/action-form";
 import { EmployeeFields } from "@/components/employee-fields";
 import { saveEmployee } from "@/app/actions";
+import { formatContactAddress } from "@/lib/contact-address";
 export default async function Employees({
   searchParams,
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  const actor = await manager();
+  await manager();
   const employees = await db.employee.findMany({
-    include: { user: true, _count: { select: { tasks: true, shifts: true } } },
+    include: { user: true },
     orderBy: { user: { name: "asc" } },
   });
   const requested = (await searchParams).status;
@@ -25,7 +26,7 @@ export default async function Employees({
     <>
       <PageHeader
         title="Employees"
-        description="Staff records for management’s payroll, schedules, and responsibilities. Only owners and managers can sign in."
+        description="Employee contacts, job roles, and active staff."
       />
       <nav className="filter-tabs" aria-label="Employee status filters">
         {[
@@ -44,15 +45,18 @@ export default async function Employees({
         ))}
         <Link href="/payroll" className="badge neutral">Manage pay & commissions</Link>
       </nav>
-      {status !== "inactive" && <details className="card card-body space-top">
-        <summary>+ Add an employee</summary>
-        <p className="muted">
-          Staff records have no login. Owners can also provision Owner or Manager access.
-        </p>
-        <ActionForm action={saveEmployee} submit="Create employee">
-          <EmployeeFields owner={actor.role === "OWNER"} />
-        </ActionForm>
-      </details>}
+      {status !== "inactive" && (
+        <details className="card dealership-add-card space-top">
+          <summary className="button button-primary dealership-add-toggle">
+            <span>Add employee</span>
+          </summary>
+          <div className="card-body">
+            <ActionForm action={saveEmployee} submit="Create employee">
+              <EmployeeFields />
+            </ActionForm>
+          </div>
+        </details>
+      )}
       <section className="card space-top">
         <div className="card-heading">
           <h2>
@@ -64,10 +68,10 @@ export default async function Employees({
             <thead>
               <tr>
                 <th>Employee</th>
-                <th>App access</th>
+                <th>Role</th>
+                <th>Phone</th>
+                <th>Address</th>
                 <th>Status</th>
-                <th>Responsibilities</th>
-                <th>Schedule records</th>
               </tr>
             </thead>
             <tbody>
@@ -77,22 +81,15 @@ export default async function Employees({
                     <RecordLink className="task-name" href={`/employees/${e.id}`}>
                       {e.user.name}
                     </RecordLink>
-                    <small>{e.user.email}</small>
                   </td>
-                  <td>
-                    {e.user.role === "OWNER"
-                      ? "Owner"
-                      : e.user.role === "ADMIN"
-                        ? "Manager"
-                        : "No app access"}
-                  </td>
+                  <td>{e.jobRole || "—"}</td>
+                  <td>{e.phone ? <a href={`tel:${e.phone}`}>{e.phone}</a> : "—"}</td>
+                  <td className="preserve-lines">{formatContactAddress(e) || "—"}</td>
                   <td>
                     <span className={`badge ${e.user.active ? "green" : "neutral"}`}>
                       {e.user.active ? "Active" : "Removed"}
                     </span>
                   </td>
-                  <td>{e._count.tasks}</td>
-                  <td>{e._count.shifts}</td>
                 </tr>
               ))}
             </tbody>

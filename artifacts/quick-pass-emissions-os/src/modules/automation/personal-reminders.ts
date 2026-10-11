@@ -16,7 +16,7 @@ async function requireActiveManager(actorId: string) {
   requireRule(actor?.active && isManager(actor.role), "You do not have permission to view reminders.");
 }
 
-const localDateTime = z.string().trim().min(1).max(16).refine((value) => {
+const localDateTime = z.string().trim().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "Enter a date and time.").refine((value) => {
   try {
     Temporal.PlainDateTime.from(value);
     return true;
@@ -138,57 +138,57 @@ export async function acknowledgePersonalReminder(actorId: string, raw: unknown)
 
 export async function listPersonalReminders(actorId: string) {
   await requireActiveManager(actorId);
-    const [upcoming, completed] = await Promise.all([
-      db.reminderEvent.findMany({
-        where: { userId: actorId, completedAt: null, cancelledAt: null },
-        orderBy: { startsAt: "asc" },
-        take: 100,
-      }),
-      db.reminderEvent.findMany({
-        where: { userId: actorId, completedAt: { not: null } },
-        orderBy: { completedAt: "desc" },
-        take: 25,
-      }),
-    ]);
-    return { upcoming, completed, timeZone: TIMEZONE };
+  const [upcoming, completed] = await Promise.all([
+    db.reminderEvent.findMany({
+      where: { userId: actorId, completedAt: null, cancelledAt: null },
+      orderBy: { startsAt: "asc" },
+      take: 100,
+    }),
+    db.reminderEvent.findMany({
+      where: { userId: actorId, completedAt: { not: null } },
+      orderBy: { completedAt: "desc" },
+      take: 25,
+    }),
+  ]);
+  return { upcoming, completed, timeZone: TIMEZONE };
 }
 
 export async function personalNotificationInbox(actorId: string) {
   await requireActiveManager(actorId);
-    const now = new Date();
-    const [reminders, alerts, reminderCount, alertCount] = await Promise.all([
-      db.reminderEvent.findMany({
-        where: { userId: actorId, alertAt: { lte: now }, readAt: null, completedAt: null, cancelledAt: null },
-        orderBy: [{ startsAt: "asc" }, { id: "asc" }],
-        take: 5,
-        select: { id: true, title: true, startsAt: true, description: true },
-      }),
-      db.notification.findMany({
-        where: { userId: actorId, resolvedAt: null, readAt: null },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        select: { id: true, title: true, createdAt: true, taskId: true, maintenanceId: true },
-      }),
-      db.reminderEvent.count({
-        where: { userId: actorId, alertAt: { lte: now }, readAt: null, completedAt: null, cancelledAt: null },
-      }),
-      db.notification.count({ where: { userId: actorId, resolvedAt: null, readAt: null } }),
-    ]);
-    const items = [
-      ...reminders.map((item) => ({
-        id: item.id,
-        title: item.title,
-        detail: item.description,
-        timestamp: item.startsAt,
-        href: `/reminders#${item.id}`,
-      })),
-      ...alerts.map((item) => ({
-        id: item.id,
-        title: item.title,
-        detail: "Action required",
-        timestamp: item.createdAt,
-        href: item.taskId ? `/tasks/${item.taskId}` : item.maintenanceId ? `/maintenance/${item.maintenanceId}` : "/notifications",
-      })),
-    ].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()).slice(0, 5);
-    return { count: reminderCount + alertCount, items, timeZone: TIMEZONE };
+  const now = new Date();
+  const [reminders, alerts, reminderCount, alertCount] = await Promise.all([
+    db.reminderEvent.findMany({
+      where: { userId: actorId, alertAt: { lte: now }, readAt: null, completedAt: null, cancelledAt: null },
+      orderBy: [{ startsAt: "asc" }, { id: "asc" }],
+      take: 5,
+      select: { id: true, title: true, startsAt: true, description: true },
+    }),
+    db.notification.findMany({
+      where: { userId: actorId, resolvedAt: null, readAt: null },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { id: true, title: true, createdAt: true, taskId: true, maintenanceId: true },
+    }),
+    db.reminderEvent.count({
+      where: { userId: actorId, alertAt: { lte: now }, readAt: null, completedAt: null, cancelledAt: null },
+    }),
+    db.notification.count({ where: { userId: actorId, resolvedAt: null, readAt: null } }),
+  ]);
+  const items = [
+    ...reminders.map((item) => ({
+      id: item.id,
+      title: item.title,
+      detail: item.description,
+      timestamp: item.startsAt,
+      href: `/reminders#${item.id}`,
+    })),
+    ...alerts.map((item) => ({
+      id: item.id,
+      title: item.title,
+      detail: "Action required",
+      timestamp: item.createdAt,
+      href: item.taskId ? `/tasks/${item.taskId}` : item.maintenanceId ? `/maintenance/${item.maintenanceId}` : "/notifications",
+    })),
+  ].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()).slice(0, 5);
+  return { count: reminderCount + alertCount, items, timeZone: TIMEZONE };
 }

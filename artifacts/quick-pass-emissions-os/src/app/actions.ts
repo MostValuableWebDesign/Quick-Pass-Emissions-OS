@@ -6,10 +6,10 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { currentUser, manager } from "@/lib/access";
 import { canManageRole, isManager } from "@/lib/policy";
+import { contactEmployeeInput } from "@/lib/contact-address";
 import {
   dateString,
   days,
-  employeeInput,
   fields,
   id,
   note,
@@ -23,6 +23,97 @@ import { runJobs } from "@/modules/tasks/jobs";
 import { occursOn } from "@/modules/tasks/recurrence";
 import type { Prisma } from "@prisma/client";
 export type ActionState = { ok?: boolean; message?: string; invite?: string };
+export async function saveOwnAccount(_: ActionState, form: FormData) {
+  return perform(async () => {
+    const actor = await manager();
+    const data = z.object({
+      name: z.string().trim().min(1).max(160),
+      phone: z.string().trim().max(50),
+    }).parse(fields(form));
+    await db.$transaction(async (tx) => {
+      const current = await personnelActor(tx, actor.id);
+      if (current.role !== actor.role) throw new Error("Your access changed. Refresh and try again.");
+      const employee = await tx.employee.findUnique({
+        where: { userId: actor.id },
+        select: { id: true },
+      });
+      await tx.user.update({
+        where: { id: actor.id },
+        data: { name: data.name, phone: data.phone },
+      });
+      if (employee)
+        await tx.employee.update({
+          where: { id: employee.id },
+          data: { phone: data.phone },
+        });
+      await tx.auditLog.create({
+        data: {
+          actorId: actor.id,
+          action: "ACCOUNT_PROFILE_UPDATED",
+          entityId: actor.id,
+          details: { changedFields: ["name", "phone"] },
+        },
+      });
+    }, personnelOptions);
+  });
+}
+export async function createManagerAccount(_: ActionState, form: FormData) {
+  return perform(async () => {
+    const actor = await manager();
+    if (actor.role !== "OWNER") throw new Error("Only an owner may add user accounts.");
+    const data = z.object({
+      name: z.string().trim().min(1).max(160),
+      email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),
+      phone: z.string().trim().max(50),
+      role: z.enum(["OWNER", "ADMIN"]),
+    }).parse(fields(form));
+    const token = randomBytes(32).toString("hex");
+    await db.$transaction(async (tx) => {
+      const current = await personnelActor(tx, actor.id);
+      if (current.role !== "OWNER") throw new Error("Only an owner may add user accounts.");
+      const existing = await tx.user.findFirst({
+        where: { email: { equals: data.email, mode: "insensitive" } },
+        select: { id: true },
+      });
+      if (existing) throw new Error("This email address is already in use.");
+      const employee = await tx.employee.create({
+        data: {
+          phone: data.phone,
+          user: {
+            create: {
+              name: data.name,
+              email: data.email,
+              phone: data.phone,
+              role: data.role,
+              emailVerified: false,
+            },
+          },
+          invites: {
+            create: {
+              tokenHash: createHash("sha256").update(token).digest("hex"),
+              expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+            },
+          },
+        },
+        select: { id: true, userId: true },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: actor.id,
+          action: "MANAGEMENT_ACCOUNT_CREATED",
+          entityId: employee.userId,
+          details: { employeeId: employee.id, role: data.role, inviteExpiresInHours: 48 },
+        },
+      });
+    }, personnelOptions);
+    revalidatePath("/employees");
+    return {
+      ok: true,
+      message: `The ${data.role === "OWNER" ? "owner" : "manager"} account was added. Share the private, one-time invitation link.`,
+      invite: `/invite#${token}`,
+    };
+  });
+}
 const personnelOptions = {
   isolationLevel: "ReadCommitted",
   maxWait: 10000,
@@ -64,13 +155,11 @@ async function perform(work: () => Promise<ActionState | void>): Promise<ActionS
 export async function saveEmployee(_: ActionState, form: FormData) {
   return perform(async () => {
     const identity = await manager();
-    const data = employeeInput.parse(fields(form));
+    const data = contactEmployeeInput.parse(fields(form));
     const employeeId = form.get("id")?.toString();
     await db.$transaction(async (tx) => {
       const actor = await personnelActor(tx, identity.id);
-      if (!canManageRole(actor.role, data.role))
-        throw new Error("Only the owner may manage privileged accounts.");
-      const { name, email, role, ...profile } = data;
+      const { name, ...profile } = data;
       if (employeeId) {
         const old = await tx.employee.findUniqueOrThrow({
           where: { id: employeeId },
@@ -78,41 +167,36 @@ export async function saveEmployee(_: ActionState, form: FormData) {
         });
         if (!canManageRole(actor.role, old.user.role))
           throw new Error("Only the owner may manage privileged accounts.");
-        if (old.userId === actor.id && role !== old.user.role)
-          throw new Error("You cannot change your own role.");
         await tx.employee.update({ where: { id: employeeId }, data: profile });
-        // Email identity is immutable after provisioning; prevents account takeover by changing an invite recipient.
-        if (old.user.email !== email)
-          throw new Error(
-            "Please keep the account email unchanged; provision a new account for a new identity.",
-          );
-        await tx.user.update({ where: { id: old.userId }, data: { name, role } });
-        if (role !== old.user.role) {
-          await tx.session.deleteMany({ where: { userId: old.userId } });
-          await tx.invite.updateMany({
-            where: { employeeId, usedAt: null },
-            data: { usedAt: new Date() },
-          });
-          if (!isManager(role)) await tx.account.deleteMany({ where: { userId: old.userId } });
-        }
+        // Contact edits never change login identity, management access, or linked history.
+        await tx.user.update({ where: { id: old.userId }, data: { name } });
         await tx.auditLog.create({
           data: {
             actorId: actor.id,
             action: "EMPLOYEE_UPDATED",
             entityId: employeeId,
-            details: { oldRole: old.user.role, role },
+            details: { role: old.user.role },
           },
         });
       } else {
         const employee = await tx.employee.create({
-          data: { ...profile, user: { create: { name, email, role } } },
+          data: {
+            ...profile,
+            user: {
+              create: {
+                name,
+                email: `staff-${randomUUID()}@staff.quickpass.invalid`,
+                role: "EMPLOYEE",
+              },
+            },
+          },
         });
         await tx.auditLog.create({
           data: {
             actorId: actor.id,
             action: "EMPLOYEE_CREATED",
             entityId: employee.id,
-            details: { role },
+            details: { role: "EMPLOYEE" },
           },
         });
       }
@@ -189,7 +273,94 @@ export async function issueInvite(_: ActionState, form: FormData) {
     return {
       ok: true,
       message: "Share this one-time link privately. It expires in 48 hours.",
-      invite: `${process.env.BETTER_AUTH_URL}/invite#${token}`,
+      invite: `/invite#${token}`,
+    };
+  });
+}
+export async function setManagerAccountActive(_: ActionState, form: FormData) {
+  return perform(async () => {
+    const actor = await manager();
+    if (actor.role !== "OWNER") throw new Error("Only an owner may change user account access.");
+    const data = z.object({
+      id: id,
+      active: z.enum(["true", "false"]).transform((value) => value === "true"),
+    }).parse(fields(form));
+    await db.$transaction(async (tx) => {
+      const current = await personnelActor(tx, actor.id);
+      if (current.role !== "OWNER") throw new Error("Only an owner may change user account access.");
+      const target = await tx.user.findUniqueOrThrow({
+        where: { id: data.id },
+        include: { employee: { select: { id: true } } },
+      });
+      if (target.id === actor.id) throw new Error("You cannot deactivate your own account.");
+      if (!isManager(target.role)) throw new Error("Only owner and manager accounts can be changed here.");
+      await tx.user.update({ where: { id: target.id }, data: { active: data.active } });
+      await tx.session.deleteMany({ where: { userId: target.id } });
+      if (target.employee)
+        await tx.invite.updateMany({
+          where: { employeeId: target.employee.id, usedAt: null },
+          data: { usedAt: new Date() },
+        });
+      await tx.auditLog.create({
+        data: {
+          actorId: actor.id,
+          action: "MANAGEMENT_ACCOUNT_STATUS",
+          entityId: target.id,
+          details: { active: data.active },
+        },
+      });
+    }, personnelOptions);
+  });
+}
+export async function issueManagerAccountInvite(_: ActionState, form: FormData) {
+  return perform(async () => {
+    const actor = await manager();
+    if (actor.role !== "OWNER") throw new Error("Only an owner may invite user accounts.");
+    const userId = id.parse(form.get("id"));
+    const token = randomBytes(32).toString("hex");
+    await db.$transaction(async (tx) => {
+      const current = await personnelActor(tx, actor.id);
+      if (current.role !== "OWNER") throw new Error("Only an owner may invite user accounts.");
+      const user = await tx.user.findUniqueOrThrow({
+        where: { id: userId },
+        include: { employee: { select: { id: true, phone: true } } },
+      });
+      if (!user.active || !isManager(user.role) || user.id === actor.id)
+        throw new Error("You cannot invite this account.");
+      if (await tx.account.count({ where: { userId, providerId: "credential" } }))
+        throw new Error("This account is already activated. Use the documented recovery procedure.");
+      const employee = user.employee ?? await tx.employee.create({
+        data: {
+          userId,
+          phone: user.phone,
+          jobRole: "",
+        },
+        select: { id: true },
+      });
+      await tx.invite.updateMany({
+        where: { employeeId: employee.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      await tx.invite.create({
+        data: {
+          employeeId: employee.id,
+          tokenHash: createHash("sha256").update(token).digest("hex"),
+          expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: actor.id,
+          action: "INVITE_CREATED",
+          entityId: employee.id,
+          details: { role: user.role, expiresInHours: 48 },
+        },
+      });
+    }, personnelOptions);
+    return {
+      ok: true,
+      message: "Share this one-time link privately. It expires in 48 hours.",
+      invite: `/invite#${token}`,
     };
   });
 }

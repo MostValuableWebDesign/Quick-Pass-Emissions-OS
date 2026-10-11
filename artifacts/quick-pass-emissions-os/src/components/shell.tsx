@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useTheme } from "next-themes";
 import { createAuthClient } from "better-auth/react";
 import {
   LayoutDashboard,
@@ -18,11 +17,9 @@ import {
   PanelLeftOpen,
   Menu,
   X,
-  Moon,
-  Sun,
   LogOut,
   ShieldCheck,
-  CircleDot,
+  CircleUserRound,
   Wallet,
   Package,
   FlaskConical,
@@ -98,12 +95,10 @@ const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1
 
 export function Shell({
   children,
-  name,
   role,
   certificateStatus = null,
 }: {
   children: React.ReactNode;
-  name: string;
   role: string;
   certificateStatus?: CertificatePortalStatus | null;
 }) {
@@ -117,7 +112,6 @@ export function Shell({
   const [sideMenu, setSideMenu] = useState<{ href: string; left: number; top: number } | null>(null);
   const sidebarRef = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
-  const { resolvedTheme, setTheme } = useTheme();
 
   const sections = navForRole(role);
   const active = activeNavHref(path, role, params.toString());
@@ -513,29 +507,15 @@ export function Shell({
               </nav>
             </div>
             <div className="topbar-right">
-              <span className="business-zone">
-                <CircleDot size={12} /> Eastern time
-              </span>
               <NotificationBell />
-              <Button
-                variant="ghost"
-                aria-label="Toggle theme"
-                aria-pressed={resolvedTheme === "dark"}
-                onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              <Link
+                className="account-menu-link"
+                href="/settings/account"
+                aria-label="Open account settings"
+                title="Account settings"
               >
-                {resolvedTheme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-              </Button>
-              <span className="avatar">
-                {name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .slice(0, 2)
-                  .join("")}
-              </span>
-              <div className="user-label">
-                <strong>{name}</strong>
-                <small>{role === "ADMIN" ? "General manager" : role.toLowerCase()}</small>
-              </div>
+                <CircleUserRound size={20} aria-hidden="true" />
+              </Link>
               <Button
                 variant="ghost"
                 aria-label="Sign out"

@@ -48,6 +48,7 @@ model User {
   email String @unique
   emailVerified Boolean @default(false)
   image String?
+  phone String @default("")
   role Role @default(EMPLOYEE)
   active Boolean @default(true)
   createdAt DateTime @default(now())
@@ -112,6 +113,12 @@ model Employee {
   userId String @unique
   user User @relation(fields:[userId],references:[id])
   phone String @default("")
+  jobRole String @default("")
+  streetAddress String @default("")
+  addressLine2 String @default("")
+  city String @default("")
+  state String @default("")
+  postalCode String @default("")
   startDate String?
   duties String @default("")
   workAreas String @default("")
@@ -786,6 +793,12 @@ model Dealership {
   name String
   billingAddress String
   phone String @default("")
+  email String @default("")
+  streetAddress String @default("")
+  addressLine2 String @default("")
+  city String @default("")
+  state String @default("")
+  postalCode String @default("")
   notes String @default("")
   active Boolean @default(true)
   termsDays Int?

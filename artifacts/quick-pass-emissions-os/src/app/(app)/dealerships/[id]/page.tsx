@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { DemoNotice, RecordId, TextField, Reason, Money } from "@/components/phase3";
 import { DateField, AmountField } from "@/components/finance";
+import { DealershipFields } from "@/components/dealership-fields";
 import * as actions from "@/app/phase4-actions";
 export default async function Dealer({ params }: { params: Promise<{ id: string }> }) {
   const actor = await currentUser(),
@@ -25,30 +26,15 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
       <DemoNotice demo={data.demo} />
       <section className="card card-body">
         <h2>Account & billing details</h2>
-        <p>{d.billingAddress}</p>
+        <p className="preserve-lines">{d.billingAddress}</p>
         {d.phone && <p><a href={`tel:${d.phone}`}>{d.phone}</a></p>}
+        {d.email && <p><a href={`mailto:${d.email}`}>{d.email}</a></p>}
         <p>{d.notes}</p>
         <details>
           <summary>Edit account</summary>
           <ActionForm action={actions.saveDealer} submit="Save dealership">
             <RecordId id={d.id} version={d.version} />
-            <TextField name="name" label="Dealership name" value={d.name} />
-            <Field label="Phone">
-              <input name="phone" type="tel" maxLength={50} defaultValue={d.phone} />
-            </Field>
-            <TextField
-              name="billingAddress"
-              label="Billing address"
-              value={d.billingAddress}
-              area
-            />
-            <TextField
-              name="notes"
-              label="Private account notes"
-              value={d.notes}
-              required={false}
-              area
-            />
+            <DealershipFields dealer={d} />
           </ActionForm>
         </details>
       </section>
@@ -113,8 +99,12 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
               <RecordId id={c?.id} version={c?.version} />
               <input type="hidden" name="dealershipId" value={d.id} />
               <TextField name="name" label="Contact person" value={c?.name} />
-              <TextField name="email" label="Contact email" value={c?.email} required={false} />
-              <TextField name="phone" label="Contact phone" value={c?.phone} required={false} />
+              <Field label="Contact email">
+                <input name="email" type="email" autoComplete="email" maxLength={254} defaultValue={c?.email} />
+              </Field>
+              <Field label="Contact phone">
+                <input name="phone" type="tel" autoComplete="tel" maxLength={50} defaultValue={c?.phone} />
+              </Field>
               <TextField name="purpose" label="Contact responsibility" value={c?.purpose} />
               <TextField
                 name="source"

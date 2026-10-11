@@ -3,7 +3,8 @@ import { currentUser } from "@/lib/access";
 import { dealerOverview } from "@/modules/finance/service";
 import { PageHeader, Empty } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
-import { DemoNotice, RecordId, TextField } from "@/components/phase3";
+import { DemoNotice, RecordId } from "@/components/phase3";
+import { DealershipFields } from "@/components/dealership-fields";
 import { saveDealer } from "@/app/phase4-actions";
 import { Button } from "@/components/ui/button";
 export default async function Dealers({ searchParams }: { searchParams: Promise<{ q?: string; partners?: string }> }) {
@@ -26,18 +27,13 @@ export default async function Dealers({ searchParams }: { searchParams: Promise<
         <div className="card-body">
           <ActionForm action={saveDealer} submit="Add dealership">
             <RecordId />
-            <TextField name="name" label="Dealership name" />
-            <Field label="Phone">
-              <input name="phone" type="tel" maxLength={50} />
-            </Field>
-            <TextField name="billingAddress" label="Billing address" area />
-            <TextField name="notes" label="Private account notes" required={false} area />
+            <DealershipFields />
           </ActionForm>
         </div>
       </details>
       <section className="card space-top">
         <div className="card-heading">
-          <h2>{scope === "active" ? "Active dealership partners" : "Dealership directory"} · up to 100 matches</h2>
+          <h2>{scope === "active" ? "Active dealership partners" : "Dealership directory"}</h2>
         </div>
         <form className="card-body form-grid" method="get">
           <Field label="Search dealership, contact, email or phone">
@@ -76,12 +72,13 @@ export default async function Dealers({ searchParams }: { searchParams: Promise<
                   </td>
                   <td>{d.phone ? <a href={`tel:${d.phone}`}>{d.phone}</a> : "—"}</td>
                   <td>
+                    {d.email && <small><a href={`mailto:${d.email}`}>{d.email}</a></small>}
                     {d.contacts.length ? d.contacts.map((c) => (
                       <div key={c.id}>
                         {c.name}
                         {c.email && <small><a href={`mailto:${c.email}`}>{c.email}</a></small>}
                       </div>
-                    )) : "None entered"}
+                    )) : !d.email ? "None entered" : null}
                   </td>
                   <td>
                     {d.termsDays === null

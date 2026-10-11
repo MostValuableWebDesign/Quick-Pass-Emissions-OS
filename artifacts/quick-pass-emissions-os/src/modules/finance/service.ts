@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { addressInputShape, formatContactAddress } from "@/lib/contact-address";
 import { uniqueReceiptReference } from "./references";
 import { id, dateString } from "@/lib/validation";
 import { businessDate, addDays } from "@/lib/time";
@@ -62,8 +63,10 @@ export async function saveDealer(actorId: string, input: unknown) {
       version,
       code: label.optional(),
       name: label,
-      billingAddress: reason,
+      billingAddress: reason.optional(),
       phone: z.string().trim().max(50).optional(),
+      email: z.union([z.email().max(254), z.literal("")]).transform((v) => v.toLowerCase()).optional(),
+      ...addressInputShape,
       notes,
       active: z.boolean().optional(),
       reason: reason.optional().default("Dealership details saved."),
@@ -76,8 +79,13 @@ export async function saveDealer(actorId: string, input: unknown) {
       ...data,
       code: data.code ?? before?.code ?? `DLR-${randomUUID()}`,
       phone: data.phone ?? before?.phone ?? "",
+      email: data.email ?? before?.email ?? "",
+      billingAddress: data.streetAddress !== undefined
+        ? formatContactAddress(data)
+        : data.billingAddress ?? before?.billingAddress ?? "",
       active: data.active ?? before?.active ?? true,
     };
+    requireRule(saved.billingAddress.trim().length > 0, "Enter a billing address.");
     requireRule(
       !(await tx.dealership.count({
         where: { code: saved.code, ...(key ? { id: { not: key } } : {}) },
@@ -277,12 +285,14 @@ export async function createInvoice(actorId: string, input: unknown) {
           name: dealer.name,
           billingAddress: dealer.billingAddress,
           phone: dealer.phone,
-          contacts: dealer.contacts.map((c) => ({
+          contacts: [...dealer.contacts.map((c) => ({
             name: c.name,
             email: c.email,
             phone: c.phone,
             purpose: c.purpose,
-          })),
+          })), ...(dealer.email && !dealer.contacts.some((c) => c.email.toLowerCase() === dealer.email.toLowerCase())
+            ? [{ name: dealer.name, email: dealer.email, phone: dealer.phone, purpose: "Billing" }]
+            : [])],
           termsDays: dealer.termsDays,
           defaultRateCents: dealer.defaultRateCents,
           taxBps: dealer.taxBps,
@@ -538,6 +548,7 @@ export async function dealerOverview(actorId: string, query = "", scope: "active
             OR: [
               { name: { contains: search, mode: "insensitive" } },
               { phone: { contains: search, mode: "insensitive" } },
+              { email: { contains: search, mode: "insensitive" } },
               { contacts: { some: { active: true, OR: [
                 { name: { contains: search, mode: "insensitive" } },
                 { email: { contains: search, mode: "insensitive" } },

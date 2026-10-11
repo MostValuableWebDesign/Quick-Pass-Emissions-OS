@@ -112,12 +112,16 @@ export default async function Reminders() {
         title="Events & reminders"
         description="Schedule a personal event with an in-app alert. Times use Eastern Time."
       />
-      <section className="card card-body">
-        <h2>Add an event or reminder</h2>
-        <ActionForm action={createPersonalReminderAction} submit="Save reminder">
-          <ReminderFields />
-        </ActionForm>
-      </section>
+      <details className="card dealership-add-card">
+        <summary className="button button-primary dealership-add-toggle">
+          <span>Add reminder</span>
+        </summary>
+        <div className="card-body">
+          <ActionForm action={createPersonalReminderAction} submit="Save reminder">
+            <ReminderFields />
+          </ActionForm>
+        </div>
+      </details>
       <section className="card">
         <div className="card-heading">
           <h2>Your events & reminders</h2>

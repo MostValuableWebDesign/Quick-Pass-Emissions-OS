@@ -2,6 +2,7 @@ import { parse, type DefaultTreeAdapterMap } from "parse5";
 import { businessDate } from "@/lib/time";
 import { BusinessError } from "../phase2";
 import { parseReport } from "./report";
+import { reportMinute } from "./inspection-cadence";
 import { range } from "./report";
 import type { PortalDay, Counts } from "./dashboard-types";
 
@@ -237,7 +238,7 @@ export async function portalRangeDays(
   try {
     const { page } = await portalSearch(start, config, session, end);
     if (portalExplicitEmpty(page.html, start, end, config.station))
-      return start === end ? [{ date: start, ...blankCounts(), inspectors: [], retrievedAt: new Date().toISOString(), verifiedEmpty: true }] : [];
+      return start === end ? [{ date: start, ...blankCounts(), inspectors: [], testTimes: [], retrievedAt: new Date().toISOString(), verifiedEmpty: true }] : [];
     const expected = expectedPortalTotal(page.html);
     const form = portalForm(page.html);
     const exportButton = portalElements(form.document, "input")
@@ -261,7 +262,7 @@ export async function portalRangeDays(
     for (const row of report.rows) {
       let day = days.get(row.businessDate);
       if (!day) {
-        day = { date: row.businessDate, ...blankCounts(), inspectors: [], retrievedAt, verifiedEmpty: false };
+        day = { date: row.businessDate, ...blankCounts(), inspectors: [], testTimes: [], retrievedAt, verifiedEmpty: false };
         days.set(row.businessDate, day);
       }
       let inspector = day.inspectors.find((g) => g.inspector === row.inspector);
@@ -276,6 +277,7 @@ export async function portalRangeDays(
         aggregate.total++;
         aggregate[key]++;
       }
+      day.testTimes!.push({ inspector: row.inspector, minute: reportMinute(row.sourceDate) });
     }
     // Missing dates are not invented zeros. Explicit empty-day responses are verified separately.
     return [...days.values()].sort((a, b) => a.date.localeCompare(b.date));

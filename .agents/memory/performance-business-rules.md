@@ -34,3 +34,9 @@ All headline panels must reflect the selected day or range, including cars, outc
 **Why:** The user explicitly clarified that only the selected date's figures should appear in the panel; a simultaneous today count was misleading.
 
 **How to apply:** Keep the panel date label and every metric on the same selection and employee filter. Preserve daily shop-wide commission rules when summing a range.
+
+Inspection speed is a report-based interval estimate, not measured start-to-finish duration. The user requested time differences between back-to-back tests for employee stats and an overall headline.
+
+**Why:** The provider export has minute-precision test timestamps, not verified inspection start/end times. A gap may include waiting or a break.
+
+**How to apply:** Compare within the same employee and business date, never overnight or across employees. Pool intervals for an overall mean, label the estimate and timing coverage, and do not silently invent an idle-gap cutoff.

@@ -1,8 +1,20 @@
 import { expect, test } from "@playwright/test";
+import { mkdir } from "node:fs/promises";
+import path from "node:path";
 
 test("signed-in owner can drag, resize, persist and reset performance panels", async ({ page }) => {
   await page.goto("/performance");
   await expect(page.getByRole("heading", { name: "Performance" })).toBeVisible();
+  await expect(page.getByTestId("text-inspection-interval")).toHaveText("5.8 min");
+  await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20One")).toContainText("5.0 min");
+  await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20Two")).toContainText("8.0 min");
+  await page.getByTestId("button-sort-inspectionCadence").click();
+  await expect(page.locator(".pd-table tbody tr").first()).toContainText("Fixture Two");
+  await page.getByTestId("button-sort-inspectionCadence").click();
+  await expect(page.locator(".pd-table tbody tr").first()).toContainText("Fixture One");
+  const screenshotDir = path.resolve("../../generated-artifacts/performance-inspection");
+  await mkdir(screenshotDir, { recursive: true });
+  await page.screenshot({ path: path.join(screenshotDir, "performance-interval.jpg"), fullPage: true });
 
   await page.getByTestId("button-reset-panel-layout").click();
   const trend = page.getByTestId("panel-trend");

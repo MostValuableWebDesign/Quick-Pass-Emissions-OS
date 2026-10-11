@@ -11,7 +11,10 @@ export type PortalDay = Counts & {
   inspectors: (Counts & { inspector: string })[];
   /** An explicit provider empty response, not an absence inferred from an import. */
   verifiedEmpty: boolean;
+  /** Source-local minute precision; absent in legacy count-only caches. */
+  testTimes?: { inspector: string; minute: number | null }[];
 };
+export type InspectionCadence = { averageMinutes: number | null; intervals: number; coveredDays: number };
 export type DashboardQuery = {
   start: string;
   end: string;
@@ -50,12 +53,14 @@ export type DashboardEmployee = {
   commissionCents: number | null;
   payCents: number | null;
   approximate: boolean;
+  inspectionCadence: InspectionCadence;
 };
 export type DashboardData = {
   query: DashboardQuery;
   today: string;
   current: (Counts & { date: string; retrievedAt: string }) | null;
   summary: {
+    inspectionCadence: InspectionCadence;
     cars: number | null;
     revenueCents: number | null;
     baseCents: number | null;
@@ -81,6 +86,7 @@ export type DashboardData = {
   payPlan: PayPlan;
   missingDates: string[];
   staleDates: string[];
+  timingMissingDates: string[];
   syncedAt: string | null;
   error?: string;
 };

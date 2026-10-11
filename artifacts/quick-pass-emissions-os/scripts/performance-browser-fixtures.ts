@@ -23,6 +23,10 @@ export async function performanceBrowserFixtures(db: PrismaClient, ownerId: stri
     details: {
       date, total: 95, passed: 75, failed: 18, aborted: 2, other: 0,
       retrievedAt: new Date().toISOString(), verifiedEmpty: false,
+      testTimes: [
+        ...Array.from({ length: 70 }, (_, i) => ({ inspector: "Fixture One", minute: 540 + i * 5 })),
+        ...Array.from({ length: 25 }, (_, i) => ({ inspector: "Fixture Two", minute: 540 + i * 8 })),
+      ],
       inspectors: [
         { inspector: "Fixture One", total: 70, passed: 55, failed: 13, aborted: 2, other: 0 },
         { inspector: "Fixture Two", total: 25, passed: 20, failed: 5, aborted: 0, other: 0 },

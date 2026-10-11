@@ -17,6 +17,10 @@ const inspector = z.object({ inspector: z.string().trim().min(1).max(160), ...co
 export const dashboardDaySchema = z.object({
   date: dateString, ...counts, retrievedAt: z.string().datetime(),
   inspectors: z.array(inspector).max(1000), verifiedEmpty: z.boolean(),
+  testTimes: z.array(z.object({
+    inspector: z.string().trim().min(1).max(160),
+    minute: z.number().int().min(0).max(1439).nullable(),
+  })).max(10000).optional(),
 }).refine((d) =>
   d.total === d.passed + d.failed + d.aborted + d.other &&
   d.total === d.inspectors.reduce((n, i) => n + i.total, 0) &&
@@ -24,7 +28,9 @@ export const dashboardDaySchema = z.object({
   d.inspectors.every((i) => i.total === i.passed + i.failed + i.aborted + i.other) &&
   ["passed", "failed", "aborted", "other"].every((field) =>
     d[field as keyof typeof counts] === d.inspectors.reduce((n, i) => n + i[field as keyof typeof counts], 0)) &&
-  (d.total > 0 ? !d.verifiedEmpty : d.verifiedEmpty),
+  (d.total > 0 ? !d.verifiedEmpty : d.verifiedEmpty) &&
+  (!d.testTimes || (d.testTimes.length === d.total &&
+    d.inspectors.every((i) => d.testTimes!.filter((t) => t.inspector === i.inspector).length === i.total))),
 );
 const weekdays = z.array(z.number().int().min(1).max(7)).max(7)
   .refine((days) => new Set(days).size === days.length);
@@ -138,7 +144,7 @@ export async function loadDashboard(actorId: string, input: unknown, refresh = f
   const initial = await readDashboard(actorId, query);
   // Continue a bounded partial backfill before re-fetching already cached days.
   const needed = refresh && initial.missingDates.length === 0 ? dashboardDates(query, initial.today) :
-    [...initial.missingDates, ...initial.staleDates];
+    [...initial.missingDates, ...initial.staleDates, ...initial.timingMissingDates];
   if (!needed.length) return initial;
   const config = stationConfig();
   const allowed = await stationTransaction(actorId, async (tx, hash) => {

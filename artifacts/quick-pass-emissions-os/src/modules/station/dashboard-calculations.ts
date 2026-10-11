@@ -1,5 +1,6 @@
 import { Temporal } from "@js-temporal/polyfill";
 import { addDays } from "@/lib/time";
+import { inspectionCadence } from "./inspection-cadence";
 import type {
   Counts, DashboardData, DashboardEmployee, DashboardQuery, PayPlan, PayProfile, PortalDay,
 } from "./dashboard-types";
@@ -67,6 +68,7 @@ export function buildDashboard(
 ): DashboardData {
   const byDate = new Map(snapshots.map((d) => [d.date, d]));
   const selectedDates = calendarDays(query.start, query.end);
+  const selectedSnapshots = snapshots.filter((d) => selectedDates.includes(d.date));
   const selectedComplete = selectedDates.every((d) => byDate.has(d));
   const needed = dashboardDates(query, today);
   const allInspectors = [...new Set(snapshots.flatMap((d) => d.inspectors.map((i) => i.inspector)))].sort();
@@ -91,6 +93,7 @@ export function buildDashboard(
       revenueCents: testsKnown ? daily.reduce((n, d) => n + ((d.count?.passed ?? 0) + (d.count?.failed ?? 0)) * TEST_PRICE_CENTS, 0) : null,
       baseCents, commissionCents, payCents: nullableSum([baseCents, commissionCents]),
       approximate: profile.approximate || daily.some((d) => d.estimatedHours),
+      inspectionCadence: inspectionCadence(selectedSnapshots, profile.inspector),
     };
   });
   for (const inspector of allInspectors) {
@@ -108,6 +111,7 @@ export function buildDashboard(
       baseCents: null, commissionCents: selectedDates.every((d) => byDate.has(d)) ?
         days.reduce((n, d) => n + commission(d.day.total), 0) : null,
       payCents: null, approximate: true,
+      inspectionCadence: inspectionCadence(selectedSnapshots, inspector),
     });
   }
   const employeeOptions = rows.map(({ id, name }) => ({ id, name }));
@@ -150,6 +154,7 @@ export function buildDashboard(
   return {
     query, today, current: current ? { ...current, date: today } : null,
     summary: {
+      inspectionCadence: inspectionCadence(selectedSnapshots, query.employee ? selectedInspector ?? null : undefined),
       cars: complete && (!query.employee || selected[0]?.cars !== null) ? totals.total : null,
       revenueCents: complete && (!query.employee || selected[0]?.revenueCents !== null) ?
         (totals.passed + totals.failed) * TEST_PRICE_CENTS : null,
@@ -159,6 +164,7 @@ export function buildDashboard(
     },
     series, employees: selected, employeeOptions, inspectors: allInspectors, payPlan,
     missingDates: needed.filter((d) => !byDate.has(d)), staleDates: [],
+    timingMissingDates: selectedSnapshots.filter((d) => d.total > 0 && !d.testTimes).map((d) => d.date),
     syncedAt: snapshots.length ? snapshots.map((d) => d.retrievedAt).sort().at(-1)! : null,
   };
 }

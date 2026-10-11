@@ -11,7 +11,7 @@ import { PerformanceTrend } from "./performance-dashboard-trend";
 import { EmployeeTable } from "./performance-dashboard-employees";
 import { PerformanceCalendar } from "./performance-calendar";
 import { PayPlanDialog } from "./performance-dashboard-pay";
-import { instant, longDate, num, usd } from "./performance-dashboard-format";
+import { instant, longDate, num, usd, inspectionTime } from "./performance-dashboard-format";
 import { PerformanceDashboardPanels, usePerformanceDashboardLayout } from "./performance-dashboard-panels";
 import type { DashboardPanelId } from "./performance-dashboard-layout";
 
@@ -148,6 +148,11 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
             <span className="lab">Revenue (est.)</span>
             <strong data-testid="text-revenue">{usd(s.revenueCents, true)}</strong>
             <small>$20 per pass or fail</small>
+          </div>
+          <div className="pd-kpi" title="Mean gap between consecutive same-employee tests within each day. Includes daytime pauses; report timestamps have minute precision, not measured inspection durations.">
+            <span className="lab">Avg. inspection interval (est.)</span>
+            <strong data-testid="text-inspection-interval">{inspectionTime(s.inspectionCadence.averageMinutes)}</strong>
+            <small>{s.inspectionCadence.intervals} intervals · {s.inspectionCadence.coveredDays}/{s.expectedDays} timing days · includes pauses</small>
           </div>
           <div className="pd-kpi">
             <span className="lab">Staff pay (est.)</span>

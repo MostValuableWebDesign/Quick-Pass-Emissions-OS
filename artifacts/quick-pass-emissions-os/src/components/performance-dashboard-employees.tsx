@@ -3,13 +3,14 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import type { DashboardEmployee, PayProfile } from "@/modules/station/dashboard-types";
-import { usd, num } from "./performance-dashboard-format";
+import { usd, num, inspectionTime } from "./performance-dashboard-format";
 
-type Key = "name" | "cars" | "workingDays" | "revenueCents" | "baseCents" | "commissionCents" | "payCents";
+type Key = "name" | "cars" | "workingDays" | "inspectionCadence" | "revenueCents" | "baseCents" | "commissionCents" | "payCents";
 const COLS: [Key, string, boolean][] = [
   ["name", "Employee", false],
   ["cars", "Cars", true],
   ["workingDays", "Days", true],
+  ["inspectionCadence", "Avg. interval (est.)", true],
   ["revenueCents", "Revenue", true],
   ["baseCents", "Base", true],
   ["commissionCents", "Commission", true],
@@ -28,8 +29,8 @@ export function EmployeeTable({ employees, profiles = [], panelActions }: { empl
       (e) => !t || e.name.toLowerCase().includes(t) || (e.inspector ?? "").toLowerCase().includes(t),
     );
     return [...list].sort((a, b) => {
-      const x = a[sort.key];
-      const y = b[sort.key];
+      const x = sort.key === "inspectionCadence" ? a.inspectionCadence.averageMinutes : a[sort.key];
+      const y = sort.key === "inspectionCadence" ? b.inspectionCadence.averageMinutes : b[sort.key];
       if (x === null && y === null) return 0;
       if (x === null) return 1;
       if (y === null) return -1;
@@ -41,6 +42,9 @@ export function EmployeeTable({ employees, profiles = [], panelActions }: { empl
     setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: key === "name" ? 1 : -1 }));
   const cars = sumKnown(rows, "cars");
   const rev = sumKnown(rows, "revenueCents");
+  const intervals = rows.reduce((sum, row) => sum + row.inspectionCadence.intervals, 0);
+  const averageMinutes = intervals ? rows.reduce((sum, row) =>
+    sum + (row.inspectionCadence.averageMinutes ?? 0) * row.inspectionCadence.intervals, 0) / intervals : null;
 
   return (
     <section className="pd-card" aria-label="Employees">
@@ -90,6 +94,10 @@ export function EmployeeTable({ employees, profiles = [], panelActions }: { empl
                     {e.cars !== null && <div className="pd-bar"><span style={{ transform: `scaleX(${e.cars / maxCars})` }} /></div>}
                   </td>
                   <td className="r">{e.workingDays ?? "—"}</td>
+                  <td className="r" data-testid={`text-employee-interval-${e.id}`} title="Same-day gaps between this employee's tests, including daytime pauses. Not measured inspection duration.">
+                    {inspectionTime(e.inspectionCadence.averageMinutes)}
+                    <small>{e.inspectionCadence.intervals} intervals · {e.inspectionCadence.coveredDays} timing days</small>
+                  </td>
                   <td className="r">{usd(e.revenueCents)}</td>
                   <td className="r">
                     {e.baseCents === null ? <span className="pd-unknown">{dailyBase !== null ? "Days unconfirmed" : "Unknown"}</span> : usd(e.baseCents)}
@@ -111,6 +119,7 @@ export function EmployeeTable({ employees, profiles = [], panelActions }: { empl
                 <td>Total ({rows.length})</td>
                 <td className="r">{num(cars)}</td>
                 <td />
+                <td className="r">{inspectionTime(averageMinutes)}<small>{intervals} intervals</small></td>
                 <td className="r">{usd(rev)}</td>
                 <td className="r">{usd(sumKnown(rows, "baseCents"))}</td>
                 <td className="r">{usd(sumKnown(rows, "commissionCents"))}</td>

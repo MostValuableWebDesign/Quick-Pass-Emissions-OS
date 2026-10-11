@@ -137,12 +137,21 @@ describe("Business dashboard presentation", () => {
     expect(html).not.toContain("Portal balance");
     expect(html).toContain('data-testid="button-dashboard-refresh"');
   });
-  it("shows the last-updated timestamp on every dashboard panel", async () => {
+  it("shows timestamps on dashboard panels but not quick actions", async () => {
     const html = await render();
-    expect((html.match(/class="dashboard-panel-updated"/g) ?? []).length).toBe(9);
+    expect((html.match(/class="dashboard-panel-updated"/g) ?? []).length).toBe(4);
     expect(html).toContain('dateTime="2026-10-10T13:00:00.000Z"');
     expect(html).toContain("Last updated");
     expect(html).toContain("EDT");
+    const quickActions = html.slice(html.indexOf("Quick actions"));
+    expect(quickActions).not.toContain("dashboard-panel-updated");
+    expect(quickActions).not.toContain("Last updated");
+    const needsAttention = html.slice(
+      html.indexOf('class="card business-attention"'),
+      html.indexOf('id="quick-actions-heading"'),
+    );
+    expect(needsAttention).not.toContain("dashboard-panel-updated");
+    expect(needsAttention).not.toContain("Last updated");
   });
   it("offers ordinary management shortcuts and preserves the owner-only Performance boundary", async () => {
     const data = fixture();

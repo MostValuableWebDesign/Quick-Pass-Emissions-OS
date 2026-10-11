@@ -241,7 +241,6 @@ export default async function Dashboard({
               {data.attention.length} unresolved items · critical first, then overdue/reorder, then
               upcoming
             </p>
-            <DashboardLastUpdated at={dashboardUpdatedAt} />
           </div>
           <span className={`badge ${data.attention.length ? "amber" : "green"}`}>
             {data.attention.length} open
@@ -311,7 +310,6 @@ export default async function Dashboard({
         <div className="dashboard-quick-actions">
           <div className="dashboard-shortcut dashboard-shortcut--certificates">
             <CertificateOrderLink role={data.role} compact />
-            <DashboardLastUpdated at={dashboardUpdatedAt} />
           </div>
           <div className="dashboard-shortcut dashboard-shortcut--support">
             <Link className="button" href="/vendors">
@@ -320,14 +318,12 @@ export default async function Dashboard({
             <p className="muted">
               Choose the right provider and use their verified contact details.
             </p>
-            <DashboardLastUpdated at={dashboardUpdatedAt} />
           </div>
           <div className="dashboard-shortcut dashboard-shortcut--payroll">
             <Link className="button" href="/payroll">
               <Wallet size={17} aria-hidden="true" /> Review payroll
             </Link>
             <p className="muted">Review employee pay, commissions and missing inputs.</p>
-            <DashboardLastUpdated at={dashboardUpdatedAt} />
           </div>
           <div className="dashboard-shortcut dashboard-shortcut--performance">
             {data.role === "OWNER" ? (
@@ -340,7 +336,6 @@ export default async function Dashboard({
               </span>
             )}
             <p className="muted">View emission volume, revenue trends and pay evidence.</p>
-            <DashboardLastUpdated at={dashboardUpdatedAt} />
           </div>
         </div>
       </section>

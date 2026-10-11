@@ -234,9 +234,26 @@ svg {
 .nav-group + .nav-group {
   border-top: 1px solid var(--nav-line);
 }
+.nav-group[data-nav-section="settings"] {
+  margin-bottom: 16px;
+}
+.nav-link-child {
+  margin-left: 12px;
+  width: calc(100% - 12px);
+  min-height: 38px;
+  padding-left: 13px;
+  font-size: 12px;
+}
+.nav-link-settings-root {
+  margin-bottom: 9px;
+}
 .collapsed .nav-group + .nav-group {
   margin-top: 8px;
   padding-top: 8px;
+}
+.collapsed .nav-link-child {
+  margin-left: 0;
+  width: 100%;
 }
 .nav-link {
   display: flex;

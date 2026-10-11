@@ -22,7 +22,7 @@ test("station report → explicit identity → coverage → count replacement, w
   await page.goto("/performance");
   await expect(page.getByRole("heading", { name: "Station performance" })).toBeVisible();
   await expect(page.getByText(/Insufficient data/, { exact: false }).first()).toBeVisible();
-  await page.goto(`/performance/settings?date=${s.date}`);
+  await page.goto(`/settings/station-data?date=${s.date}`);
   await expect(page.getByRole("heading", { name: "Station settings" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Issued By mappings" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Outcome rules & prices" })).toHaveCount(0);
@@ -54,7 +54,7 @@ test("station report → explicit identity → coverage → count replacement, w
     .fill("Synthetic distinct test and retail fee exception confirmed");
   await review.getByRole("button").click();
   await expect(review.getByRole("status")).toContainText("Saved");
-  await page.goto(`/performance/settings?date=${s.date}`);
+  await page.goto(`/settings/station-data?date=${s.date}`);
   const coverage = page
     .locator("form")
     .filter({ has: page.locator('input[name="expectedRows"]') })
@@ -101,6 +101,8 @@ test("station pages, evidence and export deny employee/admin/bookkeeper and expi
       const page = await context.newPage();
       await page.goto("/performance");
       await expect(page).not.toHaveURL(/\/performance$/);
+      await page.goto("/settings/station-data");
+      await expect(page).not.toHaveURL(/\/settings\/station-data$/);
       await page.goto("/performance/settings");
       await expect(page).not.toHaveURL(/\/performance\/settings$/);
       await page.goto("/performance/tests/not-real");

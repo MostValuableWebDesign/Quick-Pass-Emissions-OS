@@ -207,7 +207,7 @@ export function Shell({
           </div>
           <nav aria-label="Main navigation" className="primary-nav">
             {sections.map((section) => (
-              <div className="nav-group" key={section.id}>
+              <div className="nav-group" data-nav-section={section.id} key={section.id}>
                 <p className="nav-caption nav-label" id={`nav-${section.id}`}>
                   {section.label.toUpperCase()}
                 </p>
@@ -216,10 +216,17 @@ export function Shell({
                     const Icon = ICONS[item.icon];
                     const current = item.href === active;
                     return (
-                      <li key={item.href}>
+                      <li className={item.parent ? "nav-subitem" : undefined} key={item.href}>
                         <Link
                           title={collapsed ? item.label : undefined}
-                          className={current ? "nav-link active" : "nav-link"}
+                          className={[
+                            "nav-link",
+                            current ? "active" : "",
+                            item.parent ? "nav-link-child" : "",
+                            item.href === "/settings" ? "nav-link-settings-root" : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
                           aria-current={current ? "page" : undefined}
                           href={item.href}
                           onClick={() => setMobileOpen(false)}

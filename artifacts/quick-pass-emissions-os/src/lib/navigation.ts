@@ -40,7 +40,13 @@ export type IconKey =
   | "shield"
   | "map";
 
-export type NavItem = { href: string; label: string; icon: IconKey; roles: readonly NavRole[] };
+export type NavItem = {
+  href: string;
+  label: string;
+  icon: IconKey;
+  roles: readonly NavRole[];
+  parent?: string;
+};
 export type NavSection = { id: string; label: string; items: NavItem[] };
 
 export const NAV_SECTIONS: NavSection[] = [
@@ -95,9 +101,22 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "settings",
     label: "Settings",
     items: [
+      { href: "/settings", label: "Settings", icon: "settings", roles: MANAGERS },
+      {
+        href: "/settings/account",
+        label: "Account & password",
+        icon: "shield",
+        roles: ALL,
+        parent: "/settings",
+      },
+      {
+        href: "/settings/station-data",
+        label: "Station data",
+        icon: "archive",
+        roles: OWNER_ONLY,
+        parent: "/settings",
+      },
       { href: "/automation", label: "Automation", icon: "automation", roles: OWNER_ONLY },
-      { href: "/settings", label: "Settings & audit", icon: "settings", roles: MANAGERS },
-      { href: "/account/password", label: "Account & password", icon: "shield", roles: ALL },
     ],
   },
 ];
@@ -133,6 +152,7 @@ const navDefs: RouteDef[] = NAV_SECTIONS.flatMap((s) =>
     title: i.label,
     section: s.label,
     navHref: i.href,
+    parent: i.parent,
     roles: i.roles,
   })),
 );
@@ -209,7 +229,6 @@ export const ROUTES: RouteDef[] = [
   detail("/invoices/:id", "Invoice", "/invoices", FINANCE),
   detail("/rentals/:id", "Rental agreement", "/rentals", FINANCE),
   detail("/summaries/:id", "Summary", "/summaries", OWNER_ONLY),
-  detail("/performance/settings", "Performance setup", "/performance", OWNER_ONLY),
   detail("/performance/tests/:id", "Station test evidence", "/performance", OWNER_ONLY),
 ];
 

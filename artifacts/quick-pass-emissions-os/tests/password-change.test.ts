@@ -137,13 +137,13 @@ suite("Isolated authenticated password changes", () => {
       const accountBefore = await db.account.findFirstOrThrow({ where: { userId: other.id } });
 
       const wrong = await form(initialCookie, { currentPassword: wrongPassword });
-      expect(wrong.headers.get("location")).toBe("/account/password?error=current");
+      expect(wrong.headers.get("location")).toBe("/settings/account?error=current");
       expect(await db.auditLog.count({ where: { actorId: user.id } })).toBe(0);
       expect(await session(initialCookie)).toBe(user.id);
 
       const result = await form(initialCookie);
       expect(result.status).toBe(303);
-      expect(result.headers.get("location")).toBe("/account/password?changed=1");
+      expect(result.headers.get("location")).toBe("/settings/account?changed=1");
       expect(await session(initialCookie)).toBeNull();
       expect(await session(otherCookie)).toBeNull();
       expect(await session(cookies(result))).toBe(user.id);
@@ -186,7 +186,7 @@ suite("Isolated authenticated password changes", () => {
       expect(result.ok).toBe(false);
     }
     expect((await form(cookie, {}, "https://attacker.example.test")).headers.get("location")).toBe(
-      "/account/password?error=security",
+      "/settings/account?error=security",
     );
     expect(await db.auditLog.count({ where: { actorId: user.id } })).toBe(0);
   });
@@ -195,7 +195,7 @@ suite("Isolated authenticated password changes", () => {
     const user = await fixture("ADMIN");
     const cookie = cookies(await login(user.email));
     await db.user.update({ where: { id: user.id }, data: { active: false } });
-    expect((await form(cookie)).headers.get("location")).toBe("/account/password?error=security");
+    expect((await form(cookie)).headers.get("location")).toBe("/settings/account?error=security");
     expect(
       (
         await call(
@@ -223,7 +223,7 @@ suite("Isolated authenticated password changes", () => {
     ];
     for (const overrides of cases) {
       expect((await form(cookie, overrides)).headers.get("location")).toBe(
-        "/account/password?error=validation",
+        "/settings/account?error=validation",
       );
     }
     for (const value of ["x".repeat(11), "x".repeat(129)]) {
@@ -276,17 +276,17 @@ suite("Isolated authenticated password changes", () => {
     const cookie = cookies(await login(user.email));
     for (let attempt = 0; attempt < 5; attempt++) {
       expect((await form(cookie, { currentPassword: wrongPassword })).headers.get("location")).toBe(
-        "/account/password?error=current",
+        "/settings/account?error=current",
       );
     }
-    expect((await form(cookie)).headers.get("location")).toBe("/account/password?error=rate_limit");
+    expect((await form(cookie)).headers.get("location")).toBe("/settings/account?error=rate_limit");
     expect(await db.auditLog.count({ where: { actorId: user.id } })).toBe(0);
   });
 });
 
 describe("Credential form safety", () => {
   it("renders a native POST form and checks the active user server-side", () => {
-    const source = readFileSync(path.resolve("src/app/(app)/account/password/page.tsx"), "utf8");
+    const source = readFileSync(path.resolve("src/app/(app)/settings/account/page.tsx"), "utf8");
     expect(source.includes('method="post"')).toBe(true);
     expect(source.includes('action="/api/auth/change-own-password"')).toBe(true);
     expect(source.includes("await currentUser()")).toBe(true);

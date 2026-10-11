@@ -4,7 +4,6 @@ import { formatDate } from "@/lib/time";
 import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { removeClosure, saveClosure, saveSettings } from "@/app/actions";
-import { storageStatus } from "@/modules/storage/service";
 import Link from "next/link";
 import { saveCertificateAlertThresholdAction } from "@/app/certificate-portal-actions";
 import { readCertificatePortalStatus } from "@/modules/certificates/portal";
@@ -13,7 +12,6 @@ export default async function Settings() {
   const actor = await manager();
   const certStatus =
     actor.role === "OWNER" ? await readCertificatePortalStatus().catch(() => null) : null;
-  const storage = actor.role === "OWNER" ? await storageStatus(actor.id) : null;
   const [settings, closures, audit] = await Promise.all([
     db.businessSetting.findUnique({ where: { id: "business" } }),
     db.closure.findMany({ orderBy: { date: "asc" } }),
@@ -26,59 +24,22 @@ export default async function Settings() {
   return (
     <>
       <PageHeader
-        title="Business settings & accountability"
-        description="Manage Business operating days, separate Emissions station settings, closures, and the audit trail."
+        title="Settings"
+        description="Manage business operations, Emissions station data, and recent activity."
       />
-      {storage && (
-        <section className="card card-body">
-          <p>
-            <Link href="/settings/import">
-              Business configuration import & unresolved decisions
+      <section className="settings-group">
+        <div className="settings-group-heading">
+          <div>
+            <h2>Business operations</h2>
+            <p className="muted">Operating days, planned closures, and business configuration.</p>
+          </div>
+          {actor.role === "OWNER" && (
+            <Link className="button button-outline button-sm" href="/settings/import">
+              Import configuration
             </Link>
-          </p>
-          <h2>Data storage & recovery</h2>
-          <p>
-            Saved records are kept in PostgreSQL, separately from application builds. Restarting or
-            updating this app keeps your saved data when it uses the same database.
-          </p>
-          <p className="muted">
-            Storage ID: <code className="audit-details">{storage.instanceId}</code>
-          </p>
-          <p>
-            {storage.employees} employee profiles · {storage.tasks} responsibilities ·{" "}
-            {storage.auditEntries} audit entries
-          </p>
-          <p className="muted">
-            Replit preview and the published app can use separate databases. If records appear
-            missing, compare this storage ID with your earlier record and check which database is
-            connected. Backups and database recovery are configured separately by your
-            administrator.
-          </p>
-        </section>
-      )}
-      {actor.role === "OWNER" && (
-        <section className="card card-body space-top">
-          <h2>Low certificate alert</h2>
-          <p className="muted">
-            Show a banner across the app when the provider portal balance falls below this number.
-          </p>
-          <ActionForm action={saveCertificateAlertThresholdAction} submit="Save alert threshold">
-            <Field label="Alert when portal balance is below">
-              <input
-                name="threshold"
-                type="number"
-                min="0"
-                max="1000000"
-                step="1"
-                required
-                defaultValue={certStatus?.threshold ?? 30}
-              />
-            </Field>
-          </ActionForm>
-        </section>
-      )}
-      <div className={actor.role === "OWNER" ? "two-columns space-top" : "space-top"}>
-        <div className="stack">
+          )}
+        </div>
+        <div className="two-columns settings-card-grid">
           <section className="card card-body">
             <h2>Business operating days</h2>
             <p className="muted">
@@ -138,44 +99,87 @@ export default async function Settings() {
             ))}
           </section>
         </div>
-        {actor.role === "OWNER" && <StationSettingsPanel actorId={actor.id} />}
-      </div>
-      <section className="card space-top">
-        <div className="card-heading">
-          <h2>Audit history</h2>
-          <span className="muted">Latest 50 actions</span>
+      </section>
+      {actor.role === "OWNER" && (
+        <section className="settings-group">
+          <div className="settings-group-heading">
+            <div>
+              <h2>Emissions & certificates</h2>
+              <p className="muted">Station reporting hours and low-certificate alerts.</p>
+            </div>
+          </div>
+          <div className="two-columns settings-card-grid">
+            <section className="card card-body">
+              <h2>Low certificate alert</h2>
+              <p className="muted">
+                Show a banner across the app when the provider portal balance falls below this
+                number.
+              </p>
+              <ActionForm
+                action={saveCertificateAlertThresholdAction}
+                submit="Save alert threshold"
+              >
+                <Field label="Alert when portal balance is below">
+                  <input
+                    name="threshold"
+                    type="number"
+                    min="0"
+                    max="1000000"
+                    step="1"
+                    required
+                    defaultValue={certStatus?.threshold ?? 30}
+                  />
+                </Field>
+              </ActionForm>
+            </section>
+            <StationSettingsPanel actorId={actor.id} />
+          </div>
+        </section>
+      )}
+      <section className="settings-group">
+        <div className="settings-group-heading">
+          <div>
+            <h2>Recent activity</h2>
+            <p className="muted">Latest 50 changes made in this workspace.</p>
+          </div>
         </div>
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>When · Eastern</th>
-                <th>Who</th>
-                <th>Action</th>
-                <th>Record / details</th>
-              </tr>
-            </thead>
-            <tbody>
-              {audit.map((a) => (
-                <tr key={a.id}>
-                  <td className="nowrap">{formatDate(a.createdAt)}</td>
-                  <td>{a.actor?.name ?? "System"}</td>
-                  <td>{a.action.toLowerCase().replaceAll("_", " ")}</td>
-                  <td>
-                    <details>
-                      <summary>View record</summary>
-                      <code className="audit-details">
-                        {a.entityId}
-                        <br />
-                        {JSON.stringify(a.details)}
-                      </code>
-                    </details>
-                  </td>
+        <section className="card">
+          <div className="card-heading">
+            <h2>Audit history</h2>
+            <span className="muted">Latest 50 actions</span>
+          </div>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>When · Eastern</th>
+                  <th>Who</th>
+                  <th>Action</th>
+                  <th>Record / details</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {audit.map((a) => (
+                  <tr key={a.id}>
+                    <td className="nowrap">{formatDate(a.createdAt)}</td>
+                    <td>{a.actor?.name ?? "System"}</td>
+                    <td>{a.action.toLowerCase().replaceAll("_", " ")}</td>
+                    <td>
+                      <details>
+                        <summary>View record</summary>
+                        <code className="audit-details">
+                          {a.entityId}
+                          <br />
+                          {JSON.stringify(a.details)}
+                        </code>
+                      </details>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </section>
     </>
   );

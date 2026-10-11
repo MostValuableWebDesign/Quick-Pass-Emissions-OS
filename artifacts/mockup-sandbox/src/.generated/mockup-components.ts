@@ -9,5 +9,7 @@ export const modules: ModuleMap = {
   "./components/mockups/performance-redesign/performance-dashboard-employees.tsx": () => import("../components/mockups/performance-redesign/performance-dashboard-employees.tsx"),
   "./components/mockups/performance-redesign/performance-dashboard-pay.tsx": () => import("../components/mockups/performance-redesign/performance-dashboard-pay.tsx"),
   "./components/mockups/performance-redesign/performance-dashboard-trend.tsx": () => import("../components/mockups/performance-redesign/performance-dashboard-trend.tsx"),
-  "./components/mockups/performance-redesign/performance-dashboard.tsx": () => import("../components/mockups/performance-redesign/performance-dashboard.tsx")
+  "./components/mockups/performance-redesign/performance-dashboard.tsx": () => import("../components/mockups/performance-redesign/performance-dashboard.tsx"),
+  "./components/mockups/quick-pass-login/Current.tsx": () => import("../components/mockups/quick-pass-login/Current.tsx"),
+  "./components/mockups/quick-pass-login/ServiceWelcome.tsx": () => import("../components/mockups/quick-pass-login/ServiceWelcome.tsx")
 };

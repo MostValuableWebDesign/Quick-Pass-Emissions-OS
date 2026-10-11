@@ -9,11 +9,11 @@ Performance revenue is estimated at $20 per Pass/Fail; aborts are excluded. Shop
 
 **How to apply:** Employee filtering may narrow personal tests/revenue/pay, but must never change the underlying shop-wide commission threshold. Keep these projections separate from reviewed identities and frozen/approved payroll.
 
-Retests are free tests and must not be counted as cars. Identify them by reading the individual VIR; the station test-history export alone cannot confirm a retest.
+The same VIN occurring within 30 days is a free retest and must not count as a car. A repeat VIN occurring more than 30 days later is a paid retest and must count as a car.
 
-**Why:** The user explicitly said retests are free and should not count as cars, and confirmed the VIR must be read to identify them.
+**Why:** The user supplied this VIN/date rule, superseding the earlier assumption that all retests are free and require reading the individual VIR.
 
-**How to apply:** Exclude only verified retests from car and paying-test totals. Do not infer retest status from the aggregate export alone.
+**How to apply:** Use VIN history and date differences to distinguish free from paid repeats. Include the preceding 30 days when classifying a selected date or range; missing historical coverage is not proof that a VIN has no qualifying earlier test. Exclude free retests from car and paying-test totals, not paid retests.
 
 Monday–Saturday are available workdays, while emissions staff normally work five ten-hour shifts. Individual days off were not specified; some actual hours vary.
 

@@ -13,7 +13,7 @@
   border-color: #7e8c78;
   border-radius: 13px;
   background: #f2f5ed;
-  color: var(--login-green);
+  color: var(--login-ink);
 }
 
 .login-professional .login-brand.qp-brand .login-wordmark-detail {
@@ -31,7 +31,7 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 19px;
-  color: var(--login-green);
+  color: var(--login-ink);
   font-size: 9px;
   letter-spacing: 2px;
 }
@@ -53,7 +53,7 @@
 }
 
 .login-professional .login-brand.qp-brand .qp-story h1 span {
-  color: var(--login-green);
+  color: var(--login-ink);
 }
 
 .login-professional .qp-greeting {

@@ -1,8 +1,8 @@
 .login-page.login-professional {
   --login-green: #306d29;
   --login-action: #306d29;
-  --login-ink: #0d530e;
-  --login-muted: #5b6856;
+  --login-ink: #29312d;
+  --login-muted: #626b65;
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
   gap: 24px;
@@ -61,7 +61,7 @@
 }
 .login-professional .login-kicker {
   margin-bottom: 25px;
-  color: var(--login-green);
+  color: var(--login-ink);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 2.3px;
@@ -73,7 +73,7 @@
   letter-spacing: -3.3px;
 }
 .login-professional .login-brand h1 span {
-  color: var(--login-green);
+  color: var(--login-ink);
 }
 .login-professional .login-brand .login-story-copy {
   max-width: 360px;
@@ -99,7 +99,7 @@
 }
 .login-business-areas dt span {
   margin-right: 14px;
-  color: var(--login-green);
+  color: var(--login-ink);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
@@ -133,7 +133,7 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 27px;
-  color: var(--login-green);
+  color: var(--login-ink);
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 1.5px;
@@ -177,10 +177,10 @@
   font-size: 13px;
 }
 .login-professional .field input:hover {
-  border-color: var(--login-green);
+  border-color: var(--login-ink);
 }
 .login-professional .field input:focus-visible {
-  border-color: var(--login-green);
+  border-color: var(--login-ink);
   outline: 2px solid var(--login-green);
   outline-offset: 3px;
 }

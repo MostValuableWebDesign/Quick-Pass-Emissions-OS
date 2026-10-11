@@ -29,7 +29,7 @@ test("workspace pages remain usable in light, dark, tablet and phone layouts", a
   await expect(page.locator("html")).toHaveClass(/light/);
   await expect(page.locator("body")).toHaveCSS("background-color", "rgb(250, 251, 248)");
   await expect(page.locator(".sidebar")).toHaveCSS("background-color", "rgb(252, 253, 251)");
-  await expect(page.locator("main#main h1").first()).toHaveCSS("color", "rgb(13, 83, 14)");
+  await expect(page.locator("main#main h1").first()).toHaveCSS("color", "rgb(41, 49, 45)");
   await expect(page.locator(".nav-link.active")).toHaveCSS("background-color", "rgb(48, 109, 41)");
   await expect(page.locator(".nav-link.active")).toHaveCSS("color", "rgb(251, 245, 221)");
   // Check the browser's resolved theme colors, including readable dark-mode variants.

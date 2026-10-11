@@ -1,3 +1,12 @@
+# Neutral typography for easier reading — October 11, 2026
+
+Replaced green everyday text with charcoal `#29312D` headings, values, menu labels and form text, plus neutral gray `#626B65` supporting labels. Login copy follows the same treatment. Dark-mode primary text is neutral off-white. Green remains on actions, selected navigation, chart marks and focus accents; near-white surfaces remain unchanged.
+
+- TypeScript, ESLint, changed-file formatting and the standard production build passed. The existing database-maintenance tracing warning remains. Build database access was disabled.
+- The focused workspace browser workflow passed all main navigation pages, resolved text color, contrast, light/dark desktop, tablet and phone layouts, keyboard forms and responsive navigation with no skips. The focused login browser workflow also passed desktop/tablet/phone, keyboard/autofill/error states and native management sign-in. Synthetic Performance previews were visually reviewed.
+- `npm test`: 290 passed, 143 database tests skipped, and the same two pre-existing dashboard presentation assertions failed. The full database suite was not rerun for this typography-only change. Repository-wide formatting still reports 17 untouched files.
+- No business logic, business data or deployment was changed.
+
 # Near-white workspace surfaces — October 11, 2026
 
 Lightened the main background to `#FAFBF8`, panels to `#FFFFFF`, sidebar and login branding panel to `#FCFDFB`, and tab/hover highlights to `#F2F5ED`. Retained green actions/headings, readable input borders and the explicit dark-mode palette. Preserved incoming login artwork and dashboard updates through `8f2d635`. Existing contrast verification now accepts valid three-digit white hex values.

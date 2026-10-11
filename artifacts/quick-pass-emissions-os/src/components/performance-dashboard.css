@@ -55,7 +55,7 @@
 .pd-chip.ok {
   background: var(--soft);
   border-color: transparent;
-  color: var(--primary);
+  color: var(--text);
 }
 .pd-chip.bad {
   background: var(--danger-bg);
@@ -94,7 +94,7 @@
 .pd-today .lab {
   font-size: 10px;
   letter-spacing: 1.7px;
-  color: var(--nav-accent);
+  color: var(--nav-text);
   font-weight: 700;
 }
 .pd-today strong {
@@ -174,7 +174,7 @@
   color: var(--nav-muted);
 }
 .pd-kpi.accent strong {
-  color: var(--nav-accent);
+  color: var(--nav-text);
 }
 .pd > .pd-kpis {
   background: none;
@@ -340,7 +340,7 @@
 }
 .pd-cal-day.today:not(.sel) span {
   box-shadow: inset 0 0 0 1px var(--primary);
-  color: var(--primary);
+  color: var(--text);
 }
 .pd-cal-day:disabled {
   color: var(--muted);

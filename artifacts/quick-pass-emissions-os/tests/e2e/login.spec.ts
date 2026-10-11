@@ -34,7 +34,7 @@ test("professional login branding, responsive form, keyboard access, errors and 
     "rgb(250, 251, 248)",
   );
   await expect(page.locator(".login-brand")).toHaveCSS("background-color", "rgb(252, 253, 251)");
-  await expect(page.locator(".login-form h2")).toHaveCSS("color", "rgb(13, 83, 14)");
+  await expect(page.locator(".login-form h2")).toHaveCSS("color", "rgb(41, 49, 45)");
   await expect(submit).toHaveCSS("color", "rgb(251, 245, 221)");
   for (const [name, width, height] of [
     ["desktop", 1440, 1000],

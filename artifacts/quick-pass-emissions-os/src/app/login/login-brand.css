@@ -1,23 +1,27 @@
 .login-professional .login-brand.qp-brand {
   --qp-forest: #123a29;
-  --qp-fern: #a9d9ad;
+  --qp-fern: #b9d9c1;
   --qp-lime: #d5e7a1;
+  --qp-brand-bg:
+    radial-gradient(ellipse at 12% 42%, rgb(34 112 58 / 38%) 0%, transparent 58%),
+    linear-gradient(112deg, #10512f 0%, #0d3b25 48%, #0a2719 100%);
   justify-content: flex-start;
   gap: 0;
   overflow: hidden;
-  border-color: #e0e5dc;
-  background: #fcfdfb;
+  border-color: rgb(177 213 184 / 26%);
+  background: var(--qp-brand-bg);
+  color: #f5f7f3;
 }
 
 .login-professional .login-brand.qp-brand .login-mark {
-  border-color: #7e8c78;
+  border-color: rgb(218 236 221 / 42%);
   border-radius: 13px;
-  background: #f2f5ed;
-  color: var(--login-ink);
+  background: rgb(255 255 255 / 5%);
+  color: #e0ebe2;
 }
 
 .login-professional .login-brand.qp-brand .login-wordmark-detail {
-  color: var(--login-muted);
+  color: #aec4b3;
 }
 
 .login-professional .login-brand.qp-brand .qp-story {
@@ -31,7 +35,7 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 19px;
-  color: var(--login-ink);
+  color: #c9daca;
   font-size: 9px;
   letter-spacing: 2px;
 }
@@ -45,7 +49,7 @@
 
 .login-professional .login-brand.qp-brand .qp-story h1 {
   max-width: 550px;
-  color: var(--login-ink);
+  color: var(--qp-fern);
   font-size: clamp(54px, 5.7vw, 84px);
   font-weight: 550;
   letter-spacing: -4.8px;
@@ -53,12 +57,12 @@
 }
 
 .login-professional .login-brand.qp-brand .qp-story h1 span {
-  color: var(--login-ink);
+  color: var(--qp-fern);
 }
 
 .login-professional .qp-greeting {
   margin-top: 19px;
-  color: var(--login-ink);
+  color: #f5f7f3;
   font-size: clamp(19px, 2vw, 25px);
   font-weight: 450;
   letter-spacing: -0.6px;
@@ -68,7 +72,7 @@
 .login-professional .login-brand.qp-brand .qp-story .login-story-copy {
   max-width: 390px;
   margin-top: 11px;
-  color: var(--login-muted);
+  color: #c9d6cb;
   font-size: 13px;
   line-height: 1.7;
 }
@@ -139,7 +143,7 @@
 .login-professional .login-brand.qp-brand .login-brand-footer {
   margin-top: 22px;
   padding-top: 1px;
-  color: var(--login-muted);
+  color: #a8bdac;
 }
 
 @keyframes qp-arrive {
@@ -173,7 +177,7 @@
     min-height: auto;
     padding: 17px 20px 18px;
     border-radius: 15px;
-    background: #fcfdfb;
+    background: var(--qp-brand-bg);
   }
 
   .login-professional .login-brand.qp-brand .login-wordmark {

@@ -55,6 +55,7 @@ import {
   navForRole,
   returnTarget,
   type IconKey,
+  allNavItems,
 } from "@/lib/navigation";
 
 const authClient = createAuthClient();
@@ -118,6 +119,9 @@ export function Shell({
   const active = activeNavHref(path, role, params.toString());
   const route = matchRoute(path);
   const crumbs = breadcrumbs(path);
+  const selectedItem = allNavItems(role).find((item) => item.href === active);
+  if (selectedItem?.matchQuery && crumbs.length)
+    crumbs[crumbs.length - 1] = { label: selectedItem.label };
   const back = returnTarget(path, params.get("from"), role);
 
   useEffect(() => {
@@ -145,8 +149,8 @@ export function Shell({
 
   // Page title from the route registry.
   useEffect(() => {
-    if (route) document.title = `${route.title} · Quick Pass Emissions`;
-  }, [route]);
+    if (route) document.title = `${selectedItem?.matchQuery ? selectedItem.label : route.title} · Quick Pass Emissions`;
+  }, [route, selectedItem?.label, selectedItem?.matchQuery]);
 
   const drawerOpen = isMobile && mobileOpen;
   useEffect(() => {
@@ -232,6 +236,29 @@ export function Shell({
                           .filter(Boolean)
                           .join(" ")}
                         key={item.href}
+                        onMouseEnter={() => {
+                          if (hasChildren && !isMobile)
+                            setOpenSubmenus((old) => ({ ...old, [item.href]: true }));
+                        }}
+                        onMouseLeave={(event) => {
+                          if (hasChildren && !isMobile && !event.currentTarget.contains(document.activeElement))
+                            setOpenSubmenus((old) => ({ ...old, [item.href]: false }));
+                        }}
+                        onFocus={(event) => {
+                          if (hasChildren && !isMobile && !event.currentTarget.contains(event.relatedTarget))
+                            setOpenSubmenus((old) => ({ ...old, [item.href]: true }));
+                        }}
+                        onBlur={(event) => {
+                          if (hasChildren && !isMobile && !event.currentTarget.contains(event.relatedTarget))
+                            setOpenSubmenus((old) => ({ ...old, [item.href]: false }));
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Escape" && hasChildren && submenuOpen) {
+                            event.stopPropagation();
+                            setOpenSubmenus((old) => ({ ...old, [item.href]: false }));
+                            event.currentTarget.querySelector<HTMLButtonElement>(".nav-submenu-toggle")?.focus();
+                          }
+                        }}
                       >
                         <div className="nav-main-row">
                           <Link

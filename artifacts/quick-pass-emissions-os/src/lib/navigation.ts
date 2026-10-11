@@ -187,7 +187,7 @@ export function navForRole(role: string): NavSection[] {
   };
   return NAV_SECTIONS.map((s) => ({
     ...s,
-    items: s.items.map(filterItem).filter((item): item is NavItem => !!item),
+    items: s.items.map((item) => filterItem(item)).filter((item): item is NavItem => !!item),
   })).filter((s) => s.items.length > 0);
 }
 
@@ -214,8 +214,12 @@ const navDefs: RouteDef[] = (() => {
   const seen = new Set<string>();
   return NAV_SECTIONS.flatMap((section) =>
     section.items.flatMap((item) => [
-      { item, parent: item.parent },
-      ...(item.children ?? []).map((child) => ({ item: child, parent: item.href })),
+      { item, parent: item.parent, section: section.label },
+      ...(item.children ?? []).map((child) => ({
+        item: child,
+        parent: item.href,
+        section: section.label,
+      })),
     ]),
   )
     .filter(({ item }) => {
@@ -224,12 +228,10 @@ const navDefs: RouteDef[] = (() => {
       seen.add(pattern);
       return true;
     })
-    .map(({ item, parent }) => ({
+    .map(({ item, parent, section }) => ({
       pattern: item.href.split("?")[0],
       title: item.label,
-      section: NAV_SECTIONS.find((section) => section.items.some((root) => root.href === parent))?.label ??
-        NAV_SECTIONS.find((section) => section.items.some((root) => root.href === item.href))?.label ??
-        "Settings",
+      section,
       navHref: item.href,
       parent,
       roles: item.roles,
@@ -341,10 +343,14 @@ export function activeNavHref(
 ): string | undefined {
   const query = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
   const items = allNavItems(role);
-  const exact = items.find((item) => {
+  const queryMatch = items.find((item) => {
+    if (!item.matchQuery) return false;
     if (item.href.split("?")[0] !== pathname) return false;
-    return Object.entries(item.matchQuery ?? {}).every(([key, value]) => query.get(key) === value);
+    return Object.entries(item.matchQuery).every(([key, value]) => query.get(key) === value);
   });
+  const exact = queryMatch ?? items.find(
+    (item) => !item.matchQuery && item.href.split("?")[0] === pathname,
+  );
   if (exact) return exact.href;
   const visible = items.map((item) => item.href);
   const route = matchRoute(pathname);

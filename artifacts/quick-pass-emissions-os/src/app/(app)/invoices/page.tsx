@@ -32,16 +32,16 @@ export default async function Invoices({
       <DemoNotice demo={data.demo} />
       <section className="card card-body">
         <form className="form-grid" method="get">
-          <Field label="Search invoice number or dealership">
+          <Field label={isPayments ? "Search reference, invoice number or dealership" : "Search invoice number or dealership"}>
             <input name="q" defaultValue={q} maxLength={160} />
             {isPayments && <input type="hidden" name="view" value="payments" />}
           </Field>
           <div className="form-footer">
-            <Button type="submit">Search invoices</Button>
+            <Button type="submit">{isPayments ? "Search payments" : "Search invoices"}</Button>
           </div>
         </form>
       </section>
-      {isPayments ? (
+      {"payments" in data ? (
         <section className="card space-top">
           <div className="card-heading">
             <h2>Payments · latest 100 matches</h2>

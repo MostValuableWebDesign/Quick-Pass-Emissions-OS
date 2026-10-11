@@ -5,8 +5,8 @@ import { businessDate } from "@/lib/time";
 import { dealerDetail } from "@/modules/finance/service";
 import { receivable } from "@/modules/finance/rules";
 import { PageHeader } from "@/components/shared";
-import { ActionForm } from "@/components/action-form";
-import { DemoNotice, RecordId, TextField, ActiveField, Reason, Money } from "@/components/phase3";
+import { ActionForm, Field } from "@/components/action-form";
+import { DemoNotice, RecordId, TextField, Reason, Money } from "@/components/phase3";
 import { DateField, AmountField } from "@/components/finance";
 import * as actions from "@/app/phase4-actions";
 export default async function Dealer({ params }: { params: Promise<{ id: string }> }) {
@@ -20,22 +20,25 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
     <>
       <PageHeader
         title={d.name}
-        description={`${d.code} · ${d.active ? "Active account" : "Archived account"}`}
+        description={d.active ? "Active dealership partner" : "Archived dealership"}
       />
       <DemoNotice demo={data.demo} />
       <section className="card card-body">
         <h2>Account & billing details</h2>
         <p>{d.billingAddress}</p>
+        {d.phone && <p><a href={`tel:${d.phone}`}>{d.phone}</a></p>}
         <p>{d.notes}</p>
         <details>
           <summary>Edit account</summary>
           <ActionForm action={actions.saveDealer} submit="Save dealership">
             <RecordId id={d.id} version={d.version} />
-            <TextField name="code" label="Unique dealership code" value={d.code} />
             <TextField name="name" label="Dealership name" value={d.name} />
+            <Field label="Phone">
+              <input name="phone" type="tel" maxLength={50} defaultValue={d.phone} />
+            </Field>
             <TextField
               name="billingAddress"
-              label="Billing address / instructions"
+              label="Billing address"
               value={d.billingAddress}
               area
             />
@@ -46,8 +49,6 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
               required={false}
               area
             />
-            <ActiveField active={d.active} />
-            <Reason />
           </ActionForm>
         </details>
       </section>
@@ -97,7 +98,6 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
                 value={d.termsReference ?? ""}
                 area
               />
-              <Reason />
             </ActionForm>
           </details>
         )}
@@ -122,8 +122,6 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
                 value={c?.source}
                 area
               />
-              <ActiveField active={c?.active} />
-              <Reason />
             </ActionForm>
           </details>
         ))}
@@ -191,7 +189,7 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
                             <summary>Void incorrect service</summary>
                             <ActionForm action={actions.voidService} submit="Void service">
                               <input type="hidden" name="id" value={s.id} />
-                              <Reason />
+                              <Reason label="Reason for voiding service" />
                             </ActionForm>
                           </details>
                         )}
@@ -205,8 +203,8 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
         </div>
       </section>
       {d.active && (
-        <section className="card card-body space-top">
-          <h2>Draft invoice from unbilled services</h2>
+        <section className="card card-body space-top" id="create-invoice">
+          <h2>Auto dealership invoices</h2>
           <p className="muted">
             Select 1–100 completed services. Totals and due date use authorized terms. A different
             owner or manager must approve. Void and recreate to correct a draft. The oldest 100

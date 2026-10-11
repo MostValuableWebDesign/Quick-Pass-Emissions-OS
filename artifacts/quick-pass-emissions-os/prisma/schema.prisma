@@ -766,6 +766,7 @@ model Dealership {
   code String @unique
   name String
   billingAddress String
+  phone String @default("")
   notes String @default("")
   active Boolean @default(true)
   termsDays Int?

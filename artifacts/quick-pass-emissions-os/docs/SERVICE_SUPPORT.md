@@ -79,9 +79,9 @@ access-controlled, readable backup. Never publish the source, manifest, target o
 
 ### Source mapping and actual development-preview application
 
-The only business contact evidence found is the uploaded **Operations & Responsibilities
-Guide**, including its final correction. The directory/import/navigation uploads are
-feature instructions, not independent contact evidence.
+Support information comes from the owner-provided contacts and the uploaded **Operations
+& Responsibilities Guide**, including its final correction. Directory/import/navigation
+feature instructions are not independent contact-verification evidence.
 
 | Provider / item    | Source-backed operational enrichment                                                   | Boundaries                                                                                       |
 | ------------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -92,21 +92,25 @@ feature instructions, not independent contact evidence.
 | Termayne           | Camera/security concern and incomplete name retained in owner review                   | Not invented as a confirmed business provider; no contact method supplied                        |
 | Robert             | Belt-repair responsibility retained in owner review                                    | Incomplete identity; retail/Amazon belts are purchase exceptions, not verified service providers |
 
-After storage pin verification and private pre-migration backup, the additive support
-migration applied to the existing development-preview database. A fresh protected source
-preview found no matching providers or conflicts in that target. Backup-gated application
-created **4 unconfirmed Vendor records**, updated **0**, left **0** unchanged, conflicted
-**0**, and saved **2 review-only items** in owner-only import history. A second preview
-reported **4 unchanged**, **2 skipped/review-only**, **0 created/updated/conflicted**.
-No production data/application or deployment was performed.
+An earlier guide-import report described four unconfirmed vendors and two review-only
+items. Those provider rows were not present when the identity-pinned database used by the
+running workspace was checked. Import notes must not be treated as proof that the active
+directory contains the records.
 
-Phone/contact/instruction/category values were actually saved, not merely staged.
-The supplied tech/customer references were saved only in restricted account-reference
-fields. Camera/security and belt repair categories are available; personal identities
-remain review-only. Verification/confirmation dates, emails, websites, individual alternate
-numbers, extensions, hours, emergency contacts, preferences and physical equipment/bay
-assignments remain blank/unconfigured. No service ticket, purchase, contact log, balance,
-schedule or repair completion was created by the source import.
+The owner's supplied contacts were applied to the verified development-preview target
+through the protected importer after a complete, private, readable database backup.
+The directory now returns **5 active, unconfirmed contacts**: OPUS TECH, Pit Pro,
+The Advanced Group, KleenRite and the explicitly requested camera contact, Termayne.
+Four have supplied phone numbers. Termayne displays only the supplied name and
+camera/security instructions, with no invented phone, surname or company identity.
+A repeated preview reports **5 unchanged**, with no duplicate creates or updates.
+
+Phones, categories and instructions were checked against the saved rows and the normal
+authorized directory read. Tech/customer references are in manager-only account-reference
+fields. Verification dates, preferences and physical assignments were not inferred.
+Existing records, payroll and financial history were not overwritten; no service ticket,
+purchase, contact log, balance, schedule or repair completion was created.
+No production data/application or deployment was performed.
 
 ## Verification
 

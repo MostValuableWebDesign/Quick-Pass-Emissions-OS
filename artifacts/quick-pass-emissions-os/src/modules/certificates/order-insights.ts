@@ -11,10 +11,15 @@ export function certificateOrderInsights(
   const start = addDays(today, 1 - windowDays);
   const byDate = new Map<string, number>();
   for (const order of orders) {
-    if (order.analyzer !== CERTIFICATE_ANALYZER || order.quantity <= 0 || order.saleDate < start || order.saleDate > today) continue;
+    if (order.analyzer !== CERTIFICATE_ANALYZER || order.quantity <= 0 || order.saleDate > today) continue;
     byDate.set(order.saleDate, (byDate.get(order.saleDate) ?? 0) + order.quantity);
   }
-  const dates = [...byDate.keys()].sort();
+  const allDates = [...byDate.keys()].sort();
+  const recentDates = allDates.filter((date) => date >= start);
+  // Until two order dates fall in the configured window, use the most recent
+  // completed interval from saved history instead of showing no estimate.
+  const sampleMode = recentDates.length >= 2 ? "recent" : "history";
+  const dates = sampleMode === "recent" ? recentDates : allDates.slice(-2);
   const first = dates[0];
   const last = dates.at(-1);
   const days = first && last ? Temporal.PlainDate.from(first).until(last).days : 0;
@@ -29,7 +34,7 @@ export function certificateOrderInsights(
   return {
     balance: portal.balance, average, reorderAt, daysRemaining,
     depletionDate: daysRemaining === null ? null : addDays(today, daysRemaining),
-    sampleStart: first ?? null, sampleEnd: last ?? null, sampleDays: days, windowDays,
+    sampleStart: first ?? null, sampleEnd: last ?? null, sampleDays: days, sampleMode, windowDays,
     leadDays: settings?.leadDays ?? null,
   };
 }

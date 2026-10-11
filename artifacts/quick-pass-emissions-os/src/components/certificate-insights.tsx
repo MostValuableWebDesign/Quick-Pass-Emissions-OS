@@ -54,7 +54,11 @@ export function CertificateInsights({ initial, canRefresh }: { initial: Certific
           { label: "Certificate stock", value: metrics.balance ?? "Awaiting provider",
             note: "Official analyzer balance · no opening count required", id: "stock" },
           { label: "Average cert ordering frequency", value: metrics.average === null ? "Not enough orders" : `${metrics.average.toFixed(1)} / day`,
-            note: `${metrics.windowDays}-day window · based on certificate orders, not measured consumption`, id: "usage" },
+            note: metrics.average === null
+              ? "Awaiting two positive-quantity order dates in saved station history"
+              : metrics.sampleMode === "history"
+                ? `Limited recent data · using the latest historical interval (${metrics.sampleStart}–${metrics.sampleEnd}) until two order dates fall within the ${metrics.windowDays}-day window`
+                : `${metrics.windowDays}-day window · based on order quantities, not measured consumption`, id: "usage" },
           { label: "Estimated depletion", value: metrics.depletionDate ?? "Awaiting stock & order interval",
             note: metrics.daysRemaining === null ? "Requires a balance and at least two order dates" : `About ${metrics.daysRemaining} days at the estimated ordering rate`, id: "depletion" },
           { label: "Reorder at", value: metrics.reorderAt,

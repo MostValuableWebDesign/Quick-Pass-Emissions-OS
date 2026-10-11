@@ -43,7 +43,19 @@ describe("order-based certificate planning", () => {
   it("uses the analyzer's order intervals and authoritative balance without opening stock", () => {
     const result = certificateOrderInsights([order("2026-10-03"), order("2026-10-09")], portal, "2026-10-10",
       { windowDays: 30, leadDays: 3, reorderPoint: 40 });
-    expect(result).toMatchObject({ average: 50, reorderAt: 150, daysRemaining: 2, depletionDate: "2026-10-12", balance: 100 });
+    expect(result).toMatchObject({ average: 50, reorderAt: 150, daysRemaining: 2, depletionDate: "2026-10-12", balance: 100, sampleMode: "recent" });
+  });
+  it("uses the latest saved order interval until the configured window has two order dates", () => {
+    const result = certificateOrderInsights([
+      order("2026-08-01"), order("2026-09-01"), order("2026-10-09"),
+    ], portal, "2026-10-10", { windowDays: 30, leadDays: 3, reorderPoint: 40 });
+    expect(result).toMatchObject({
+      average: 300 / 38,
+      sampleStart: "2026-09-01",
+      sampleEnd: "2026-10-09",
+      sampleDays: 38,
+      sampleMode: "history",
+    });
   });
   it("excludes other analyzers, future orders, zero/negative quantities and dates outside the window", () => {
     const result = certificateOrderInsights([

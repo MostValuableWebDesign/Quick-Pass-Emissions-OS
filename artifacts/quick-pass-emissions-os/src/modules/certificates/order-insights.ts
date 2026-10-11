@@ -26,13 +26,14 @@ export function certificateOrderInsights(
   // Replenishment cadence is a planning proxy, not proof of actual consumption.
   // Exclude the final purchase: there is no following order interval for it yet.
   const quantity = dates.slice(0, -1).reduce((sum, date) => sum + byDate.get(date)!, 0);
-  const average = days > 0 ? quantity / days : null;
+  const averageOrderIntervalDays = days > 0 && dates.length > 1 ? days / (dates.length - 1) : null;
+  const averageDailyRate = days > 0 ? quantity / days : null;
   const reorderAt = Math.max(portal.threshold, settings?.reorderPoint ?? 0,
-    average === null || settings?.leadDays == null ? 0 : Math.ceil(average * settings.leadDays));
-  const daysRemaining = average !== null && average > 0 && portal.balance !== null
-    ? Math.ceil(portal.balance / average) : null;
+    averageDailyRate === null || settings?.leadDays == null ? 0 : Math.ceil(averageDailyRate * settings.leadDays));
+  const daysRemaining = averageDailyRate !== null && averageDailyRate > 0 && portal.balance !== null
+    ? Math.ceil(portal.balance / averageDailyRate) : null;
   return {
-    balance: portal.balance, average, reorderAt, daysRemaining,
+    balance: portal.balance, averageOrderIntervalDays, averageDailyRate, reorderAt, daysRemaining,
     depletionDate: daysRemaining === null ? null : addDays(today, daysRemaining),
     sampleStart: first ?? null, sampleEnd: last ?? null, sampleDays: days, sampleMode, windowDays,
     leadDays: settings?.leadDays ?? null,

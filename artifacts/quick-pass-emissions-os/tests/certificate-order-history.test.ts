@@ -43,14 +43,30 @@ describe("order-based certificate planning", () => {
   it("uses the analyzer's order intervals and authoritative balance without opening stock", () => {
     const result = certificateOrderInsights([order("2026-10-03"), order("2026-10-09")], portal, "2026-10-10",
       { windowDays: 30, leadDays: 3, reorderPoint: 40 });
-    expect(result).toMatchObject({ average: 50, reorderAt: 150, daysRemaining: 2, depletionDate: "2026-10-12", balance: 100, sampleMode: "recent" });
+    expect(result).toMatchObject({
+      averageOrderIntervalDays: 6,
+      averageDailyRate: 50,
+      reorderAt: 150,
+      daysRemaining: 2,
+      depletionDate: "2026-10-12",
+      balance: 100,
+      sampleMode: "recent",
+    });
+  });
+  it("measures cadence from distinct sale dates, not transaction count or order quantity", () => {
+    const result = certificateOrderInsights([
+      order("2026-10-03"), order("2026-10-03"), order("2026-10-09"),
+    ], portal, "2026-10-10", { windowDays: 30, leadDays: 3, reorderPoint: 40 });
+    expect(result.averageOrderIntervalDays).toBe(6);
+    expect(result.averageDailyRate).toBe(100);
   });
   it("uses the latest saved order interval until the configured window has two order dates", () => {
     const result = certificateOrderInsights([
       order("2026-08-01"), order("2026-09-01"), order("2026-10-09"),
     ], portal, "2026-10-10", { windowDays: 30, leadDays: 3, reorderPoint: 40 });
     expect(result).toMatchObject({
-      average: 300 / 38,
+      averageOrderIntervalDays: 38,
+      averageDailyRate: 300 / 38,
       sampleStart: "2026-09-01",
       sampleEnd: "2026-10-09",
       sampleDays: 38,
@@ -63,11 +79,12 @@ describe("order-based certificate planning", () => {
       order("2026-10-04", 5000, "OTHER"), order("2026-10-05", -9000),
       order("2026-10-06", 0), order("2026-10-11", 9000), order("2026-01-01", 9000),
     ], portal, "2026-10-10", null);
-    expect(result.average).toBe(50);
+    expect(result.averageOrderIntervalDays).toBe(6);
+    expect(result.averageDailyRate).toBe(50);
     expect(result.reorderAt).toBe(30);
   });
   it("does not invent a usage rate from one order date or a depletion date without balance", () => {
-    expect(certificateOrderInsights([order("2026-10-09")], portal, "2026-10-10", null).average).toBeNull();
+    expect(certificateOrderInsights([order("2026-10-09")], portal, "2026-10-10", null).averageOrderIntervalDays).toBeNull();
     expect(certificateOrderInsights([order("2026-10-03"), order("2026-10-09")],
       { ...portal, balance: null }, "2026-10-10", null).depletionDate).toBeNull();
     expect(certificateOrderInsights([order("2026-10-03"), order("2026-10-09")],

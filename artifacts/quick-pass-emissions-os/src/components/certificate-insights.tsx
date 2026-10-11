@@ -53,12 +53,12 @@ export function CertificateInsights({ initial, canRefresh }: { initial: Certific
         {[
           { label: "Certificate stock", value: metrics.balance ?? "Awaiting provider",
             note: "Official analyzer balance · no opening count required", id: "stock" },
-          { label: "Average cert ordering frequency", value: metrics.average === null ? "Not enough orders" : `${metrics.average.toFixed(1)} / day`,
-            note: metrics.average === null
-              ? "Awaiting two positive-quantity order dates in saved station history"
+          { label: "Average cert ordering frequency", value: metrics.averageOrderIntervalDays === null ? "Not enough orders" : `Every ${metrics.averageOrderIntervalDays.toFixed(1)} days`,
+            note: metrics.averageOrderIntervalDays === null
+              ? "Need two positive-quantity analyzer sale dates to measure order cadence"
               : metrics.sampleMode === "history"
-                ? `Limited recent data · using the latest historical interval (${metrics.sampleStart}–${metrics.sampleEnd}) until two order dates fall within the ${metrics.windowDays}-day window`
-                : `${metrics.windowDays}-day window · based on order quantities, not measured consumption`, id: "usage" },
+                ? `Using the latest historical Sale Date interval (${metrics.sampleStart}–${metrics.sampleEnd}) until two dates fall within the ${metrics.windowDays}-day window`
+                : `Average gap between analyzer Sale Dates · ${metrics.windowDays}-day window`, id: "usage" },
           { label: "Estimated depletion", value: metrics.depletionDate ?? "Awaiting stock & order interval",
             note: metrics.daysRemaining === null ? "Requires a balance and at least two order dates" : `About ${metrics.daysRemaining} days at the estimated ordering rate`, id: "depletion" },
           { label: "Reorder at", value: metrics.reorderAt,
@@ -69,8 +69,7 @@ export function CertificateInsights({ initial, canRefresh }: { initial: Certific
           <strong style={{ fontSize: "1.35rem" }}>{metric.value}</strong><small>{metric.note}</small>
         </article>)}
       </section>
-      <p className="muted">Planning estimates use purchase quantities between order dates for {CERTIFICATE_ANALYZER}.
-        Orders do not prove actual usage, voids, receipts or payment settlement. Zero/negative quantity transactions are excluded from the ordering-rate estimate. No stock ledger entries are created.</p>
+      <p className="muted">Ordering frequency uses positive-quantity sale dates for {CERTIFICATE_ANALYZER}. Reorder and depletion estimates use certificates purchased between order dates, not measured consumption. Orders do not prove actual usage, voids, receipts or payment settlement. No stock ledger entries are created.</p>
       <section className="card card-body space-top" id="provider-order-history">
         <div className="portal-head">
           <div><h2>Georgia certificate order history</h2><p className="muted">{data.orders.length} station transactions · Report checked {asOf(data.checkedAt)}</p></div>

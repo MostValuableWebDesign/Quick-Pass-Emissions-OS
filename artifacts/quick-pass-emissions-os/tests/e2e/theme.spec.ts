@@ -27,8 +27,8 @@ test("workspace pages remain usable in light, dark, tablet and phone layouts", a
   if (await page.locator("html").evaluate((html) => html.classList.contains("dark")))
     await toggle.click();
   await expect(page.locator("html")).toHaveClass(/light/);
-  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(251, 245, 221)");
-  await expect(page.locator(".sidebar")).toHaveCSS("background-color", "rgb(231, 225, 177)");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(250, 251, 248)");
+  await expect(page.locator(".sidebar")).toHaveCSS("background-color", "rgb(252, 253, 251)");
   await expect(page.locator("main#main h1").first()).toHaveCSS("color", "rgb(13, 83, 14)");
   await expect(page.locator(".nav-link.active")).toHaveCSS("background-color", "rgb(48, 109, 41)");
   await expect(page.locator(".nav-link.active")).toHaveCSS("color", "rgb(251, 245, 221)");
@@ -38,7 +38,8 @@ test("workspace pages remain usable in light, dark, tablet and phone layouts", a
     const contrast = await page.evaluate(() => {
       const style = getComputedStyle(document.documentElement);
       const luminance = (variable: string) => {
-        const hex = style.getPropertyValue(variable).trim().slice(1);
+        const value = style.getPropertyValue(variable).trim().slice(1);
+        const hex = value.length === 3 ? [...value].map((digit) => digit + digit).join("") : value;
         return [0.2126, 0.7152, 0.0722].reduce((sum, weight, index) => {
           const channel = parseInt(hex.slice(index * 2, index * 2 + 2), 16) / 255;
           return (

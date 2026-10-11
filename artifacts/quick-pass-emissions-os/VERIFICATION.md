@@ -1,3 +1,12 @@
+# Near-white workspace surfaces — October 11, 2026
+
+Lightened the main background to `#FAFBF8`, panels to `#FFFFFF`, sidebar and login branding panel to `#FCFDFB`, and tab/hover highlights to `#F2F5ED`. Retained green actions/headings, readable input borders and the explicit dark-mode palette. Preserved incoming login artwork and dashboard updates through `8f2d635`. Existing contrast verification now accepts valid three-digit white hex values.
+
+- TypeScript, ESLint, changed-file formatting and the standard production build passed. The existing database-maintenance tracing warning remains; builds used an unreachable build-only database URL.
+- Before the incoming merge, all 432 isolated unit/database tests passed and the focused workspace browser workflow passed with no skips. After the merge, 433 tests passed and two existing dashboard presentation assertions failed (removed Base pay and missing-report copy); none skipped. No dashboard calculations or page logic were edited by this surface change.
+- The final native login browser workflow passed desktop/tablet/phone layout, resolved colors, error states, keyboard access and management sign-in. The final workspace browser workflow also passed all main navigation pages, contrast, desktop light/dark, tablet, phone light/dark, keyboard and responsive-navigation checks with no skips. Screenshots use synthetic test records.
+- Repository-wide formatting continues to fail on untouched files. No deployment or business-data changes occurred.
+
 # Cream, sand and forest theme — October 11, 2026
 
 Applied the owner palette throughout the workspace and native sign-in: `#FBF5DD` backgrounds/light panels, `#E7E1B1` sidebar/tab surfaces, `#306D29` buttons/active tabs/chart accents, and `#0D530E` headings/strong text. Dark mode uses coordinated readable variants. Performance summary text, calendar selections, segmented tabs, panel focus and drag indicators follow the theme. Semantic warning/error colors remain distinct.

@@ -2,13 +2,13 @@
   --login-green: #306d29;
   --login-action: #306d29;
   --login-ink: #0d530e;
-  --login-muted: #52613c;
+  --login-muted: #5b6856;
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
   gap: 24px;
   min-height: 100svh;
   padding: 24px;
-  background: #fbf5dd;
+  background: #fafbf8;
   color-scheme: light;
   color: var(--login-ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -22,9 +22,9 @@
   gap: 56px;
   min-height: calc(100svh - 48px);
   padding: clamp(32px, 4vw, 64px);
-  border: 1px solid #d6d0a1;
+  border: 1px solid #e0e5dc;
   border-radius: 20px;
-  background: #e7e1b1;
+  background: #fcfdfb;
   color: var(--login-ink);
 }
 .login-professional .login-wordmark {
@@ -42,7 +42,7 @@
   flex-shrink: 0;
   width: 44px;
   height: 44px;
-  border: 1px solid #879064;
+  border: 1px solid #7e8c78;
   border-radius: 12px;
   color: var(--login-ink);
 }
@@ -91,7 +91,7 @@
   align-items: baseline;
   gap: 16px;
   padding: 16px 0;
-  border-top: 1px solid #c0c28d;
+  border-top: 1px solid #e0e5dc;
   font-size: 12px;
 }
 .login-business-areas dt {
@@ -163,9 +163,9 @@
 .login-professional .field input {
   min-height: 51px;
   padding: 14px 15px;
-  border: 1px solid #879064;
+  border: 1px solid #7e8c78;
   border-radius: 9px;
-  background: #fbf5dd;
+  background: #ffffff;
   color: var(--login-ink);
   font-size: 16px;
   box-shadow: 0 1px 2px #0d530e03;
@@ -212,7 +212,7 @@
 .login-professional .login-help {
   margin-top: 30px;
   padding-top: 24px;
-  border-color: #d6d0a1;
+  border-color: #e0e5dc;
   color: var(--login-muted);
   font-size: 11px;
   line-height: 1.9;

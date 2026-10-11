@@ -12,7 +12,9 @@ test("professional login branding, responsive form, keyboard access, errors and 
   await expect(
     page.getByRole("region", { name: "Quick Pass Emissions", exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Every detail. Under control." })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Quick Pass Emissions", exact: true }),
+  ).toBeVisible();
   const form = page.locator("form");
   await expect(form).toHaveAttribute("method", "post");
   await expect(form).toHaveAttribute("action", "/api/sign-in");
@@ -29,9 +31,9 @@ test("professional login branding, responsive form, keyboard access, errors and 
   );
   await expect(page.locator(".login-professional")).toHaveCSS(
     "background-color",
-    "rgb(251, 245, 221)",
+    "rgb(250, 251, 248)",
   );
-  await expect(page.locator(".login-brand")).toHaveCSS("background-color", "rgb(231, 225, 177)");
+  await expect(page.locator(".login-brand")).toHaveCSS("background-color", "rgb(252, 253, 251)");
   await expect(page.locator(".login-form h2")).toHaveCSS("color", "rgb(13, 83, 14)");
   await expect(submit).toHaveCSS("color", "rgb(251, 245, 221)");
   for (const [name, width, height] of [

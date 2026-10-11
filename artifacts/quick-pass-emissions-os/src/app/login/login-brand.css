@@ -5,27 +5,25 @@
   justify-content: flex-start;
   gap: 0;
   overflow: hidden;
-  border-color: #d5e7a11c;
-  background:
-    radial-gradient(ellipse at 8% 3%, #36824f8c 0%, transparent 42%),
-    linear-gradient(145deg, #143d2a 0%, #102a1a 68%, #0c2418 100%);
+  border-color: #e0e5dc;
+  background: #fcfdfb;
 }
 
 .login-professional .login-brand.qp-brand .login-mark {
-  border-color: #d5e7a15c;
+  border-color: #7e8c78;
   border-radius: 13px;
-  background: #d5e7a10d;
-  color: var(--qp-lime);
+  background: #f2f5ed;
+  color: var(--login-green);
 }
 
 .login-professional .login-brand.qp-brand .login-wordmark-detail {
-  color: #c4d9c5;
+  color: var(--login-muted);
 }
 
 .login-professional .login-brand.qp-brand .qp-story {
   max-width: 580px;
   margin: auto 0 27px;
-  animation: qp-arrive 700ms cubic-bezier(.2,.7,.2,1) both;
+  animation: qp-arrive 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 .login-professional .login-brand.qp-brand .qp-story .login-kicker {
@@ -33,7 +31,7 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 19px;
-  color: #c6dda5;
+  color: var(--login-green);
   font-size: 9px;
   letter-spacing: 2px;
 }
@@ -41,36 +39,36 @@
 .login-professional .login-brand.qp-brand .qp-story .login-kicker::before {
   width: 23px;
   height: 1px;
-  background: #c6dda5;
+  background: var(--login-green);
   content: "";
 }
 
 .login-professional .login-brand.qp-brand .qp-story h1 {
   max-width: 550px;
-  color: #f5f4e9;
+  color: var(--login-ink);
   font-size: clamp(54px, 5.7vw, 84px);
   font-weight: 550;
   letter-spacing: -4.8px;
-  line-height: .99;
+  line-height: 0.99;
 }
 
 .login-professional .login-brand.qp-brand .qp-story h1 span {
-  color: #c1dfa9;
+  color: var(--login-green);
 }
 
 .login-professional .qp-greeting {
   margin-top: 19px;
-  color: #f2e8c9;
+  color: var(--login-ink);
   font-size: clamp(19px, 2vw, 25px);
   font-weight: 450;
-  letter-spacing: -.6px;
+  letter-spacing: -0.6px;
   line-height: 1.35;
 }
 
 .login-professional .login-brand.qp-brand .qp-story .login-story-copy {
   max-width: 390px;
   margin-top: 11px;
-  color: #c2d2c5;
+  color: var(--login-muted);
   font-size: 13px;
   line-height: 1.7;
 }
@@ -87,7 +85,7 @@
   border-radius: 15px;
   background: #243a2c;
   box-shadow: 0 16px 38px #061b1270;
-  animation: qp-arrive 850ms 100ms cubic-bezier(.2,.7,.2,1) both;
+  animation: qp-arrive 850ms 100ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 .login-professional .qp-photo::after {
@@ -106,7 +104,7 @@
   min-height: 205px;
   object-fit: cover;
   object-position: center 48%;
-  transition: transform 500ms cubic-bezier(.2,.7,.2,1);
+  transition: transform 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .login-professional .qp-photo:hover img {
@@ -125,7 +123,7 @@
   color: #f4f3e8;
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: .1px;
+  letter-spacing: 0.1px;
 }
 
 .login-professional .qp-photo-mark {
@@ -141,7 +139,7 @@
 .login-professional .login-brand.qp-brand .login-brand-footer {
   margin-top: 22px;
   padding-top: 1px;
-  color: #a9c7ad;
+  color: var(--login-muted);
 }
 
 @keyframes qp-arrive {
@@ -175,9 +173,7 @@
     min-height: auto;
     padding: 17px 20px 18px;
     border-radius: 15px;
-    background:
-      linear-gradient(95deg, #0b2818ed, #0b2818cc),
-      url("https://images.pexels.com/photos/4116198/pexels-photo-4116198.jpeg?auto=compress&cs=tinysrgb&w=1100") center / cover;
+    background: #fcfdfb;
   }
 
   .login-professional .login-brand.qp-brand .login-wordmark {
@@ -220,7 +216,7 @@
   .login-professional .qp-greeting {
     margin-top: 5px;
     font-size: 15px;
-    letter-spacing: -.2px;
+    letter-spacing: -0.2px;
   }
 
   .login-professional .login-brand.qp-brand .qp-story .login-story-copy,

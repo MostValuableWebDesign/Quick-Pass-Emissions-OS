@@ -58,21 +58,20 @@ test.afterAll(async () => db.$disconnect());
 test.describe("owner certificate portal and alert settings", () => {
   test.use({ storageState: path.join(directory, "session.json") });
 
-  test("direct portal, optional records, fullscreen, reload and fallback", async ({ page }) => {
+  test("green direct portal link, order history and optional records", async ({ page }) => {
     await page.context().route("https://gadashboard.com/**", (route) =>
       route.fulfill({ contentType: "text/html", body: "<h1>Official portal navigation fixture</h1>" }));
     await page.goto("/certificates");
     const frame = page.getByTitle("Georgia dashboard certificate purchasing portal");
     await expect(frame).toHaveCount(0);
+    await expect(page.getByTestId("button-toggle-embedded-portal")).toHaveCount(0);
     await expect(page.getByText("The Georgia portal requires a separate browser tab for sign-in.", { exact: false })).toBeVisible();
     const popupPromise = page.waitForEvent("popup");
     await page.getByTestId("link-open-portal").click();
     const popup = await popupPromise;
     await expect(popup).toHaveURL(CERTIFICATE_ORDER_URL);
     await popup.close();
-    await page.getByTestId("button-toggle-embedded-portal").click();
-    await expect(frame).toBeVisible();
-    await expect(frame).toHaveAttribute("src", CERTIFICATE_ORDER_URL);
+    await expect(page.getByTestId("link-open-portal")).toHaveClass(/button-primary/);
     await expect(page.getByTestId("text-station")).toHaveText(CERTIFICATE_STATION);
     await expect(page.getByTestId("text-analyzer")).toHaveText(CERTIFICATE_ANALYZER);
     await expect(page.getByTestId("status-portal-balance")).toContainText("29");
@@ -81,6 +80,7 @@ test.describe("owner certificate portal and alert settings", () => {
     await expect(page.getByTestId("certificate-metric-stock")).toContainText("29");
     await expect(page.getByTestId("certificate-metric-reorder")).toContainText("30");
     await expect(page.getByTestId("certificate-metric-usage")).not.toContainText("Not enough orders");
+    await expect(page.getByTestId("certificate-metric-usage")).toContainText("Average cert ordering frequency");
     await expect(page.getByTestId("provider-order-table").locator("tbody tr")).toHaveCount(25);
     await page.getByRole("button", { name: "Next orders" }).click();
     await expect(page.getByTestId("provider-order-table").locator("tbody tr")).toHaveCount(2);
@@ -94,13 +94,6 @@ test.describe("owner certificate portal and alert settings", () => {
     await expect(page.getByTestId("link-open-portal")).toHaveAttribute("rel", "noopener noreferrer");
     await page.screenshot({ path: path.join(screenshotDir, "owner-portal.png"), fullPage: true });
 
-    await page.getByTestId("button-expand-portal").click();
-    await expect(page.getByTestId("button-expand-portal")).toHaveAttribute("aria-pressed", "true");
-    await page.keyboard.press("Escape");
-    await expect(page.getByTestId("button-expand-portal")).toHaveAttribute("aria-pressed", "false");
-
-    await page.getByTestId("button-reload-portal").click();
-    await expect(frame).toHaveAttribute("src", CERTIFICATE_ORDER_URL);
     await records.locator("summary").click();
     await expect(records).toHaveAttribute("open", "");
     await expect(records).toContainText("You do not need a request or approval here before buying on the portal");

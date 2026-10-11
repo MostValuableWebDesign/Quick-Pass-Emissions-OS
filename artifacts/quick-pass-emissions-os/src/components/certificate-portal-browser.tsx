@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, RotateCw, Maximize2, Minimize2, RefreshCcw } from "lucide-react";
+import { ExternalLink, RefreshCcw } from "lucide-react";
 import type { CertificatePortalStatus } from "@/modules/certificates/portal-types";
 import { refreshCertificateBalanceAction } from "@/app/certificate-portal-actions";
 import { CERTIFICATE_ORDER_URL } from "@/modules/certificates/portal-types";
@@ -9,24 +9,11 @@ import { asOf } from "./certificate-portal-banner";
 
 export function CertificatePortalBrowser({ initial, canRefresh }: { initial: CertificatePortalStatus | null; canRefresh: boolean }) {
   const router = useRouter();
-  const [frameKey, setFrameKey] = useState(0);
-  const [expanded, setExpanded] = useState(false);
-  const [embedded, setEmbedded] = useState(false);
   const [status, setStatus] = useState(initial);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const wrap = useRef<HTMLDivElement>(null);
 
   useEffect(() => { queueMicrotask(() => setStatus(initial)); }, [initial]);
-
-  useEffect(() => {
-    if (!expanded) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setExpanded(false); };
-    document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
-  }, [expanded]);
 
   async function refresh() {
     setBusy(true); setMsg(null);
@@ -70,30 +57,10 @@ export function CertificatePortalBrowser({ initial, canRefresh }: { initial: Cer
       </p>
       <div className="portal-sign-in">
         <p>The Georgia portal requires a separate browser tab for sign-in. Its session cookies do not support embedded login.</p>
-        <a className="button" href={CERTIFICATE_ORDER_URL} target="_blank" rel="noopener noreferrer" data-testid="link-open-portal">
+        <a className="button button-primary" href={CERTIFICATE_ORDER_URL} target="_blank" rel="noopener noreferrer" data-testid="link-open-portal">
           <ExternalLink size={16} aria-hidden="true" /> Open Georgia dashboard
         </a>
-        <button type="button" className="button button-outline" aria-expanded={embedded} aria-controls="embedded-georgia-portal"
-          data-testid="button-toggle-embedded-portal"
-          onClick={() => { setEmbedded((value) => !value); setExpanded(false); }}>
-          {embedded ? "Hide embedded preview" : "Show embedded preview"}
-        </button>
       </div>
-      {embedded && <div ref={wrap} id="embedded-georgia-portal" className={`portal-frame-wrap${expanded ? " expanded" : ""}`}>
-        <div className="portal-toolbar">
-          <span className="portal-url">{CERTIFICATE_ORDER_URL}</span>
-          <button type="button" className="button button-ghost button-sm" onClick={() => setFrameKey((k) => k + 1)} data-testid="button-reload-portal">
-            <RotateCw size={14} aria-hidden="true" /> Reload
-          </button>
-          <button type="button" className="button button-ghost button-sm" onClick={() => setExpanded((v) => !v)} aria-pressed={expanded} data-testid="button-expand-portal">
-            {expanded ? <Minimize2 size={14} aria-hidden="true" /> : <Maximize2 size={14} aria-hidden="true" />} {expanded ? "Exit full screen" : "Full screen"}
-          </button>
-          <a className="button button-ghost button-sm" href={CERTIFICATE_ORDER_URL} target="_blank" rel="noopener noreferrer">
-            <ExternalLink size={14} aria-hidden="true" /> Open sign-in tab
-          </a>
-        </div>
-        <iframe key={frameKey} src={CERTIFICATE_ORDER_URL} title="Georgia dashboard certificate purchasing portal" className="portal-frame" referrerPolicy="no-referrer" />
-      </div>}
     </section>
   );
 }

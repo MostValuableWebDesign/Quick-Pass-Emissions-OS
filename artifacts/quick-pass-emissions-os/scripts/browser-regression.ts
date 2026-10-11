@@ -185,24 +185,21 @@ async function main() {
   }
   const workflowUsers =
     "operations.spec.ts" in suite ? await workflowBrowserFixtures(db, password) : [];
-  if (workflowUsers.length)
-    await writeFile(
-      path.join(temporary, "workflow.json"),
-      JSON.stringify({
-        password,
-        accounts: {
-          "owner@example.test": email,
-          "manager@example.test": fixtures.users.find((u) => u.role === "ADMIN")!.email,
-          "preparer@example.test": workflowUsers.find((u) => u.role === "PREPARER")!.email,
-          "bookkeeper@example.test": fixtures.users.find((u) => u.role === "BOOKKEEPER")!.email,
-          "al@example.test": workflowUsers.find((u) => u.role === "WORKER")!.email,
-          "john@example.test": workflowUsers.find((u) => u.role === "PEER")!.email,
-        },
-      }),
-      {
-        mode: 0o600,
-      },
-    );
+  const workflowAccounts: Record<string, string> = { "owner@example.test": email };
+  if (workflowUsers.length) {
+    Object.assign(workflowAccounts, {
+      "manager@example.test": fixtures.users.find((u) => u.role === "ADMIN")!.email,
+      "preparer@example.test": workflowUsers.find((u) => u.role === "PREPARER")!.email,
+      "bookkeeper@example.test": fixtures.users.find((u) => u.role === "BOOKKEEPER")!.email,
+      "al@example.test": workflowUsers.find((u) => u.role === "WORKER")!.email,
+      "john@example.test": workflowUsers.find((u) => u.role === "PEER")!.email,
+    });
+  }
+  await writeFile(
+    path.join(temporary, "workflow.json"),
+    JSON.stringify({ password, accounts: workflowAccounts }),
+    { mode: 0o600 },
+  );
   stage = "owned station fixture configuration";
   const station =
     process.env.E2E_STATION_HISTORY === "1" || process.env.E2E_PERFORMANCE_ONLY === "1"

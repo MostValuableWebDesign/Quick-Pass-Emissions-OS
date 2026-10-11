@@ -64,10 +64,13 @@ describe("Phase 3 calendar, money and validation", () => {
     expect(unverifiedVendorInput.safeParse(minimal).success).toBe(true);
     expect(unverifiedVendorInput.safeParse({ name: "", phone: "555-0100" }).success).toBe(false);
     expect(unverifiedVendorInput.safeParse({ name: "New vendor", phone: "" }).success).toBe(false);
-    expect(
-      unverifiedVendorInput.safeParse({ ...minimal, verifiedDate: "2026-10-01" }).success,
-    ).toBe(false);
-    expect(unverifiedVendorInput.safeParse({ ...minimal, active: false }).success).toBe(false);
+    const forged = unverifiedVendorInput.parse({
+      ...minimal,
+      active: false,
+      verifiedDate: "2026-10-01",
+    });
+    expect(forged).not.toHaveProperty("active");
+    expect(forged).not.toHaveProperty("verifiedDate");
   });
   it("rejects fractional/overflow stock and preserves explicit zero physical counts", () => {
     const m = {

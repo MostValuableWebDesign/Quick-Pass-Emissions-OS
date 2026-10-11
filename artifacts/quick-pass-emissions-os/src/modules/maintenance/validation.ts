@@ -71,8 +71,7 @@ export const unverifiedVendorInput = z
     services: z.string().trim().max(2000).default(""),
     reference: z.string().trim().max(160).default(""),
     notes,
-  })
-  .strict();
+  });
 export const equipmentInput = z.object({
   id: optionalId,
   version,

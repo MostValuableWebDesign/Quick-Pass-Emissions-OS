@@ -271,7 +271,12 @@ if (enabled) {
     );
   });
   it("adds minimal vendor contacts as active but unconfirmed and blocks their assignment", async () => {
-    const input = { name: "Unconfirmed fixture vendor", phone: "555-unconfirmed" };
+    const input = {
+      name: "Unconfirmed fixture vendor",
+      phone: "555-unconfirmed",
+      active: false,
+      verifiedDate: today,
+    };
     const added = await m.addUnverifiedVendor(manager, input);
     expect(added).toMatchObject({
       name: input.name,

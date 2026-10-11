@@ -33,11 +33,11 @@ Do not assume stopping a background verification shell runs its asynchronous cle
 
 **How to apply:** Prefer graceful runner shutdown and verify cleanup. If interrupted, confirm exact ownership before removing disposable resources; never use broad database or cache cleanup against the live preview.
 
-Private browser suite-selection flags must update the runner's expected-report count and success label together.
+Private browser suites must provision the temporary login mapping their selected specs use, and update the runner's expected-report count and success label together.
 
-**Why:** A dedicated smaller suite can complete its assertions but still be rejected by the default full-suite count gate. The generic private-error wrapper intentionally hides the underlying report exception.
+**Why:** A focused suite that used the shared login helper reached the sign-in step without its temporary credential mapping, because that file had only been generated when the operations suite ran. A smaller suite can also complete its assertions but be rejected by the default full-suite count gate. The generic private-error wrapper intentionally hides the underlying report exception.
 
-**How to apply:** Test the selector/count contract without running another browser pass after a straightforward gate fix. Record browser assertions, wrapper completion and any lost private report evidence separately; never infer a fully green run from screenshots alone.
+**How to apply:** Always create the short-lived, private owner credential mapping when any selected spec calls the shared login helper; then verify the selector/count contract. Record browser assertions, wrapper completion and any lost private report evidence separately; never infer a fully green run from screenshots alone.
 
 Keep privileged application-service fixture preparation in the native runner, not inside the browser driver's transformed test modules.
 

@@ -54,7 +54,7 @@ export default async function Dashboard({
               </>
             ) : (
               <p className="muted">
-                No station report for today. Missing imports do not mean zero tests.
+                No reviewed station import for today. Missing data does not mean zero tests.
               </p>
             )}
             <small>
@@ -69,6 +69,7 @@ export default async function Dashboard({
             </div>
             <strong>{money(data.revenue.received)}</strong>
             <p>Received · dealer & rental payments, net of reversals</p>
+            {data.revenue.received === 0 && <p className="muted">No payment receipts recorded today.</p>}
             <dl className="snapshot-breakdown">
               <div>
                 <dt>Billed · dealer invoices</dt>
@@ -78,7 +79,7 @@ export default async function Dashboard({
                 <dt>Estimated · imported retail tests</dt>
                 <dd>
                   {data.revenue.retailEstimate === null
-                    ? "Unavailable"
+                     ? data.tests.performed === null ? "No station import" : "Pricing/review required"
                     : money(data.revenue.retailEstimate)}
                 </dd>
               </div>
@@ -128,7 +129,10 @@ export default async function Dashboard({
                 <dd>{money(data.pay.knownCommissionCents)}</dd>
               </div>
             </dl>
-            <p className="muted">Approved inputs only. Today’s base needs daily work inputs.</p>
+            <p className="muted">
+              Approved payroll inputs only; Performance pay estimates are separate.
+            </p>
+            {data.pay.grossCents === null && <Link href="/payroll">Review payroll inputs</Link>}
             {data.pay.missing.length > 0 && (
               <details className="pay-input-gaps">
                 <summary>{data.pay.missing.length} employees have incomplete inputs</summary>

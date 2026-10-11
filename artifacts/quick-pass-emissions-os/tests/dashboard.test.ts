@@ -96,6 +96,18 @@ describe("Business dashboard presentation", () => {
     expect(manager).toContain("Open Performance · owner access");
     expect(manager).toContain("Call Service &amp; Support");
   });
+  it("explains missing reports and approved pay rather than inventing zero tests or gross pay", async () => {
+    const data = fixture();
+    data.revenue.received = 0;
+    const html = await render(data);
+    expect(html).toContain("No reviewed station import for today");
+    expect(html).toContain("No station import");
+    expect(html).toContain("No payment receipts recorded today");
+    expect(html).toContain("$0.00");
+    expect(html).toContain("Performance pay estimates are separate");
+    expect(html).toContain('href="/payroll">Review payroll inputs');
+    expect(html).toContain("Incomplete");
+  });
   it("paginates unresolved attention at 15 items and keeps the final item accessible", async () => {
     const data = fixture();
     data.attention = Array.from({ length: 16 }, (_, n) => ({

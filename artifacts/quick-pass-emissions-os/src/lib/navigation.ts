@@ -76,6 +76,7 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "shared-business",
     label: "Shared Business",
     items: [
+      { href: "/employees", label: "Employees", icon: "users", roles: MANAGERS },
       { href: "/payroll", label: "Payroll & commissions", icon: "wallet", roles: FINANCE },
       { href: "/vendors", label: "Service & Support", icon: "truck", roles: OPERATORS },
       { href: "/finance", label: "Operational finance", icon: "ledger", roles: FINANCE },
@@ -181,13 +182,6 @@ const detachedNavDefs: RouteDef[] = [
     title: "Task templates",
     section: "Operations",
     navHref: "/tasks/templates",
-    roles: MANAGERS,
-  },
-  {
-    pattern: "/employees",
-    title: "Employees",
-    section: "Operations",
-    navHref: "/employees",
     roles: MANAGERS,
   },
 ];

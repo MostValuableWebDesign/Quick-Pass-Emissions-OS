@@ -38,18 +38,18 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
                 <input type="hidden" name="id" value={employee.id} />
               </ActionForm>
             )}
-            <ActionForm
+            {employee.userId !== actor.id && <ActionForm
               action={setEmployeeActive}
-              submit={employee.user.active ? "Deactivate employee" : "Reactivate employee"}
+              submit={employee.user.active ? "Remove from active staff" : "Restore employee"}
             >
               <input type="hidden" name="id" value={employee.id} />
               <input type="hidden" name="active" value={String(!employee.user.active)} />
-            </ActionForm>
+            </ActionForm>}
           </div>
           <p className="muted">
-            Inactive staff remain in payroll and operational history. Owners and managers record all
-            updates; staff do not sign in. Deactivating management access also revokes sessions and
-            invitations.
+            Removing an employee makes their record inactive; it does not delete payroll, schedules
+            or operational history. Find them in Removed staff to restore them later.
+            Removing management access also revokes sessions and invitations.
           </p>
         </section>
       ) : (

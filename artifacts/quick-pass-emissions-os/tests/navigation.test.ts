@@ -23,7 +23,7 @@ describe("role-filtered navigation", () => {
       const sections = navForRole(role);
       expect(sections.some((s) => s.id === "team" || s.label === "Team & Tasks")).toBe(false);
       expect(sections.flatMap((s) => s.items).map((item) => item.href)).not.toEqual(
-        expect.arrayContaining(["/tasks", "/schedule", "/tasks/templates", "/employees"]),
+        expect.arrayContaining(["/tasks", "/schedule", "/tasks/templates"]),
       );
     }
     // Pages/data remain intact and may still be opened directly by an authorized user.
@@ -52,7 +52,7 @@ describe("role-filtered navigation", () => {
         expect.arrayContaining(["/certificates", "/dealerships", "/invoices"]),
       );
       expect(carwash.items.map((i) => i.href)).toEqual(["/carwash", "/equipment"]);
-      expect(shared.items.map((i) => i.href)).toEqual(["/payroll", "/vendors", "/finance"]);
+      expect(shared.items.map((i) => i.href)).toEqual(["/employees", "/payroll", "/vendors", "/finance"]);
       for (const path of ["/maintenance", "/maintenance/plans", "/chemicals", "/rentals"]) {
         expect(hrefs(role)).not.toContain(path);
         expect(matchRoute(path)).toBeDefined();

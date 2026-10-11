@@ -37,6 +37,7 @@ export type IconKey =
   | "archive"
   | "automation"
   | "settings"
+  | "camera"
   | "shield"
   | "map";
 
@@ -71,6 +72,11 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/carwash", label: "Carwash & bays", icon: "car", roles: MANAGERS },
       { href: "/equipment", label: "Equipment", icon: "cog", roles: MANAGERS },
     ],
+  },
+  {
+    id: "security",
+    label: "Security",
+    items: [{ href: "/security", label: "Camera viewing", icon: "camera", roles: MANAGERS }],
   },
   {
     id: "shared-business",

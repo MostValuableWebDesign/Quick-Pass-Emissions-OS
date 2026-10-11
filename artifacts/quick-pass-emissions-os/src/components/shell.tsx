@@ -40,6 +40,7 @@ import {
   Workflow,
   BellRing,
   Map,
+  Video,
   ArrowLeft,
   type LucideIcon,
 } from "lucide-react";
@@ -85,6 +86,7 @@ const ICONS: Record<IconKey, LucideIcon> = {
   automation: Workflow,
   settings: Settings,
   shield: ShieldCheck,
+  camera: Video,
   map: Map,
 };
 

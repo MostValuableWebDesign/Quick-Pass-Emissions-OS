@@ -1,4 +1,5 @@
 export function browserSuite(env) {
+  if (env.E2E_SECURITY_ONLY === "1") return { "security.spec.ts": 3 };
   if (env.E2E_EMPLOYEES_ONLY === "1") return { "employee-entry.spec.ts": 1 };
   if (env.E2E_VENDOR_ONLY === "1") return { "vendor-entry.spec.ts": 1 };
   if (env.E2E_THEME_ONLY === "1") return { "theme.spec.ts": 1 };
@@ -18,6 +19,7 @@ export function browserSuite(env) {
   return {
     "login.spec.ts": 1,
     "theme.spec.ts": 1,
+    "security.spec.ts": 3,
     "regression.spec.ts": 3,
     "navigation.spec.ts": 6,
     "operations.spec.ts": 3,

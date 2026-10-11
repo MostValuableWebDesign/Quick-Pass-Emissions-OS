@@ -37,6 +37,20 @@ describe("role-filtered navigation", () => {
       expect.arrayContaining(["/automation", "/summaries", "/overview"]),
     );
   });
+  it("gives management a separate Security category and camera route", () => {
+    for (const role of ["OWNER", "ADMIN"]) {
+      const security = navForRole(role).find((section) => section.id === "security");
+      expect(security?.label).toBe("Security");
+      expect(security?.items.map((item) => item.href)).toEqual(["/security"]);
+      expect(activeNavHref("/security", role)).toBe("/security");
+      expect(safeReturnPath("/security", role)).toBe("/security");
+    }
+    expect(breadcrumbs("/security")).toEqual([{ label: "Security" }, { label: "Camera viewing" }]);
+    for (const role of ["EMPLOYEE", "BOOKKEEPER", "GUEST"]) {
+      expect(hrefs(role)).not.toContain("/security");
+      expect(safeReturnPath("/security", role)).toBeNull();
+    }
+  });
   it("unknown roles get nothing and hrefs are unique", () => {
     expect(navForRole("GUEST")).toEqual([]);
     const all = NAV_SECTIONS.flatMap((s) => s.items.map((i) => i.href));
@@ -52,7 +66,12 @@ describe("role-filtered navigation", () => {
         expect.arrayContaining(["/certificates", "/dealerships", "/invoices"]),
       );
       expect(carwash.items.map((i) => i.href)).toEqual(["/carwash", "/equipment"]);
-      expect(shared.items.map((i) => i.href)).toEqual(["/employees", "/payroll", "/vendors", "/finance"]);
+      expect(shared.items.map((i) => i.href)).toEqual([
+        "/employees",
+        "/payroll",
+        "/vendors",
+        "/finance",
+      ]);
       for (const path of ["/maintenance", "/maintenance/plans", "/chemicals", "/rentals"]) {
         expect(hrefs(role)).not.toContain(path);
         expect(matchRoute(path)).toBeDefined();

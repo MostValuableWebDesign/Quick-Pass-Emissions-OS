@@ -289,6 +289,11 @@ test("payroll and certificate preparation, independent review, export, and physi
   await reconciliation.getByLabel("Reconciliation reason").fill("E2E illustrative physical count");
   await save(reconciliation, "Reconcile stock");
   await expect(page.getByRole("heading", { name: "Certificate reorder needed" })).toBeVisible();
+  await page.goto("/dashboard");
+  await expect(
+    page.getByRole("heading", { name: "Certificate reorder needed", exact: true }),
+  ).toBeVisible();
+  await page.goto("/certificates");
   await preparer.goto("/certificates");
   const purchase = form(preparer, "Request purchase");
   await purchase.getByLabel("Requested certificates").fill("300");
@@ -320,6 +325,11 @@ test("payroll and certificate preparation, independent review, export, and physi
   await expect(
     page.locator('section[aria-label="Certificate metrics"]').getByText("400", { exact: true }),
   ).toBeVisible();
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "Needs attention", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Certificate reorder needed", exact: true }),
+  ).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))

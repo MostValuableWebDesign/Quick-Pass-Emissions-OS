@@ -1,268 +1,264 @@
+import Link from "next/link";
+import { AlertTriangle, ArrowUpRight, CheckCircle2, Gauge, Phone, Users } from "lucide-react";
+import { currentUser } from "@/lib/access";
+import { PageHeader } from "@/components/shared";
 import { RecordLink } from "@/components/record-link";
 import { CertificateOrderLink } from "@/components/certificate-order-link";
-import Link from "next/link";
-import { Prisma } from "@prisma/client";
-import { CheckCheck, Clock3, AlertTriangle, Users, ArrowUpRight, CalendarDays } from "lucide-react";
-import { currentUser } from "@/lib/access";
-import { db } from "@/lib/db";
-import { isManager } from "@/lib/policy";
-import { businessDate, dueInstant, addDays, formatDate } from "@/lib/time";
-import { PageHeader, TaskTable, employeeSelect } from "@/components/shared";
-import { maintenanceSummary } from "@/modules/maintenance/service";
-import { certificateOverview } from "@/modules/certificates/service";
-import { Button } from "@/components/ui/button";
-export default async function Dashboard() {
+import { businessDashboard } from "@/modules/dashboard/service";
+
+const money = (cents: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ attentionPage?: string }>;
+}) {
   const user = await currentUser();
-  const management = isManager(user.role);
-  const certificates = management ? await certificateOverview(user.id) : null;
-  const maintenance = management ? await maintenanceSummary(user.id) : null;
-  const today = businessDate();
-  const now = new Date();
-  const start = dueInstant(today, "00:00");
-  const end = dueInstant(addDays(today, 1), "00:00");
-  const scope: Prisma.TaskInstanceWhereInput = {};
-  const [todays, lateCount, shifts, activity, upcoming, settings, demoCount, run] =
-    await Promise.all([
-      db.taskInstance.findMany({
-        where: { ...scope, dueAt: { gte: start, lt: end } },
-        include: { employee: { select: employeeSelect } },
-        orderBy: { dueAt: "asc" },
-      }),
-      db.taskInstance.count({
-        where: { ...scope, dueAt: { lt: now }, status: { notIn: ["COMPLETED", "CANCELLED"] } },
-      }),
-      db.employeeSchedule.findMany({
-        where: { date: today },
-        include: { employee: { select: { user: { select: { name: true, active: true } } } } },
-        orderBy: { startTime: "asc" },
-      }),
-      db.taskEvent.findMany({
-        where: { task: scope },
-        orderBy: { createdAt: "desc" },
-        take: 6,
-        select: {
-          id: true,
-          actorName: true,
-          action: true,
-          createdAt: true,
-          task: { select: { id: true, title: true } },
-        },
-      }),
-      db.taskInstance.findMany({
-        where: { ...scope, dueAt: { gte: end }, status: { notIn: ["COMPLETED", "CANCELLED"] } },
-        include: { employee: { select: employeeSelect } },
-        orderBy: { dueAt: "asc" },
-        take: 5,
-      }),
-      db.businessSetting.findUnique({ where: { id: "business" } }),
-      db.employee.count({ where: { demo: true } }),
-      management ? db.jobRun.findFirst({ orderBy: { startedAt: "desc" } }) : null,
-    ]);
-  const completed = todays.filter((t) => t.status === "COMPLETED").length;
-  const active = todays.filter((t) => t.status !== "CANCELLED").length;
+  const data = await businessDashboard(user.id);
+  const params = await searchParams;
+  const requested = Number(params.attentionPage ?? 1);
+  const pages = Math.max(1, Math.ceil(data.attention.length / 15));
+  const page = Math.min(pages, Number.isSafeInteger(requested) && requested > 0 ? requested : 1);
+  const attention = data.attention.slice((page - 1) * 15, page * 15);
   return (
-    <>
+    <div className="business-dashboard">
       <PageHeader
-        title="Your operations, at a glance."
-        description={new Intl.DateTimeFormat("en-US", {
-          dateStyle: "full",
-          timeZone: "America/New_York",
-        }).format(now)}
-      >
-        {management && (
-          <Button asChild>
-            <Link href="/tasks/templates">+ Create a responsibility</Link>
-          </Button>
-        )}
-      </PageHeader>
-      {demoCount > 0 && (
+        title="Dashboard"
+        description={`${data.today} · Today so far · America/New_York`}
+      />
+      {data.demo && (
         <div className="notice">
-          DEMONSTRATION WORKSPACE · Sample employees and operations. These are not actual business
-          records.
+          <strong>DEMONSTRATION WORKSPACE</strong> · These figures may include sample data.
         </div>
       )}
-      {!settings?.configured && (
-        <div className="notice warning">
-          Business operating days are not configured.{" "}
-          <Link href="/settings">Complete setup to start scheduling →</Link>
-        </div>
-      )}
-      {management &&
-        certificates &&
-        (!certificates.stock || !certificates.settings || certificates.estimate?.low) && (
-          <div className="notice warning">
-            <Link href="/certificates">
-              {!certificates.stock || !certificates.settings
-                ? "Certificate inventory setup requires a physical count and owner-confirmed ordering settings."
-                : `Certificate reorder needed: ${certificates.stock.balance} recorded in stock.`}{" "}
-              Review certificates →
-            </Link>
-            {certificates.stock && certificates.settings && certificates.estimate?.low && (
-              <CertificateOrderLink role={user.role} alert />
+      <section aria-labelledby="snapshot-heading">
+        <h2 id="snapshot-heading" className="dashboard-section-title">
+          Today’s business snapshot
+        </h2>
+        <div className="business-snapshot">
+          <article className="stat">
+            <div className="stat-top">
+              <h3>Tests performed today</h3>
+              <Gauge size={19} aria-hidden="true" />
+            </div>
+            <strong>{data.tests.performed ?? "Unavailable"}</strong>
+            {data.tests.performed !== null ? (
+              <>
+                <p>
+                  <b>{data.tests.eligible}</b> confirmed commission-eligible
+                </p>
+                <p className="muted">
+                  {data.tests.awaitingReview} awaiting eligibility review. Imported tests only;
+                  today may be incomplete.
+                </p>
+              </>
+            ) : (
+              <p className="muted">
+                No station report for today. Missing imports do not mean zero tests.
+              </p>
             )}
+            <small>
+              {data.tests.approvedEmployeeCounts} approved employee test counts for commissions.
+              Separate from station totals.
+            </small>
+          </article>
+          <article className="stat">
+            <div className="stat-top">
+              <h3>Revenue today</h3>
+              <ArrowUpRight size={19} aria-hidden="true" />
+            </div>
+            <strong>{money(data.revenue.received)}</strong>
+            <p>Received · dealer & rental payments, net of reversals</p>
+            <dl className="snapshot-breakdown">
+              <div>
+                <dt>Billed · dealer invoices</dt>
+                <dd>{money(data.revenue.billed)}</dd>
+              </div>
+              <div>
+                <dt>Estimated · imported retail tests</dt>
+                <dd>
+                  {data.revenue.retailEstimate === null
+                    ? "Unavailable"
+                    : money(data.revenue.retailEstimate)}
+                </dd>
+              </div>
+            </dl>
+            <details className="revenue-details">
+              <summary>More revenue details</summary>
+              <dl className="snapshot-breakdown">
+                <div>
+                  <dt>Other recorded estimates</dt>
+                  <dd>{money(data.revenue.otherEstimates)}</dd>
+                </div>
+                <div>
+                  <dt>Verified manual revenue</dt>
+                  <dd>{money(data.revenue.verifiedManual)}</dd>
+                </div>
+              </dl>
+              <p className="muted">
+                Received includes dated dealer and rental payments, net of reversals. Estimates are
+                not receipts. Unrecorded revenue is not included.
+              </p>
+            </details>
+            <small>
+              Separate measures; do not add them together.{" "}
+              {data.revenue.unpricedRetail > 0 &&
+                `${data.revenue.unpricedRetail} retail tests lack pricing. `}
+              {data.revenue.unverifiedManual > 0 &&
+                `${money(data.revenue.unverifiedManual)} manual revenue awaits verification. `}
+            </small>
+          </article>
+          <article className="stat">
+            <div className="stat-top">
+              <h3>Employee gross pay so far</h3>
+              <Users size={19} aria-hidden="true" />
+            </div>
+            <strong>
+              {data.pay.grossCents === null ? "Incomplete" : money(data.pay.grossCents)}
+            </strong>
+            <dl className="snapshot-breakdown">
+              <div>
+                <dt>Base pay{data.pay.baseCents === null ? " · recorded subtotal" : ""}</dt>
+                <dd>{money(data.pay.knownBaseCents)}</dd>
+              </div>
+              <div>
+                <dt>
+                  Commissions{data.pay.commissionCents === null ? " · recorded subtotal" : ""}
+                </dt>
+                <dd>{money(data.pay.knownCommissionCents)}</dd>
+              </div>
+            </dl>
+            <p className="muted">Approved inputs only. Today’s base needs daily work inputs.</p>
+            {data.pay.missing.length > 0 && (
+              <details className="pay-input-gaps">
+                <summary>{data.pay.missing.length} employees have incomplete inputs</summary>
+                <ul>
+                  {data.pay.missing.slice(0, 15).map((p) => (
+                    <li key={p.id}>
+                      {p.name}: {p.missing.join("; ")}.
+                    </li>
+                  ))}
+                </ul>
+                {data.pay.missing.length > 15 && <p>More employees need review in Payroll.</p>}
+              </details>
+            )}
+            {data.pay.employees === 0 && (
+              <p className="muted">No employee payroll records configured.</p>
+            )}
+            {data.pay.grossCents === null && (
+              <small>Subtotals exclude missing inputs; they are not complete gross pay.</small>
+            )}
+          </article>
+        </div>
+      </section>
+      <section className="card business-attention" aria-labelledby="attention-heading">
+        <div className="card-heading">
+          <div>
+            <h2 id="attention-heading">
+              <AlertTriangle size={22} aria-hidden="true" /> Needs attention
+            </h2>
+            <p>
+              {data.attention.length} unresolved items · critical first, then overdue/reorder, then
+              upcoming
+            </p>
+          </div>
+          <span className={`badge ${data.attention.length ? "amber" : "green"}`}>
+            {data.attention.length} open
+          </span>
+        </div>
+        {attention.length ? (
+          <ol className="attention-items" start={(page - 1) * 15 + 1}>
+            {attention.map((item) => (
+              <li key={item.id}>
+                <span
+                  className={`badge ${item.severity === "critical" ? "danger" : item.severity === "urgent" ? "amber" : "neutral"}`}
+                >
+                  {item.severity === "critical"
+                    ? "Critical"
+                    : item.severity === "urgent"
+                      ? "Action needed"
+                      : "Upcoming"}
+                </span>
+                <div>
+                  <h3>{item.title}</h3>
+                  <p className="muted">{item.detail}</p>
+                </div>
+                <RecordLink
+                  className="text-link"
+                  href={item.href}
+                  aria-label={`Review ${item.title}`}
+                >
+                  Review <ArrowUpRight size={15} aria-hidden="true" />
+                </RecordLink>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <div className="card-body dashboard-clear">
+            <CheckCircle2 size={23} aria-hidden="true" />
+            <p>No unresolved attention items in the recorded data.</p>
           </div>
         )}
-      {maintenance && (
-        <section className="card card-body space-top">
-          <h2>Carwash & maintenance</h2>
-          <p>
-            {maintenance.openTickets} open tickets · {maintenance.overdueTickets} overdue ·{" "}
-            {maintenance.offlineBays} bays offline · {maintenance.lowChemicals} supplies at low
-            recorded stock.
+        <div className="dashboard-attention-footer">
+          <p className="muted">
+            Certifications: expired or due within {data.certificationDays} days. Only overdue,
+            unpaid invoices and rental charges appear.{" "}
+            {data.unknownInventory > 0 &&
+              `${data.unknownInventory} inventory items have missing stock or planning setup; review Certificates and Chemicals for full coverage.`}
           </p>
-          {maintenance.configuredBays < 6 || maintenance.unknownBays > 0 ? (
-            <p className="notice warning">
-              Confirm the six-bay layout and inspect unknown bay conditions.
-            </p>
-          ) : null}
-          <div className="module-links">
-            <Link href="/carwash">Review bays →</Link>
-            <Link href="/maintenance">Review maintenance →</Link>
-            <Link href="/chemicals">Review chemical stock →</Link>
-          </div>
-        </section>
-      )}
-      <section className="stats" aria-label="Operations metrics">
-        {[
-          {
-            label: "Due today",
-            value: active,
-            note: "Scheduled responsibilities",
-            icon: CalendarDays,
-            color: "blue",
-          },
-          {
-            label: "Completed today",
-            value: completed,
-            note: `${active ? Math.round((completed / active) * 100) : 0}% of today's responsibilities`,
-            icon: CheckCheck,
-            color: "green",
-          },
-          {
-            label: "Overdue tasks",
-            value: lateCount,
-            note: lateCount ? "Need follow-up" : "No overdue responsibilities",
-            icon: AlertTriangle,
-            color: "orange",
-          },
-          {
-            label: "Today's coverage",
-            value: shifts.length,
-            note: "Scheduled employee shifts",
-            icon: Users,
-            color: "purple",
-          },
-        ].map((m) => (
-          <article className="stat" key={m.label}>
-            <div className="stat-top">
-              <span>{m.label}</span>
-              <span className={`stat-icon ${m.color}`}>
-                <m.icon size={19} />
+          {pages > 1 && (
+            <nav aria-label="Attention pages" className="pagination">
+              {page > 1 && (
+                <Link href={`/dashboard?attentionPage=${page - 1}#attention-heading`}>
+                  Previous
+                </Link>
+              )}
+              <span>
+                Page {page} of {pages} · up to 15 items per page
               </span>
-            </div>
-            <strong>{m.value}</strong>
-            <small>{m.note}</small>
-          </article>
-        ))}
+              {page < pages && (
+                <Link href={`/dashboard?attentionPage=${page + 1}#attention-heading`}>Next</Link>
+              )}
+            </nav>
+          )}
+        </div>
       </section>
-      <div className="dashboard-grid">
-        <div className="stack">
-          <section className="card">
-            <div className="card-heading">
-              <div>
-                <h2>
-                  Today’s responsibilities <span className="count">{todays.length}</span>
-                </h2>
-                <p>Keep the day moving, one task at a time.</p>
-              </div>
-              <Link className="text-link" href="/tasks">
-                View all <ArrowUpRight size={15} />
-              </Link>
-            </div>
-            <TaskTable tasks={todays} />
-          </section>
-          <section className="card">
-            <div className="card-heading">
-              <div>
-                <h2>Coming up next</h2>
-                <p>A look ahead at your upcoming responsibilities.</p>
-              </div>
-              <Clock3 size={19} />
-            </div>
-            <TaskTable tasks={upcoming} />
-          </section>
-        </div>
-        <div className="stack">
-          <section className={`attention-card ${lateCount ? "has-alert" : ""}`}>
-            <AlertTriangle size={23} />
-            <h2>{lateCount ? "A little attention needed" : "Keep an eye on the details"}</h2>
-            <p>
-              {lateCount
-                ? `${lateCount} overdue responsibilities need follow-up.`
-                : "Review blocked work and upcoming responsibilities before the next shift."}
-            </p>
-            <Link href="/tasks?filter=overdue">
-              Review exceptions <ArrowUpRight size={15} />
+      <section aria-labelledby="quick-actions-heading">
+        <h2 id="quick-actions-heading" className="dashboard-section-title">
+          Quick actions
+        </h2>
+        <div className="dashboard-quick-actions">
+          <div className="dashboard-shortcut">
+            <CertificateOrderLink role={data.role} compact />
+          </div>
+          <div className="dashboard-shortcut">
+            <Link className="button" href="/vendors">
+              <Phone size={17} aria-hidden="true" /> Call Service & Support
             </Link>
-          </section>
-          <section className="card">
-            <div className="card-heading">
-              <h2>On the schedule</h2>
-              <span className="badge neutral">Today</span>
-            </div>
-            <div className="card-body">
-              {shifts.length ? (
-                shifts.map((s) => (
-                  <div className="coverage-row" key={s.id}>
-                    <span className="avatar">{s.employee.user.name[0]}</span>
-                    <div>
-                      <strong>
-                        {s.employee.user.name}
-                        {!s.employee.user.active && " · inactive"}
-                      </strong>
-                      <small>{s.duties || "No duties specified"}</small>
-                    </div>
-                    <span>
-                      {s.startTime}–{s.endTime}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <p className="muted">No shifts recorded for today.</p>
-              )}
-            </div>
-          </section>
-          <section className="card">
-            <div className="card-heading">
-              <h2>Recent activity</h2>
-            </div>
-            <div className="card-body timeline">
-              {activity.length ? (
-                activity.map((a) => (
-                  <div key={a.id}>
-                    <span className="timeline-dot" />
-                    <p>
-                      <strong>{a.actorName}</strong> · {a.action.toLowerCase().replaceAll("_", " ")}
-                      <RecordLink href={`/tasks/${a.task.id}`}>{a.task.title}</RecordLink>
-                      <small>{formatDate(a.createdAt)}</small>
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <p className="muted">Task activity will appear here.</p>
-              )}
-            </div>
-          </section>
+            <p className="muted">
+              Choose the right provider and use their verified contact details.
+            </p>
+          </div>
+          <div className="dashboard-shortcut">
+            <Link className="button" href="/payroll">
+              Review payroll
+            </Link>
+            <p className="muted">Review employee pay, commissions and missing inputs.</p>
+          </div>
+          <div className="dashboard-shortcut">
+            {data.role === "OWNER" ? (
+              <Link className="button" href="/performance">
+                Open Performance
+              </Link>
+            ) : (
+              <span className="button" aria-disabled="true">
+                Open Performance · owner access
+              </span>
+            )}
+            <p className="muted">View emission volume, revenue trends and pay evidence.</p>
+          </div>
         </div>
-      </div>
-      {management && (
-        <p className="footnote">
-          Last operations check:{" "}
-          {run ? `${formatDate(run.startedAt)} · ${run.status.toLowerCase()}` : "Not run yet"}.
-          Dashboard counts use current database records.{" "}
-          <Link href="/settings">Manage scheduler</Link>
-        </p>
-      )}
-    </>
+      </section>
+    </div>
   );
 }

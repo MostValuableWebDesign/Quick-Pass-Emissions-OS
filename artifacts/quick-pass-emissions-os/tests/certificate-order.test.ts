@@ -111,9 +111,8 @@ describe("manual certificate portal navigation", () => {
     expect(inventory).toContain("different OWNER or ADMIN approve");
     expect(inventory).toContain("confirming physical");
     const dashboard = readFileSync("src/app/(app)/dashboard/page.tsx", "utf8");
-    expect(dashboard).toContain(
-      "certificates.stock && certificates.settings && certificates.estimate?.low",
-    );
+    expect(dashboard).toContain("<CertificateOrderLink role={data.role} compact />");
+    expect(dashboard).toContain("Quick actions");
     const overview = readFileSync("src/app/(app)/overview/page.tsx", "utf8");
     expect(overview).toContain('i.key === "certificates"');
     expect(overview).toContain('i.state !== "UNKNOWN_STOCK"');

@@ -20,6 +20,33 @@ for (const role of ["OWNER", "ADMIN"] as const) {
       test.setTimeout(240000);
       await page.goto("/dashboard");
       await expect(page).toHaveURL(/\/dashboard$/);
+      for (const name of ["Today’s business snapshot", "Needs attention", "Quick actions"])
+        await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: "Order Certificates", exact: false }),
+      ).toHaveCount(1);
+      await expect(
+        page.getByRole("link", { name: "Call Service & Support", exact: true }),
+      ).toHaveAttribute("href", "/vendors");
+      await expect(page.getByRole("link", { name: "Review payroll", exact: true })).toHaveAttribute(
+        "href",
+        "/payroll",
+      );
+      if (role === "OWNER")
+        await expect(
+          page.getByRole("link", { name: "Open Performance", exact: true }),
+        ).toHaveAttribute("href", "/performance");
+      else
+        await expect(page.getByRole("link", { name: "Open Performance", exact: true })).toHaveCount(
+          0,
+        );
+      if (role === "OWNER" && process.env.E2E_DASHBOARD_CAPTURE_DIR) {
+        await page.setViewportSize({ width: 1440, height: 1100 });
+        await page.screenshot({
+          path: `${process.env.E2E_DASHBOARD_CAPTURE_DIR}/dashboard-desktop.png`,
+          fullPage: true,
+        });
+      }
       const navigation = await expandGroups(page);
       await expect(navigation).toBeVisible();
       const hrefs = await navigation
@@ -65,6 +92,14 @@ for (const role of ["OWNER", "ADMIN"] as const) {
         ),
       ).toHaveCount(0);
       await page.setViewportSize({ width: 390, height: 844 });
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+        .toBe(true);
+      if (role === "OWNER" && process.env.E2E_DASHBOARD_CAPTURE_DIR)
+        await page.screenshot({
+          path: `${process.env.E2E_DASHBOARD_CAPTURE_DIR}/dashboard-mobile.png`,
+          fullPage: true,
+        });
       const toggle = page.getByRole("button", {
         name: /^(open|close|toggle) navigation( menu)?$/i,
       });

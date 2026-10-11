@@ -9,6 +9,8 @@
 
 A PostgreSQL-backed Phases 1–5 business application for Quick Pass Emissions, Tag Renewal & Carwash. Next.js App Router, TypeScript, React, Tailwind, a shadcn-style Button primitive, Lucide, Prisma, Better Auth, and Zod. No real business records or financial balances are included.
 
+**Dashboard:** today’s Eastern-date snapshot separates imported tests and reviewed commission eligibility, dealer/rental receipts, dealer billing, retail estimates, other recorded estimates and verified manual revenue. Employee gross separates approved base and commissions; missing daily inputs remain incomplete. The main action list contains only current low stock, certifications due soon, and overdue unpaid dealer/rental balances, ordered by urgency with 15 items per page. Quick actions open certificate ordering, Service & Support, payroll and owner Performance. Dashboard visits are read-only; they do not generate jobs, approve sources or change balances.
+
 **Station performance:** the owner-only **Performance** view adds verified original-report imports, explicit identity/coverage/count review, revenue evidence separation, outcome breakdowns, daily/hourly trends, an employee payroll-evidence table, and draggable/resizable panels saved per owner in this browser. Comparisons require reviewed complete historical coverage; partial pay periods are not prorated. Live portal synchronization and current-day earnings forecasts remain unverified/unsupported, not simulated. Read [STATION_HISTORY.md](STATION_HISTORY.md) for secure setup, source discovery, operating instructions and limitations.
 
 **Payroll & commissions:** employee-first daily/weekly base rates, approved daily/weekly commissions,

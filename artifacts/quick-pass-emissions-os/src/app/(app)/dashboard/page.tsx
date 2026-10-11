@@ -27,14 +27,6 @@ import { readCertificatePortalStatus } from "@/modules/certificates/portal";
 
 const money = (cents: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
-const certificateCheckedAt = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York",
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  timeZoneName: "short",
-});
 const dashboardUpdatedAtFormat = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/New_York",
   month: "short",
@@ -225,11 +217,6 @@ export default async function Dashboard({
                 ? ` · Station ${certificateStatus.station} · Analyzer ${certificateStatus.analyzer}`
                 : ""}
             </p>
-            <small>
-              {certificateStatus?.checkedAt
-                ? `Checked ${certificateCheckedAt.format(new Date(certificateStatus.checkedAt))}`
-                : "No verified portal count yet."}
-            </small>
             {certificateStatus?.error && certificateStatus.balance !== null && (
               <small className="dashboard-certificate-stale">
                 Last refresh failed; showing the saved balance.

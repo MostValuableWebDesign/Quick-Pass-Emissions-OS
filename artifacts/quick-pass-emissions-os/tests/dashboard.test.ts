@@ -158,7 +158,8 @@ describe("Business dashboard presentation", () => {
     const html = await render(data);
     expect(html).toContain("Performance data is unavailable.");
     expect(html).toContain("Certificates remaining");
-    expect(html).toContain("No verified portal count yet.");
+    expect(html).not.toContain("Checked ");
+    expect(html).not.toContain("No verified portal count yet.");
     expect(html).not.toContain("$0.00");
   });
   it("paginates unresolved attention at 15 items and keeps the final item accessible", async () => {

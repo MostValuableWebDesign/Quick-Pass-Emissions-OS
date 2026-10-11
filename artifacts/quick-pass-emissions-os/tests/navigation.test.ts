@@ -106,6 +106,20 @@ describe("role-filtered navigation", () => {
     expect(activeNavHref("/invoices", "OWNER")).toBe("/invoices");
     expect(safeReturnPath("/invoices?view=payments", "ADMIN")).toBe("/invoices?view=payments");
   });
+  it("gives management a separate Security category and camera route", () => {
+    for (const role of ["OWNER", "ADMIN"]) {
+      const security = navForRole(role).find((section) => section.id === "security");
+      expect(security?.label).toBe("Security");
+      expect(security?.items.map((item) => item.href)).toEqual(["/security"]);
+      expect(activeNavHref("/security", role)).toBe("/security");
+      expect(safeReturnPath("/security", role)).toBe("/security");
+    }
+    expect(breadcrumbs("/security")).toEqual([{ label: "Security" }, { label: "Camera viewing" }]);
+    for (const role of ["EMPLOYEE", "BOOKKEEPER", "GUEST"]) {
+      expect(hrefs(role)).not.toContain("/security");
+      expect(safeReturnPath("/security", role)).toBeNull();
+    }
+  });
   it("unknown roles get nothing and hrefs are unique", () => {
     expect(navForRole("GUEST")).toEqual([]);
     const all = NAV_SECTIONS.flatMap((s) => s.items.map((i) => i.href));

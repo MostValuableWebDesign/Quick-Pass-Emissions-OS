@@ -44,3 +44,9 @@ Keep privileged application-service fixture preparation in the native runner, no
 **Why:** A continuation fixture failed before assertions when the driver imported server services, with an error location that did not identify the failing test selector. Native preparation completed successfully and allowed the remaining checks to pass; the earlier failure alone was not proof of an application defect.
 
 **How to apply:** Prepare only runner-owned synthetic data using the existing datasource/actor guards, then pass private metadata to the driver. Keep module/fixture failures separate from UI failures in completion reports.
+
+Direct fixture-server networking and the browser executable are independent choices.
+
+**Why:** Selecting a loopback fixture server incorrectly bypassed the workspace's system Chromium. Playwright's downloaded Chromium was absent, so authentication setup passed but browser execution failed at the test declaration before any UI assertion.
+
+**How to apply:** Check the available browser executable even for direct isolated runs. A failure reported only at the test declaration may be a browser setup failure, not an application regression.

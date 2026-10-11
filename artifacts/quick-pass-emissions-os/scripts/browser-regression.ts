@@ -122,6 +122,8 @@ async function main() {
   originalTypes = await readFile(path.join(app, "next-env.d.ts"), "utf8");
   originalConfig = await readFile(path.join(app, "tsconfig.json"), "utf8");
   const state = path.join(temporary, "session.json");
+  const chromiumPath = process.env.E2E_CHROMIUM_PATH ??
+    await access("/repl/tools/bin/chromium").then(() => "/repl/tools/bin/chromium", () => undefined);
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     NODE_ENV: "development",
@@ -136,8 +138,8 @@ async function main() {
       ? { DATA_BACKUP_DIR: path.join(temporary, "backups") }
       : {}),
     // NixOS workspace Chromium; other machines may use Playwright's installed browser.
-    ...(process.env.E2E_CHROMIUM_PATH || !direct
-      ? { E2E_CHROMIUM_PATH: process.env.E2E_CHROMIUM_PATH ?? "/repl/tools/bin/chromium" }
+    ...(chromiumPath
+      ? { E2E_CHROMIUM_PATH: chromiumPath }
       : {}),
     GA_STATION_ID: "SYNTHETIC",
   };

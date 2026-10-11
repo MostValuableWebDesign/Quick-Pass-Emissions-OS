@@ -25,6 +25,10 @@ vi.mock("next/link", () => ({
 vi.mock("@/components/record-link", () => ({
   RecordLink: (props: React.ComponentProps<"a">) => createElement("a", props),
 }));
+vi.mock("@/components/dashboard-refresh", () => ({
+  DashboardRefresh: () =>
+    createElement("button", { type: "button", "data-testid": "button-dashboard-refresh" }, "Refresh panels"),
+}));
 type Data = Awaited<ReturnType<typeof businessDashboard>>;
 function fixture(): Data {
   return {
@@ -126,6 +130,14 @@ describe("Business dashboard presentation", () => {
       expect(html).toContain(text);
     expect(html).not.toContain("Today’s responsibilities");
     expect(html).not.toContain("Recent activity");
+    expect(html).toContain('data-testid="button-dashboard-refresh"');
+  });
+  it("shows the last-updated timestamp on every dashboard panel", async () => {
+    const html = await render();
+    expect((html.match(/class="dashboard-panel-updated"/g) ?? []).length).toBe(9);
+    expect(html).toContain('dateTime="2026-10-10T13:00:00.000Z"');
+    expect(html).toContain("Last updated");
+    expect(html).toContain("EDT");
   });
   it("offers ordinary management shortcuts and preserves the owner-only Performance boundary", async () => {
     const data = fixture();

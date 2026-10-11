@@ -2064,6 +2064,79 @@ details > summary {
   font-size: 11px;
   line-height: 1.6;
 }
+.dashboard-panel-updated {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-panel-updated time {
+  white-space: nowrap;
+}
+.dashboard-refresh-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+.dashboard-refresh-button.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 15px;
+  border: 1px solid color-mix(in srgb, var(--chart-green) 32%, var(--line));
+  border-radius: 999px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--chart-green) 13%, var(--surface)),
+    var(--surface)
+  );
+  color: var(--chart-green);
+  font-size: 12px;
+  font-weight: 650;
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--chart-green) 10%, transparent);
+  transition:
+    transform 150ms ease,
+    background 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+.dashboard-refresh-button.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--chart-green);
+  background: color-mix(in srgb, var(--chart-green) 17%, var(--surface));
+  box-shadow: 0 5px 15px color-mix(in srgb, var(--chart-green) 16%, transparent);
+}
+.dashboard-refresh-button.button:focus-visible {
+  outline: 2px solid var(--chart-green);
+  outline-offset: 3px;
+}
+.dashboard-refresh-button.button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+.dashboard-refresh-icon--busy {
+  animation: dashboard-refresh-spin 900ms linear infinite;
+}
+.dashboard-refresh-status {
+  max-width: 320px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: right;
+}
+.dashboard-refresh-status[data-error="true"] {
+  color: var(--warning);
+}
+@keyframes dashboard-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .revenue-details summary {
   cursor: pointer;
   color: var(--muted);
@@ -2187,6 +2260,17 @@ details > summary {
   font-size: 11px;
   line-height: 1.6;
   margin-top: 10px;
+}
+.dashboard-shortcut .dashboard-panel-updated {
+  font-size: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-refresh-button.button {
+    transition: none;
+  }
+  .dashboard-refresh-icon--busy {
+    animation: none;
+  }
 }
 .dashboard-shortcut [aria-disabled="true"] {
   opacity: 0.65;

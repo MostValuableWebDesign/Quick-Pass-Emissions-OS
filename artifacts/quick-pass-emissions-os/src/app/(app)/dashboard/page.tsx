@@ -14,11 +14,12 @@ import {
 } from "lucide-react";
 import { currentUser } from "@/lib/access";
 import { isEmissionsClosedOn } from "@/modules/station/operating-hours";
-import { BusinessError } from "@/modules/phase2";
+import { approvalRoles, BusinessError } from "@/modules/phase2";
 import { readDashboard } from "@/modules/station/dashboard-service";
 import type { DashboardData } from "@/modules/station/dashboard-types";
 import { PageHeader } from "@/components/shared";
 import { DashboardClock } from "@/components/dashboard-clock";
+import { DashboardRefresh } from "@/components/dashboard-refresh";
 import { RecordLink } from "@/components/record-link";
 import { CertificateOrderLink } from "@/components/certificate-order-link";
 import { businessDashboard } from "@/modules/dashboard/service";
@@ -34,6 +35,23 @@ const certificateCheckedAt = new Intl.DateTimeFormat("en-US", {
   minute: "2-digit",
   timeZoneName: "short",
 });
+const dashboardUpdatedAtFormat = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZoneName: "short",
+});
+function DashboardLastUpdated({ at }: { at: Date }) {
+  return (
+    <p className="dashboard-panel-updated">
+      Last updated{" "}
+      <time dateTime={at.toISOString()}>{dashboardUpdatedAtFormat.format(at)}</time>
+    </p>
+  );
+}
 export default async function Dashboard({
   searchParams,
 }: {
@@ -68,12 +86,19 @@ export default async function Dashboard({
   const pages = Math.max(1, Math.ceil(data.attention.length / 15));
   const page = Math.min(pages, Number.isSafeInteger(requested) && requested > 0 ? requested : 1);
   const attention = data.attention.slice((page - 1) * 15, page * 15);
+  const dashboardUpdatedAt = new Date();
   return (
     <div className="business-dashboard">
       <PageHeader
         title="Dashboard"
         description={<DashboardClock businessDay={data.today} initialTime={now.toISOString()} />}
-      />
+      >
+        <DashboardRefresh
+          today={data.today}
+          canRefreshPerformance={user.role === "OWNER"}
+          canRefreshCertificates={approvalRoles.includes(data.role)}
+        />
+      </PageHeader>
       {data.demo && (
         <div className="notice">
           <strong>DEMONSTRATION WORKSPACE</strong> · These figures may include sample data.
@@ -114,6 +139,7 @@ export default async function Dashboard({
             <small>
               Free 30-day retests excluded · {performanceSummary?.freeRetests ?? "—"} today.
             </small>
+            <DashboardLastUpdated at={dashboardUpdatedAt} />
           </article>
           <article className="stat">
             <div className="stat-top">
@@ -131,6 +157,7 @@ export default async function Dashboard({
             <small>
               Same counted tests and free-retest rules as the Performance report.
             </small>
+            <DashboardLastUpdated at={dashboardUpdatedAt} />
           </article>
           <article className="stat">
             <div className="stat-top">
@@ -172,6 +199,7 @@ export default async function Dashboard({
             {performanceData && performanceSummary?.payCents == null && (
               <small>Performance pay inputs or daily test coverage are incomplete.</small>
             )}
+            <DashboardLastUpdated at={dashboardUpdatedAt} />
           </article>
           <article
             className="stat dashboard-certificate-panel"
@@ -219,6 +247,7 @@ export default async function Dashboard({
                 Certificate details <ArrowUpRight size={14} aria-hidden="true" />
               </Link>
             )}
+            <DashboardLastUpdated at={dashboardUpdatedAt} />
           </article>
         </div>
       </section>
@@ -232,6 +261,7 @@ export default async function Dashboard({
               {data.attention.length} unresolved items · critical first, then overdue/reorder, then
               upcoming
             </p>
+            <DashboardLastUpdated at={dashboardUpdatedAt} />
           </div>
           <span className={`badge ${data.attention.length ? "amber" : "green"}`}>
             {data.attention.length} open
@@ -301,6 +331,7 @@ export default async function Dashboard({
         <div className="dashboard-quick-actions">
           <div className="dashboard-shortcut dashboard-shortcut--certificates">
             <CertificateOrderLink role={data.role} compact />
+            <DashboardLastUpdated at={dashboardUpdatedAt} />
           </div>
           <div className="dashboard-shortcut dashboard-shortcut--support">
             <Link className="button" href="/vendors">
@@ -309,12 +340,14 @@ export default async function Dashboard({
             <p className="muted">
               Choose the right provider and use their verified contact details.
             </p>
+            <DashboardLastUpdated at={dashboardUpdatedAt} />
           </div>
           <div className="dashboard-shortcut dashboard-shortcut--payroll">
             <Link className="button" href="/payroll">
               <Wallet size={17} aria-hidden="true" /> Review payroll
             </Link>
             <p className="muted">Review employee pay, commissions and missing inputs.</p>
+            <DashboardLastUpdated at={dashboardUpdatedAt} />
           </div>
           <div className="dashboard-shortcut dashboard-shortcut--performance">
             {data.role === "OWNER" ? (
@@ -327,6 +360,7 @@ export default async function Dashboard({
               </span>
             )}
             <p className="muted">View emission volume, revenue trends and pay evidence.</p>
+            <DashboardLastUpdated at={dashboardUpdatedAt} />
           </div>
         </div>
       </section>

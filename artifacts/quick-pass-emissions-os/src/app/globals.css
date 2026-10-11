@@ -416,6 +416,19 @@ main#main {
   margin-top: 10px;
   font-size: 12px;
 }
+.dashboard-live-clock {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0 10px;
+  flex-wrap: wrap;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-live-clock-separator {
+  color: var(--muted);
+}
 .heading-actions {
   display: flex;
   gap: 10px;

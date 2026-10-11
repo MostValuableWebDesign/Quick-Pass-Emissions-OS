@@ -14,6 +14,7 @@ import { BusinessError } from "@/modules/phase2";
 import { readDashboard } from "@/modules/station/dashboard-service";
 import type { DashboardData } from "@/modules/station/dashboard-types";
 import { PageHeader } from "@/components/shared";
+import { DashboardClock } from "@/components/dashboard-clock";
 import { RecordLink } from "@/components/record-link";
 import { CertificateOrderLink } from "@/components/certificate-order-link";
 import { businessDashboard } from "@/modules/dashboard/service";
@@ -55,7 +56,7 @@ export default async function Dashboard({
     <div className="business-dashboard">
       <PageHeader
         title="Dashboard"
-        description={`${data.today} · Today so far · America/New_York`}
+        description={<DashboardClock businessDay={data.today} initialTime={now.toISOString()} />}
       />
       {data.demo && (
         <div className="notice">

@@ -154,9 +154,27 @@ const navDefs: RouteDef[] = NAV_SECTIONS.flatMap((s) =>
 // without exposing them as sidebar navigation entries.
 const detachedNavDefs: RouteDef[] = [
   { pattern: "/tasks", title: "Tasks", section: "Operations", navHref: "/tasks", roles: OPERATORS },
-  { pattern: "/schedule", title: "Schedule", section: "Operations", navHref: "/schedule", roles: OPERATORS },
-  { pattern: "/tasks/templates", title: "Task templates", section: "Operations", navHref: "/tasks/templates", roles: MANAGERS },
-  { pattern: "/employees", title: "Employees", section: "Operations", navHref: "/employees", roles: MANAGERS },
+  {
+    pattern: "/schedule",
+    title: "Schedule",
+    section: "Operations",
+    navHref: "/schedule",
+    roles: OPERATORS,
+  },
+  {
+    pattern: "/tasks/templates",
+    title: "Task templates",
+    section: "Operations",
+    navHref: "/tasks/templates",
+    roles: MANAGERS,
+  },
+  {
+    pattern: "/employees",
+    title: "Employees",
+    section: "Operations",
+    navHref: "/employees",
+    roles: MANAGERS,
+  },
 ];
 
 function detail(

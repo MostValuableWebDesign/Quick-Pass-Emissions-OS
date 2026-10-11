@@ -7,7 +7,7 @@ export function reportMinute(sourceDate: string): number | null {
   const hour = Number(match[1]);
   const minute = Number(match[2]);
   if (hour < 1 || hour > 12 || minute > 59) return null;
-  return (hour % 12 + (match[3] === "PM" ? 12 : 0)) * 60 + minute;
+  return ((hour % 12) + (match[3] === "PM" ? 12 : 0)) * 60 + minute;
 }
 
 /** Sum daily first-to-last testing windows, then divide by cars, not gaps or daily averages. */
@@ -18,7 +18,10 @@ export function inspectionCadence(days: PortalDay[], inspector?: string | null):
   for (const day of days) {
     if (day.retestComplete === false) continue;
     if (inspector === null) continue;
-    if (!day.testTimes) { if (day.verifiedEmpty) coveredDays++; continue; }
+    if (!day.testTimes) {
+      if (day.verifiedEmpty) coveredDays++;
+      continue;
+    }
     // An employee uses their own window. The station uses one window for all staff,
     // so overlapping employee windows never double-count station elapsed time.
     const times = day.testTimes

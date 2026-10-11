@@ -55,7 +55,11 @@ export class PortalSession {
   private cookies = new Map<string, string>();
   private deadline = Date.now() + 60_000;
   private allowedPaths: Set<string>;
-  constructor(private transport: typeof fetch = fetch, allowCertificateReads = false, allowCertificateHistory = false) {
+  constructor(
+    private transport: typeof fetch = fetch,
+    allowCertificateReads = false,
+    allowCertificateHistory = false,
+  ) {
     this.allowedPaths = new Set(ALLOWED_PATHS);
     if (allowCertificateReads) {
       this.allowedPaths.add("/Purchasing/Purchasing.aspx");
@@ -80,7 +84,14 @@ export class PortalSession {
           cache: "no-store",
           signal: AbortSignal.timeout(Math.min(15_000, remaining)),
           headers: {
-            ...(body ? { "Content-Type": typeof body === "string" ? "application/json; charset=utf-8" : "application/x-www-form-urlencoded" } : {}),
+            ...(body
+              ? {
+                  "Content-Type":
+                    typeof body === "string"
+                      ? "application/json; charset=utf-8"
+                      : "application/x-www-form-urlencoded",
+                }
+              : {}),
             ...(this.cookies.size
               ? { Cookie: [...this.cookies].map(([k, v]) => `${k}=${v}`).join("; ") }
               : {}),
@@ -217,15 +228,19 @@ export function portalExplicitEmpty(html: string, start: string, end: string, st
     ["txtVin", "txtCertNumber", "txtLicNo", "txtWaiverRecordNumber"].some(
       (field) => form.body.get(`ctl00$MainContent$${field}`) !== "",
     )
-  ) return false;
+  )
+    return false;
   const grid = portalElements(form.document, "table").find(
     (n) => portalAttributes(n).id === "MainContent_gvMain",
   );
   if (!grid || portalElements(grid, "tr").length !== 2) return false;
   const cells = portalElements(grid, "td");
-  return cells.length === 1 && portalAttributes(cells[0]).colspan === "7" &&
+  return (
+    cells.length === 1 &&
+    portalAttributes(cells[0]).colspan === "7" &&
     portalText(cells[0]).replace(/\s+/g, " ").trim() === "No data was found. Clear Search" &&
-    !portalElements(form.document, "input").some((n) => portalAttributes(n).alt === "Export");
+    !portalElements(form.document, "input").some((n) => portalAttributes(n).alt === "Export")
+  );
 }
 
 /** Bounded range export. Cache counts and hashed VIN/record evidence, never full VINs. */
@@ -238,13 +253,28 @@ export async function portalRangeDays(
   try {
     const { page } = await portalSearch(start, config, session, end);
     if (portalExplicitEmpty(page.html, start, end, config.station))
-      return start === end ? [{ date: start, ...blankCounts(), inspectors: [], testTimes: [], retrievedAt: new Date().toISOString(), verifiedEmpty: true }] : [];
+      return start === end
+        ? [
+            {
+              date: start,
+              ...blankCounts(),
+              inspectors: [],
+              testTimes: [],
+              retrievedAt: new Date().toISOString(),
+              verifiedEmpty: true,
+            },
+          ]
+        : [];
     const expected = expectedPortalTotal(page.html);
     const form = portalForm(page.html);
     const exportButton = portalElements(form.document, "input")
       .map(portalAttributes)
-      .find((a) => a.type === "image" && a.alt === "Export" &&
-        /^ctl00\$MainContent\$gvMain\$ctl\d+\$pgrApplus\$btnExport$/.test(a.name ?? ""));
+      .find(
+        (a) =>
+          a.type === "image" &&
+          a.alt === "Export" &&
+          /^ctl00\$MainContent\$gvMain\$ctl\d+\$pgrApplus\$btnExport$/.test(a.name ?? ""),
+      );
     if (!exportButton) throw new BusinessError("No verified export is available for these dates.");
     form.body.set(`${exportButton.name}.x`, "1");
     form.body.set(`${exportButton.name}.y`, "1");
@@ -262,7 +292,14 @@ export async function portalRangeDays(
     for (const row of report.rows) {
       let day = days.get(row.businessDate);
       if (!day) {
-        day = { date: row.businessDate, ...blankCounts(), inspectors: [], testTimes: [], retrievedAt, verifiedEmpty: false };
+        day = {
+          date: row.businessDate,
+          ...blankCounts(),
+          inspectors: [],
+          testTimes: [],
+          retrievedAt,
+          verifiedEmpty: false,
+        };
         days.set(row.businessDate, day);
       }
       let inspector = day.inspectors.find((g) => g.inspector === row.inspector);
@@ -271,8 +308,14 @@ export async function portalRangeDays(
         day.inspectors.push(inspector);
       }
       const outcome = row.outcome.toLowerCase();
-      const key = outcome === "pass" ? "passed" : outcome === "fail" ? "failed" :
-        outcome === "abort" ? "aborted" : "other";
+      const key =
+        outcome === "pass"
+          ? "passed"
+          : outcome === "fail"
+            ? "failed"
+            : outcome === "abort"
+              ? "aborted"
+              : "other";
       for (const aggregate of [day, inspector]) {
         aggregate.total++;
         aggregate[key]++;

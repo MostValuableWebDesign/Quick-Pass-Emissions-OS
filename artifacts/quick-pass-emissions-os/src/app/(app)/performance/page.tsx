@@ -8,5 +8,10 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
   const user = await requireRole(["OWNER"]);
   const query = resolveDashboardQuery(await searchParams);
   const initial = await readDashboard(user.id, query);
-  return <PerformanceDashboard key={`${query.start}:${query.end}:${query.trendDays}:${query.employee ?? ""}`} initial={initial} />;
+  return (
+    <PerformanceDashboard
+      key={`${query.start}:${query.end}:${query.trendDays}:${query.employee ?? ""}`}
+      initial={initial}
+    />
+  );
 }

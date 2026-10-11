@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { dayState, finalize, monthGrid, pickDay, shiftMonth } from "@/components/performance-calendar-utils";
+import {
+  dayState,
+  finalize,
+  monthGrid,
+  pickDay,
+  shiftMonth,
+} from "@/components/performance-calendar-utils";
 
 const max = "2025-03-20";
 
@@ -16,7 +22,9 @@ describe("performance calendar helpers", () => {
     expect(shiftMonth(2024, 11, 1)).toEqual({ y: 2025, m: 0 });
   });
   it("single mode selects one day", () => {
-    expect(pickDay("single", { start: "2025-03-01", end: "2025-03-05" }, "2025-03-10", max)).toEqual({ start: "2025-03-10", end: "2025-03-10" });
+    expect(
+      pickDay("single", { start: "2025-03-01", end: "2025-03-05" }, "2025-03-10", max),
+    ).toEqual({ start: "2025-03-10", end: "2025-03-10" });
   });
   it("ignores future days", () => {
     const sel = { start: "2025-03-01", end: null };
@@ -30,6 +38,9 @@ describe("performance calendar helpers", () => {
     expect(dayState("2025-03-06", s, null)).toEqual({ start: false, end: false, inRange: true });
   });
   it("finalize collapses incomplete range", () => {
-    expect(finalize({ start: "2025-03-04", end: null })).toEqual({ start: "2025-03-04", end: "2025-03-04" });
+    expect(finalize({ start: "2025-03-04", end: null })).toEqual({
+      start: "2025-03-04",
+      end: "2025-03-04",
+    });
   });
 });

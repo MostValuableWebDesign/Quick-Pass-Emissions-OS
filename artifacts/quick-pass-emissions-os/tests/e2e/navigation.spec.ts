@@ -21,6 +21,33 @@ for (const role of ["OWNER", "ADMIN"] as const) {
       test.setTimeout(240000);
       await page.goto("/dashboard");
       await expect(page).toHaveURL(/\/dashboard$/);
+      for (const name of ["Today’s business snapshot", "Needs attention", "Quick actions"])
+        await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: "Order Certificates", exact: false }),
+      ).toHaveCount(1);
+      await expect(
+        page.getByRole("link", { name: "Call Service & Support", exact: true }),
+      ).toHaveAttribute("href", "/vendors");
+      await expect(page.getByRole("link", { name: "Review payroll", exact: true })).toHaveAttribute(
+        "href",
+        "/payroll",
+      );
+      if (role === "OWNER")
+        await expect(
+          page.getByRole("link", { name: "Open Performance", exact: true }),
+        ).toHaveAttribute("href", "/performance");
+      else
+        await expect(page.getByRole("link", { name: "Open Performance", exact: true })).toHaveCount(
+          0,
+        );
+      if (role === "OWNER" && process.env.E2E_DASHBOARD_CAPTURE_DIR) {
+        await page.setViewportSize({ width: 1440, height: 1100 });
+        await page.screenshot({
+          path: `${process.env.E2E_DASHBOARD_CAPTURE_DIR}/dashboard-desktop.png`,
+          fullPage: true,
+        });
+      }
       const navigation = await expandGroups(page);
       await expect(navigation).toBeVisible();
       const hrefs = await navigation
@@ -66,6 +93,14 @@ for (const role of ["OWNER", "ADMIN"] as const) {
         ),
       ).toHaveCount(0);
       await page.setViewportSize({ width: 390, height: 844 });
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+        .toBe(true);
+      if (role === "OWNER" && process.env.E2E_DASHBOARD_CAPTURE_DIR)
+        await page.screenshot({
+          path: `${process.env.E2E_DASHBOARD_CAPTURE_DIR}/dashboard-mobile.png`,
+          fullPage: true,
+        });
       const toggle = page.getByRole("button", {
         name: /^(open|close|toggle) navigation( menu)?$/i,
       });
@@ -149,7 +184,9 @@ test.describe("Owner daily performance count", () => {
       await expect(page.getByTestId("text-revenue")).toHaveText("$1,000");
       await expect(page.getByTestId("row-employee-inspector:Fixture%20Two")).toContainText("$90");
       await expect(page.getByTestId("text-today-total")).toHaveText("95");
-      await expect(page.getByRole("region", { name: "Trend" })).toContainText("line is station total");
+      await expect(page.getByRole("region", { name: "Trend" })).toContainText(
+        "line is station total",
+      );
       await page.getByTestId("select-employee").selectOption("");
       await page.getByTestId("button-apply-range").click();
       await page.getByTestId("button-sort-name").click();
@@ -182,22 +219,35 @@ test.describe("Owner daily performance count", () => {
       await page.reload();
       await expect(page.getByTestId("text-pay")).toHaveText("$596");
       let workspace = process.cwd();
-      while (!existsSync(path.join(workspace, "generated-artifacts")) && path.dirname(workspace) !== workspace)
+      while (
+        !existsSync(path.join(workspace, "generated-artifacts")) &&
+        path.dirname(workspace) !== workspace
+      )
         workspace = path.dirname(workspace);
       const screenshots = path.join(workspace, "generated-artifacts");
       await mkdir(screenshots, { recursive: true });
-      await page.screenshot({ path: path.join(screenshots, "performance-dashboard-desktop.png"), fullPage: true });
+      await page.screenshot({
+        path: path.join(screenshots, "performance-dashboard-desktop.png"),
+        fullPage: true,
+      });
       await page.setViewportSize({ width: 390, height: 844 });
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+      ).toBe(true);
       await expect(page.getByTestId("button-pay-setup")).toBeVisible();
       await page.getByTestId("button-pay-setup").click();
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
       expect((await dialog.boundingBox())?.width).toBeLessThanOrEqual(390);
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+      ).toBe(true);
       await dialog.getByRole("button", { name: "Close" }).click();
       await expect(dialog).not.toBeVisible();
-      await page.screenshot({ path: path.join(screenshots, "performance-dashboard-mobile.png"), fullPage: true });
+      await page.screenshot({
+        path: path.join(screenshots, "performance-dashboard-mobile.png"),
+        fullPage: true,
+      });
     }
     if (process.env.E2E_PORTAL_LIVE === "1") {
       await page.getByTestId("input-date").fill("2026-10-09");

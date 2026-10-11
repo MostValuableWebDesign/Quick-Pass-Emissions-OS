@@ -17,7 +17,15 @@ import { shortDate, usd } from "./performance-dashboard-format";
 
 type Metric = "cars" | "revenue";
 
-export function PerformanceTrend({ series, filtered, panelActions }: { series: DashboardData["series"]; filtered: boolean; panelActions?: ReactNode }) {
+export function PerformanceTrend({
+  series,
+  filtered,
+  panelActions,
+}: {
+  series: DashboardData["series"];
+  filtered: boolean;
+  panelActions?: ReactNode;
+}) {
   const [metric, setMetric] = useState<Metric>("cars");
   const rows = series.map((s) => ({
     date: s.date,
@@ -39,7 +47,13 @@ export function PerformanceTrend({ series, filtered, panelActions }: { series: D
         </div>
         <div className="pd-seg" role="group" aria-label="Trend metric">
           {(["cars", "revenue"] as Metric[]).map((m) => (
-            <button key={m} type="button" aria-pressed={metric === m} onClick={() => setMetric(m)} data-testid={`button-trend-${m}`}>
+            <button
+              key={m}
+              type="button"
+              aria-pressed={metric === m}
+              onClick={() => setMetric(m)}
+              data-testid={`button-trend-${m}`}
+            >
               {m === "cars" ? "Cars tested" : "Revenue"}
             </button>
           ))}
@@ -50,7 +64,14 @@ export function PerformanceTrend({ series, filtered, panelActions }: { series: D
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={rows} margin={{ left: 0, right: 8, top: 6, bottom: 0 }}>
               <CartesianGrid vertical={false} stroke="var(--line)" />
-              <XAxis dataKey="date" tickFormatter={shortDate} tick={{ fontSize: 11, fill: "var(--muted)" }} axisLine={false} tickLine={false} minTickGap={18} />
+              <XAxis
+                dataKey="date"
+                tickFormatter={shortDate}
+                tick={{ fontSize: 11, fill: "var(--muted)" }}
+                axisLine={false}
+                tickLine={false}
+                minTickGap={18}
+              />
               <YAxis
                 width={52}
                 allowDecimals={false}
@@ -67,7 +88,12 @@ export function PerformanceTrend({ series, filtered, panelActions }: { series: D
                       <b>{shortDate(String(label))}</b>
                       {payload.map((p) => (
                         <div key={String(p.dataKey)}>
-                          {p.dataKey === "station" ? "Station" : metric === "cars" ? "Cars" : "Revenue"}:{" "}
+                          {p.dataKey === "station"
+                            ? "Station"
+                            : metric === "cars"
+                              ? "Cars"
+                              : "Revenue"}
+                          :{" "}
                           {p.value === null || p.value === undefined
                             ? "No data"
                             : metric === "revenue"
@@ -79,9 +105,25 @@ export function PerformanceTrend({ series, filtered, panelActions }: { series: D
                   ) : null
                 }
               />
-              <Area dataKey="value" type="linear" stroke="#147b68" strokeWidth={2.5} fill="#47c99d" fillOpacity={0.18} connectNulls={false} isAnimationActive={false} />
+              <Area
+                dataKey="value"
+                type="linear"
+                stroke="#147b68"
+                strokeWidth={2.5}
+                fill="#47c99d"
+                fillOpacity={0.18}
+                connectNulls={false}
+                isAnimationActive={false}
+              />
               {filtered && metric === "cars" && (
-                <Line dataKey="station" stroke="var(--text)" strokeWidth={2} dot={false} connectNulls={false} isAnimationActive={false} />
+                <Line
+                  dataKey="station"
+                  stroke="var(--text)"
+                  strokeWidth={2}
+                  dot={false}
+                  connectNulls={false}
+                  isAnimationActive={false}
+                />
               )}
             </ComposedChart>
           </ResponsiveContainer>

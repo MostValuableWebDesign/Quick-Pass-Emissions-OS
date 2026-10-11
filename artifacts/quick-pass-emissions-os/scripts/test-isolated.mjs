@@ -26,14 +26,21 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 }
 async function run(script, env) {
   return await new Promise((resolve, reject) => {
-    child = script === "test:e2e:owned"
-      ? spawn(process.execPath, ["--import", "tsx", "scripts/browser-regression.ts"], {
-          cwd: app, env, stdio: ["ignore", "pipe", "pipe"],
-        })
-      : spawn("pnpm", ["run", script], { cwd: app, env, stdio: ["ignore", "pipe", "pipe"] });
+    child =
+      script === "test:e2e:owned"
+        ? spawn(process.execPath, ["--import", "tsx", "scripts/browser-regression.ts"], {
+            cwd: app,
+            env,
+            stdio: ["ignore", "pipe", "pipe"],
+          })
+        : spawn("pnpm", ["run", script], { cwd: app, env, stdio: ["ignore", "pipe", "pipe"] });
     let output = "";
-    child.stdout.on("data", (chunk) => { output += chunk; });
-    child.stderr.on("data", (chunk) => { output += chunk; });
+    child.stdout.on("data", (chunk) => {
+      output += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      output += chunk;
+    });
     child.on("error", reject);
     child.on("close", (status) => resolve({ status, output }));
   });
@@ -215,12 +222,12 @@ try {
   for (const script of ["db:migrate", browser ? "test:e2e:owned" : "test"]) {
     if (interrupted) throw new Error("Isolated verification interrupted.");
     const result = await run(script, {
-        ...isolatedEnv,
-        // This generated, disposable database receives its own identity during migration.
-        // Never inherit the business database's pin into an empty owned test database.
-        EXPECTED_DATABASE_ID: "",
-        E2E_OWNED_DATABASE: browser ? name : "",
-        DANGEROUSLY_ALLOW_GIT: "1",
+      ...isolatedEnv,
+      // This generated, disposable database receives its own identity during migration.
+      // Never inherit the business database's pin into an empty owned test database.
+      EXPECTED_DATABASE_ID: "",
+      E2E_OWNED_DATABASE: browser ? name : "",
+      DANGEROUSLY_ALLOW_GIT: "1",
     });
     console.log(redact(result.output));
     if (result.status !== 0) throw new Error(`Isolated ${script} failed.`);

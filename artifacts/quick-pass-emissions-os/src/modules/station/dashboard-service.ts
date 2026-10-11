@@ -46,36 +46,54 @@ export const dashboardDaySchema = z.object({
 const weekdays = z.array(z.number().int().min(1).max(7)).max(7)
   .refine((days) => new Set(days).size === days.length);
 const cents = z.number().int().min(0).max(10_000_000);
-const profileSchema = z.object({
-  id: z.string().min(1).max(100), name: z.string().trim().min(1).max(160),
-  inspector: z.string().trim().min(1).max(160).nullable(),
-  hourlyCents: cents.nullable(), mondayCents: cents.nullable(),
-  standardMinutes: z.number().int().min(0).max(1440),
-  shiftsPerWeek: z.number().int().min(1).max(7),
-  availableWeekdays: weekdays, scheduledWeekdays: weekdays,
-  commissionEligible: z.boolean(), approximate: z.boolean(),
-}).refine((p) =>
-  p.scheduledWeekdays.length <= p.shiftsPerWeek &&
-  p.scheduledWeekdays.every((d) => p.availableWeekdays.includes(d)) &&
-  !(p.hourlyCents !== null && p.mondayCents !== null),
-);
-export const dashboardPayPlanSchema = z.object({
-  revision: z.number().int().min(0),
-  profiles: z.array(profileSchema).max(100),
-  adjustments: z.array(z.object({
-    profileId: z.string().min(1).max(100), date: dateString,
-    minutes: z.number().int().min(0).max(1440).nullable(),
-    baseCents: cents.nullable(), grassCut: z.boolean(),
-  })).max(5000),
-}).refine((p) =>
-  new Set(p.profiles.map((r) => r.id)).size === p.profiles.length &&
-  new Set(p.profiles.filter((r) => r.inspector !== null).map((r) => r.inspector)).size ===
-    p.profiles.filter((r) => r.inspector !== null).length &&
-  p.adjustments.every((a) => p.profiles.some((r) => r.id === a.profileId)) &&
-  new Set(p.adjustments.map((a) => `${a.profileId}:${a.date}`)).size === p.adjustments.length,
-);
+const profileSchema = z
+  .object({
+    id: z.string().min(1).max(100),
+    name: z.string().trim().min(1).max(160),
+    inspector: z.string().trim().min(1).max(160).nullable(),
+    hourlyCents: cents.nullable(),
+    mondayCents: cents.nullable(),
+    standardMinutes: z.number().int().min(0).max(1440),
+    shiftsPerWeek: z.number().int().min(1).max(7),
+    availableWeekdays: weekdays,
+    scheduledWeekdays: weekdays,
+    commissionEligible: z.boolean(),
+    approximate: z.boolean(),
+  })
+  .refine(
+    (p) =>
+      p.scheduledWeekdays.length <= p.shiftsPerWeek &&
+      p.scheduledWeekdays.every((d) => p.availableWeekdays.includes(d)) &&
+      !(p.hourlyCents !== null && p.mondayCents !== null),
+  );
+export const dashboardPayPlanSchema = z
+  .object({
+    revision: z.number().int().min(0),
+    profiles: z.array(profileSchema).max(100),
+    adjustments: z
+      .array(
+        z.object({
+          profileId: z.string().min(1).max(100),
+          date: dateString,
+          minutes: z.number().int().min(0).max(1440).nullable(),
+          baseCents: cents.nullable(),
+          grassCut: z.boolean(),
+        }),
+      )
+      .max(5000),
+  })
+  .refine(
+    (p) =>
+      new Set(p.profiles.map((r) => r.id)).size === p.profiles.length &&
+      new Set(p.profiles.filter((r) => r.inspector !== null).map((r) => r.inspector)).size ===
+        p.profiles.filter((r) => r.inspector !== null).length &&
+      p.adjustments.every((a) => p.profiles.some((r) => r.id === a.profileId)) &&
+      new Set(p.adjustments.map((a) => `${a.profileId}:${a.date}`)).size === p.adjustments.length,
+  );
 const querySchema = z.object({
-  start: dateString, end: dateString, trendDays: z.union([z.literal(7), z.literal(30)]),
+  start: dateString,
+  end: dateString,
+  trendDays: z.union([z.literal(7), z.literal(30)]),
   employee: z.string().min(1).max(1000).optional(),
 });
 function validateQuery(input: unknown): DashboardQuery {
@@ -92,15 +110,26 @@ function validateQuery(input: unknown): DashboardQuery {
   }
   return query;
 }
-export function resolveDashboardQuery(params: Record<string, string | string[] | undefined>): DashboardQuery {
+export function resolveDashboardQuery(
+  params: Record<string, string | string[] | undefined>,
+): DashboardQuery {
   const today = businessDate();
-  const field = (name: string) => typeof params[name] === "string" ? params[name] as string : undefined;
+  const field = (name: string) =>
+    typeof params[name] === "string" ? (params[name] as string) : undefined;
   let start = field("start") || field("date") || today;
   let end = field("end") || start;
-  if (field("preset") === "week") { start = addDays(today, -6); end = today; }
-  if (field("preset") === "month") { start = addDays(today, -29); end = today; }
+  if (field("preset") === "week") {
+    start = addDays(today, -6);
+    end = today;
+  }
+  if (field("preset") === "month") {
+    start = addDays(today, -29);
+    end = today;
+  }
   return validateQuery({
-    start, end, trendDays: field("trendDays") === "30" ? 30 : 7,
+    start,
+    end,
+    trendDays: field("trendDays") === "30" ? 30 : 7,
     ...(field("employee") ? { employee: field("employee") } : {}),
   });
 }
@@ -112,9 +141,14 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
   const needed = retestHistoryDates(query, today);
   return stationTransaction(actorId, async (tx, hash) => {
     const logs = await tx.auditLog.findMany({
-      where: { entityId: hash, action: SNAPSHOT,
-        AND: [{ details: { path: ["date"], gte: needed[0] } },
-          { details: { path: ["date"], lte: needed.at(-1)! } }] },
+      where: {
+        entityId: hash,
+        action: SNAPSHOT,
+        AND: [
+          { details: { path: ["date"], gte: needed[0] } },
+          { details: { path: ["date"], lte: needed.at(-1)! } },
+        ],
+      },
       orderBy: { createdAt: "desc" },
     });
     const snapshots = new Map<string, z.infer<typeof dashboardDaySchema>>();
@@ -124,7 +158,8 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
         snapshots.set(day.data.date, day.data);
     }
     const savedPlan = await tx.auditLog.findFirst({
-      where: { entityId: hash, action: PLAN }, orderBy: { createdAt: "desc" },
+      where: { entityId: hash, action: PLAN },
+      orderBy: { createdAt: "desc" },
     });
     const parsed = dashboardPayPlanSchema.safeParse(savedPlan?.details);
     const payPlan = parsed.success ? parsed.data : { revision: 0, profiles: [], adjustments: [] };
@@ -166,23 +201,37 @@ export async function loadDashboard(actorId: string, input: unknown, refresh = f
   const config = stationConfig();
   const allowed = await stationTransaction(actorId, async (tx, hash) => {
     const recent = await tx.auditLog.findFirst({
-      where: { entityId: hash, action: { in: ["STATION_PERFORMANCE_LOOKUP_STARTED", "STATION_PORTAL_LOOKUP_STARTED"] } },
+      where: {
+        entityId: hash,
+        action: { in: ["STATION_PERFORMANCE_LOOKUP_STARTED", "STATION_PORTAL_LOOKUP_STARTED"] },
+      },
       orderBy: { createdAt: "desc" },
     });
     if (recent && recent.createdAt.getTime() > Date.now() - 15_000) return false;
     const failure = await tx.auditLog.findFirst({
-      where: { entityId: hash, action: "STATION_PERFORMANCE_LOOKUP_FAILED",
-        details: { path: ["query"], equals: `${query.start}:${query.end}:${query.trendDays}` } },
+      where: {
+        entityId: hash,
+        action: "STATION_PERFORMANCE_LOOKUP_FAILED",
+        details: { path: ["query"], equals: `${query.start}:${query.end}:${query.trendDays}` },
+      },
       orderBy: { createdAt: "desc" },
     });
     if (!refresh && failure && failure.createdAt.getTime() > Date.now() - TTL) return false;
-    await audit(tx, actorId, "STATION_PERFORMANCE_LOOKUP_STARTED", hash,
-      { start: query.start, end: query.end, days: needed.length });
+    await audit(tx, actorId, "STATION_PERFORMANCE_LOOKUP_STARTED", hash, {
+      start: query.start,
+      end: query.end,
+      days: needed.length,
+    });
     return true;
   });
-  if (!allowed) return { ...initial, error: "Portal requests are cooling down. Saved data is still available." };
+  if (!allowed)
+    return {
+      ...initial,
+      error: "Portal requests are cooling down. Saved data is still available.",
+    };
   const credentials = {
-    station: config.station, username: process.env.GA_DASHBOARD_USERNAME ?? "",
+    station: config.station,
+    username: process.env.GA_DASHBOARD_USERNAME ?? "",
     password: process.env.GA_DASHBOARD_PASSWORD ?? "",
   };
   let requests = 0;
@@ -205,7 +254,9 @@ export async function loadDashboard(actorId: string, input: unknown, refresh = f
       requests++;
       const days = await portalRangeDays(chunk.start, chunk.end, credentials);
       await store(days);
-      const absent = calendarDays(chunk.start, chunk.end).filter((date) => !days.some((d) => d.date === date));
+      const absent = calendarDays(chunk.start, chunk.end).filter(
+        (date) => !days.some((d) => d.date === date),
+      );
       for (const date of absent) {
         if (requests >= 20 || Date.now() >= deadline) {
           sourceError = "History is partially loaded. Refresh to continue.";
@@ -216,12 +267,18 @@ export async function loadDashboard(actorId: string, input: unknown, refresh = f
       }
     }
   } catch (error) {
-    sourceError = error instanceof BusinessError ? error.message : "Unable to retrieve station data. Saved values are unchanged.";
+    sourceError =
+      error instanceof BusinessError
+        ? error.message
+        : "Unable to retrieve station data. Saved values are unchanged.";
   }
-  if (sourceError) await stationTransaction(actorId, async (tx, hash) => {
-    await audit(tx, actorId, "STATION_PERFORMANCE_LOOKUP_FAILED", hash,
-      { query: `${query.start}:${query.end}:${query.trendDays}`, message: sourceError! });
-  });
+  if (sourceError)
+    await stationTransaction(actorId, async (tx, hash) => {
+      await audit(tx, actorId, "STATION_PERFORMANCE_LOOKUP_FAILED", hash, {
+        query: `${query.start}:${query.end}:${query.trendDays}`,
+        message: sourceError!,
+      });
+    });
   const result = await readDashboard(actorId, query);
   return { ...result, ...(sourceError ? { error: sourceError } : {}) };
 }
@@ -231,15 +288,19 @@ export async function saveDashboardPayPlan(actorId: string, input: unknown, quer
   const validated = validateQuery(query);
   await stationTransaction(actorId, async (tx, hash) => {
     const latest = await tx.auditLog.findFirst({
-      where: { entityId: hash, action: PLAN }, orderBy: { createdAt: "desc" },
+      where: { entityId: hash, action: PLAN },
+      orderBy: { createdAt: "desc" },
     });
     const saved = dashboardPayPlanSchema.safeParse(latest?.details);
-    requireRule(plan.revision === (saved.success ? saved.data.revision : 0),
-      "Pay settings changed in another session. Refresh before saving.");
+    requireRule(
+      plan.revision === (saved.success ? saved.data.revision : 0),
+      "Pay settings changed in another session. Refresh before saving.",
+    );
     const next: PayPlan = { ...plan, revision: plan.revision + 1 };
     await audit(tx, actorId, PLAN, hash, next);
   });
   const all = await readDashboard(actorId, { ...validated, employee: undefined });
-  return validated.employee && all.employeeOptions.some((e) => e.id === validated.employee) ?
-    readDashboard(actorId, validated) : all;
+  return validated.employee && all.employeeOptions.some((e) => e.id === validated.employee)
+    ? readDashboard(actorId, validated)
+    : all;
 }

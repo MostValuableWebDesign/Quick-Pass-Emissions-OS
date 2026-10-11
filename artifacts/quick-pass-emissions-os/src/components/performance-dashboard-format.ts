@@ -12,7 +12,11 @@ export const num = (n: number | null | undefined) =>
 export const inspectionTime = (minutes: number | null) =>
   minutes === null ? "No timing data" : `${minutes.toFixed(1)} min/car`;
 export const shortDate = (d: string) =>
-  new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
 export const longDate = (d: string) =>
   new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", {
     weekday: "short",

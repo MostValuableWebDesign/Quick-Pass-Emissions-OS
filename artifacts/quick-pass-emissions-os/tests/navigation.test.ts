@@ -22,8 +22,9 @@ describe("role-filtered navigation", () => {
     for (const role of ["OWNER", "ADMIN", "MANAGER", "BOOKKEEPER", "EMPLOYEE"]) {
       const sections = navForRole(role);
       expect(sections.some((s) => s.id === "team" || s.label === "Team & Tasks")).toBe(false);
-      expect(sections.flatMap((s) => s.items).map((item) => item.href))
-        .not.toEqual(expect.arrayContaining(["/tasks", "/schedule", "/tasks/templates", "/employees"]));
+      expect(sections.flatMap((s) => s.items).map((item) => item.href)).not.toEqual(
+        expect.arrayContaining(["/tasks", "/schedule", "/tasks/templates", "/employees"]),
+      );
     }
     // Pages/data remain intact and may still be opened directly by an authorized user.
     expect(matchRoute("/tasks")).toBeDefined();

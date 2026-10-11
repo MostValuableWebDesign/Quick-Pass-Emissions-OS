@@ -1,8 +1,9 @@
 export function browserSuite(env) {
-  if (env.E2E_PERFORMANCE_PANELS === "1") return {
-    "performance-panels.spec.ts": 1,
-    ...(env.E2E_CERTIFICATE_UX === "1" ? { "certificate-portal-ux.spec.ts": 5 } : {}),
-  };
+  if (env.E2E_PERFORMANCE_PANELS === "1")
+    return {
+      "performance-panels.spec.ts": 1,
+      ...(env.E2E_CERTIFICATE_UX === "1" ? { "certificate-portal-ux.spec.ts": 5 } : {}),
+    };
   if (env.E2E_CERTIFICATE_UX === "1") return { "certificate-portal-ux.spec.ts": 5 };
   if (env.E2E_DAY_ONLY === "1") return { "navigation.spec.ts": 1 };
   if (env.E2E_PERFORMANCE_ONLY === "1") return { "performance.spec.ts": 2 };

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_DASHBOARD_LAYOUT, parseDashboardLayout, reorderDashboardPanel,
+  DEFAULT_DASHBOARD_LAYOUT,
+  parseDashboardLayout,
+  reorderDashboardPanel,
   resizeDashboardPanel,
 } from "../src/components/performance-dashboard-layout";
 
@@ -13,19 +15,26 @@ describe("customizable performance panels", () => {
   });
 
   it("persists valid order and panel sizes while clamping unsafe values", () => {
-    expect(parseDashboardLayout(JSON.stringify([
-      { id: "employees", columns: 5, height: 480 },
-      { id: "trend", columns: 30, height: 50 },
-      { id: "unknown", columns: 1, height: 1 },
-    ]))).toEqual([
+    expect(
+      parseDashboardLayout(
+        JSON.stringify([
+          { id: "employees", columns: 5, height: 480 },
+          { id: "trend", columns: 30, height: 50 },
+          { id: "unknown", columns: 1, height: 1 },
+        ]),
+      ),
+    ).toEqual([
       { id: "employees", columns: 5, height: 480 },
       { id: "trend", columns: 12, height: 240 },
     ]);
   });
 
-  it.each([null, "", "{", "{}", "null"])("uses safe defaults for invalid saved layouts (%s)", (saved) => {
-    expect(parseDashboardLayout(saved)).toEqual(DEFAULT_DASHBOARD_LAYOUT);
-  });
+  it.each([null, "", "{", "{}", "null"])(
+    "uses safe defaults for invalid saved layouts (%s)",
+    (saved) => {
+      expect(parseDashboardLayout(saved)).toEqual(DEFAULT_DASHBOARD_LAYOUT);
+    },
+  );
 
   it("moves panels accessibly and accepts a dropped panel target", () => {
     const swapped = reorderDashboardPanel(DEFAULT_DASHBOARD_LAYOUT, "employees", 0);

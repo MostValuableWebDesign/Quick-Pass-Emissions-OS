@@ -4,14 +4,21 @@ import { CERTIFICATE_ANALYZER, type CertificatePortalStatus } from "./portal-typ
 import type { CertificateOrderRecord } from "./order-history-source";
 
 export function certificateOrderInsights(
-  orders: CertificateOrderRecord[], portal: CertificatePortalStatus, today: string,
-  settings: { windowDays: number | null; leadDays: number | null; reorderPoint: number | null } | null,
+  orders: CertificateOrderRecord[],
+  portal: CertificatePortalStatus,
+  today: string,
+  settings: {
+    windowDays: number | null;
+    leadDays: number | null;
+    reorderPoint: number | null;
+  } | null,
 ) {
   const windowDays = settings?.windowDays ?? 30;
   const start = addDays(today, 1 - windowDays);
   const byDate = new Map<string, number>();
   for (const order of orders) {
-    if (order.analyzer !== CERTIFICATE_ANALYZER || order.quantity <= 0 || order.saleDate > today) continue;
+    if (order.analyzer !== CERTIFICATE_ANALYZER || order.quantity <= 0 || order.saleDate > today)
+      continue;
     byDate.set(order.saleDate, (byDate.get(order.saleDate) ?? 0) + order.quantity);
   }
   const allDates = [...byDate.keys()].sort();
@@ -28,14 +35,29 @@ export function certificateOrderInsights(
   const quantity = dates.slice(0, -1).reduce((sum, date) => sum + byDate.get(date)!, 0);
   const averageOrderIntervalDays = days > 0 && dates.length > 1 ? days / (dates.length - 1) : null;
   const averageDailyRate = days > 0 ? quantity / days : null;
-  const reorderAt = Math.max(portal.threshold, settings?.reorderPoint ?? 0,
-    averageDailyRate === null || settings?.leadDays == null ? 0 : Math.ceil(averageDailyRate * settings.leadDays));
-  const daysRemaining = averageDailyRate !== null && averageDailyRate > 0 && portal.balance !== null
-    ? Math.ceil(portal.balance / averageDailyRate) : null;
+  const reorderAt = Math.max(
+    portal.threshold,
+    settings?.reorderPoint ?? 0,
+    averageDailyRate === null || settings?.leadDays == null
+      ? 0
+      : Math.ceil(averageDailyRate * settings.leadDays),
+  );
+  const daysRemaining =
+    averageDailyRate !== null && averageDailyRate > 0 && portal.balance !== null
+      ? Math.ceil(portal.balance / averageDailyRate)
+      : null;
   return {
-    balance: portal.balance, averageOrderIntervalDays, averageDailyRate, reorderAt, daysRemaining,
+    balance: portal.balance,
+    averageOrderIntervalDays,
+    averageDailyRate,
+    reorderAt,
+    daysRemaining,
     depletionDate: daysRemaining === null ? null : addDays(today, daysRemaining),
-    sampleStart: first ?? null, sampleEnd: last ?? null, sampleDays: days, sampleMode, windowDays,
+    sampleStart: first ?? null,
+    sampleEnd: last ?? null,
+    sampleDays: days,
+    sampleMode,
+    windowDays,
     leadDays: settings?.leadDays ?? null,
   };
 }

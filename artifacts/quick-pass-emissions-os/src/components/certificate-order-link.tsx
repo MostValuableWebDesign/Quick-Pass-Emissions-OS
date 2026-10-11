@@ -5,13 +5,24 @@ import { financeRoles, approvalRoles } from "@/modules/phase2";
 export { CERTIFICATE_ORDER_URL } from "@/modules/certificates/portal-types";
 
 // Navigation only. Keep this outside action forms and alert acknowledgement controls.
-export function CertificateOrderLink({ role, alert = false }: { role: Role; alert?: boolean }) {
+export function CertificateOrderLink({
+  role,
+  alert = false,
+  compact = false,
+}: {
+  role: Role;
+  alert?: boolean;
+  compact?: boolean;
+}) {
   if (!financeRoles.includes(role) || (alert && !approvalRoles.includes(role))) return null;
   return (
-    <div className="space-top">
-      <Link className="button" href="/certificates#portal">Order Certificates</Link>
+    <div className={compact ? undefined : "space-top"}>
+      <Link className="button" href="/certificates#portal">
+        Order Certificates
+      </Link>
       <p className="muted">
-        Open the official purchasing portal in a secure browser tab. You control sign-in and ordering.
+        Open the official purchasing portal in a secure browser tab. You control sign-in and
+        ordering.
       </p>
     </div>
   );

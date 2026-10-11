@@ -4,13 +4,18 @@ import { useRef, useSyncExternalStore, type ReactNode } from "react";
 import { GripVertical, MoveDown, MoveUp } from "lucide-react";
 import { PanelResizeHandle } from "./performance-panel-resize-handle";
 import {
-  DASHBOARD_LAYOUT_KEY, DEFAULT_DASHBOARD_LAYOUT, parseDashboardLayout,
-  reorderDashboardPanel, resizeDashboardPanel,
-  type DashboardLayout, type DashboardPanelId,
+  DASHBOARD_LAYOUT_KEY,
+  DEFAULT_DASHBOARD_LAYOUT,
+  parseDashboardLayout,
+  reorderDashboardPanel,
+  resizeDashboardPanel,
+  type DashboardLayout,
+  type DashboardPanelId,
 } from "./performance-dashboard-layout";
 
 const titles: Record<DashboardPanelId, string> = {
-  trend: "Trend", employees: "Employees",
+  trend: "Trend",
+  employees: "Employees",
 };
 
 const CHANGE_EVENT = "quick-pass:performance-panel-layout";
@@ -21,7 +26,9 @@ let storageAvailable = true;
 
 function getLayoutSnapshot() {
   let raw: string | null = null;
-  try { raw = localStorage.getItem(DASHBOARD_LAYOUT_KEY); } catch {
+  try {
+    raw = localStorage.getItem(DASHBOARD_LAYOUT_KEY);
+  } catch {
     storageAvailable = false;
     if (!hasSnapshot) {
       cachedLayout = DEFAULT_DASHBOARD_LAYOUT;
@@ -51,14 +58,19 @@ function saveLayout(next: DashboardLayout) {
   cachedLayout = next;
   cachedRaw = JSON.stringify(next);
   hasSnapshot = true;
-  try { localStorage.setItem(DASHBOARD_LAYOUT_KEY, cachedRaw); }
-  catch { storageAvailable = false; }
+  try {
+    localStorage.setItem(DASHBOARD_LAYOUT_KEY, cachedRaw);
+  } catch {
+    storageAvailable = false;
+  }
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
 export function usePerformanceDashboardLayout() {
   const layout = useSyncExternalStore(
-    subscribeLayout, getLayoutSnapshot, () => DEFAULT_DASHBOARD_LAYOUT,
+    subscribeLayout,
+    getLayoutSnapshot,
+    () => DEFAULT_DASHBOARD_LAYOUT,
   );
 
   return {
@@ -79,7 +91,10 @@ export function usePerformanceDashboardLayout() {
 }
 
 function PanelTools({
-  id, index, total, onMove,
+  id,
+  index,
+  total,
+  onMove,
 }: {
   id: DashboardPanelId;
   index: number;
@@ -89,8 +104,12 @@ function PanelTools({
   const drag = useRef<{ pointer: number; x: number; y: number; moved: boolean } | null>(null);
 
   function clearDrag(element: HTMLElement) {
-    element.closest(".pd-grid")?.querySelectorAll<HTMLElement>(".pd-widget")
-      .forEach((widget) => { delete widget.dataset.dragOver; });
+    element
+      .closest(".pd-grid")
+      ?.querySelectorAll<HTMLElement>(".pd-widget")
+      .forEach((widget) => {
+        delete widget.dataset.dragOver;
+      });
     drag.current = null;
   }
 
@@ -104,22 +123,36 @@ function PanelTools({
         onPointerDown={(event) => {
           if (event.button !== 0) return;
           event.preventDefault();
-          drag.current = { pointer: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+          drag.current = {
+            pointer: event.pointerId,
+            x: event.clientX,
+            y: event.clientY,
+            moved: false,
+          };
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
           const origin = drag.current;
           if (!origin || origin.pointer !== event.pointerId) return;
-          if (Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > 8) origin.moved = true;
+          if (Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > 8)
+            origin.moved = true;
           if (!origin.moved) return;
-          const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>(".pd-widget");
-          event.currentTarget.closest(".pd-grid")?.querySelectorAll<HTMLElement>(".pd-widget")
-            .forEach((widget) => { delete widget.dataset.dragOver; });
+          const target = document
+            .elementFromPoint(event.clientX, event.clientY)
+            ?.closest<HTMLElement>(".pd-widget");
+          event.currentTarget
+            .closest(".pd-grid")
+            ?.querySelectorAll<HTMLElement>(".pd-widget")
+            .forEach((widget) => {
+              delete widget.dataset.dragOver;
+            });
           if (target && target.dataset.panelId !== id) target.dataset.dragOver = "true";
         }}
         onPointerUp={(event) => {
           const origin = drag.current;
-          const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>(".pd-widget");
+          const target = document
+            .elementFromPoint(event.clientX, event.clientY)
+            ?.closest<HTMLElement>(".pd-widget");
           const grid = event.currentTarget.closest(".pd-grid");
           if (origin?.moved && target && grid?.contains(target)) {
             const widgets = Array.from(grid.querySelectorAll<HTMLElement>(".pd-widget"));
@@ -132,10 +165,24 @@ function PanelTools({
       >
         <GripVertical size={15} aria-hidden="true" />
       </button>
-      <button type="button" className="pd-panel-tool" aria-label={`Move ${titles[id]} panel up`} title="Move up" disabled={index === 0} onClick={() => onMove(index - 1)}>
+      <button
+        type="button"
+        className="pd-panel-tool"
+        aria-label={`Move ${titles[id]} panel up`}
+        title="Move up"
+        disabled={index === 0}
+        onClick={() => onMove(index - 1)}
+      >
         <MoveUp size={14} aria-hidden="true" />
       </button>
-      <button type="button" className="pd-panel-tool" aria-label={`Move ${titles[id]} panel down`} title="Move down" disabled={index === total - 1} onClick={() => onMove(index + 1)}>
+      <button
+        type="button"
+        className="pd-panel-tool"
+        aria-label={`Move ${titles[id]} panel down`}
+        title="Move down"
+        disabled={index === total - 1}
+        onClick={() => onMove(index + 1)}
+      >
         <MoveDown size={14} aria-hidden="true" />
       </button>
     </div>
@@ -143,7 +190,11 @@ function PanelTools({
 }
 
 export function PerformanceDashboardPanels({
-  layout, onMove, onResize, onDrop, renderPanel,
+  layout,
+  onMove,
+  onResize,
+  onDrop,
+  renderPanel,
 }: {
   layout: DashboardLayout;
   onMove: (id: DashboardPanelId, toIndex: number) => void;
@@ -154,8 +205,13 @@ export function PerformanceDashboardPanels({
   const controls = (id: DashboardPanelId) => {
     const index = layout.findIndex((panel) => panel.id === id);
     return (
-      <PanelTools key={id} id={id} index={index} total={layout.length}
-        onMove={(to) => onMove(id, to)} />
+      <PanelTools
+        key={id}
+        id={id}
+        index={index}
+        total={layout.length}
+        onMove={(to) => onMove(id, to)}
+      />
     );
   };
   return (
@@ -175,8 +231,12 @@ export function PerformanceDashboardPanels({
           }}
         >
           {renderPanel(panel.id, controls(panel.id))}
-          <PanelResizeHandle label={titles[panel.id]} columns={panel.columns} height={panel.height}
-            onResize={(columns, height) => onResize(panel.id, columns, height)} />
+          <PanelResizeHandle
+            label={titles[panel.id]}
+            columns={panel.columns}
+            height={panel.height}
+            onResize={(columns, height) => onResize(panel.id, columns, height)}
+          />
         </div>
       ))}
     </div>

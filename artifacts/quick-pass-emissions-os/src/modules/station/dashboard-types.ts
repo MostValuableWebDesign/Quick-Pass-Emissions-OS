@@ -23,7 +23,11 @@ export type PortalDay = Counts & {
     outcome?: "passed" | "failed" | "aborted" | "other";
   }[];
 };
-export type InspectionCadence = { averageMinutes: number | null; cars: number; coveredDays: number };
+export type InspectionCadence = {
+  averageMinutes: number | null;
+  cars: number;
+  coveredDays: number;
+};
 export type DashboardQuery = {
   start: string;
   end: string;

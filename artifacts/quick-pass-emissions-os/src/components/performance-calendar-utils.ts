@@ -7,7 +7,8 @@ export const parseIso = (s: string) => {
   const [y, m, d] = s.split("-").map(Number);
   return { y, m: m - 1, d };
 };
-export const isIso = (s: string | null | undefined): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+export const isIso = (s: string | null | undefined): s is string =>
+  !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
 /** Shift a {y,m} month by delta months. */
 export function shiftMonth(y: number, m: number, delta: number) {

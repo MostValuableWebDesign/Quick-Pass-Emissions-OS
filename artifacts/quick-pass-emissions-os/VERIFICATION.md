@@ -1,3 +1,20 @@
+# Dashboard publication merge — October 10, 2026
+
+Merged the business Dashboard snapshot/attention/shortcuts change with incoming GitHub main through `40b3387`, retaining the newer Performance layout, station portal and certificate portal flows. Certificate ordering from Dashboard routes to `/certificates#portal`; compact presentation is preserved. Incoming source formatting was normalized with the configured Prettier formatter.
+
+Fresh combined checks: all **411 unit/database tests passed with no skips** in 41 files, application TypeScript and ESLint passed, and the standard Turbopack production build passed with the existing backup filesystem tracing warning. Test databases were disposable and removed; builds used an unreachable database URL.
+
+The full browser run with station history enabled **failed** and is not counted as passing. It reported assertion failures in navigation's daily Performance check, two operations checks, two legacy Performance checks, payroll's certificate-settings workflow, the Phase 5 certificate-alert workflow and station's legacy Performance entry. Several assertions target the prior Performance/certificate UI. These failures need browser investigation/update against the merged workflows; prior delivery browser results below are historical and do not establish combined browser acceptance. No business database or deployment was changed.
+
+# Dashboard business snapshot and attention — October 10, 2026
+
+Dashboard now leads with today's Eastern-date tests/commission eligibility, separately labeled revenue evidence and approved base/commission pay with incomplete-input flags. The main action list contains only unresolved low stock, approaching/expired employee certifications and overdue unpaid dealer/rental balances; critical items appear first and all matches remain accessible in pages of 15. The four shortcuts open certificate ordering, Service & Support, payroll and owner Performance. Dashboard reads do not mutate records or run automation.
+
+- **333 unit/database tests passed with no skips in 32 files.** New cases cover deduplicated current station revisions, eligibility versus payroll approval, approved/pending/zero personal counts, volume tiers, missing/unsupported calculations, approved daily inputs, immutable daily payroll snapshots, deactivated staff pay, refusal to prorate multi-day hours, billing versus receipts/estimates/manual evidence, signed payment reversals, overdue-only balances, resolved/voided records, inventory/certification urgency, unknown setup, management authorization, read-only behavior and 15-item attention pagination. The isolated upgrade check retained approved payroll, invoices and signed reversal sentinels.
+- **21 browser workflows passed with no skips**, including station/Performance coverage. The owner/manager navigation checks now verify the three Dashboard sections and four role-appropriate shortcuts, with 390px overflow checks. Certificate replenishment verifies the Dashboard low-stock alert appears and then resolves after a real fixture receipt. Desktop and mobile synthetic captures were visually inspected.
+- Application TypeScript, ESLint, Prettier, whitespace checks and the production build passed. The build used an unreachable build-only database URL. The existing backup-utility dynamic filesystem tracing warning remains; this change adds no storage or startup behavior.
+- Only runner-owned disposable databases and private browser state were used and removed. No migration, business-data reset, deployment, commit or push was performed for this change.
+
 # Employee payroll overview — October 10, 2026
 
 Publication rerun: all 324 unit/database tests passed with no skips; application TypeScript, ESLint, Prettier and the standard production build passed. The 21 browser workflows below are the implementation verification and were not repeated during publication. The database runner created and removed only its disposable test database; live deployment and business migration remain separate.

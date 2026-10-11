@@ -2,7 +2,13 @@ import { Temporal } from "@js-temporal/polyfill";
 import { addDays } from "@/lib/time";
 import { inspectionCadence } from "./inspection-cadence";
 import type {
-  Counts, DashboardData, DashboardEmployee, DashboardQuery, PayPlan, PayProfile, PortalDay,
+  Counts,
+  DashboardData,
+  DashboardEmployee,
+  DashboardQuery,
+  PayPlan,
+  PayProfile,
+  PortalDay,
 } from "./dashboard-types";
 
 export const TEST_PRICE_CENTS = 2000;
@@ -15,13 +21,15 @@ export function calendarDays(start: string, end: string) {
   return days;
 }
 export function dashboardDates(query: DashboardQuery, today: string) {
-  const trendStart = query.start === query.end ? addDays(query.end, 1 - query.trendDays) : query.start;
+  const trendStart =
+    query.start === query.end ? addDays(query.end, 1 - query.trendDays) : query.start;
   return [...new Set([...calendarDays(trendStart, query.end), today])].sort();
 }
 export function inspectorKey(inspector: string) {
   return `inspector:${encodeURIComponent(inspector)}`;
 }
-const commission = (total: number) => Math.max(total - COMMISSION_THRESHOLD, 0) * COMMISSION_RATE_CENTS;
+const commission = (total: number) =>
+  Math.max(total - COMMISSION_THRESHOLD, 0) * COMMISSION_RATE_CENTS;
 const nullableSum = (amounts: (number | null)[]) =>
   amounts.some((n) => n === null) ? null : amounts.reduce<number>((sum, n) => sum + (n ?? 0), 0);
 
@@ -41,7 +49,7 @@ function dayPay(profile: PayProfile, date: string, day: PortalDay | undefined, p
   if (actualBase !== null && actualBase !== undefined) base = actualBase;
   else if (isMondayPay) base = weekday === 1 ? profile.mondayCents : 0;
   else if (minutes !== null && profile.hourlyCents !== null)
-    base = Math.round(profile.hourlyCents * minutes / 60);
+    base = Math.round((profile.hourlyCents * minutes) / 60);
   else if (
     (!profile.availableWeekdays.includes(weekday) && !hasWork) ||
     (profile.scheduledWeekdays.length === profile.shiftsPerWeek && !scheduled && !hasWork)
@@ -49,22 +57,44 @@ function dayPay(profile: PayProfile, date: string, day: PortalDay | undefined, p
     base = 0;
     minutes = 0;
   } else base = null;
-  const working = adjustment?.minutes === 0 ? (actualBase ?? 0) > 0 :
-    hasWork || scheduled || (minutes !== null && minutes > 0) ||
-    (actualBase !== null && actualBase !== undefined && actualBase > 0);
-  const workKnown = working || minutes === 0 || (isMondayPay && !profile.commissionEligible) ||
+  const working =
+    adjustment?.minutes === 0
+      ? (actualBase ?? 0) > 0
+      : hasWork ||
+        scheduled ||
+        (minutes !== null && minutes > 0) ||
+        (actualBase !== null && actualBase !== undefined && actualBase > 0);
+  const workKnown =
+    working ||
+    minutes === 0 ||
+    (isMondayPay && !profile.commissionEligible) ||
     !profile.availableWeekdays.includes(weekday) ||
     profile.scheduledWeekdays.length === profile.shiftsPerWeek;
-  const payCommission = !profile.commissionEligible ? 0 :
-    working ? (day && day.retestComplete !== false ? commission(day.total) : null) : workKnown ? 0 : null;
+  const payCommission = !profile.commissionEligible
+    ? 0
+    : working
+      ? day && day.retestComplete !== false
+        ? commission(day.total)
+        : null
+      : workKnown
+        ? 0
+        : null;
   if (adjustment?.grassCut) base = base === null ? null : base + 5000;
-  return { base, commission: payCommission, estimatedHours, working: working || !!adjustment?.grassCut,
-    workKnown: workKnown || !!adjustment?.grassCut };
+  return {
+    base,
+    commission: payCommission,
+    estimatedHours,
+    working: working || !!adjustment?.grassCut,
+    workKnown: workKnown || !!adjustment?.grassCut,
+  };
 }
 
 /** Report projections only. No approved wage, payroll input or finance ledger is written. */
 export function buildDashboard(
-  query: DashboardQuery, today: string, snapshots: PortalDay[], payPlan: PayPlan,
+  query: DashboardQuery,
+  today: string,
+  snapshots: PortalDay[],
+  payPlan: PayPlan,
 ): DashboardData {
   const byDate = new Map(snapshots.map((d) => [d.date, d]));
   const selectedDates = calendarDays(query.start, query.end);
@@ -72,7 +102,9 @@ export function buildDashboard(
   const selectedComplete = selectedDates.every((date) =>
     byDate.has(date) && byDate.get(date)!.retestComplete !== false);
   const needed = dashboardDates(query, today);
-  const allInspectors = [...new Set(snapshots.flatMap((d) => d.inspectors.map((i) => i.inspector)))].sort();
+  const allInspectors = [
+    ...new Set(snapshots.flatMap((d) => d.inspectors.map((i) => i.inspector))),
+  ].sort();
   if (query.employee?.startsWith("inspector:")) {
     const requested = decodeURIComponent(query.employee.slice("inspector:".length));
     if (!allInspectors.includes(requested)) allInspectors.push(requested);
@@ -85,14 +117,26 @@ export function buildDashboard(
     });
     const baseCents = nullableSum(daily.map((d) => d.base));
     const commissionCents = nullableSum(daily.map((d) => d.commission));
-    const testsKnown = selectedComplete && (profile.inspector !== null || profile.mondayCents !== null ||
-      selectedDates.every((d) => byDate.get(d)?.total === 0));
+    const testsKnown =
+      selectedComplete &&
+      (profile.inspector !== null ||
+        profile.mondayCents !== null ||
+        selectedDates.every((d) => byDate.get(d)?.total === 0));
     return {
-      id: profile.inspector ? inspectorKey(profile.inspector) : profile.id, name: profile.name, inspector: profile.inspector,
+      id: profile.inspector ? inspectorKey(profile.inspector) : profile.id,
+      name: profile.name,
+      inspector: profile.inspector,
       cars: testsKnown ? daily.reduce((n, d) => n + (d.count?.total ?? 0), 0) : null,
       workingDays: daily.every((d) => d.workKnown) ? daily.filter((d) => d.working).length : null,
-      revenueCents: testsKnown ? daily.reduce((n, d) => n + ((d.count?.passed ?? 0) + (d.count?.failed ?? 0)) * TEST_PRICE_CENTS, 0) : null,
-      baseCents, commissionCents, payCents: nullableSum([baseCents, commissionCents]),
+      revenueCents: testsKnown
+        ? daily.reduce(
+            (n, d) => n + ((d.count?.passed ?? 0) + (d.count?.failed ?? 0)) * TEST_PRICE_CENTS,
+            0,
+          )
+        : null,
+      baseCents,
+      commissionCents,
+      payCents: nullableSum([baseCents, commissionCents]),
       approximate: profile.approximate || daily.some((d) => d.estimatedHours),
       inspectionCadence: inspectionCadence(selectedSnapshots, profile.inspector),
     };
@@ -105,7 +149,9 @@ export function buildDashboard(
       return day && count ? [{ day, count }] : [];
     });
     rows.push({
-      id: inspectorKey(inspector), name: inspector, inspector,
+      id: inspectorKey(inspector),
+      name: inspector,
+      inspector,
       cars: selectedComplete ? days.reduce((n, d) => n + d.count.total, 0) : null,
       workingDays: selectedDates.every((date) => byDate.has(date)) ? days.length : null,
       revenueCents: selectedComplete ? days.reduce((n, d) => n + (d.count.passed + d.count.failed) * TEST_PRICE_CENTS, 0) : null,
@@ -121,15 +167,21 @@ export function buildDashboard(
   const countFor = (day: PortalDay): Counts | null => {
     if (day.retestComplete === false) return null;
     if (!query.employee) return day;
-    if (!selectedInspector) return day.total === 0 || selected[0]?.cars !== null ? emptyCounts() : null;
+    if (!selectedInspector)
+      return day.total === 0 || selected[0]?.cars !== null ? emptyCounts() : null;
     return day.inspectors.find((i) => i.inspector === selectedInspector) ?? emptyCounts();
   };
-  const seriesDates = calendarDays(query.start === query.end ? addDays(query.end, 1 - query.trendDays) : query.start, query.end);
+  const seriesDates = calendarDays(
+    query.start === query.end ? addDays(query.end, 1 - query.trendDays) : query.start,
+    query.end,
+  );
   const series = seriesDates.map((date) => {
     const day = byDate.get(date);
     const counts = day ? countFor(day) : null;
     const amounts = selected.map((e) => {
-      const profile = payPlan.profiles.find((p) => p.id === e.id || (e.inspector !== null && p.inspector === e.inspector));
+      const profile = payPlan.profiles.find(
+        (p) => p.id === e.id || (e.inspector !== null && p.inspector === e.inspector),
+      );
       if (profile) return dayPay(profile, date, day, payPlan).commission;
       return day && day.retestComplete !== false ?
         day.inspectors.some((i) => i.inspector === e.inspector) ? commission(day.total) : 0 : null;
@@ -146,8 +198,9 @@ export function buildDashboard(
     const day = byDate.get(date);
     if (day) {
       const counts = countFor(day);
-      if (counts) for (const field of ["total", "passed", "failed", "aborted", "other"] as const)
-        total[field] += counts[field];
+      if (counts)
+        for (const field of ["total", "passed", "failed", "aborted", "other"] as const)
+          total[field] += counts[field];
     }
     return total;
   }, emptyCounts());
@@ -160,7 +213,10 @@ export function buildDashboard(
       passed: current.passed, failed: current.failed, aborted: current.aborted, other: current.other,
     } : null,
     summary: {
-      inspectionCadence: inspectionCadence(selectedSnapshots, query.employee ? selectedInspector ?? null : undefined),
+      inspectionCadence: inspectionCadence(
+        selectedSnapshots,
+        query.employee ? (selectedInspector ?? null) : undefined,
+      ),
       cars: complete && (!query.employee || selected[0]?.cars !== null) ? totals.total : null,
       freeRetests: selectedDates.reduce((sum, date) => {
         const day = byDate.get(date);

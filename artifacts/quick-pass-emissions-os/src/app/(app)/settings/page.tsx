@@ -10,7 +10,8 @@ import { saveCertificateAlertThresholdAction } from "@/app/certificate-portal-ac
 import { readCertificatePortalStatus } from "@/modules/certificates/portal";
 export default async function Settings() {
   const actor = await manager();
-  const certStatus = actor.role === "OWNER" ? await readCertificatePortalStatus().catch(() => null) : null;
+  const certStatus =
+    actor.role === "OWNER" ? await readCertificatePortalStatus().catch(() => null) : null;
   const storage = actor.role === "OWNER" ? await storageStatus(actor.id) : null;
   const [settings, closures, runs, audit] = await Promise.all([
     db.businessSetting.findUnique({ where: { id: "business" } }),
@@ -63,7 +64,15 @@ export default async function Settings() {
           </p>
           <ActionForm action={saveCertificateAlertThresholdAction} submit="Save alert threshold">
             <Field label="Alert when portal balance is below">
-              <input name="threshold" type="number" min="0" max="1000000" step="1" required defaultValue={certStatus?.threshold ?? 30} />
+              <input
+                name="threshold"
+                type="number"
+                min="0"
+                max="1000000"
+                step="1"
+                required
+                defaultValue={certStatus?.threshold ?? 30}
+              />
             </Field>
           </ActionForm>
         </section>

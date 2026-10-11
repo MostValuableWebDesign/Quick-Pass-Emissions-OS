@@ -56,16 +56,6 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    id: "team",
-    label: "Team & Tasks",
-    items: [
-      { href: "/tasks", label: "Tasks", icon: "tasks", roles: OPERATORS },
-      { href: "/schedule", label: "Schedule", icon: "calendar", roles: OPERATORS },
-      { href: "/tasks/templates", label: "Task templates", icon: "template", roles: MANAGERS },
-      { href: "/employees", label: "Employees", icon: "users", roles: MANAGERS },
-    ],
-  },
-  {
     id: "payroll",
     label: "Payroll",
     items: [{ href: "/payroll", label: "Payroll & commissions", icon: "wallet", roles: FINANCE }],
@@ -160,18 +150,48 @@ const navDefs: RouteDef[] = NAV_SECTIONS.flatMap((s) =>
   })),
 );
 
+// Keep these routes resolvable for existing deep links and notifications,
+// without exposing them as sidebar navigation entries.
+const detachedNavDefs: RouteDef[] = [
+  { pattern: "/tasks", title: "Tasks", section: "Operations", navHref: "/tasks", roles: OPERATORS },
+  {
+    pattern: "/schedule",
+    title: "Schedule",
+    section: "Operations",
+    navHref: "/schedule",
+    roles: OPERATORS,
+  },
+  {
+    pattern: "/tasks/templates",
+    title: "Task templates",
+    section: "Operations",
+    navHref: "/tasks/templates",
+    roles: MANAGERS,
+  },
+  {
+    pattern: "/employees",
+    title: "Employees",
+    section: "Operations",
+    navHref: "/employees",
+    roles: MANAGERS,
+  },
+];
+
 function detail(
   pattern: string,
   title: string,
   parent: string,
   roles: readonly NavRole[],
 ): RouteDef {
-  const p = navDefs.find((d) => d.pattern === parent)!;
-  return { pattern, title, section: p.section, navHref: parent, parent, roles };
+  // Detail routes may remain directly reachable after their parent link has
+  // been removed from the sidebar. Keep matching/breadcrumb metadata valid.
+  const p = navDefs.find((d) => d.pattern === parent);
+  return { pattern, title, section: p?.section ?? "Records", navHref: parent, parent, roles };
 }
 
 export const ROUTES: RouteDef[] = [
   ...navDefs,
+  ...detachedNavDefs,
   detail("/tasks/:id", "Task detail", "/tasks", OPERATORS),
   detail("/employees/:id", "Employee profile", "/employees", MANAGERS),
   detail("/payroll/:id", "Payroll period", "/payroll", FINANCE),

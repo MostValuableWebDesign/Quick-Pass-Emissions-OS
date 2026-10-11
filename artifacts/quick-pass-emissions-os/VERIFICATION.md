@@ -1,3 +1,11 @@
+# Dashboard publication merge — October 10, 2026
+
+Merged the business Dashboard snapshot/attention/shortcuts change with incoming GitHub main through `40b3387`, retaining the newer Performance layout, station portal and certificate portal flows. Certificate ordering from Dashboard routes to `/certificates#portal`; compact presentation is preserved. Incoming source formatting was normalized with the configured Prettier formatter.
+
+Fresh combined checks: all **411 unit/database tests passed with no skips** in 41 files, application TypeScript and ESLint passed, and the standard Turbopack production build passed with the existing backup filesystem tracing warning. Test databases were disposable and removed; builds used an unreachable database URL.
+
+The full browser run with station history enabled **failed** and is not counted as passing. It reported assertion failures in navigation's daily Performance check, two operations checks, two legacy Performance checks, payroll's certificate-settings workflow, the Phase 5 certificate-alert workflow and station's legacy Performance entry. Several assertions target the prior Performance/certificate UI. These failures need browser investigation/update against the merged workflows; prior delivery browser results below are historical and do not establish combined browser acceptance. No business database or deployment was changed.
+
 # Dashboard business snapshot and attention — October 10, 2026
 
 Dashboard now leads with today's Eastern-date tests/commission eligibility, separately labeled revenue evidence and approved base/commission pay with incomplete-input flags. The main action list contains only unresolved low stock, approaching/expired employee certifications and overdue unpaid dealer/rental balances; critical items appear first and all matches remain accessible in pages of 15. The four shortcuts open certificate ordering, Service & Support, payroll and owner Performance. Dashboard reads do not mutate records or run automation.
@@ -369,3 +377,40 @@ The previous delivery passed 27 logic/database tests and 3 browser workflows, in
 Phase 1 limits remain: one shift per employee/date; one certification-expiry field; no task attachments; recurrence changes use pause/replacement plus audited overrides; closure/open-day changes do not rewrite existing instances; no self-service password recovery email. No real business database, Replit deployment, backup service, external scheduler, email delivery or accounting/regulated integration was verified during that baseline.
 
 Database tests truncate their explicitly isolated `_test` fixtures. `npm test` without TEST_DATABASE_URL skips database suites; never report skipped tests as passed. Never point test credentials at business data.
+
+# Service & Support — October 10, 2026
+
+- Application typecheck, full workspace `pnpm run typecheck`, ESLint and Prettier passed.
+  The shared workspace check passed for API, Canvas, application and scripts; no
+  unrelated Canvas changes were made.
+- All **228 Vitest tests passed, none skipped**, in **26 files**, on a uniquely owned
+  disposable `_test` PostgreSQL database. Upgrade checks retained approved payroll,
+  approved invoice and signed-reversal sentinels; the isolated database was removed.
+  New checks include role/active restrictions, employee private-field exclusion, strict
+  provider-only mutation, manager confirmation/category/status versions, explicit
+  category preferences and clearing, contact history scope/persistence, archive
+  relationships and concurrent/repeated support import preservation.
+- **One complete protected Service & Support Playwright journey passed, no skips**,
+  using `E2E_DIRECT=1 E2E_SUPPORT_ONLY=1`. The exact completion marker and exit zero
+  were independently reported by the tester. It covered desktop filters/preferences,
+  contact destinations/extensions, saved management metadata and equipment association,
+  employee self-history/reloads/private exclusions, narrow maintenance association,
+  archival/history, bookkeeper denial, missing contacts, 390px fit and keyboard focus.
+  No phone, email or external destination was activated. Mobile captures were visually
+  reviewed; Next's development issue badge partly obscures one captured provider card.
+  The final prominent Call label/help text were checked by compilation, not another
+  browser pass.
+- Standard **`pnpm run build:app` passed** (Next 16.4 Turbopack). One existing backup
+  utility dynamic-filesystem tracing warning remains. Emitted trace manifests contained
+  no private import inputs, uploaded sources or support backups. No deployment occurred.
+- The normal managed application workflow restarted against its unchanged pinned
+  business database and reported ready. A screenshot of protected `/vendors` correctly
+  showed the public sign-in boundary; protected screens were verified with the isolated
+  signed-in browser journey, not that unauthenticated screenshot.
+- Source application was **development preview only**, after a private pre-migration
+  backup, storage identity verification and another verified backup at apply:
+  **4 unconfirmed vendors created, 0 updated, 0 unchanged, 0 conflicted, 2 review-only
+  items skipped/staged**. Repeat preview: **4 unchanged, 2 skipped, 0 created/updated/conflicted**.
+  No dates, preferences, physical associations, tickets or contact histories were
+  manufactured. See [docs/SERVICE_SUPPORT.md](docs/SERVICE_SUPPORT.md) for the exact
+  imported-versus-staged mapping and unsupported fields.

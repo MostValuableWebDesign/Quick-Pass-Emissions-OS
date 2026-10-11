@@ -3,6 +3,12 @@ name: Private workflow fixture environments
 description: Literal quotes in managed-workflow env files break datasource overrides without breaking direct fixture connectivity.
 ---
 
+Fresh, generated disposable databases must not inherit the business database's expected-identity pin; they receive their own identity during migration.
+
+**Why:** The new persistence guard correctly rejects a pinned database without an identity, including an empty isolated test database before migration.
+
+**How to apply:** Clear that pin only in the child environment targeting a programmatically generated, ownership-guarded test database. Never change the managed preview pin or bypass its persistent-storage checks.
+
 Temporary managed-workflow `env_file` overrides treat surrounding quotes as literal value characters, not shell quoting. Write raw `KEY=value` lines without outer quotes and check in-memory equality against the private registry before browser sign-in.
 
 **Why:** An isolated fixture database migrated and accepted direct Prisma connections, but native browser sign-in reported unavailable because the running workflow received a quote-wrapped datasource URL. Inherited auth settings were present; changing authentication would have addressed the wrong problem.

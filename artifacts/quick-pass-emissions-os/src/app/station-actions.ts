@@ -6,6 +6,25 @@ import { fields } from "@/lib/validation";
 import { BusinessError, requireRule } from "@/modules/phase2";
 import * as station from "@/modules/station/service";
 import type { ActionState } from "./actions";
+import { retrievePortalCount, type SavedPortalTotal } from "@/modules/station/portal-service";
+
+type PortalCountState = ActionState & { result?: SavedPortalTotal };
+
+export async function getPortalDailyCountAction(
+  _: PortalCountState,
+  form: FormData,
+): Promise<PortalCountState> {
+  const actor = await currentUser();
+  try {
+    const result = await retrievePortalCount(actor.id, form.get("date"));
+    revalidatePath("/performance");
+    return { ok: true, message: `Retrieved ${result.total} test rows for ${result.date}.`, result };
+  } catch (error) {
+    if (error instanceof BusinessError) return { ok: false, message: error.message };
+    if (error instanceof z.ZodError) return { ok: false, message: "Choose a valid business date." };
+    return { ok: false, message: "Unable to retrieve the portal report. No count was changed." };
+  }
+}
 
 async function perform(work: (actorId: string) => Promise<unknown>): Promise<ActionState> {
   const actor = await currentUser();

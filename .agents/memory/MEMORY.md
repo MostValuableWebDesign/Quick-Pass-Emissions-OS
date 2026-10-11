@@ -1,7 +1,11 @@
 - [Preview authentication boundaries](preview-auth-boundaries.md) — imported Next APIs can conflict with the scaffold router; credential forms must be safe before hydration.
+- [Management-only access](management-access.md) — owner approved retiring employee/bookkeeper sign-ins while preserving linked staff and business history.
 - [Git safety and synchronization](git-fetch-safety.md) — outer fetch permission is required; the user wants the full workspace synchronized on shared GitHub main without force-pushing.
 - [Isolated Next browser checks](isolated-next-browser.md) — separate build caches do not prevent Next dev from rewriting shared TypeScript files.
 - [Private workflow fixtures](workflow-fixtures.md) — managed env files preserve outer quotes literally; privately verify exact datasource overrides before browser testing.
 - [Station portal access](station-portal-access.md) — successful login does not authorize unattended automation or establish stable report identities, payments or coverage.
 - [Private build traces](private-build-traces.md) — Git/deployment ignores do not govern Next dependency tracing; dynamic backup paths require separate privacy checks.
 - [Support contact trust](support-directory-boundaries.md) — document-sourced contacts can be useful to staff without qualifying as verified assignments or confirmed conversations.
+- [Performance business rules](performance-business-rules.md) — $20 Pass/Fail revenue, shop-wide daily commissions, and five shifts within Monday–Saturday availability.
+- [Cold preview startup](cold-preview-startup.md) — framework “Ready” did not establish reachability after a workspace restart; Webpack restored the imported Next preview.
+- [Performance panel interactions](dashboard-panel-interactions.md) — browser-local layouts stay separate from business data; pointer and keyboard controls support reliable resizing and reordering.

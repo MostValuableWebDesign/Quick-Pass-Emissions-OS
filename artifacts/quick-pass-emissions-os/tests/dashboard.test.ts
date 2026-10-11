@@ -89,7 +89,7 @@ describe("Business dashboard presentation", () => {
     const owner = await render(data);
     for (const path of ["/vendors", "/payroll", "/performance"])
       expect(owner).toContain(`href="${path}"`);
-    expect(owner).toContain("https://gadashboard.com/Purchasing/Purchasing.aspx");
+    expect(owner).toContain('href="/certificates#portal"');
     data.role = "ADMIN";
     const manager = await render(data);
     expect(manager).not.toContain('href="/performance"');

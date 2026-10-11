@@ -47,7 +47,7 @@ describe("Browser isolation gates", () => {
     const stats = { expected: 9, skipped: 0, flaky: 0, unexpected: 0 };
     expect(() => assertCompleteReport({ stats, errors: [] }, 9)).not.toThrow();
     expect(() =>
-      assertCompleteReport({ stats: { ...stats, expected: 3 }, errors: [] }, 9),
+      assertCompleteReport({ stats: { ...stats, expected: 3 }, errors: [] }, 10),
     ).toThrow();
   });
   it("keeps business storage pins, backups and recovery targets out of isolated verification", () => {

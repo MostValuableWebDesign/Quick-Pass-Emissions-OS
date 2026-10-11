@@ -2,7 +2,7 @@ import type { Role } from "@prisma/client";
 import Link from "next/link";
 import { financeRoles, approvalRoles } from "@/modules/phase2";
 
-export const CERTIFICATE_ORDER_URL = "https://gadashboard.com/Purchasing/Purchasing.aspx";
+export { CERTIFICATE_ORDER_URL } from "@/modules/certificates/portal-types";
 
 // Navigation only. Keep this outside action forms and alert acknowledgement controls.
 export function CertificateOrderLink({
@@ -17,19 +17,13 @@ export function CertificateOrderLink({
   if (!financeRoles.includes(role) || (alert && !approvalRoles.includes(role))) return null;
   return (
     <div className={compact ? undefined : "space-top"}>
-      <a className="button" href={CERTIFICATE_ORDER_URL} target="_blank" rel="noopener noreferrer">
-        Order Certificates <span className="sr-only">· external Georgia dashboard, new tab</span>
-      </a>
+      <Link className="button" href="/certificates#portal">
+        Order Certificates
+      </Link>
       <p className="muted">
-        {compact
-          ? "Opens the official Georgia dashboard in a new tab. Log in and order on that portal."
-          : "Opens the official Georgia dashboard in a new browser tab. Login and ordering happen on that portal. If login takes you elsewhere, return here and select Order Certificates again."}
+        Open the official purchasing portal in a secure browser tab. You control sign-in and
+        ordering.
       </p>
-      {alert && (
-        <Link className="text-link" href="/certificates#purchase-history">
-          Review purchase requests & order records
-        </Link>
-      )}
     </div>
   );
 }

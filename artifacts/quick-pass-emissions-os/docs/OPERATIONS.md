@@ -1,11 +1,49 @@
 # Operator runbook
 
+## Manual certificate portal and low-stock banner
+
+Certificates now opens the official purchasing portal directly inside an iframe,
+with an external-browser fallback for embedding or third-party-cookie restrictions.
+Users control provider sign-in, quantities and purchases; no internal approval is
+needed before buying on the portal. Optional internal purchase/receipt records
+remain reviewed and do not gate portal access.
+
+The read-only portal balance selects **GA102539 - QUICK PASS EMISSIONS INC**,
+verifies analyzer **HT111411**, and retrieves the provider's unused-certificate
+count. It never posts cart, quantity or payment controls. Only balance, identity
+labels and check time are cached; no provider HTML, cookies or credentials are
+saved. Owner/admin page views use a five-minute cache; manual checks have a short
+cooldown. No background polling or purchases run.
+
+Settings → Low certificate alert controls the global banner. Default: **strictly
+below 30**; a threshold of zero disables the low-stock warning. Failed checks
+preserve the last known balance and show that it could not be refreshed. The
+portal balance is distinct from the recorded stock ledger; reading it does not
+reconcile stock or prove purchase, receipt, payment or usage.
+
 For reviewed reference configuration, source mapping, backup-gated preview/apply and
 resumable conflict handling, read [Business configuration import](BUSINESS_IMPORT.md).
 
 > Storage identity, safe startup, optional pre-migration full backups and guarded restore: [DATA_PERSISTENCE.md](../DATA_PERSISTENCE.md). Provider backups must still be configured independently.
 
 ## Station reports and performance
+
+**Performance** automatically loads the current count when the owner opens it.
+Choose a single date or an inclusive date range, a week/month trend and an employee.
+Original source exports are checked against the portal's total. Aggregate days
+are cached in PostgreSQL; live-day snapshots are finalized after their day ends,
+and current-day data has a five-minute freshness window. Refresh is explicit,
+not a scheduler or background poll. Only the separately verified, echoed
+single-date empty-grid response establishes a dashboard zero; missing rows,
+unavailable reports, inconsistent exports and failures remain unknown.
+
+Revenue is a **$20 estimate per Pass/Fail**, not collected cash. Pay setup stores
+owner-entered rates, exact portal-name links, five-day schedules and dated actual
+hours/base overrides. Monday–Saturday availability never automatically pays six
+shifts. Commission is $1 per station test above 50 **per day for each working
+eligible employee**, not the employee's own test count. Fixed Monday and explicitly
+recorded grass-cutting payments stay separate. Unconfirmed workdays/pay remain
+unknown; these projections never replace approved payroll or source-review gates.
 
 Read [STATION_HISTORY.md](../STATION_HISTORY.md) before importing or reconciling station data. Use **Performance → Setup & imports**, original portal HTML `.xls` files for the configured station only, explicit identity/exception review, all-page total comparison and owner coverage attestation. New source revisions require renewed coverage review. Reconciliation replaces an existing personal daily count and clears approval; a different authorized reviewer approves through Payroll. Draft/approved periods remain frozen. No raw exports/sessions are retained, no portal refresh scheduler runs, and forecasts with an unverified current cutoff say **Insufficient data**. Never combine station price estimates with global finance receipts or approved dealership billing.
 

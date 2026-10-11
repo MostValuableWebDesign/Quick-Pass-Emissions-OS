@@ -1,20 +1,22 @@
 import { PrismaClient } from "@prisma/client";
 import { randomUUID, randomBytes } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import fs from "node:fs/promises";
 import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { isolatedDatabaseEnvironment } from "./e2e-safety.mjs";
 
 const app = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const original = process.env.DATABASE_URL;
 const name = `quick_pass_verify_${randomUUID().replaceAll("-", "")}_test`;
 let testUrl = "";
-let isolatedEnv;
 let created = false;
 let admin;
 let child;
+let isolatedEnv;
+let upgradeDir;
+let fixture;
 let interrupted = false;
 for (const signal of ["SIGINT", "SIGTERM"]) {
   process.on(signal, () => {
@@ -33,26 +35,16 @@ async function run(script, env) {
           })
         : spawn("pnpm", ["run", script], { cwd: app, env, stdio: ["ignore", "pipe", "pipe"] });
     let output = "";
-    const receive = (chunk) => {
-      output += chunk;
-      // The owned browser runner emits sanitized status only; it never relays
-      // framework/request logs or cookie state. Interactive readiness cannot
-      // wait for the child to exit, otherwise the private preview appears stuck.
-      if (script === "test:e2e:owned" && env.E2E_MANUAL_TEST === "1")
-        process.stdout.write(redact(chunk));
-    };
     child.stdout.on("data", (chunk) => {
-      receive(chunk);
+      output += chunk;
     });
     child.stderr.on("data", (chunk) => {
-      receive(chunk);
+      output += chunk;
     });
     child.on("error", reject);
     child.on("close", (status) => resolve({ status, output }));
   });
 }
-let upgradeDir;
-let fixture;
 function redact(value) {
   let text = String(value);
   if (original) text = text.replaceAll(original, "[database URL redacted]");
@@ -231,8 +223,9 @@ try {
     if (interrupted) throw new Error("Isolated verification interrupted.");
     const result = await run(script, {
       ...isolatedEnv,
-      DATABASE_URL: testUrl,
-      TEST_DATABASE_URL: testUrl,
+      // This generated, disposable database receives its own identity during migration.
+      // Never inherit the business database's pin into an empty owned test database.
+      EXPECTED_DATABASE_ID: "",
       E2E_OWNED_DATABASE: browser ? name : "",
       DANGEROUSLY_ALLOW_GIT: "1",
     });
@@ -243,6 +236,8 @@ try {
   console.error(redact(error.message));
   process.exitCode = 1;
 } finally {
+  await fixture?.$disconnect();
+  if (upgradeDir) await fs.rm(upgradeDir, { recursive: true, force: true });
   if (created && admin) {
     try {
       await admin.$queryRaw`SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = ${name} AND pid <> pg_backend_pid()`;
@@ -254,6 +249,4 @@ try {
     }
   }
   await admin?.$disconnect();
-  await fixture?.$disconnect();
-  if (upgradeDir) await fs.rm(upgradeDir, { recursive: true, force: true });
 }

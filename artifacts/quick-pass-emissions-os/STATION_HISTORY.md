@@ -1,10 +1,36 @@
 # Station history and performance
 
-## Delivered access mode and verified source evidence
+## Owner-triggered daily portal lookup
+
+Performance supports **Get daily count from portal** for a selected single date.
+An active owner initiates a read-only server request: sign in to `gadashboard.com`,
+submit Test History / VIR Reprint for the configured station and one inclusive date,
+then retrieve the original export. Export row count must equal the portal pager's
+stated total; station/date metadata must match. This avoids counting only the
+first displayed page. Missing totals, partial exports, changed forms, unexpected
+redirects, oversized responses, CAPTCHA/MFA or failed login stop the lookup.
+Missing/empty reports are not presented as verified zero days.
+
+Only aggregate date, outcome counts and retrieval time are retained in owner audit
+history; the saved snapshot is shown again for that date after reload. Portal
+cookies and original exports stay in memory and are discarded. Credentials remain
+server-side in the existing GA Secrets. Requests have a 15-second per-station throttle.
+
+There is **no API, scheduled scraper, automated purchase, automatic record import,
+payroll reconciliation or approval**. Counts include failed/aborted report rows,
+not proven unique vehicles or qualifying employee counts. Source timezone/cutoff
+and zero-report semantics remain unverified. Current-day results are a snapshot,
+not a completed-day guarantee. Reviewed station history still uses the import/review flow.
+
+An authorized read-only lookup on October 10, 2026 retrieved the October 9, 2026
+export: **94 rows (77 Pass, 15 Fail, 2 Abort)**, matching its 94-item pager rather
+than its ten-row first page. No individual business test records were inserted.
+
+## Earlier manual-import discovery
 
 **Manual original-report import, not live synchronization.** On October 10, 2026, authorized read-only discovery successfully used the configured credentials and station for the inclusive **October 9, 2026** Test History / VIR Reprint query. The portal's first displayed page had ten test links. Its original Excel export was actually HTML (`application/ms-excel`, `.xls`), with **94 valid rows** for that date. The application's real server parser validated all 94 rows in memory, and the six source fields of all ten displayed sample rows matched exported fingerprints. No real rows were inserted into the business application and no original export or authenticated response was saved.
 
-This establishes a working **report parser**, not a supported automated portal integration. No documented API, stable identifier guarantee, correction protocol, report cutoff, zero-test semantics, future all-page export guarantee, or unattended automation permission was established. Authentication alone is not permission to schedule scraping. No CAPTCHA/MFA bypass, destructive tests, other-station queries, analyzer calls or record changes were attempted. There is no portal adapter, saved portal session, refresh scheduler or authenticated portal URL in application responses.
+This earlier discovery established a working **report parser**, not a supported unattended portal integration. No documented API, stable identifier guarantee, correction protocol, report cutoff, zero-test semantics, future all-page export guarantee, or unattended automation permission was established. Authentication alone is not permission to schedule scraping. No CAPTCHA/MFA bypass, destructive tests, other-station queries, analyzer calls or record changes were attempted. No portal adapter existed at that stage.
 
 The observed export contains:
 
@@ -18,7 +44,7 @@ On-page detail links contain a source identifier that the export omits. Certific
 
 ## Secure setup (development)
 
-Keep `GA_DASHBOARD_USERNAME`, `GA_DASHBOARD_PASSWORD`, and `GA_STATION_ID` in Replit Secrets. Only the server reads station configuration; the application never returns station-secret values or credentials. The chosen manual mode requires `GA_STATION_ID`; username/password are reserved for separately authorized discovery and are **not consumed during normal application imports**.
+Keep `GA_DASHBOARD_USERNAME`, `GA_DASHBOARD_PASSWORD`, and `GA_STATION_ID` in Replit Secrets. Only the server reads station configuration; the application never returns station-secret values or credentials. Manual imports use only `GA_STATION_ID`; username/password are consumed by an explicitly owner-triggered portal lookup, never by ordinary imports.
 
 The additive `202610100007_station_history` migration follows the six unchanged existing migrations. Do not reset the database or replace existing payroll/finance tables. Generate Prisma and apply development migrations using the established project command:
 

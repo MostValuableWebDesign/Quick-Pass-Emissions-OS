@@ -10,6 +10,8 @@ import path from "node:path";
 import { assertCompleteReport, assertOwnedDatabase } from "./e2e-safety.mjs";
 import { navigationFixtures } from "./navigation-fixtures";
 import { stationBrowserFixture } from "./station-browser-fixtures";
+import { performanceBrowserFixtures } from "./performance-browser-fixtures";
+import { certificatePortalBrowserFixture } from "./certificate-portal-browser-fixtures";
 import { workflowBrowserFixtures } from "./workflow-browser-fixtures";
 import { browserSuite, assertSuiteReport } from "./e2e-suites.mjs";
 
@@ -120,6 +122,12 @@ async function main() {
   originalTypes = await readFile(path.join(app, "next-env.d.ts"), "utf8");
   originalConfig = await readFile(path.join(app, "tsconfig.json"), "utf8");
   const state = path.join(temporary, "session.json");
+  const chromiumPath =
+    process.env.E2E_CHROMIUM_PATH ??
+    (await access("/repl/tools/bin/chromium").then(
+      () => "/repl/tools/bin/chromium",
+      () => undefined,
+    ));
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     NODE_ENV: "development",
@@ -134,11 +142,14 @@ async function main() {
       ? { DATA_BACKUP_DIR: path.join(temporary, "backups") }
       : {}),
     // NixOS workspace Chromium; other machines may use Playwright's installed browser.
-    ...(process.env.E2E_CHROMIUM_PATH || !direct
-      ? { E2E_CHROMIUM_PATH: process.env.E2E_CHROMIUM_PATH ?? "/repl/tools/bin/chromium" }
-      : {}),
+    ...(chromiumPath ? { E2E_CHROMIUM_PATH: chromiumPath } : {}),
     GA_STATION_ID: "SYNTHETIC",
   };
+  if (process.env.E2E_CERTIFICATE_UX === "1") {
+    // The owned UX run can only make unauthenticated public portal requests.
+    env.GA_DASHBOARD_USERNAME = "";
+    env.GA_DASHBOARD_PASSWORD = "";
+  }
   db = new PrismaClient();
   stage = "owned owner creation";
   const email = `regression-${randomUUID()}@example.test`;
@@ -160,6 +171,18 @@ async function main() {
   const fixtures = await navigationFixtures(db, password, user.id, (value) => {
     stage = value;
   });
+  if (process.env.E2E_PORTAL_LIVE !== "1") {
+    stage = "owned performance cache fixtures";
+    env.GA_STATION_ID =
+      process.env.E2E_STATION_HISTORY === "1" ? "SYNTHETIC" : "PERFORMANCE_FIXTURE";
+    env.GA_DASHBOARD_USERNAME = "";
+    env.GA_DASHBOARD_PASSWORD = "";
+    await performanceBrowserFixtures(db, user.id, env.GA_STATION_ID);
+  }
+  if (process.env.E2E_CERTIFICATE_UX === "1") {
+    stage = "owned synthetic certificate portal cache fixture";
+    await certificatePortalBrowserFixture(db, user.id);
+  }
   const workflowUsers =
     "operations.spec.ts" in suite ? await workflowBrowserFixtures(db, password) : [];
   if (workflowUsers.length)
@@ -328,7 +351,12 @@ async function main() {
   }
   if (interrupted) throw new Error("Browser verification interrupted.");
   stage = "signed-in browser navigation and form persistence";
-  tests = start("pnpm", ["exec", "playwright", "test"], env);
+  const playwrightArgs = ["exec", "playwright", "test"];
+  if (process.env.E2E_PERFORMANCE_PANELS === "1")
+    playwrightArgs.push("tests/e2e/performance-panels.spec.ts");
+  if (process.env.E2E_PERFORMANCE_PANELS === "1" && process.env.E2E_CERTIFICATE_UX === "1")
+    playwrightArgs.push("tests/e2e/certificate-portal-ux.spec.ts");
+  tests = start("pnpm", playwrightArgs, env);
   const status = await new Promise<number | null>((resolve) => {
     tests!.once("close", resolve);
     tests!.once("error", () => resolve(null));

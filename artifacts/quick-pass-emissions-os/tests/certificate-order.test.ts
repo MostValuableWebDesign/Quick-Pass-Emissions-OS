@@ -68,7 +68,7 @@ describe("manual certificate portal navigation", () => {
         },
       ];
       const html = renderToStaticMarkup(await Overview());
-      expect(html.includes(CERTIFICATE_ORDER_URL)).toBe(visible);
+      expect(html.includes('href="/certificates#portal"')).toBe(visible);
     });
   }
   for (const role of ["OWNER", "ADMIN", "BOOKKEEPER", "EMPLOYEE"] as Role[]) {
@@ -83,19 +83,17 @@ describe("manual certificate portal navigation", () => {
       );
     });
   }
-  it("uses only an ordinary fixed external anchor with visible new-tab/login guidance", () => {
+  it("opens the manual portal without an internal purchase-record link", () => {
     const html = renderToStaticMarkup(
       createElement(CertificateOrderLink, { role: "OWNER", alert: true }),
     );
     expect(CERTIFICATE_ORDER_URL).toBe("https://gadashboard.com/Purchasing/Purchasing.aspx");
-    expect(html).toContain(
-      `href="${CERTIFICATE_ORDER_URL}" target="_blank" rel="noopener noreferrer"`,
-    );
-    expect(html).toContain("return here and select Order Certificates again");
-    expect(html).toContain('href="/certificates#purchase-history"');
+    expect(html).toContain('href="/certificates#portal"');
+    expect(html).toContain("You control sign-in and ordering");
+    expect(html).not.toContain('href="/certificates#purchase-history"');
     expect(html).not.toMatch(/<form|<iframe|<script|onclick=|formaction=/i);
   });
-  it("keeps existing workflows and adds no mutation, credentials or popup script", () => {
+  it("removes internal bookkeeping panels while preserving provider and dashboard alerts", () => {
     const component = readFileSync("src/components/certificate-order-link.tsx", "utf8");
     expect(component).not.toMatch(/onClick|window\.open|fetch\(|use server|process\.env|password/i);
     const inventory = readFileSync("src/app/(app)/certificates/page.tsx", "utf8");
@@ -105,11 +103,11 @@ describe("manual certificate portal navigation", () => {
       "recordCertificateOrder",
       "receiveCertificatePurchase",
     ])
-      expect(inventory).toContain(`action={${action}}`);
-    expect(inventory).toContain('id="purchase-history"');
-    expect(inventory).toContain('href="#purchase-request"');
-    expect(inventory).toContain("different OWNER or ADMIN approve");
-    expect(inventory).toContain("confirming physical");
+      expect(inventory).not.toContain(action);
+    expect(inventory).not.toContain('id="purchase-history"');
+    expect(inventory).not.toContain('id="purchase-request"');
+    expect(inventory).not.toContain('id="records"');
+    expect(inventory).toContain("CertificatePortalBrowser");
     const dashboard = readFileSync("src/app/(app)/dashboard/page.tsx", "utf8");
     expect(dashboard).toContain("<CertificateOrderLink role={data.role} compact />");
     expect(dashboard).toContain("Quick actions");

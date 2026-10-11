@@ -18,6 +18,18 @@ describe("role-filtered navigation", () => {
     expect(safeReturnPath("/tasks", role)).toBeNull();
     expect(returnTarget("/tasks/t1", null, role)).toBeNull();
   });
+  it("removes the Team & Tasks section from the navigation for all roles", () => {
+    for (const role of ["OWNER", "ADMIN", "MANAGER", "BOOKKEEPER", "EMPLOYEE"]) {
+      const sections = navForRole(role);
+      expect(sections.some((s) => s.id === "team" || s.label === "Team & Tasks")).toBe(false);
+      expect(sections.flatMap((s) => s.items).map((item) => item.href)).not.toEqual(
+        expect.arrayContaining(["/tasks", "/schedule", "/tasks/templates", "/employees"]),
+      );
+    }
+    // Pages/data remain intact and may still be opened directly by an authorized user.
+    expect(matchRoute("/tasks")).toBeDefined();
+    expect(matchRoute("/employees")).toBeDefined();
+  });
   it("owner-only routes are owner-only; admin sees managers routes", () => {
     expect(hrefs("ADMIN")).not.toContain("/automation");
     expect(hrefs("ADMIN")).toContain("/settings");
@@ -36,8 +48,8 @@ describe("route matching", () => {
   it("prefers static over id routes and longest nav match", () => {
     expect(matchRoute("/tasks/templates")?.title).toBe("Task templates");
     expect(matchRoute("/tasks/abc123")?.title).toBe("Task detail");
-    expect(activeNavHref("/tasks/templates", "OWNER")).toBe("/tasks/templates");
-    expect(activeNavHref("/tasks/abc", "OWNER")).toBe("/tasks");
+    expect(activeNavHref("/tasks/templates", "OWNER")).toBeUndefined();
+    expect(activeNavHref("/tasks/abc", "OWNER")).toBeUndefined();
     expect(activeNavHref("/finance/reports", "ADMIN")).toBe("/finance/reports");
     expect(activeNavHref("/maintenance/plans", "ADMIN")).toBe("/maintenance/plans");
     expect(activeNavHref("/maintenance/t1", "ADMIN")).toBe("/maintenance");

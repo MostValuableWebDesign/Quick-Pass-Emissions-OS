@@ -13,6 +13,7 @@ import { commissionCents, periodAmounts, sumCents, csvCell } from "../payroll/ca
 import { audit } from "../phase2";
 import { estimateTests, elapsedMinutes, operatingMinutes, type Hours } from "./projections";
 import { digest } from "./report";
+import { portalTotalSchema } from "./portal-service";
 import {
   compareTrends,
   employeePerformance,
@@ -370,8 +371,21 @@ export async function performance(actorId: string, input: unknown, now = new Dat
       } else group.pending++;
       groups.set(key, group);
     }
+    const savedPortal =
+      query.start === query.end
+        ? await tx.auditLog.findFirst({
+            where: {
+              action: "STATION_PORTAL_COUNT_RETRIEVED",
+              entityId: hash,
+              details: { path: ["date"], equals: query.start },
+            },
+            orderBy: { createdAt: "desc" },
+          })
+        : null;
+    const parsedPortal = portalTotalSchema.safeParse(savedPortal?.details);
     return {
       ...query,
+      portalTotal: parsedPortal.success ? parsedPortal.data : null,
       records: priced,
       stationRecorded: all.filter((r) => r.state === "CONFIRMED").length,
       stationPending: all.filter((r) => r.state !== "CONFIRMED").length,
@@ -416,7 +430,7 @@ export async function performance(actorId: string, input: unknown, now = new Dat
           "Manual report timestamps lack a verified current query cutoff. Today/This Week forecasts are insufficient; employee schedules are not approved worked time. No projected revenue/gross pay or profit is asserted.",
       },
       liveAccess:
-        "Not enabled: supported API and unattended-automation permission unverified. Manual report imports only.",
+        "Owner-requested portal export lookup is available for one day. Reviewed history still uses imports; no background sync or guaranteed source cutoff.",
       generatedAt: now,
     };
   });

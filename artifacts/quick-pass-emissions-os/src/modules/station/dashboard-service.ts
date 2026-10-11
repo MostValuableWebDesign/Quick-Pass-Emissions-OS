@@ -7,6 +7,7 @@ import { stationConfig, stationTransaction } from "./service";
 import { portalRangeDays } from "./portal-client";
 import { buildDashboard, dashboardDates, calendarDays } from "./dashboard-calculations";
 import type { DashboardQuery, PayPlan } from "./dashboard-types";
+import { classifyDashboardRetests, hasVinEvidence, retestHistoryDates } from "./dashboard-retests";
 
 const SNAPSHOT = "STATION_PERFORMANCE_DAY_CACHED";
 const PLAN = "STATION_PERFORMANCE_PAY_PLAN";
@@ -20,6 +21,9 @@ export const dashboardDaySchema = z.object({
   testTimes: z.array(z.object({
     inspector: z.string().trim().min(1).max(160),
     minute: z.number().int().min(0).max(1439).nullable(),
+    vinHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+    recordKey: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+    outcome: z.enum(["passed", "failed", "aborted", "other"]).optional(),
   })).max(10000).optional(),
 }).refine((d) =>
   d.total === d.passed + d.failed + d.aborted + d.other &&
@@ -30,7 +34,14 @@ export const dashboardDaySchema = z.object({
     d[field as keyof typeof counts] === d.inspectors.reduce((n, i) => n + i[field as keyof typeof counts], 0)) &&
   (d.total > 0 ? !d.verifiedEmpty : d.verifiedEmpty) &&
   (!d.testTimes || (d.testTimes.length === d.total &&
-    d.inspectors.every((i) => d.testTimes!.filter((t) => t.inspector === i.inspector).length === i.total))),
+    d.inspectors.every((i) => d.testTimes!.filter((t) => t.inspector === i.inspector).length === i.total))) &&
+  (!d.testTimes || d.testTimes.every((t) =>
+    (!t.vinHash && !t.recordKey && !t.outcome) || (!!t.vinHash && !!t.recordKey && !!t.outcome))) &&
+  (!d.testTimes?.some((t) => t.recordKey) ||
+    (new Set(d.testTimes.map((t) => t.recordKey)).size === d.testTimes.length &&
+      d.inspectors.every((i) => ["passed", "failed", "aborted", "other"].every((field) =>
+        d.testTimes!.filter((t) => t.inspector === i.inspector && t.outcome === field).length ===
+          i[field as keyof typeof counts])))),
 );
 const weekdays = z.array(z.number().int().min(1).max(7)).max(7)
   .refine((days) => new Set(days).size === days.length);
@@ -98,7 +109,7 @@ export function resolveDashboardQuery(params: Record<string, string | string[] |
 export async function readDashboard(actorId: string, input: unknown, now = new Date()) {
   const query = validateQuery(input);
   const today = businessDate(now);
-  const needed = dashboardDates(query, today);
+  const needed = retestHistoryDates(query, today);
   return stationTransaction(actorId, async (tx, hash) => {
     const logs = await tx.auditLog.findMany({
       where: { entityId: hash, action: SNAPSHOT,
@@ -117,7 +128,12 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
     });
     const parsed = dashboardPayPlanSchema.safeParse(savedPlan?.details);
     const payPlan = parsed.success ? parsed.data : { revision: 0, profiles: [], adjustments: [] };
-    const data = buildDashboard(query, today, [...snapshots.values()], payPlan);
+    const rawDays = [...snapshots.values()];
+    const data = buildDashboard(query, today, classifyDashboardRetests(rawDays), payPlan);
+    data.retestMissingDates = needed.filter((date) => {
+      const day = snapshots.get(date);
+      return !day || !hasVinEvidence(day);
+    });
     requireRule(!query.employee || data.employeeOptions.some((e) => e.id === query.employee),
       "This employee filter is no longer available. Select all employees.");
     data.staleDates = [...snapshots.values()].filter((d) =>
@@ -143,8 +159,9 @@ export async function loadDashboard(actorId: string, input: unknown, refresh = f
   const query = validateQuery(input);
   const initial = await readDashboard(actorId, query);
   // Continue a bounded partial backfill before re-fetching already cached days.
-  const needed = refresh && initial.missingDates.length === 0 ? dashboardDates(query, initial.today) :
-    [...initial.missingDates, ...initial.staleDates, ...initial.timingMissingDates];
+  const missingSources = [...initial.missingDates, ...initial.timingMissingDates, ...initial.retestMissingDates];
+  const needed = refresh && missingSources.length === 0 ? dashboardDates(query, initial.today) :
+    [...missingSources, ...initial.staleDates];
   if (!needed.length) return initial;
   const config = stationConfig();
   const allowed = await stationTransaction(actorId, async (tx, hash) => {

@@ -103,4 +103,18 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   await expect(employees).toHaveCSS("grid-column-start", "1");
   await page.setViewportSize({ width: 1280, height: 720 });
   await expectSideBySide();
+
+  // Cached VIN history: one repeat yesterday is free; another at day 31 is paid.
+  // These are synthetic fixtures, not external portal calls or payroll writes.
+  await page.goto("/performance?start=2026-01-15&end=2026-01-15");
+  await expect(page.getByTestId("text-cars")).toHaveText("94");
+  await expect(page.getByTestId("text-revenue")).toHaveText("$1,840");
+  await expect(page.getByTestId("text-pay")).toHaveText("$548");
+  await expect(page.locator(".pd-today")).toContainText("1 free retests excluded");
+  await page.reload();
+  await expect(page.getByTestId("text-cars")).toHaveText("94");
+  await page.goto("/performance?start=2026-01-15&end=2026-01-15&employee=inspector%3AFixture%2520One");
+  await expect(page.getByTestId("text-cars")).toHaveText("69");
+  await expect(page.getByTestId("text-revenue")).toHaveText("$1,340");
+  await expect(page.getByTestId("text-pay")).toHaveText("$274");
 });

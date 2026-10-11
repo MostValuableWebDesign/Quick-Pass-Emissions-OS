@@ -16,6 +16,7 @@ export function inspectionCadence(days: PortalDay[], inspector?: string | null):
   let cars = 0;
   let coveredDays = 0;
   for (const day of days) {
+    if (day.retestComplete === false) continue;
     if (inspector === null) continue;
     if (!day.testTimes) { if (day.verifiedEmpty) coveredDays++; continue; }
     // An employee uses their own window. The station uses one window for all staff,

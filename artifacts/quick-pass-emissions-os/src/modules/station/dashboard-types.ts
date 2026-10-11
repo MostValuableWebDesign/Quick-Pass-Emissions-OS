@@ -4,6 +4,9 @@ export type Counts = {
   failed: number;
   aborted: number;
   other: number;
+  /** Derived only: preserve work evidence even when every inspection was free. */
+  rawTotal?: number;
+  freeRetests?: number;
 };
 export type PortalDay = Counts & {
   date: string;
@@ -11,8 +14,14 @@ export type PortalDay = Counts & {
   inspectors: (Counts & { inspector: string })[];
   /** An explicit provider empty response, not an absence inferred from an import. */
   verifiedEmpty: boolean;
+  /** Derived on read, never trusted from persisted aggregate snapshots. */
+  retestComplete?: boolean;
   /** Source-local minute precision; absent in legacy count-only caches. */
-  testTimes?: { inspector: string; minute: number | null }[];
+  testTimes?: {
+    inspector: string; minute: number | null;
+    vinHash?: string; recordKey?: string;
+    outcome?: "passed" | "failed" | "aborted" | "other";
+  }[];
 };
 export type InspectionCadence = { averageMinutes: number | null; cars: number; coveredDays: number };
 export type DashboardQuery = {
@@ -62,6 +71,7 @@ export type DashboardData = {
   summary: {
     inspectionCadence: InspectionCadence;
     cars: number | null;
+    freeRetests: number;
     revenueCents: number | null;
     baseCents: number | null;
     commissionCents: number | null;
@@ -87,6 +97,7 @@ export type DashboardData = {
   missingDates: string[];
   staleDates: string[];
   timingMissingDates: string[];
+  retestMissingDates: string[];
   syncedAt: string | null;
   error?: string;
 };

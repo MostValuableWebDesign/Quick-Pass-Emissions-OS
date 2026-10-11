@@ -228,7 +228,7 @@ export function portalExplicitEmpty(html: string, start: string, end: string, st
     !portalElements(form.document, "input").some((n) => portalAttributes(n).alt === "Export");
 }
 
-/** Original bounded range export. Persist only counts by date/inspector, never vehicle data. */
+/** Bounded range export. Cache counts and hashed VIN/record evidence, never full VINs. */
 export async function portalRangeDays(
   start: string,
   end: string,
@@ -277,7 +277,10 @@ export async function portalRangeDays(
         aggregate.total++;
         aggregate[key]++;
       }
-      day.testTimes!.push({ inspector: row.inspector, minute: reportMinute(row.sourceDate) });
+      day.testTimes!.push({
+        inspector: row.inspector, minute: reportMinute(row.sourceDate),
+        vinHash: row.vehicleHash, recordKey: row.fingerprint, outcome: key,
+      });
     }
     // Missing dates are not invented zeros. Explicit empty-day responses are verified separately.
     return [...days.values()].sort((a, b) => a.date.localeCompare(b.date));

@@ -13,7 +13,13 @@ The same VIN occurring within 30 days is a free retest and must not count as a c
 
 **Why:** The user supplied this VIN/date rule, superseding the earlier assumption that all retests are free and require reading the individual VIR.
 
-**How to apply:** Use VIN history and date differences to distinguish free from paid repeats. Include the preceding 30 days when classifying a selected date or range; missing historical coverage is not proof that a VIN has no qualifying earlier test. Exclude free retests from car and paying-test totals, not paid retests.
+**How to apply:** Compare the latest source occurrence across all inspectors, including earlier free inspections. Include the preceding 30 calendar days when classifying a selected date or range; missing historical coverage is not proof that a VIN has no qualifying earlier test. Exclude free retests from car and paying-test totals, not paid retests.
+
+Performance commission projections use counted shop vehicles after free retests are excluded. Free-only inspections still establish a working day for base pay; do not remove attendance evidence or alter approved payroll.
+
+**Why:** The commission threshold is based on shop car count, while performing a free inspection still represents employee work. The user approved applying the VIN rule to Performance, not rewriting approved wages or financial history.
+
+**How to apply:** Preserve the distinction between physical inspections, counted cars and source-confirmed working days.
 
 Monday–Saturday are available workdays, while emissions staff normally work five ten-hour shifts. Individual days off were not specified; some actual hours vary.
 

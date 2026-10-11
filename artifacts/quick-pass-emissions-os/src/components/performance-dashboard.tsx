@@ -74,6 +74,11 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
               </span>
             )}
             {data.staleDates.length > 0 && <span className="pd-chip warn">{data.staleDates.length} stale</span>}
+            {data.retestMissingDates.length > 0 && (
+              <span className="pd-chip warn" title={data.retestMissingDates.join(", ")}>
+                VIN history · {data.retestMissingDates.length} days pending
+              </span>
+            )}
           </div>
         </div>
         <div className="pd-actions">
@@ -131,6 +136,7 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
               </div>
               <small style={{ display: "block", marginTop: 10 }}>
                 {usd(s.revenueCents, true)} estimated revenue · selected {single ? "day" : "range"}
+                {s.freeRetests > 0 && ` · ${s.freeRetests} free retests excluded`}
               </small>
             </>
           ) : (
@@ -147,7 +153,7 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
           <div className="pd-kpi accent">
             <span className="lab">Revenue (est.)</span>
             <strong data-testid="text-revenue">{usd(s.revenueCents, true)}</strong>
-            <small>$20 per pass or fail</small>
+            <small>$20 per paid pass or fail · 30-day retests free</small>
           </div>
           <div className="pd-kpi" title="Daily elapsed time from first to last test divided by cars in those windows. Uses the station window for all staff, or the selected employee's window. Includes daytime pauses; not measured start-to-finish duration.">
             <span className="lab">Avg. time per car (est.)</span>

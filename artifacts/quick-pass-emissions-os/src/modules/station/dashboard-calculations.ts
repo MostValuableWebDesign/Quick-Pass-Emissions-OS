@@ -29,7 +29,7 @@ function dayPay(profile: PayProfile, date: string, day: PortalDay | undefined, p
   const weekday = Temporal.PlainDate.from(date).dayOfWeek;
   const adjustment = plan.adjustments.find((a) => a.profileId === profile.id && a.date === date);
   const personal = day?.inspectors.find((g) => g.inspector === profile.inspector);
-  const hasWork = !!personal?.total;
+  const hasWork = !!(personal?.rawTotal ?? personal?.total);
   const scheduled = profile.scheduledWeekdays.includes(weekday);
   const isMondayPay = profile.mondayCents !== null;
   // A source-confirmed working day can use the standard shift as an estimate,
@@ -56,7 +56,7 @@ function dayPay(profile: PayProfile, date: string, day: PortalDay | undefined, p
     !profile.availableWeekdays.includes(weekday) ||
     profile.scheduledWeekdays.length === profile.shiftsPerWeek;
   const payCommission = !profile.commissionEligible ? 0 :
-    working ? (day ? commission(day.total) : null) : workKnown ? 0 : null;
+    working ? (day && day.retestComplete !== false ? commission(day.total) : null) : workKnown ? 0 : null;
   if (adjustment?.grassCut) base = base === null ? null : base + 5000;
   return { base, commission: payCommission, estimatedHours, working: working || !!adjustment?.grassCut,
     workKnown: workKnown || !!adjustment?.grassCut };
@@ -69,7 +69,8 @@ export function buildDashboard(
   const byDate = new Map(snapshots.map((d) => [d.date, d]));
   const selectedDates = calendarDays(query.start, query.end);
   const selectedSnapshots = snapshots.filter((d) => selectedDates.includes(d.date));
-  const selectedComplete = selectedDates.every((d) => byDate.has(d));
+  const selectedComplete = selectedDates.every((date) =>
+    byDate.has(date) && byDate.get(date)!.retestComplete !== false);
   const needed = dashboardDates(query, today);
   const allInspectors = [...new Set(snapshots.flatMap((d) => d.inspectors.map((i) => i.inspector)))].sort();
   if (query.employee?.startsWith("inspector:")) {
@@ -106,9 +107,9 @@ export function buildDashboard(
     rows.push({
       id: inspectorKey(inspector), name: inspector, inspector,
       cars: selectedComplete ? days.reduce((n, d) => n + d.count.total, 0) : null,
-      workingDays: selectedComplete ? days.length : null,
+      workingDays: selectedDates.every((date) => byDate.has(date)) ? days.length : null,
       revenueCents: selectedComplete ? days.reduce((n, d) => n + (d.count.passed + d.count.failed) * TEST_PRICE_CENTS, 0) : null,
-      baseCents: null, commissionCents: selectedDates.every((d) => byDate.has(d)) ?
+      baseCents: null, commissionCents: selectedComplete ?
         days.reduce((n, d) => n + commission(d.day.total), 0) : null,
       payCents: null, approximate: true,
       inspectionCadence: inspectionCadence(selectedSnapshots, inspector),
@@ -118,6 +119,7 @@ export function buildDashboard(
   const selected = query.employee ? rows.filter((e) => e.id === query.employee) : rows;
   const selectedInspector = query.employee ? selected[0]?.inspector : undefined;
   const countFor = (day: PortalDay): Counts | null => {
+    if (day.retestComplete === false) return null;
     if (!query.employee) return day;
     if (!selectedInspector) return day.total === 0 || selected[0]?.cars !== null ? emptyCounts() : null;
     return day.inspectors.find((i) => i.inspector === selectedInspector) ?? emptyCounts();
@@ -129,15 +131,16 @@ export function buildDashboard(
     const amounts = selected.map((e) => {
       const profile = payPlan.profiles.find((p) => p.id === e.id || (e.inspector !== null && p.inspector === e.inspector));
       if (profile) return dayPay(profile, date, day, payPlan).commission;
-      return day ? day.inspectors.some((i) => i.inspector === e.inspector) ? commission(day.total) : 0 : null;
+      return day && day.retestComplete !== false ?
+        day.inspectors.some((i) => i.inspector === e.inspector) ? commission(day.total) : 0 : null;
     });
     return {
-      date, cars: counts?.total ?? null, stationCars: day?.total ?? null,
+      date, cars: counts?.total ?? null, stationCars: day && day.retestComplete !== false ? day.total : null,
       revenueCents: counts ? (counts.passed + counts.failed) * TEST_PRICE_CENTS : null,
       commissionCents: day ? nullableSum(amounts) : null,
     };
   });
-  const coveredDays = selectedDates.filter((d) => byDate.has(d)).length;
+  const coveredDays = selectedDates.filter((d) => byDate.has(d) && byDate.get(d)!.retestComplete !== false).length;
   const complete = coveredDays === selectedDates.length;
   const totals = selectedDates.reduce((total, date) => {
     const day = byDate.get(date);
@@ -152,10 +155,17 @@ export function buildDashboard(
   const commissionCents = nullableSum(selected.map((e) => e.commissionCents));
   const current = byDate.get(today);
   return {
-    query, today, current: current ? { ...current, date: today } : null,
+    query, today, current: current && current.retestComplete !== false ? {
+      date: today, retrievedAt: current.retrievedAt, total: current.total,
+      passed: current.passed, failed: current.failed, aborted: current.aborted, other: current.other,
+    } : null,
     summary: {
       inspectionCadence: inspectionCadence(selectedSnapshots, query.employee ? selectedInspector ?? null : undefined),
       cars: complete && (!query.employee || selected[0]?.cars !== null) ? totals.total : null,
+      freeRetests: selectedDates.reduce((sum, date) => {
+        const day = byDate.get(date);
+        return sum + (day ? countFor(day)?.freeRetests ?? 0 : 0);
+      }, 0),
       revenueCents: complete && (!query.employee || selected[0]?.revenueCents !== null) ?
         (totals.passed + totals.failed) * TEST_PRICE_CENTS : null,
       baseCents, commissionCents, payCents: nullableSum([baseCents, commissionCents]),
@@ -165,6 +175,7 @@ export function buildDashboard(
     series, employees: selected, employeeOptions, inspectors: allInspectors, payPlan,
     missingDates: needed.filter((d) => !byDate.has(d)), staleDates: [],
     timingMissingDates: selectedSnapshots.filter((d) => d.total > 0 && !d.testTimes).map((d) => d.date),
+    retestMissingDates: [],
     syncedAt: snapshots.length ? snapshots.map((d) => d.retrievedAt).sort().at(-1)! : null,
   };
 }

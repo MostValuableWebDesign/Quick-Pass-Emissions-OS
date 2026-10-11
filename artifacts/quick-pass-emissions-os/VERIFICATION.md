@@ -414,3 +414,10 @@ Database tests truncate their explicitly isolated `_test` fixtures. `npm test` w
   No dates, preferences, physical associations, tickets or contact histories were
   manufactured. See [docs/SERVICE_SUPPORT.md](docs/SERVICE_SUPPORT.md) for the exact
   imported-versus-staged mapping and unsupported fields.
+
+## Login branding redesign — 2026-10-10
+
+- Replaced the login branding panel with a navy/seafoam/ivory design, custom inline emissions/carwash illustration, service icons and a compact mobile welcome. Existing sign-in endpoint, field validation and error handling remain unchanged.
+- Visually checked at 1440 × 1000 and 390 × 844. The phone layout had no horizontal overflow; required email/password controls and `/api/sign-in` form action were verified in the browser. No credentials were submitted.
+- After incorporating shared main through `67f288d`, typecheck, ESLint and the production build passed. All 427 tests passed in 42 files using a separately created and removed disposable test database; none skipped. Login source formatting passed.
+- Repository-wide formatting fails on eight pre-existing files from the newly fetched dashboard/retest changes. The existing database-maintenance filesystem tracing build warning remains. The full authenticated browser suite was not rerun for this presentation-only change. No deployment occurred.

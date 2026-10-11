@@ -1,5 +1,7 @@
-import { CheckCheck, ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoginBrand } from "@/components/login-brand";
+import "./login.css";
 export default async function Login({
   searchParams,
 }: {
@@ -17,33 +19,8 @@ export default async function Login({
             ? "Unable to sign in. Check your credentials or try again later."
             : "";
   return (
-    <div className="login-page">
-      <section className="login-brand">
-        <div className="brand">
-          <span className="brand-icon">
-            <CheckCheck />
-          </span>
-          <span>
-            QUICK PASS<small>BUSINESS OS</small>
-          </span>
-        </div>
-        <div>
-          <p className="eyebrow">LESS GUESSWORK. MORE OVERSIGHT.</p>
-          <h1>
-            A better day
-            <br />
-            starts with
-            <br />
-            <em>a clear plan.</em>
-          </h1>
-          <p>
-            Your team, daily responsibilities, and operations.
-            <br />
-            Together in one workspace.
-          </p>
-        </div>
-        <p>EMISSIONS · TAG RENEWAL · CARWASH</p>
-      </section>
+    <div className="login-page login-redesign">
+      <LoginBrand />
       <section className="login-panel">
         <form className="login-form" method="post" action="/api/sign-in">
           <span className="login-symbol">

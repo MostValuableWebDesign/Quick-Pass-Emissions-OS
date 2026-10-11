@@ -206,6 +206,9 @@ test.describe("Owner daily performance count", () => {
       await expect(page).toHaveURL(/start=2026-01-15/);
       await page.getByTestId("select-trend").selectOption("30");
       await page.getByTestId("button-apply-date").click();
+      const performanceUrl = page.url();
+      await expect(page.getByTestId("button-pay-setup")).toHaveCount(0);
+      await page.goto("/payroll");
       await page.getByTestId("button-pay-setup").click();
       await expect(page.getByRole("dialog")).toBeVisible();
       await expect(page.getByRole("dialog")).toContainText("Fixture One");
@@ -215,6 +218,7 @@ test.describe("Owner daily performance count", () => {
       await page.getByRole("dialog").getByLabel("Actual hours").last().fill("12");
       await page.getByTestId("button-save-pay").click();
       await expect(page.getByRole("dialog")).not.toBeVisible();
+      await page.goto(performanceUrl);
       await expect(page.getByTestId("text-pay")).toHaveText("$596");
       await page.reload();
       await expect(page.getByTestId("text-pay")).toHaveText("$596");
@@ -234,6 +238,7 @@ test.describe("Owner daily performance count", () => {
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
       ).toBe(true);
+      await page.goto("/payroll");
       await expect(page.getByTestId("button-pay-setup")).toBeVisible();
       await page.getByTestId("button-pay-setup").click();
       const dialog = page.getByRole("dialog");
@@ -244,6 +249,7 @@ test.describe("Owner daily performance count", () => {
       ).toBe(true);
       await dialog.getByRole("button", { name: "Close" }).click();
       await expect(dialog).not.toBeVisible();
+      await page.goto(performanceUrl);
       await page.screenshot({
         path: path.join(screenshots, "performance-dashboard-mobile.png"),
         fullPage: true,

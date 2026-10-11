@@ -406,6 +406,11 @@
 }
 
 /* cards */
+.pd-panel-layout-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -10px;
+}
 .pd-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));

@@ -41,6 +41,15 @@ describe("role-filtered navigation", () => {
     expect(hrefs("OWNER")).not.toContain("/roadmap");
     expect(matchRoute("/roadmap")).toBeUndefined();
   });
+  it("nests account and station data under Settings instead of Performance setup", () => {
+    const settings = navForRole("OWNER").find((section) => section.id === "settings")!;
+    expect(settings.items.find((item) => item.href === "/settings")?.label).toBe("Settings");
+    expect(settings.items.find((item) => item.href === "/settings/account")?.parent).toBe("/settings");
+    expect(settings.items.find((item) => item.href === "/settings/station-data")?.parent).toBe("/settings");
+    expect(hrefs("ADMIN")).toContain("/settings/account");
+    expect(hrefs("ADMIN")).not.toContain("/settings/station-data");
+    expect(matchRoute("/performance/settings")).toBeUndefined();
+  });
   it("unknown roles get nothing and hrefs are unique", () => {
     expect(navForRole("GUEST")).toEqual([]);
     const all = NAV_SECTIONS.flatMap((s) => s.items.map((i) => i.href));

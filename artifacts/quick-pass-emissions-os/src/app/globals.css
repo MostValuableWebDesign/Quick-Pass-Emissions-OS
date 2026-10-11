@@ -226,6 +226,27 @@ svg {
 .primary-nav {
   margin-top: 8px;
 }
+.settings-group {
+  margin-top: 26px;
+}
+.settings-group-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.settings-group-heading h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+.settings-group-heading p {
+  margin: 0;
+}
+.settings-card-grid {
+  align-items: start;
+}
 .primary-nav ul {
   list-style: none;
   margin: 0;
@@ -237,14 +258,14 @@ svg {
 .nav-group[data-nav-section="settings"] {
   margin-bottom: 16px;
 }
-.nav-link-child {
+.nav-link.nav-link-child {
   margin-left: 12px;
   width: calc(100% - 12px);
   min-height: 38px;
   padding-left: 13px;
   font-size: 12px;
 }
-.nav-link-settings-root {
+.nav-link.nav-link-settings-root {
   margin-bottom: 9px;
 }
 .collapsed .nav-group + .nav-group {

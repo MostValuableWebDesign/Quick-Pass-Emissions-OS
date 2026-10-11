@@ -8,6 +8,8 @@ import { dashboardInput, payrollDashboard } from "@/modules/payroll/dashboard";
 import { PayrollSummary, PayrollHistory } from "@/components/payroll-summary";
 import { PayrollPagination } from "@/components/payroll-pagination";
 import { PageHeader } from "@/components/shared";
+import { PayrollPaySetup } from "@/components/payroll-pay-setup";
+import { readDashboard, resolveDashboardQuery } from "@/modules/station/dashboard-service";
 import { ActionForm, Field } from "@/components/action-form";
 import {
   savePayArrangement,
@@ -37,6 +39,8 @@ export default async function Payroll({
   const data = await payrollOverview(actor.id, params);
   const parsed = dashboardInput.safeParse(params);
   const dashboard = await payrollDashboard(actor.id, parsed.success ? parsed.data : {});
+  const paySetup =
+    actor.role === "OWNER" ? await readDashboard(actor.id, resolveDashboardQuery({})) : null;
   const href = (key: string, page: number) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(
@@ -61,7 +65,9 @@ export default async function Payroll({
       <PageHeader
         title="Payroll & commissions"
         description="Employee daily and weekly base pay, approved commissions, pay adjustments and transaction history."
-      />
+      >
+        {paySetup && <PayrollPaySetup initial={paySetup} />}
+      </PageHeader>
       {data.employees.some((e) => e.demo) && (
         <div className="notice warning">
           DEMONSTRATION WORKSPACE · Illustrative payroll and stock records. These are not actual

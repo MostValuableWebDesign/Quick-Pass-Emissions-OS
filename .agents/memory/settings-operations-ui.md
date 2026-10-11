@@ -9,7 +9,13 @@ Station reporting configuration belongs in the general Settings area and must re
 
 **How to apply:** Keep station performance hours and projection controls separate from business schedule flags, label their scope clearly, and preserve existing owner-only authorization.
 
-The user removed the Issued By mappings, Outcome rules & prices, Operations scheduler, Product roadmap, and sidebar slogan panels as unnecessary.
+Account & password belongs beneath Settings, and pay setup belongs in Payroll rather than Performance. Group Settings by related business operations, Emissions configuration, and activity.
+
+**Why:** The user requested these locations and a better-organized Settings area.
+
+**How to apply:** Keep the Settings label concise, use nested account navigation, and retain extra spacing below the Settings navigation area. Retire the Performance setup screen without deleting saved data or station-import capabilities.
+
+The user removed the Issued By mappings, Outcome rules & prices, Operations scheduler, Product roadmap, Data storage & recovery, and sidebar slogan panels as unnecessary.
 
 **Why:** The user explicitly requested those visible panels be removed.
 

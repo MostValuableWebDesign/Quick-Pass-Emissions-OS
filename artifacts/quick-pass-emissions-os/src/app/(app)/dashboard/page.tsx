@@ -41,6 +41,10 @@ export default async function Dashboard({
     }
   }
   const performanceSummary = performanceData?.summary ?? null;
+  const performanceDataIncomplete =
+    performanceData !== null &&
+    (performanceData.summary.cars === null || performanceData.summary.revenueCents === null);
+  const performanceDataStale = performanceData?.staleDates.includes(data.today) ?? false;
   const emissionsClosedToday = isEmissionsClosedOn(data.today);
   const params = await searchParams;
   const requested = Number(params.attentionPage ?? 1);
@@ -62,6 +66,14 @@ export default async function Dashboard({
         <div className="notice warning dashboard-sunday-closure" role="status">
           <CalendarDays size={18} aria-hidden="true" />
           <strong>Emissions testing is closed today (Sunday).</strong>
+        </div>
+      )}
+      {(performanceDataIncomplete || performanceDataStale) && (
+        <div className="notice warning" role="status">
+          {performanceDataIncomplete &&
+            "Today’s Performance count or VIN history is incomplete; totals remain unavailable. "}
+          {performanceDataStale && "Today’s cached Performance data is stale. "}
+          <Link href="/performance">Review Performance</Link>
         </div>
       )}
       <section aria-labelledby="snapshot-heading">
@@ -127,14 +139,14 @@ export default async function Dashboard({
               Performance pay-plan estimate; approved payroll is tracked separately.
             </p>
             {!performanceData && (
-              <p className="muted">No employee payroll records configured.</p>
-            )}
-            {performanceSummary?.payCents == null && (
-              <small>
+              <p className="muted">
                 {user.role === "OWNER"
-                  ? "Performance pay inputs or daily test coverage are incomplete."
-                  : "Performance pay estimates require owner access."}
-              </small>
+                  ? "Performance data is unavailable."
+                  : "Performance estimates require owner access."}
+              </p>
+            )}
+            {performanceData && performanceSummary?.payCents == null && (
+              <small>Performance pay inputs or daily test coverage are incomplete.</small>
             )}
           </article>
         </div>

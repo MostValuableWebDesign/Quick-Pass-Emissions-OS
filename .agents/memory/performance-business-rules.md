@@ -52,3 +52,9 @@ Inspection speed must show average time per car for employee stats and the top h
 **Why:** The user explicitly corrected the interval statistic to average time per car. The provider export has minute-precision timestamps, not verified inspection start/end times, so this remains an estimate.
 
 **How to apply:** Divide summed daily first-to-last testing windows by the cars in those windows. Employees use their own windows; the station uses one all-staff window each day so overlapping staff time is not double-counted. Never include overnight gaps. Label the estimate and coverage; daytime pauses remain included without inventing a cutoff.
+
+The owner Business Dashboard’s daily car count, estimated test revenue and employee pay must match the Performance report for the same Eastern business date, including its paid/free retest rules and pay-plan estimates. Missing or incomplete report data stays unavailable, not zero; do not substitute receipts or approved-payroll totals.
+
+**Why:** The user said Performance already reflects the right data and explicitly asked these dashboard figures to come from that same source.
+
+**How to apply:** Reuse the Performance day summary and preserve its access controls, coverage and staleness warnings.

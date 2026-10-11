@@ -57,6 +57,7 @@ model User {
   employee Employee?
   auditLogs AuditLog[]
   notifications Notification[]
+  reminderEvents ReminderEvent[]
 }
 model Session {
   id String @id
@@ -226,6 +227,24 @@ model Notification {
   resolvedAt DateTime?
   createdAt DateTime @default(now())
   @@index([userId,resolvedAt])
+}
+model ReminderEvent {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields:[userId],references:[id],onDelete:Restrict)
+  title String
+  description String @default("")
+  location String @default("")
+  startsAt DateTime
+  alertAt DateTime
+  alertMinutes Int @default(15)
+  readAt DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId,alertAt,readAt])
+  @@index([userId,startsAt,completedAt,cancelledAt])
 }
 model AuditLog {
   id String @id @default(cuid())

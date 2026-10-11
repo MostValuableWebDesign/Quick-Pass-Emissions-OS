@@ -455,6 +455,47 @@ svg {
   gap: 13px;
   align-items: center;
 }
+.notification-bell-link {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+.notification-bell-link:hover {
+  background: var(--bg);
+  border-color: var(--action);
+}
+.notification-bell-link:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: 2px;
+}
+.notification-bell-count {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: #b42318;
+  border: 2px solid var(--surface);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
 .breadcrumb {
   font-size: 12px;
   color: var(--muted);
@@ -1179,6 +1220,30 @@ legend {
   color: var(--muted);
   margin-top: 4px;
   font-size: 11px;
+}
+.personal-reminder-row {
+  align-items: flex-start;
+}
+.personal-reminder-content {
+  flex: 1;
+  min-width: 0;
+}
+.personal-reminder-content .preserve-lines {
+  margin-top: 8px;
+  font-size: 12px;
+}
+.personal-reminder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 10px;
+}
+.personal-reminder-edit > summary {
+  padding: 8px 0;
+}
+.reminder-explanation {
+  padding-bottom: 0;
 }
 .inline-form .button {
   font-size: 11px;

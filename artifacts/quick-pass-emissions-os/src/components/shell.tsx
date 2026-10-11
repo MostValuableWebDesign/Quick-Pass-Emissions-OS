@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { CertificatePortalBanner } from "./certificate-portal-banner";
+import { NotificationBell } from "./notification-bell";
 import type { CertificatePortalStatus } from "@/modules/certificates/portal-types";
 import { NavRoleContext } from "./record-link";
 import {
@@ -515,6 +516,7 @@ export function Shell({
               <span className="business-zone">
                 <CircleDot size={12} /> Eastern time
               </span>
+              <NotificationBell />
               <Button
                 variant="ghost"
                 aria-label="Toggle theme"

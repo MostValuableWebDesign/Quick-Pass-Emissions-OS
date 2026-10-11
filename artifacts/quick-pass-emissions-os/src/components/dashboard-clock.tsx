@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { businessDate, TIMEZONE } from "@/lib/time";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -26,7 +25,6 @@ export function DashboardClock({
   businessDay: string;
   initialTime: string;
 }) {
-  const router = useRouter();
   const [now, setNow] = useState(() => new Date(initialTime));
 
   useEffect(() => {
@@ -36,11 +34,11 @@ export function DashboardClock({
       setNow(current);
       if (!refreshedForNewDay && businessDate(current) !== businessDay) {
         refreshedForNewDay = true;
-        router.refresh();
+        window.location.reload();
       }
     }, 1000);
     return () => window.clearInterval(interval);
-  }, [businessDay, router]);
+  }, [businessDay]);
 
   return (
     <span className="dashboard-live-clock" role="group" aria-label="Current date and time in Eastern Time">

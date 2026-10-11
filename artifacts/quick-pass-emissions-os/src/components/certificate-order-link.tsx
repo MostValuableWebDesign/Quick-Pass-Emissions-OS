@@ -1,5 +1,6 @@
 import type { Role } from "@prisma/client";
 import Link from "next/link";
+import { FileCheck2 } from "lucide-react";
 import { financeRoles, approvalRoles } from "@/modules/phase2";
 
 export { CERTIFICATE_ORDER_URL } from "@/modules/certificates/portal-types";
@@ -18,6 +19,7 @@ export function CertificateOrderLink({
   return (
     <div className={compact ? undefined : "space-top"}>
       <Link className="button" href="/certificates#portal">
+        <FileCheck2 size={17} aria-hidden="true" />
         Order Certificates
       </Link>
       <p className="muted">

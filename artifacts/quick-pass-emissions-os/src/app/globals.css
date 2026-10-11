@@ -30,6 +30,8 @@
   --nav-accent: #0d530e;
   --chart-green: #306d29;
   --chart-neutral: #737a41;
+  --dashboard-info: #356f91;
+  --dashboard-report: #705496;
   --shadow: 0 2px 8px #0d530e0a;
   color-scheme: light;
 }
@@ -57,6 +59,8 @@
   --danger-line: #70433d;
   --chart-green: #a7cb8b;
   --chart-neutral: #e7e1b1;
+  --dashboard-info: #95c8df;
+  --dashboard-report: #c2acdf;
   --shadow: none;
   color-scheme: dark;
 }
@@ -1991,7 +1995,7 @@ details > summary {
 }
 .business-snapshot {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 .business-snapshot .stat {
@@ -2005,6 +2009,54 @@ details > summary {
 .business-snapshot .stat > strong {
   font-size: clamp(23px, 2.5vw, 32px);
   margin-bottom: 12px;
+}
+.dashboard-metric-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  position: relative;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--metric-accent) 11%, var(--surface));
+  color: var(--metric-accent);
+}
+.dashboard-metric-icon--tests {
+  --metric-accent: var(--chart-green);
+}
+.dashboard-metric-icon--revenue {
+  --metric-accent: var(--chart-green);
+}
+.dashboard-metric-icon--pay {
+  --metric-accent: var(--dashboard-info);
+}
+.dashboard-metric-icon--certificates {
+  --metric-accent: var(--warning);
+}
+.dashboard-pay-dollar {
+  position: absolute;
+  right: -4px;
+  bottom: -3px;
+  padding: 2px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--chart-green);
+}
+.dashboard-certificate-panel[data-low="true"] > strong,
+.dashboard-certificate-low {
+  color: var(--warning);
+}
+.dashboard-certificate-panel .dashboard-certificate-stale {
+  color: var(--warning);
+}
+.dashboard-certificate-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 12px;
+  color: var(--warning);
+  font-size: 11px;
+  font-weight: 600;
 }
 .business-snapshot p,
 .snapshot-breakdown,
@@ -2097,16 +2149,39 @@ details > summary {
   gap: 14px;
 }
 .dashboard-shortcut {
+  --shortcut-accent: var(--chart-green);
   border: 1px solid var(--line);
+  border-top: 3px solid var(--shortcut-accent);
   border-radius: 14px;
   padding: 16px;
-  background: var(--surface);
+  border-color: color-mix(in srgb, var(--shortcut-accent) 26%, var(--line));
+  background: color-mix(in srgb, var(--shortcut-accent) 7%, var(--surface));
+}
+.dashboard-shortcut--certificates {
+  --shortcut-accent: var(--warning);
+}
+.dashboard-shortcut--support {
+  --shortcut-accent: var(--dashboard-info);
+}
+.dashboard-shortcut--payroll {
+  --shortcut-accent: var(--chart-green);
+}
+.dashboard-shortcut--performance {
+  --shortcut-accent: var(--dashboard-report);
 }
 .dashboard-shortcut .button {
   width: 100%;
   white-space: normal;
   text-align: center;
   min-height: 42px;
+  background: color-mix(in srgb, var(--shortcut-accent) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--shortcut-accent) 34%, var(--line));
+  color: var(--shortcut-accent);
+  text-decoration: none;
+}
+.dashboard-shortcut .button:hover {
+  background: color-mix(in srgb, var(--shortcut-accent) 19%, var(--surface));
+  border-color: var(--shortcut-accent);
 }
 .dashboard-shortcut p {
   font-size: 11px;
@@ -2118,13 +2193,16 @@ details > summary {
 }
 @media (max-width: 1100px) {
   .business-snapshot {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .dashboard-quick-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (max-width: 600px) {
+  .business-snapshot {
+    grid-template-columns: 1fr;
+  }
   .dashboard-quick-actions {
     grid-template-columns: 1fr;
   }

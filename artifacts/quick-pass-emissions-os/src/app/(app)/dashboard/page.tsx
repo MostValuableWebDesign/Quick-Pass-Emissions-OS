@@ -3,10 +3,14 @@ import {
   AlertTriangle,
   ArrowUpRight,
   CalendarDays,
+  DollarSign,
   CheckCircle2,
+  FileCheck2,
   Gauge,
   Phone,
+  TrendingUp,
   Users,
+  Wallet,
 } from "lucide-react";
 import { currentUser } from "@/lib/access";
 import { isEmissionsClosedOn } from "@/modules/station/operating-hours";
@@ -18,9 +22,18 @@ import { DashboardClock } from "@/components/dashboard-clock";
 import { RecordLink } from "@/components/record-link";
 import { CertificateOrderLink } from "@/components/certificate-order-link";
 import { businessDashboard } from "@/modules/dashboard/service";
+import { readCertificatePortalStatus } from "@/modules/certificates/portal";
 
 const money = (cents: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+const certificateCheckedAt = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZoneName: "short",
+});
 export default async function Dashboard({
   searchParams,
 }: {
@@ -28,7 +41,10 @@ export default async function Dashboard({
 }) {
   const user = await currentUser();
   const now = new Date();
-  const data = await businessDashboard(user.id, now);
+  const [data, certificateStatus] = await Promise.all([
+    businessDashboard(user.id, now),
+    readCertificatePortalStatus().catch(() => null),
+  ]);
   let performanceData: DashboardData | null = null;
   if (user.role === "OWNER") {
     try {
@@ -85,7 +101,9 @@ export default async function Dashboard({
           <article className="stat">
             <div className="stat-top">
               <h3>Tests performed today</h3>
-              <Gauge size={19} aria-hidden="true" />
+              <span className="dashboard-metric-icon dashboard-metric-icon--tests" aria-hidden="true">
+                <Gauge size={19} />
+              </span>
             </div>
             <strong>
               {performanceSummary?.cars == null
@@ -100,7 +118,9 @@ export default async function Dashboard({
           <article className="stat">
             <div className="stat-top">
               <h3>Revenue today</h3>
-              <ArrowUpRight size={19} aria-hidden="true" />
+              <span className="dashboard-metric-icon dashboard-metric-icon--revenue" aria-hidden="true">
+                <DollarSign size={19} />
+              </span>
             </div>
             <strong>
               {performanceSummary?.revenueCents == null
@@ -115,7 +135,10 @@ export default async function Dashboard({
           <article className="stat">
             <div className="stat-top">
               <h3>Employee gross pay so far</h3>
-              <Users size={19} aria-hidden="true" />
+              <span className="dashboard-metric-icon dashboard-metric-icon--pay" aria-hidden="true">
+                <Users className="dashboard-pay-users" size={19} />
+                <DollarSign className="dashboard-pay-dollar" size={14} />
+              </span>
             </div>
             <strong>{performanceSummary?.payCents == null ? "Incomplete" : money(performanceSummary.payCents)}</strong>
             <dl className="snapshot-breakdown">
@@ -148,6 +171,53 @@ export default async function Dashboard({
             )}
             {performanceData && performanceSummary?.payCents == null && (
               <small>Performance pay inputs or daily test coverage are incomplete.</small>
+            )}
+          </article>
+          <article
+            className="stat dashboard-certificate-panel"
+            data-low={
+              certificateStatus?.balance !== null &&
+              certificateStatus?.balance !== undefined &&
+              certificateStatus.balance < certificateStatus.threshold
+            }
+          >
+            <div className="stat-top">
+              <h3>Certificates remaining</h3>
+              <span
+                className="dashboard-metric-icon dashboard-metric-icon--certificates"
+                aria-hidden="true"
+              >
+                <FileCheck2 size={19} />
+              </span>
+            </div>
+            <strong>{certificateStatus?.balance?.toLocaleString("en-US") ?? "Unavailable"}</strong>
+            <p>
+              Portal balance
+              {certificateStatus
+                ? ` · Station ${certificateStatus.station} · Analyzer ${certificateStatus.analyzer}`
+                : ""}
+            </p>
+            <small>
+              {certificateStatus?.checkedAt
+                ? `Checked ${certificateCheckedAt.format(new Date(certificateStatus.checkedAt))}`
+                : "No verified portal count yet."}
+            </small>
+            {certificateStatus?.error && certificateStatus.balance !== null && (
+              <small className="dashboard-certificate-stale">
+                Last refresh failed; showing the saved balance.
+              </small>
+            )}
+            {certificateStatus?.balance !== null &&
+              certificateStatus?.balance !== undefined &&
+              certificateStatus.balance < certificateStatus.threshold && (
+                <small className="dashboard-certificate-low">
+                  Low · reorder threshold {certificateStatus.threshold}
+                </small>
+              )}
+            {["OWNER", "ADMIN", "BOOKKEEPER"].includes(data.role) && (
+              <Link className="dashboard-certificate-link" href="/certificates#portal">
+                Certificate details <ArrowUpRight size={14} aria-hidden="true" />
+              </Link>
             )}
           </article>
         </div>
@@ -229,10 +299,10 @@ export default async function Dashboard({
           Quick actions
         </h2>
         <div className="dashboard-quick-actions">
-          <div className="dashboard-shortcut">
+          <div className="dashboard-shortcut dashboard-shortcut--certificates">
             <CertificateOrderLink role={data.role} compact />
           </div>
-          <div className="dashboard-shortcut">
+          <div className="dashboard-shortcut dashboard-shortcut--support">
             <Link className="button" href="/vendors">
               <Phone size={17} aria-hidden="true" /> Call Service & Support
             </Link>
@@ -240,20 +310,20 @@ export default async function Dashboard({
               Choose the right provider and use their verified contact details.
             </p>
           </div>
-          <div className="dashboard-shortcut">
+          <div className="dashboard-shortcut dashboard-shortcut--payroll">
             <Link className="button" href="/payroll">
-              Review payroll
+              <Wallet size={17} aria-hidden="true" /> Review payroll
             </Link>
             <p className="muted">Review employee pay, commissions and missing inputs.</p>
           </div>
-          <div className="dashboard-shortcut">
+          <div className="dashboard-shortcut dashboard-shortcut--performance">
             {data.role === "OWNER" ? (
               <Link className="button" href="/performance">
-                Open Performance
+                <TrendingUp size={17} aria-hidden="true" /> Open Performance
               </Link>
             ) : (
               <span className="button" aria-disabled="true">
-                Open Performance · owner access
+                <TrendingUp size={17} aria-hidden="true" /> Open Performance · owner access
               </span>
             )}
             <p className="muted">View emission volume, revenue trends and pay evidence.</p>

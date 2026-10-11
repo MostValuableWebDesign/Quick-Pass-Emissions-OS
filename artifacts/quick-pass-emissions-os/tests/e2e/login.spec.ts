@@ -25,8 +25,15 @@ test("professional login branding, responsive form, keyboard access, errors and 
   await expect(password).toHaveValue("");
   await expect(page.locator(".login-service-art")).toHaveCount(0);
   expect(await submit.evaluate((button) => getComputedStyle(button).backgroundColor)).toBe(
-    "rgb(32, 135, 68)",
+    "rgb(48, 109, 41)",
   );
+  await expect(page.locator(".login-professional")).toHaveCSS(
+    "background-color",
+    "rgb(251, 245, 221)",
+  );
+  await expect(page.locator(".login-brand")).toHaveCSS("background-color", "rgb(231, 225, 177)");
+  await expect(page.locator(".login-form h2")).toHaveCSS("color", "rgb(13, 83, 14)");
+  await expect(submit).toHaveCSS("color", "rgb(251, 245, 221)");
   for (const [name, width, height] of [
     ["desktop", 1440, 1000],
     ["tablet", 768, 1024],
@@ -63,7 +70,7 @@ test("professional login branding, responsive form, keyboard access, errors and 
   await expect(submit).toBeFocused();
   await page.evaluate(() => document.documentElement.classList.add("dark"));
   expect(await submit.evaluate((button) => getComputedStyle(button).backgroundColor)).toBe(
-    "rgb(32, 135, 68)",
+    "rgb(48, 109, 41)",
   );
   for (const [error, text] of [
     ["rate_limit", "Too many sign-in attempts"],

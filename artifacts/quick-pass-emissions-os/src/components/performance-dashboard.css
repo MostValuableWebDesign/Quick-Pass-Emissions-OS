@@ -82,7 +82,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr);
   background: var(--pd-ink);
-  color: #dfefec;
+  color: var(--nav-text);
   border-radius: 14px;
   overflow: hidden;
 }
@@ -103,7 +103,7 @@
   line-height: 1;
   letter-spacing: -3px;
   margin: 14px 0 10px;
-  color: #f4fffb;
+  color: var(--nav-text);
 }
 .pd-today small {
   color: var(--nav-muted);
@@ -166,7 +166,7 @@
 .pd-kpi strong {
   font-size: 30px;
   letter-spacing: -1px;
-  color: #f4fffb;
+  color: var(--nav-text);
   line-height: 1.15;
 }
 .pd-kpi small {
@@ -224,7 +224,7 @@
   overflow: hidden;
 }
 .pd-seg button {
-  background: var(--surface);
+  background: var(--soft);
   border: 0;
   padding: 7px 12px;
   font-size: 12px;
@@ -233,8 +233,14 @@
   min-height: 36px;
 }
 .pd-seg button[aria-pressed="true"] {
-  background: var(--soft);
-  color: var(--primary);
+  background: var(--action);
+  color: var(--on-action);
+}
+.pd-seg button:focus-visible {
+  outline-offset: -3px;
+}
+.pd-seg button[aria-pressed="true"]:focus-visible {
+  outline-color: var(--on-action);
 }
 
 /* calendar */
@@ -330,11 +336,11 @@
 .pd-cal-day.sel span,
 .pd-cal-day.sel:hover span {
   background: var(--pd-teal);
-  color: #f4fffb;
+  color: var(--on-action);
 }
 .pd-cal-day.today:not(.sel) span {
-  box-shadow: inset 0 0 0 1px var(--pd-teal);
-  color: var(--pd-teal);
+  box-shadow: inset 0 0 0 1px var(--primary);
+  color: var(--primary);
 }
 .pd-cal-day:disabled {
   color: var(--muted);
@@ -345,7 +351,7 @@
   outline: none;
 }
 .pd-cal-day:focus-visible span {
-  outline: 3px solid var(--brand);
+  outline: 3px solid var(--focus);
   outline-offset: 1px;
 }
 .pd-cal-side {
@@ -413,7 +419,7 @@
   min-width: 0;
 }
 .pd-widget[data-drag-over="true"] {
-  outline: 2px solid var(--pd-teal);
+  outline: 2px solid var(--focus);
   outline-offset: 3px;
   border-radius: 14px;
 }
@@ -462,7 +468,7 @@
   background: var(--bg);
 }
 .pd-panel-tool:focus-visible {
-  outline: 3px solid var(--brand);
+  outline: 3px solid var(--focus);
   outline-offset: 1px;
 }
 .pd-panel-tool:disabled {
@@ -496,7 +502,7 @@
   color: var(--text);
 }
 .pd-panel-resize-handle:focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
   border-radius: 4px;
 }
@@ -534,7 +540,7 @@
   border-radius: 8px;
   padding: 9px 12px;
   font-size: 12px;
-  box-shadow: 0 6px 20px #12394b18;
+  box-shadow: 0 6px 20px #0d530e18;
 }
 .pd-tip b {
   display: block;
@@ -556,7 +562,7 @@
   align-items: center;
 }
 .pd-table th button:focus-visible {
-  outline: 3px solid var(--brand);
+  outline: 3px solid var(--focus);
 }
 .pd-table td.r,
 .pd-table th.r {
@@ -603,10 +609,10 @@
   max-height: 90dvh;
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 30px 80px #0b1a2040;
+  box-shadow: 0 30px 80px #10220e40;
 }
 .pd-dialog::backdrop {
-  background: #0e211580;
+  background: #10220e80;
 }
 .pd-dialog-h {
   display: flex;

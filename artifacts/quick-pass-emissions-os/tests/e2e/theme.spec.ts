@@ -27,6 +27,57 @@ test("workspace pages remain usable in light, dark, tablet and phone layouts", a
   if (await page.locator("html").evaluate((html) => html.classList.contains("dark")))
     await toggle.click();
   await expect(page.locator("html")).toHaveClass(/light/);
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(251, 245, 221)");
+  await expect(page.locator(".sidebar")).toHaveCSS("background-color", "rgb(231, 225, 177)");
+  await expect(page.locator("main#main h1").first()).toHaveCSS("color", "rgb(13, 83, 14)");
+  await expect(page.locator(".nav-link.active")).toHaveCSS("background-color", "rgb(48, 109, 41)");
+  await expect(page.locator(".nav-link.active")).toHaveCSS("color", "rgb(251, 245, 221)");
+  // Check the browser's resolved theme colors, including readable dark-mode variants.
+  for (const dark of [false, true]) {
+    if (dark) await toggle.click();
+    const contrast = await page.evaluate(() => {
+      const style = getComputedStyle(document.documentElement);
+      const luminance = (variable: string) => {
+        const hex = style.getPropertyValue(variable).trim().slice(1);
+        return [0.2126, 0.7152, 0.0722].reduce((sum, weight, index) => {
+          const channel = parseInt(hex.slice(index * 2, index * 2 + 2), 16) / 255;
+          return (
+            sum +
+            weight * (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
+          );
+        }, 0);
+      };
+      return [
+        ["--text", "--bg", 4.5],
+        ["--muted", "--surface", 4.5],
+        ["--muted", "--soft", 4.5],
+        ["--nav-text", "--nav-bg", 4.5],
+        ["--nav-muted", "--nav-bg", 4.5],
+        ["--nav-active-text", "--nav-active", 4.5],
+        ["--on-action", "--action", 4.5],
+        ["--chart-green", "--surface", 3],
+        ["--chart-neutral", "--surface", 3],
+        ["--focus", "--surface", 3],
+        ["--input-line", "--surface", 3],
+      ].map(([foreground, background, minimum]) => {
+        const values = [luminance(String(foreground)), luminance(String(background))].sort(
+          (a, b) => a - b,
+        );
+        return {
+          foreground,
+          background,
+          minimum: Number(minimum),
+          ratio: (values[1] + 0.05) / (values[0] + 0.05),
+        };
+      });
+    });
+    for (const pair of contrast)
+      expect(
+        pair.ratio,
+        `${dark ? "dark" : "light"} ${pair.foreground} on ${pair.background}`,
+      ).toBeGreaterThanOrEqual(pair.minimum);
+  }
+  await toggle.click();
   const links = await page
     .getByRole("navigation", { name: "Main navigation", exact: true })
     .locator("a[href]")
@@ -44,6 +95,11 @@ test("workspace pages remain usable in light, dark, tablet and phone layouts", a
     await expect(
       page.locator('nav[aria-label="Main navigation"] [aria-current="page"]'),
     ).toHaveCount(1);
+    if (href === "/performance") {
+      const selected = page.locator('.pd-seg button[aria-pressed="true"]').first();
+      await expect(selected).toHaveCSS("background-color", "rgb(48, 109, 41)");
+      await expect(selected).toHaveCSS("color", "rgb(251, 245, 221)");
+    }
     for (const [name, width, height, dark] of [
       ["desktop", 1440, 1000, false],
       ["tablet", 768, 1024, false],

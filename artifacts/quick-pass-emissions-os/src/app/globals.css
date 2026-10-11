@@ -1,51 +1,62 @@
 @import "tailwindcss";
 @custom-variant dark (&:is(.dark *));
 :root {
-  --brand: #218845;
-  /* Slightly darker than the brand for accessible white button labels. */
-  --action: #208744;
-  --action-hover: #196c36;
-  --bg: #f6f7f5;
-  --surface: #ffffff;
-  --text: #17261c;
-  --muted: #647068;
-  --line: #e0e6e0;
-  --primary: #1c753b;
-  --soft: #edf5ee;
-  --input-line: #b8c4ba;
+  --brand: #306d29;
+  --action: #306d29;
+  --action-hover: #0d530e;
+  --on-action: #fbf5dd;
+  --focus: #306d29;
+  --bg: #fbf5dd;
+  --surface: #fbf5dd;
+  --text: #0d530e;
+  --muted: #52613c;
+  --line: #d6d0a1;
+  --primary: #306d29;
+  --soft: #e7e1b1;
+  --input-line: #879064;
   --warning: #835b16;
   --warning-bg: #fbf3e2;
   --warning-line: #e8d7ae;
   --danger: #ab3c35;
   --danger-bg: #fbedeb;
   --danger-line: #eac9c5;
-  --nav-bg: #102a1a;
-  --nav-line: #2d4836;
-  --nav-muted: #a7baac;
-  --nav-active: #244d31;
-  --nav-accent: #a9e0b7;
-  --chart-green: #218845;
-  --chart-neutral: #718578;
-  --shadow: 0 2px 8px #17261c04;
+  --nav-bg: #e7e1b1;
+  --nav-text: #0d530e;
+  --nav-line: #c0c28d;
+  --nav-muted: #52613c;
+  --nav-hover: #fbf5dd;
+  --nav-active: #306d29;
+  --nav-active-text: #fbf5dd;
+  --nav-accent: #0d530e;
+  --chart-green: #306d29;
+  --chart-neutral: #737a41;
+  --shadow: 0 2px 8px #0d530e0a;
   color-scheme: light;
 }
 .dark {
-  --bg: #101813;
-  --surface: #19241d;
-  --text: #e8efe9;
-  --muted: #a4b4a8;
-  --line: #334438;
-  --primary: #95d5a6;
-  --soft: #243e2c;
-  --input-line: #627969;
+  --bg: #10220e;
+  --surface: #172f13;
+  --text: #fbf5dd;
+  --muted: #c1c5a2;
+  --line: #3e5930;
+  --primary: #a7cb8b;
+  --soft: #233e1c;
+  --input-line: #8a9b6a;
+  --focus: #e7e1b1;
+  --nav-bg: #172f13;
+  --nav-text: #fbf5dd;
+  --nav-line: #456237;
+  --nav-muted: #c1c5a2;
+  --nav-hover: #254a1f;
+  --nav-accent: #e7e1b1;
   --warning: #edca80;
   --warning-bg: #3c311e;
   --warning-line: #695530;
   --danger: #f2aaa3;
   --danger-bg: #402823;
   --danger-line: #70433d;
-  --chart-green: #78c28d;
-  --chart-neutral: #a4b4a8;
+  --chart-green: #a7cb8b;
+  --chart-neutral: #e7e1b1;
   --shadow: none;
   color-scheme: dark;
 }
@@ -93,7 +104,7 @@ button:disabled {
   opacity: 0.6;
 }
 :focus-visible {
-  outline: 3px solid var(--brand);
+  outline: 3px solid var(--focus);
   outline-offset: 3px;
 }
 h1,
@@ -156,7 +167,7 @@ svg {
   display: flex;
   gap: 12px;
   align-items: center;
-  color: #f8fffc;
+  color: var(--nav-text);
   font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.4px;
@@ -174,11 +185,11 @@ svg {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  border: 1px solid #678b70;
+  border: 1px solid var(--nav-line);
   background: transparent;
   display: grid;
   place-items: center;
-  color: #f8fffc;
+  color: var(--nav-text);
 }
 .workspace {
   border: 1px solid var(--nav-line);
@@ -186,7 +197,7 @@ svg {
   padding: 14px 11px;
   margin-top: 34px;
   font-size: 11px;
-  color: #e4edef;
+  color: var(--nav-text);
 }
 .workspace small {
   display: block;
@@ -198,7 +209,7 @@ svg {
   display: inline-block;
   width: 6px;
   height: 6px;
-  background: #a9e0b7;
+  background: var(--nav-accent);
   border-radius: 100%;
   margin-right: 8px;
 }
@@ -235,16 +246,16 @@ svg {
     background 0.15s,
     color 0.15s;
   font-size: 13px;
-  color: #c6d4c9;
+  color: var(--nav-text);
 }
 .nav-link:hover {
-  background: #1c3b27;
-  color: white;
+  background: var(--nav-hover);
+  color: var(--nav-text);
 }
 .nav-link.active {
   background: var(--nav-active);
-  color: var(--nav-accent);
-  box-shadow: inset 3px 0 var(--nav-accent);
+  color: var(--nav-active-text);
+  box-shadow: inset 3px 0 var(--nav-active-text);
 }
 .sidebar-bottom {
   margin-top: auto;
@@ -263,7 +274,7 @@ svg {
 }
 .phase-note strong {
   display: block;
-  color: #d7e9e5;
+  color: var(--nav-text);
 }
 .phase-note p {
   font-size: 11px;
@@ -429,7 +440,7 @@ main#main {
 }
 .button-primary {
   background: var(--action);
-  color: white;
+  color: var(--on-action);
   border-color: var(--action);
   box-shadow: 0 2px 3px #00000008;
 }
@@ -443,7 +454,7 @@ main#main {
 }
 .button-ghost {
   background: transparent;
-  color: var(--muted);
+  color: var(--text);
   padding: 8px;
   min-height: 36px;
 }
@@ -840,21 +851,24 @@ td small {
 }
 .tabs {
   display: flex;
-  gap: 24px;
+  gap: 4px;
+  background: var(--soft);
+  border-radius: 8px 8px 0 0;
   border-bottom: 1px solid var(--line);
   margin-bottom: 24px;
   overflow: auto;
 }
 .tabs a {
-  padding: 12px 0;
+  padding: 12px 14px;
+  border-radius: 8px 8px 0 0;
   font-size: 12px;
   text-transform: capitalize;
   white-space: nowrap;
   color: var(--muted);
 }
 .tabs a.selected {
-  color: var(--primary);
-  border-bottom: 2px solid var(--primary);
+  background: var(--action);
+  color: var(--on-action);
   font-weight: 600;
 }
 .filter-form {
@@ -1096,7 +1110,7 @@ summary {
 }
 .login-brand {
   background: var(--nav-bg);
-  color: #dfefec;
+  color: var(--nav-text);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1104,7 +1118,7 @@ summary {
   min-height: 100vh;
 }
 .login-brand .eyebrow {
-  color: #75ccac;
+  color: var(--nav-accent);
   font-size: 10px;
 }
 .login-brand h1 {
@@ -1115,18 +1129,18 @@ summary {
 }
 .login-brand em {
   font-style: normal;
-  color: #79d2b0;
+  color: var(--nav-accent);
 }
 .login-brand h1 + p {
   font-size: 13px;
   line-height: 1.8;
-  color: #9ebebf;
+  color: var(--nav-muted);
   margin-top: 28px;
 }
 .login-brand > p {
   font-size: 9px;
   letter-spacing: 2px;
-  color: #82a9ad;
+  color: var(--nav-muted);
 }
 .login-panel {
   display: flex;
@@ -1652,7 +1666,7 @@ details > summary {
   width: 100%;
   height: min(78dvh, 900px);
   border: 0;
-  background: #fbfaf7;
+  background: var(--bg);
 }
 .portal-frame-wrap.expanded .portal-frame {
   flex: 1;
@@ -2127,7 +2141,7 @@ textarea::placeholder {
 input:not([type="checkbox"]):focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  border-color: var(--brand);
+  border-color: var(--focus);
   outline-width: 2px;
   outline-offset: 2px;
 }

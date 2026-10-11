@@ -1,3 +1,15 @@
+# Cream, sand and forest theme — October 11, 2026
+
+Applied the owner palette throughout the workspace and native sign-in: `#FBF5DD` backgrounds/light panels, `#E7E1B1` sidebar/tab surfaces, `#306D29` buttons/active tabs/chart accents, and `#0D530E` headings/strong text. Dark mode uses coordinated readable variants. Performance summary text, calendar selections, segmented tabs, panel focus and drag indicators follow the theme. Semantic warning/error colors remain distinct.
+
+Verification includes incoming GitHub main through `f71a96a`:
+
+- **432 unit/database tests passed with no skips in 42 files** against a runner-owned disposable database. Upgrade checks retained approved payroll, invoice and signed-reversal sentinels.
+- **Two focused browser workflows passed with no skips.** The workspace check covers all **21 current main navigation destinations** on 1440px desktop light/dark, 768px tablet light and 390px phone light/dark. It verifies resolved palette colors, text contrast of at least 4.5:1, chart/focus/input contrast of at least 3:1, theme persistence, keyboard forms, desktop collapse/expand, mobile drawer focus/Escape and no document overflow/browser exceptions. The login check covers desktop/tablet/phone, palette, keyboard/autofill/errors, dark-preference isolation and actual native management sign-in. Runner preflight also passed native login and unrelated-origin rejection. Synthetic login, Dashboard, payroll, Performance and finance previews were visually reviewed.
+- TypeScript, ESLint, changed-file Prettier, whitespace checks and the standard production build passed. The build used an unreachable build-only database URL. The existing backup filesystem tracing warning remains; **56 trace manifests contained no private verification/environment references**.
+- Repository-wide formatting reports **16 untouched files**, including the previous eight and eight incoming source/test files. These formatting differences were not folded into the palette update. The broader business browser suite was not rerun; focused theme/login results do not supersede the historical combined-suite failures below.
+- Test databases, private browser state and browser build caches were removed. This change contains no dependencies, migrations, business-data mutations or deployment.
+
 # App-wide Quick Pass Emissions theme — October 11, 2026
 
 Extended the professional login theme throughout the application using the `#218845` brand, system typography, quiet white/off-white surfaces, a deep green sidebar, consistent rounded controls and matching Performance charts. Light/dark themes share semantic warning/error colors. Payroll filters now use visible green actions and a compact responsive row. The theme switch exposes its pressed state and uses a sun/moon icon. Domain calculations, authorization and saved-data storage are unchanged.

@@ -1,4 +1,4 @@
-# Quick Pass Business OS
+# Quick Pass Emissions
 
 > Saved records live in persistent PostgreSQL, outside build files. Normal startup applies safe migrations and checks the storage connection. Read [DATA_PERSISTENCE.md](DATA_PERSISTENCE.md) before entering live records, changing databases or restoring backups.
 
@@ -8,6 +8,8 @@
 > of this app; do not run root `npm ci` in the pnpm workspace.
 
 A PostgreSQL-backed Phases 1–5 business application for Quick Pass Emissions, Tag Renewal & Carwash. Next.js App Router, TypeScript, React, Tailwind, a shadcn-style Button primitive, Lucide, Prisma, Better Auth, and Zod. No real business records or financial balances are included.
+
+**Sign-in:** a professional management login built around the Quick Pass Emissions brand and `#218845`, with responsive desktop/tablet/phone layouts, accessible form controls and native sign-in. Run `E2E_LOGIN_ONLY=1 npm run test:e2e` for its isolated browser workflow.
 
 **Dashboard:** today’s Eastern-date snapshot separates imported tests and reviewed commission eligibility, dealer/rental receipts, dealer billing, retail estimates, other recorded estimates and verified manual revenue. Employee gross separates approved base and commissions; missing daily inputs remain incomplete. The main action list contains only current low stock, certifications due soon, and overdue unpaid dealer/rental balances, ordered by urgency with 15 items per page. Quick actions open certificate ordering, Service & Support, payroll and owner Performance. Dashboard visits are read-only; they do not generate jobs, approve sources or change balances.
 
@@ -129,7 +131,7 @@ E2E_DIRECT=1 npm run test:e2e
 
 In Replit, omit `E2E_DIRECT=1` to use the configured preview port; that port must be free. `DATABASE_URL` supplies the connection to the PostgreSQL server, and the runners generate their own database name, signing secret and private sessions. `DEMO_PASSWORD` and a pre-seeded app are unnecessary. `E2E_CHROMIUM_PATH` optionally selects an installed browser.
 
-The default browser command requires all 17 checks across navigation, personnel/invitations, tasks, payroll, certificates, maintenance, chemicals, rentals, dealer billing, finance and Phase 5 automation. Phase 5 covers configuration, summary delivery and immutability, reminders, CSV reports, failed-job retry and role restrictions. A missing workflow file, skipped test, failure or retry fails the completion guard. Targeted support/import/certificate/station modes remain available and report only their selected coverage. Browser traces, screenshots and video are disabled; temporary sessions and reports are private and removed on completion.
+The default browser command requires all 18 checks across navigation, personnel/invitations, tasks, payroll, certificates, maintenance, chemicals, rentals, dealer billing, finance and Phase 5 automation. Phase 5 covers configuration, summary delivery and immutability, reminders, CSV reports, failed-job retry and role restrictions. A missing workflow file, skipped test, failure or retry fails the completion guard. Targeted support/import/certificate/station modes remain available and report only their selected coverage. Browser traces, screenshots and video are disabled; temporary sessions and reports are private and removed on completion.
 
 ## Scheduling
 

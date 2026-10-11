@@ -142,7 +142,7 @@ export function Shell({
 
   // Page title from the route registry.
   useEffect(() => {
-    if (route) document.title = `${route.title} · Quick Pass Business OS`;
+    if (route) document.title = `${route.title} · Quick Pass Emissions`;
   }, [route]);
 
   const drawerOpen = isMobile && mobileOpen;
@@ -197,12 +197,12 @@ export function Shell({
               <CheckCheck size={26} />
             </span>
             <span className="nav-label">
-              QUICK PASS<small>BUSINESS OS</small>
+              QUICK PASS<small>EMISSIONS</small>
             </span>
           </Link>
           <div className="workspace nav-label">
             <span className="workspace-dot" />
-            Quick Pass operations<small>Emissions · Tag renewal · Carwash</small>
+            Quick Pass Emissions<small>Emissions · Tag renewal · Carwash</small>
           </div>
           <nav aria-label="Main navigation" className="primary-nav">
             {sections.map((section) => (
@@ -329,7 +329,7 @@ export function Shell({
             {children}
           </main>
           <footer className="page-footer">
-            Quick Pass Business OS <span>Phases 1–5 · Business workspace</span>
+            Quick Pass Emissions <span>Phases 1–5 · Business workspace</span>
           </footer>
         </div>
       </div>

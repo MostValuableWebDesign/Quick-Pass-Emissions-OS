@@ -21,6 +21,7 @@ describe("Browser isolation gates", () => {
     const suite = browserSuite({});
     expect(Object.keys(suite)).toEqual(
       expect.arrayContaining([
+        "login.spec.ts",
         "operations.spec.ts",
         "phase2.spec.ts",
         "phase3.spec.ts",
@@ -28,7 +29,7 @@ describe("Browser isolation gates", () => {
         "phase5.spec.ts",
       ]),
     );
-    expect(Object.values(suite).reduce((sum, n) => sum + n, 0)).toBe(17);
+    expect(Object.values(suite).reduce((sum, n) => sum + n, 0)).toBe(18);
     const suites = Object.entries(suite).map(([file, count]) => ({
       file,
       specs: Array.from({ length: count }, () => ({ tests: [{}] })),

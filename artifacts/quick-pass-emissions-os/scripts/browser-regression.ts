@@ -188,7 +188,9 @@ async function main() {
     await certificatePortalBrowserFixture(db, user.id);
   }
   const workflowUsers =
-    "operations.spec.ts" in suite ? await workflowBrowserFixtures(db, password) : [];
+    "operations.spec.ts" in suite || "login.spec.ts" in suite
+      ? await workflowBrowserFixtures(db, password)
+      : [];
   const workflowAccounts: Record<string, string> = { "owner@example.test": email };
   if (workflowUsers.length) {
     Object.assign(workflowAccounts, {
@@ -446,19 +448,21 @@ async function main() {
   );
   assertSuiteReport(report, suite);
   console.log(
-    process.env.E2E_PERFORMANCE_ONLY === "1"
-      ? "Passed: 2 Performance checks covering trends, employee evidence, pointer/keyboard panel layout, browser persistence, mobile and role exclusions; no skips."
-      : process.env.E2E_SUPPORT_ONLY === "1"
-        ? "Passed: 1 complete Service & Support desktop/mobile flow with directory management, contact history, management provider association and private role exclusions; no skips."
-        : process.env.E2E_CERTIFICATES_ONLY === "1"
-          ? "Passed: 4 manual certificate navigation role checks including intercepted new tabs/reopening, same-tab records, desktop/mobile, keyboard and unchanged purchase/stock/alert snapshots; no skips."
-          : process.env.E2E_IMPORT_ONLY === "1"
-            ? process.env.E2E_IMPORT_REMAINDER === "1"
-              ? "Passed: 1 targeted remaining import UI flow including supplier verification/dropdowns, saved staff changes, mobile repeat conflicts and role restrictions; no skips."
-              : "Passed: 1 complete owner import desktop/mobile journey including backup, reloads, unknown configuration, verification gates, staff-edit conflicts and role restrictions; no skips."
-            : process.env.E2E_STATION_ONLY === "1"
-              ? "Passed: 1 targeted station lifecycle check; no skips."
-              : `Passed: ${Object.values(suite).reduce((sum, n) => sum + n, 0)} browser checks across navigation, operations, payroll, certificates, maintenance, rentals, finance and Phase 5 automation${process.env.E2E_STATION_HISTORY === "1" ? ", plus station history" : ""}; no skips.`,
+    process.env.E2E_LOGIN_ONLY === "1"
+      ? "Passed: 1 login workflow covering branding, desktop/tablet/mobile layout, keyboard access, error states and native management sign-in; no skips."
+      : process.env.E2E_PERFORMANCE_ONLY === "1"
+        ? "Passed: 2 Performance checks covering trends, employee evidence, pointer/keyboard panel layout, browser persistence, mobile and role exclusions; no skips."
+        : process.env.E2E_SUPPORT_ONLY === "1"
+          ? "Passed: 1 complete Service & Support desktop/mobile flow with directory management, contact history, management provider association and private role exclusions; no skips."
+          : process.env.E2E_CERTIFICATES_ONLY === "1"
+            ? "Passed: 4 manual certificate navigation role checks including intercepted new tabs/reopening, same-tab records, desktop/mobile, keyboard and unchanged purchase/stock/alert snapshots; no skips."
+            : process.env.E2E_IMPORT_ONLY === "1"
+              ? process.env.E2E_IMPORT_REMAINDER === "1"
+                ? "Passed: 1 targeted remaining import UI flow including supplier verification/dropdowns, saved staff changes, mobile repeat conflicts and role restrictions; no skips."
+                : "Passed: 1 complete owner import desktop/mobile journey including backup, reloads, unknown configuration, verification gates, staff-edit conflicts and role restrictions; no skips."
+              : process.env.E2E_STATION_ONLY === "1"
+                ? "Passed: 1 targeted station lifecycle check; no skips."
+                : `Passed: ${Object.values(suite).reduce((sum, n) => sum + n, 0)} browser checks across navigation, operations, payroll, certificates, maintenance, rentals, finance and Phase 5 automation${process.env.E2E_STATION_HISTORY === "1" ? ", plus station history" : ""}; no skips.`,
   );
   if (process.env.E2E_MANUAL_TEST === "1") {
     console.log("Private browser checks completed; preview remains available for visual review.");

@@ -111,6 +111,7 @@ describe("Business dashboard presentation", () => {
     for (const text of [
       "Tests performed today",
       "21",
+      "Paid cars",
       "Revenue today",
       "$420.00",
       "Employee gross pay so far",
@@ -130,6 +131,10 @@ describe("Business dashboard presentation", () => {
       expect(html).toContain(text);
     expect(html).not.toContain("Today’s responsibilities");
     expect(html).not.toContain("Recent activity");
+    expect(html).not.toContain("same daily count as the Performance report.");
+    expect(html).not.toContain("Same counted tests and free-retest rules as the Performance report.");
+    expect(html).not.toContain("Performance pay-plan estimate; approved payroll is tracked separately");
+    expect(html).not.toContain("Portal balance");
     expect(html).toContain('data-testid="button-dashboard-refresh"');
   });
   it("shows the last-updated timestamp on every dashboard panel", async () => {

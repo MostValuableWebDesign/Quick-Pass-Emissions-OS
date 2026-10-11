@@ -127,7 +127,7 @@ export default async function Dashboard({
                 ? "Unavailable"
                 : performanceSummary.cars.toLocaleString("en-US")}
             </strong>
-            <p>Paid cars · same daily count as the Performance report.</p>
+            <p>Paid cars</p>
             <small>
               Free 30-day retests excluded · {performanceSummary?.freeRetests ?? "—"} today.
             </small>
@@ -146,9 +146,6 @@ export default async function Dashboard({
                 : money(performanceSummary.revenueCents)}
             </strong>
             <p>Estimated at $20 per paid Pass/Fail test.</p>
-            <small>
-              Same counted tests and free-retest rules as the Performance report.
-            </small>
             <DashboardLastUpdated at={dashboardUpdatedAt} />
           </article>
           <article className="stat">
@@ -178,9 +175,6 @@ export default async function Dashboard({
                 </dd>
               </div>
             </dl>
-            <p className="muted">
-              Performance pay-plan estimate; approved payroll is tracked separately.
-            </p>
             {!performanceData && (
               <p className="muted">
                 {user.role === "OWNER"
@@ -211,12 +205,11 @@ export default async function Dashboard({
               </span>
             </div>
             <strong>{certificateStatus?.balance?.toLocaleString("en-US") ?? "Unavailable"}</strong>
-            <p>
-              Portal balance
-              {certificateStatus
-                ? ` · Station ${certificateStatus.station} · Analyzer ${certificateStatus.analyzer}`
-                : ""}
-            </p>
+            {certificateStatus && (
+              <p>
+                Station {certificateStatus.station} · Analyzer {certificateStatus.analyzer}
+              </p>
+            )}
             {certificateStatus?.error && certificateStatus.balance !== null && (
               <small className="dashboard-certificate-stale">
                 Last refresh failed; showing the saved balance.

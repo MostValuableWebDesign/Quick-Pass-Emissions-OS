@@ -1,5 +1,4 @@
 .pd {
-  --pd-ink: var(--nav-bg);
   --pd-teal: var(--action);
   --pd-mint: var(--chart-green);
   --pd-amber: var(--warning);
@@ -81,20 +80,21 @@
 .pd-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr);
-  background: var(--pd-ink);
-  color: var(--nav-text);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
   border-radius: 14px;
   overflow: hidden;
 }
 .pd-today {
   padding: 24px 26px;
-  border-right: 1px solid var(--nav-line);
+  border-right: 1px solid var(--line);
   position: relative;
 }
 .pd-today .lab {
   font-size: 10px;
   letter-spacing: 1.7px;
-  color: var(--nav-text);
+  color: var(--text);
   font-weight: 700;
 }
 .pd-today strong {
@@ -103,10 +103,10 @@
   line-height: 1;
   letter-spacing: -3px;
   margin: 14px 0 10px;
-  color: var(--nav-text);
+  color: var(--text);
 }
 .pd-today small {
-  color: var(--nav-muted);
+  color: var(--muted);
   font-size: 11px;
 }
 .pd-split {
@@ -114,7 +114,7 @@
   height: 6px;
   border-radius: 4px;
   overflow: hidden;
-  background: var(--nav-line);
+  background: var(--line);
   margin: 14px 0 10px;
 }
 .pd-split span {
@@ -132,7 +132,7 @@
   display: flex;
   gap: 14px;
   font-size: 11px;
-  color: var(--nav-muted);
+  color: var(--muted);
   flex-wrap: wrap;
 }
 .pd-legend i {
@@ -146,13 +146,13 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1px;
-  background: var(--nav-line);
+  background: var(--line);
 }
 .pd-hero .pd-kpis {
   gap: 1px;
 }
 .pd-kpi {
-  background: var(--pd-ink);
+  background: var(--surface);
   padding: 24px 22px;
   display: flex;
   flex-direction: column;
@@ -160,21 +160,21 @@
 }
 .pd-kpi .lab {
   font-size: 11px;
-  color: var(--nav-muted);
+  color: var(--muted);
   font-weight: 600;
 }
 .pd-kpi strong {
   font-size: 30px;
   letter-spacing: -1px;
-  color: var(--nav-text);
+  color: var(--text);
   line-height: 1.15;
 }
 .pd-kpi small {
   font-size: 11px;
-  color: var(--nav-muted);
+  color: var(--muted);
 }
 .pd-kpi.accent strong {
-  color: var(--nav-text);
+  color: var(--text);
 }
 .pd > .pd-kpis {
   background: none;

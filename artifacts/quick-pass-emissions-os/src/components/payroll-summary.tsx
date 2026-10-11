@@ -20,7 +20,7 @@ export function PayrollSummary({
       <div className="card-heading">
         <h2>Employee pay overview</h2>
       </div>
-      <form action="/payroll" method="get" className="card-body">
+      <form action="/payroll" method="get" className="card-body filter-form">
         <Field label="Pay overview date">
           <input name="date" type="date" defaultValue={data.filter.date} required />
         </Field>
@@ -35,7 +35,7 @@ export function PayrollSummary({
             )}
           </select>
         </Field>
-        <button className="button" type="submit">
+        <button className="button button-primary" type="submit">
           View pay week
         </button>
       </form>

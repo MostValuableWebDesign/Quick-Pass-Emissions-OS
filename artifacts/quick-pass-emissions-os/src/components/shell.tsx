@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   Moon,
+  Sun,
   LogOut,
   ShieldCheck,
   CircleDot,
@@ -197,7 +198,7 @@ export function Shell({
               <CheckCheck size={26} />
             </span>
             <span className="nav-label">
-              QUICK PASS<small>EMISSIONS</small>
+              Quick Pass<small>EMISSIONS</small>
             </span>
           </Link>
           <div className="workspace nav-label">
@@ -290,9 +291,10 @@ export function Shell({
               <Button
                 variant="ghost"
                 aria-label="Toggle theme"
+                aria-pressed={resolvedTheme === "dark"}
                 onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               >
-                <Moon size={18} />
+                {resolvedTheme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
               </Button>
               <span className="avatar">
                 {name
@@ -329,7 +331,7 @@ export function Shell({
             {children}
           </main>
           <footer className="page-footer">
-            Quick Pass Emissions <span>Phases 1–5 · Business workspace</span>
+            Quick Pass Emissions <span>Management workspace</span>
           </footer>
         </div>
       </div>

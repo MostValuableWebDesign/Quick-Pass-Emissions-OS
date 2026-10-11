@@ -1,4 +1,5 @@
 export function browserSuite(env) {
+  if (env.E2E_THEME_ONLY === "1") return { "theme.spec.ts": 1 };
   if (env.E2E_LOGIN_ONLY === "1") return { "login.spec.ts": 1 };
   if (env.E2E_PERFORMANCE_PANELS === "1")
     return {
@@ -14,6 +15,7 @@ export function browserSuite(env) {
   if (env.E2E_STATION_ONLY === "1") return { "station.spec.ts": 1 };
   return {
     "login.spec.ts": 1,
+    "theme.spec.ts": 1,
     "regression.spec.ts": 3,
     "navigation.spec.ts": 6,
     "operations.spec.ts": 3,

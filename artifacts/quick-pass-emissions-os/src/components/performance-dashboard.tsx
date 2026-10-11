@@ -165,26 +165,28 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
           {s.cars !== null ? (
             <>
               <div className="pd-split" aria-hidden>
-                <span style={{ width: pct(s.passed), background: "#47c99d" }} />
-                <span style={{ width: pct(s.failed), background: "#e5a24d" }} />
-                <span style={{ width: pct(s.aborted + s.other), background: "#6f8b94" }} />
+                <span style={{ width: pct(s.passed), background: "var(--chart-green)" }} />
+                <span style={{ width: pct(s.failed), background: "var(--pd-amber)" }} />
+                <span
+                  style={{ width: pct(s.aborted + s.other), background: "var(--chart-neutral)" }}
+                />
               </div>
               <div className="pd-legend pd-num">
                 <span>
-                  <i style={{ background: "#47c99d" }} />
+                  <i style={{ background: "var(--chart-green)" }} />
                   Pass {s.passed}
                 </span>
                 <span>
-                  <i style={{ background: "#e5a24d" }} />
+                  <i style={{ background: "var(--pd-amber)" }} />
                   Fail {s.failed}
                 </span>
                 <span>
-                  <i style={{ background: "#6f8b94" }} />
+                  <i style={{ background: "var(--chart-neutral)" }} />
                   Abort {s.aborted}
                 </span>
                 {s.other > 0 && (
                   <span>
-                    <i style={{ background: "#6f8b94" }} />
+                    <i style={{ background: "var(--chart-neutral)" }} />
                     Other {s.other}
                   </span>
                 )}

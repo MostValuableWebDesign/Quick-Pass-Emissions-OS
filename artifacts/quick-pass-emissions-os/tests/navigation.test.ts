@@ -37,6 +37,10 @@ describe("role-filtered navigation", () => {
       expect.arrayContaining(["/automation", "/summaries", "/overview"]),
     );
   });
+  it("omits the retired Product roadmap tab and route", () => {
+    expect(hrefs("OWNER")).not.toContain("/roadmap");
+    expect(matchRoute("/roadmap")).toBeUndefined();
+  });
   it("unknown roles get nothing and hrefs are unique", () => {
     expect(navForRole("GUEST")).toEqual([]);
     const all = NAV_SECTIONS.flatMap((s) => s.items.map((i) => i.href));

@@ -235,17 +235,6 @@ export function Shell({
               </div>
             ))}
           </nav>
-          <div className="sidebar-bottom nav-label">
-            <div className="phase-note">
-              <ShieldCheck size={21} />
-              <strong>Operations, connected.</strong>
-              <p>
-                Clear responsibilities.
-                <br />
-                Accountable execution.
-              </p>
-            </div>
-          </div>
         </aside>
         {drawerOpen && (
           <div className="nav-backdrop" aria-hidden="true" onClick={() => closeMobile(true)} />

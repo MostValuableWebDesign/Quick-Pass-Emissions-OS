@@ -12,10 +12,20 @@ test("station report → explicit identity → coverage → count replacement, w
   page,
 }) => {
   const { station: s } = await fixture();
+  await page.goto("/settings");
+  await expect(page.getByRole("heading", { name: "Business operating days" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Station settings" })).toBeVisible();
+  await expect(page.getByText(/do not change Business operating days/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Operations scheduler" })).toHaveCount(0);
+  await expect(page.getByText("Operations, connected.", { exact: true })).toHaveCount(0);
+
   await page.goto("/performance");
   await expect(page.getByRole("heading", { name: "Station performance" })).toBeVisible();
   await expect(page.getByText(/Insufficient data/, { exact: false }).first()).toBeVisible();
   await page.goto(`/performance/settings?date=${s.date}`);
+  await expect(page.getByRole("heading", { name: "Station settings" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Issued By mappings" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Outcome rules & prices" })).toHaveCount(0);
   const importForm = page.locator("form").filter({ has: page.locator('input[name="report"]') });
   if (process.env.E2E_STATION_ONLY !== "1") {
     await importForm.locator('input[name="report"]').setInputFiles(s.source);

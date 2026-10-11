@@ -98,7 +98,6 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/automation", label: "Automation", icon: "automation", roles: OWNER_ONLY },
       { href: "/settings", label: "Settings & audit", icon: "settings", roles: MANAGERS },
       { href: "/account/password", label: "Account & password", icon: "shield", roles: ALL },
-      { href: "/roadmap", label: "Product roadmap", icon: "map", roles: ALL },
     ],
   },
 ];

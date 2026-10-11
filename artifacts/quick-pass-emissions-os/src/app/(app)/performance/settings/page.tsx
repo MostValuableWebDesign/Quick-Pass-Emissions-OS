@@ -2,21 +2,16 @@ import Link from "next/link";
 import { requireRole } from "@/lib/require-role";
 import { addDays, businessDate } from "@/lib/time";
 import { performance } from "@/modules/station/performance";
-import type { Hours } from "@/modules/station/projections";
 import {
   attestStationAction,
-  mappingStationAction,
   reconcileStationAction,
-  ruleStationAction,
-  settingsStationAction,
 } from "@/app/station-actions";
 import { ActionForm } from "@/components/action-form";
 import { PageHeader, Empty } from "@/components/shared";
-import { Badge, Boundary, fmtInstant, usd } from "@/components/phase5";
+import { Badge, Boundary, fmtInstant } from "@/components/phase5";
 import { Section } from "@/components/station-ui";
 import { StationImportForm } from "@/components/station-import-form";
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default async function StationSettings({
@@ -31,8 +26,6 @@ export default async function StationSettings({
   const date = q.date && DATE.test(q.date) && q.date < today ? q.date : yesterday;
   const data = await performance(user.id, { start: today, end: today });
   const day = date === today ? data : await performance(user.id, { start: date, end: date });
-  const latest = [...data.settings].sort((a, b) => b.revision - a.revision)[0] ?? null;
-  const hours = (latest?.hours ?? []) as Hours;
   const employees = data.employeeOptions;
   const nameOf = (id: string) => employees.find((e) => e.id === id)?.user.name ?? id;
   const durations = data.imports.filter((i) => i.status === "IMPORTED").map((i) => i.elapsedMs);
@@ -42,7 +35,7 @@ export default async function StationSettings({
       <PageHeader
         eyebrow="OWNER · STATION"
         title="Performance setup"
-        description="Manual report imports, coverage attestation, effective-dated settings, mappings, prices and payroll reconciliation."
+        description="Import station reports, review coverage and reconcile daily counts."
       >
         <Link className="button button-outline" href="/performance">
           Back to performance
@@ -164,228 +157,6 @@ export default async function StationSettings({
           )}
         </div>
       </Section>
-
-      <Section
-        title="Station settings"
-        note={
-          latest
-            ? `Revision ${latest.revision}, effective ${latest.effectiveDate}. New revisions must have a later effective date.`
-            : "Not configured. This Week and projections are unavailable."
-        }
-      >
-        <div className="card-body">
-          {data.settings.length > 0 && (
-            <p className="muted">
-              History:{" "}
-              {data.settings
-                .map(
-                  (s) =>
-                    `r${s.revision} from ${s.effectiveDate} (week starts ${DAYS[s.weekStart - 1]}${s.sourceTimezoneConfirmed ? ", NY dates confirmed" : ", timezone unconfirmed"})`,
-                )
-                .join("; ")}
-            </p>
-          )}
-          <ActionForm action={settingsStationAction} submit="Save new revision">
-            <input type="hidden" name="revision" value={latest?.revision ?? 0} />
-            <label className="field">
-              <span>Effective date</span>
-              <input type="date" name="effectiveDate" required />
-            </label>
-            <label className="field">
-              <span>Week starts on</span>
-              <select name="weekStart" defaultValue={latest?.weekStart ?? ""} required>
-                <option value="" disabled>
-                  Choose
-                </option>
-                {DAYS.map((d, i) => (
-                  <option key={d} value={i + 1}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <fieldset className="wide">
-              <legend>Operating hours (split overnight hours by date)</legend>
-              {DAYS.map((d, i) => {
-                const n = i + 1;
-                const h = hours.find((x) => x.weekday === n);
-                return (
-                  <div key={d} className="checks" style={{ alignItems: "center", marginBottom: 8 }}>
-                    <label style={{ width: 80 }}>
-                      <input
-                        type="checkbox"
-                        name={`openDay${n}`}
-                        value="true"
-                        defaultChecked={!!h}
-                      />{" "}
-                      {d}
-                    </label>
-                    <label>
-                      Open{" "}
-                      <input
-                        type="time"
-                        name={`open${n}`}
-                        defaultValue={h?.open ?? ""}
-                        style={{ width: 130 }}
-                      />
-                    </label>
-                    <label>
-                      Close{" "}
-                      <input
-                        type="time"
-                        name={`close${n}`}
-                        defaultValue={h?.close ?? ""}
-                        style={{ width: 130 }}
-                      />
-                    </label>
-                  </div>
-                );
-              })}
-            </fieldset>
-            <label className="field">
-              <span>Observation days (7–365)</span>
-              <input
-                type="number"
-                name="observationDays"
-                min={7}
-                max={365}
-                defaultValue={latest?.observationDays ?? ""}
-                required
-              />
-            </label>
-            <label className="field">
-              <span>Minimum usable days</span>
-              <input
-                type="number"
-                name="minimumDays"
-                min={1}
-                max={365}
-                defaultValue={latest?.minimumDays ?? ""}
-                required
-              />
-            </label>
-            <label className="check wide">
-              <input
-                type="checkbox"
-                name="sourceTimezoneConfirmed"
-                value="true"
-                defaultChecked={!!latest?.sourceTimezoneConfirmed}
-              />
-              I confirm the portal&apos;s source calendar dates are America/New_York business dates.
-              Provider timezone is unverified; payroll reconciliation is blocked until confirmed.
-            </label>
-            <label className="field wide">
-              <span>Reason</span>
-              <input name="reason" required maxLength={2000} />
-            </label>
-          </ActionForm>
-          <p className="muted space-top">
-            Closures are managed in{" "}
-            <Link className="text-link" href="/settings">
-              Settings
-            </Link>
-            .{" "}
-            {data.closures.length
-              ? `Current closures: ${data.closures
-                  .map((c) => c.date)
-                  .sort()
-                  .join(", ")}`
-              : "No closures recorded."}
-          </p>
-        </div>
-      </Section>
-
-      <div className="two-columns">
-        <Section
-          title="Issued By mappings"
-          note="Exact label match. Existing records keep their attribution unless reattributed in review."
-          count={data.mappings.length}
-        >
-          <div className="card-body">
-            <ActionForm action={mappingStationAction} submit="Add mapping">
-              <label className="field">
-                <span>Exact Issued By label</span>
-                <input name="inspector" required maxLength={160} />
-              </label>
-              <label className="field">
-                <span>Employee</span>
-                <select name="employeeId" required defaultValue="">
-                  <option value="" disabled>
-                    Choose
-                  </option>
-                  {employees.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.user.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>Effective date</span>
-                <input type="date" name="effectiveDate" required />
-              </label>
-              <label className="field">
-                <span>Reason</span>
-                <input name="reason" required maxLength={2000} />
-              </label>
-            </ActionForm>
-            {data.mappings.map((m) => (
-              <div className="list-row" key={m.id}>
-                <span>
-                  &ldquo;{m.inspector}&rdquo; → {nameOf(m.employeeId)}
-                  <small>{m.reason}</small>
-                </span>
-                <span className="muted">from {m.effectiveDate}</span>
-              </div>
-            ))}
-          </div>
-        </Section>
-        <Section
-          title="Outcome rules & prices"
-          note="Estimate inputs only, integer cents."
-          count={data.rules.length}
-        >
-          <div className="card-body">
-            <ActionForm action={ruleStationAction} submit="Add rule">
-              <label className="field">
-                <span>Outcome label</span>
-                <input name="outcome" required maxLength={160} />
-              </label>
-              <label className="field">
-                <span>Effective date</span>
-                <input type="date" name="effectiveDate" required />
-              </label>
-              <label className="field">
-                <span>Price (integer cents)</span>
-                <input type="number" name="priceCents" min={0} step={1} required />
-              </label>
-              <label className="field">
-                <span>Commission eligible</span>
-                <select name="eligible" defaultValue="" required>
-                  <option value="" disabled>
-                    Choose confirmed rule
-                  </option>
-                  <option value="true">Eligible</option>
-                  <option value="false">Not eligible</option>
-                </select>
-              </label>
-              <label className="field wide">
-                <span>Reason</span>
-                <input name="reason" required maxLength={2000} />
-              </label>
-            </ActionForm>
-            {data.rules.map((r) => (
-              <div className="list-row" key={r.id}>
-                <span>
-                  {r.outcome} · {usd(r.priceCents)} · {r.eligible ? "eligible" : "not eligible"}
-                  <small>{r.reason}</small>
-                </span>
-                <span className="muted">from {r.effectiveDate}</span>
-              </div>
-            ))}
-          </div>
-        </Section>
-      </div>
 
       <Section
         title="Reconcile daily count"

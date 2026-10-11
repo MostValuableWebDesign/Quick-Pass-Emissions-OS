@@ -3,20 +3,20 @@ import { db } from "@/lib/db";
 import { formatDate } from "@/lib/time";
 import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
-import { removeClosure, saveClosure, saveSettings, triggerJobs } from "@/app/actions";
+import { removeClosure, saveClosure, saveSettings } from "@/app/actions";
 import { storageStatus } from "@/modules/storage/service";
 import Link from "next/link";
 import { saveCertificateAlertThresholdAction } from "@/app/certificate-portal-actions";
 import { readCertificatePortalStatus } from "@/modules/certificates/portal";
+import { StationSettingsPanel } from "@/components/station-settings-panel";
 export default async function Settings() {
   const actor = await manager();
   const certStatus =
     actor.role === "OWNER" ? await readCertificatePortalStatus().catch(() => null) : null;
   const storage = actor.role === "OWNER" ? await storageStatus(actor.id) : null;
-  const [settings, closures, runs, audit] = await Promise.all([
+  const [settings, closures, audit] = await Promise.all([
     db.businessSetting.findUnique({ where: { id: "business" } }),
     db.closure.findMany({ orderBy: { date: "asc" } }),
-    db.jobRun.findMany({ orderBy: { startedAt: "desc" }, take: 8 }),
     db.auditLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 50,
@@ -27,7 +27,7 @@ export default async function Settings() {
     <>
       <PageHeader
         title="Business settings & accountability"
-        description="Configure operating days, manage exceptions, and review the audit trail."
+        description="Manage Business operating days, separate Emissions station settings, closures, and the audit trail."
       />
       {storage && (
         <section className="card card-body">
@@ -77,7 +77,7 @@ export default async function Settings() {
           </ActionForm>
         </section>
       )}
-      <div className="two-columns space-top">
+      <div className={actor.role === "OWNER" ? "two-columns space-top" : "space-top"}>
         <div className="stack">
           <section className="card card-body">
             <h2>Business operating days</h2>
@@ -138,23 +138,7 @@ export default async function Settings() {
             ))}
           </section>
         </div>
-        <section className="card card-body">
-          <h2>Operations scheduler</h2>
-          <p className="muted">
-            Generates responsibilities and overdue alerts. Configure an external trigger every 15
-            minutes using the deployment guide.
-          </p>
-          <ActionForm action={triggerJobs} submit="Run operations check" />
-          {runs.map((r) => (
-            <div className="list-row" key={r.id}>
-              <div>
-                <strong>{r.status.toLowerCase()}</strong>
-                <small>{formatDate(r.startedAt)}</small>
-              </div>
-              <span>{r.generated} generated</span>
-            </div>
-          ))}
-        </section>
+        {actor.role === "OWNER" && <StationSettingsPanel actorId={actor.id} />}
       </div>
       <section className="card space-top">
         <div className="card-heading">

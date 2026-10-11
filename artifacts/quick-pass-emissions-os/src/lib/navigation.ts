@@ -48,6 +48,7 @@ export type NavItem = {
   parent?: string;
   category?: string;
   matchQuery?: Record<string, string>;
+  menuOnly?: boolean;
   children?: NavItem[];
 };
 export type NavSection = { id: string; label: string; items: NavItem[] };
@@ -112,39 +113,10 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    id: "business-setup",
-    label: "Business setup",
-    items: [
-      {
-        href: "/settings",
-        label: "Business settings",
-        icon: "settings",
-        roles: MANAGERS,
-        category: "Business operations",
-      },
-      {
-        href: "/settings/import",
-        label: "Configuration import",
-        icon: "archive",
-        roles: OWNER_ONLY,
-        category: "Business operations",
-      },
-      {
-        href: "/settings/station-data",
-        label: "Station data",
-        icon: "archive",
-        roles: OWNER_ONLY,
-        category: "Emissions & certificates",
-      },
-    ],
-  },
-  {
     id: "reports",
     label: "Reports",
     items: [
-      { href: "/reports", label: "Operational reports", icon: "chart", roles: FINANCE },
       { href: "/finance/reports", label: "Finance reports", icon: "fileChart", roles: FINANCE },
-      { href: "/summaries", label: "Summary archive", icon: "archive", roles: OWNER_ONLY },
     ],
   },
   {
@@ -152,32 +124,48 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Settings",
     items: [
       {
-        href: "/reminders",
-        label: "Reminders",
-        icon: "reminder",
+        href: "#settings-menu",
+        label: "Settings",
+        icon: "settings",
         roles: ALL,
-        category: "Reminders & notifications",
-      },
-      {
-        href: "/notifications",
-        label: "Notifications",
-        icon: "bell",
-        roles: ALL,
-        category: "Reminders & notifications",
-      },
-      {
-        href: "/settings/account",
-        label: "Account",
-        icon: "shield",
-        roles: MANAGERS,
-        category: "Account & security",
-      },
-      {
-        href: "/automation",
-        label: "Automation",
-        icon: "automation",
-        roles: OWNER_ONLY,
-        category: "Automation",
+        menuOnly: true,
+        children: [
+          {
+            href: "/settings",
+            label: "Business settings",
+            icon: "settings",
+            roles: MANAGERS,
+            category: "Business operations",
+          },
+          {
+            href: "/reminders",
+            label: "Reminders",
+            icon: "reminder",
+            roles: ALL,
+            category: "Reminders & notifications",
+          },
+          {
+            href: "/notifications",
+            label: "Notifications",
+            icon: "bell",
+            roles: ALL,
+            category: "Reminders & notifications",
+          },
+          {
+            href: "/settings/account",
+            label: "Account",
+            icon: "shield",
+            roles: MANAGERS,
+            category: "Account & security",
+          },
+          {
+            href: "/automation",
+            label: "Automation",
+            icon: "automation",
+            roles: OWNER_ONLY,
+            category: "Automation",
+          },
+        ],
       },
     ],
   },
@@ -193,7 +181,7 @@ export function navForRole(role: string): NavSection[] {
   const filterItem = (item: NavItem, parent?: string): NavItem | null => {
     if (!item.roles.includes(role)) return null;
     const children = item.children
-      ?.map((child) => filterItem(child, item.href))
+      ?.map((child) => filterItem(child, item.menuOnly ? undefined : item.href))
       .filter((child): child is NavItem => !!child);
     return { ...item, ...(parent ? { parent } : {}), ...(item.children ? { children } : {}) };
   };
@@ -206,7 +194,10 @@ export function navForRole(role: string): NavSection[] {
 /** Flatten the role-filtered tree for route checks and tests. */
 export function allNavItems(role: string): NavItem[] {
   const flatten = (items: NavItem[]): NavItem[] =>
-    items.flatMap((item) => [item, ...flatten(item.children ?? [])]);
+    items.flatMap((item) => [
+      ...(item.menuOnly ? [] : [item]),
+      ...flatten(item.children ?? []),
+    ]);
   return flatten(navForRole(role).flatMap((section) => section.items));
 }
 
@@ -226,10 +217,10 @@ const navDefs: RouteDef[] = (() => {
   const seen = new Set<string>();
   return NAV_SECTIONS.flatMap((section) =>
     section.items.flatMap((item) => [
-      { item, parent: item.parent, section: section.label },
+      ...(!item.menuOnly ? [{ item, parent: item.parent, section: section.label }] : []),
       ...(item.children ?? []).map((child) => ({
         item: child,
-        parent: item.href,
+        parent: item.menuOnly ? undefined : item.href,
         section: section.label,
       })),
     ]),
@@ -253,6 +244,20 @@ const navDefs: RouteDef[] = (() => {
 // Keep these routes resolvable for existing deep links and notifications,
 // without exposing them as sidebar navigation entries.
 const detachedNavDefs: RouteDef[] = [
+  {
+    pattern: "/reports",
+    title: "Operational reports",
+    section: "Reports",
+    navHref: "/reports",
+    roles: FINANCE,
+  },
+  {
+    pattern: "/summaries",
+    title: "Summary archive",
+    section: "Reports",
+    navHref: "/summaries",
+    roles: OWNER_ONLY,
+  },
   {
     pattern: "/maintenance",
     title: "Maintenance tickets",

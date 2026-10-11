@@ -9,7 +9,9 @@ export default defineConfig({
   ...(process.env.E2E_DAY_ONLY === "1"
     ? { grep: /selecting a date loads that single-day station count/ }
     : {}),
-  ...(process.env.E2E_STATION_ONLY === "1" ? { grep: /station report →/ } : {}),
+  ...(process.env.E2E_STATION_ONLY === "1"
+    ? { grep: /removed station and configuration pages redirect/ }
+    : {}),
   testDir: "tests/e2e",
   testMatch: Object.keys(browserSuite(process.env)),
   timeout: 120000,

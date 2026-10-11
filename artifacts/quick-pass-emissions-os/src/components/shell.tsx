@@ -161,7 +161,9 @@ export function Shell({
 
   const drawerOpen = isMobile && mobileOpen;
   const sideMenuItem = sideMenu
-    ? allNavItems(role).find((item) => item.href === sideMenu.href && item.children?.length)
+    ? sections
+        .flatMap((section) => section.items)
+        .find((item) => item.href === sideMenu.href && item.children?.length)
     : undefined;
   useEffect(() => {
     if (!drawerOpen) return;
@@ -224,7 +226,10 @@ export function Shell({
           <nav aria-label="Main navigation" className="primary-nav">
             {sections.map((section) => (
               <div className="nav-group" data-nav-section={section.id} key={section.id}>
-                <p className="nav-caption nav-label" id={`nav-${section.id}`}>
+                <p
+                  className={section.id === "settings" ? "sr-only" : "nav-caption nav-label"}
+                  id={`nav-${section.id}`}
+                >
                   {section.label.toUpperCase()}
                 </p>
                 <ul aria-labelledby={`nav-${section.id}`}>
@@ -291,32 +296,70 @@ export function Shell({
                             event.stopPropagation();
                             setOpenSubmenus((old) => ({ ...old, [item.href]: false }));
                             setSideMenu(null);
-                            event.currentTarget.querySelector<HTMLButtonElement>(".nav-submenu-toggle")?.focus();
+                            event.currentTarget
+                              .querySelector<HTMLButtonElement>(".nav-menu-trigger, .nav-submenu-toggle")
+                              ?.focus();
                           }
                         }}
                       >
                         <div className="nav-main-row">
-                          <Link
-                            title={collapsed ? item.label : undefined}
-                            className={[
-                              "nav-link",
-                              current ? "active" : "",
-                              childIsCurrent ? "nav-parent-active" : "",
-                            ]
-                              .filter(Boolean)
-                              .join(" ")}
-                            aria-current={current ? "page" : undefined}
-                            href={item.href}
-                            onClick={() => {
-                              setMobileOpen(false);
-                              setSideMenu(null);
-                            }}
-                          >
-                            <Icon size={18} aria-hidden="true" />
-                            <span className="nav-label">{item.label}</span>
-                            {collapsed && <span className="sr-only">{item.label}</span>}
-                          </Link>
-                          {hasChildren && (
+                          {item.menuOnly ? (
+                            <button
+                              type="button"
+                              title={collapsed ? item.label : undefined}
+                              className={[
+                                "nav-link",
+                                "nav-menu-trigger",
+                                childIsCurrent ? "nav-parent-active" : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                              aria-label={item.label}
+                              aria-expanded={submenuOpen}
+                              aria-controls={isMobile ? `${submenuId}-inline` : submenuId}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                if (isMobile) {
+                                  setOpenSubmenus((old) => ({ ...old, [item.href]: !submenuOpen }));
+                                  return;
+                                }
+                                const root = event.currentTarget.closest("[data-nav-root]");
+                                if (root instanceof HTMLElement) openSideMenu(item, root);
+                                if (event.detail === 0)
+                                  requestAnimationFrame(() =>
+                                    document.getElementById(submenuId)?.querySelector<HTMLAnchorElement>("a")?.focus(),
+                                  );
+                              }}
+                            >
+                              <Icon size={18} aria-hidden="true" />
+                              <span className="nav-label">{item.label}</span>
+                              <span className="nav-menu-chevron" aria-hidden="true">
+                                <ChevronDown size={14} />
+                              </span>
+                            </button>
+                          ) : (
+                            <Link
+                              title={collapsed ? item.label : undefined}
+                              className={[
+                                "nav-link",
+                                current ? "active" : "",
+                                childIsCurrent ? "nav-parent-active" : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                              aria-current={current ? "page" : undefined}
+                              href={item.href}
+                              onClick={() => {
+                                setMobileOpen(false);
+                                setSideMenu(null);
+                              }}
+                            >
+                              <Icon size={18} aria-hidden="true" />
+                              <span className="nav-label">{item.label}</span>
+                              {collapsed && <span className="sr-only">{item.label}</span>}
+                            </Link>
+                          )}
+                          {hasChildren && !item.menuOnly && (
                             <button
                               type="button"
                               className="nav-submenu-toggle"
@@ -419,7 +462,7 @@ export function Shell({
                   event.preventDefault();
                   setSideMenu(null);
                   document
-                    .querySelector<HTMLElement>(`[data-nav-root="${sideMenu.href}"] .nav-submenu-toggle`)
+                     .querySelector<HTMLElement>(`[data-nav-root="${sideMenu.href}"] .nav-menu-trigger, [data-nav-root="${sideMenu.href}"] .nav-submenu-toggle`)
                     ?.focus();
                   return;
                 }
@@ -431,7 +474,7 @@ export function Shell({
                 if (event.shiftKey && activeLink === links[0]) {
                   event.preventDefault();
                   document
-                    .querySelector<HTMLElement>(`[data-nav-root="${sideMenu.href}"] .nav-submenu-toggle`)
+                     .querySelector<HTMLElement>(`[data-nav-root="${sideMenu.href}"] .nav-menu-trigger, [data-nav-root="${sideMenu.href}"] .nav-submenu-toggle`)
                     ?.focus();
                 } else if (!event.shiftKey && activeLink === links.at(-1)) {
                   const nav = sidebarRef.current;
@@ -439,7 +482,7 @@ export function Shell({
                   const focusable = Array.from(
                     nav?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [],
                   ).filter((node) => node.getClientRects().length > 0);
-                  const rootToggle = root?.querySelector<HTMLElement>(".nav-submenu-toggle");
+                  const rootToggle = root?.querySelector<HTMLElement>(".nav-menu-trigger, .nav-submenu-toggle");
                   const index = rootToggle ? focusable.indexOf(rootToggle) : -1;
                   const next = focusable[index + 1];
                   if (next) {

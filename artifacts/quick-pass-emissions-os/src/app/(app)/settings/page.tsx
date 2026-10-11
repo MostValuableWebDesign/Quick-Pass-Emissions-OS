@@ -4,7 +4,6 @@ import { formatDate } from "@/lib/time";
 import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { removeClosure, saveClosure, saveSettings } from "@/app/actions";
-import Link from "next/link";
 import { saveCertificateAlertThresholdAction } from "@/app/certificate-portal-actions";
 import { readCertificatePortalStatus } from "@/modules/certificates/portal";
 import { StationSettingsPanel } from "@/components/station-settings-panel";
@@ -25,7 +24,7 @@ export default async function Settings() {
     <>
       <PageHeader
         title="Business settings"
-        description="Manage business operations, Emissions station data, and recent activity."
+        description="Manage operating days, station hours, certificate alerts, and recent activity."
       />
       <section className="settings-group">
         <div className="settings-group-heading">
@@ -33,11 +32,6 @@ export default async function Settings() {
             <h2>Business operations</h2>
             <p className="muted">Operating days, planned closures, and business configuration.</p>
           </div>
-          {actor.role === "OWNER" && (
-            <Link className="button button-outline button-sm" href="/settings/import">
-              Import configuration
-            </Link>
-          )}
         </div>
         <div className="two-columns settings-card-grid">
           <section className="card card-body">

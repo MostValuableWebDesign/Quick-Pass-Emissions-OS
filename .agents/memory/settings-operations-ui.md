@@ -15,11 +15,11 @@ Account & password belongs beneath Settings, and pay setup belongs in Payroll ra
 
 **How to apply:** Keep pay setup in Payroll. Retire the Performance setup screen without deleting saved data or station-import capabilities.
 
-Settings is a non-clickable navigation heading. Place business-setting functions in their own Business setup category; group Reminders & notifications, Account & security, and Automation under Settings. Reminders and Notifications still belong to Settings. Dealership invoices and payments remain grouped in a side-menu flyout.
+Settings is a side-menu button: hover opens its flyout, while keyboard focus and mobile tap also expose its destinations. The Business settings page belongs in that menu. The separate Station data and Business configuration import/review pages are retired and redirect to Business settings; keep the Station settings panel and saved data. Group Reminders & notifications, Account & security, and Automation under Settings. Dealership invoices and payments remain grouped in a side-menu flyout.
 
-**Why:** The user explicitly asked for a non-clickable Settings heading and requested that the existing Settings page move into its own category, while keeping functions organized by purpose.
+**Why:** The user wants Settings presented as a hover-triggered button and said the standalone Station data and Business configuration import/review pages are not needed.
 
-**How to apply:** Do not make the Settings heading a link. Keep business configuration separate from account/security, reminders, and automation. Preserve categorized Dealership flyouts, role restrictions, and accessible keyboard and mobile navigation.
+**How to apply:** Keep Business settings as a child link in its purpose-based category, and never navigate directly from the Settings trigger. Do not restore the retired pages or links, and do not delete saved data or station calculations. Preserve the Station settings panel, Dealership flyouts, role restrictions, and accessible keyboard/mobile navigation.
 
 The user removed the Issued By mappings, Outcome rules & prices, Operations scheduler, Product roadmap, Data storage & recovery, and sidebar slogan panels as unnecessary.
 

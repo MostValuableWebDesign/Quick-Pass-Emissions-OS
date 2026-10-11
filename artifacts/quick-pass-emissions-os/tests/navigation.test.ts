@@ -35,58 +35,65 @@ describe("role-filtered navigation", () => {
     expect(hrefs("ADMIN")).not.toContain("/automation");
     expect(hrefs("ADMIN")).toContain("/settings");
     expect(hrefs("OWNER")).toEqual(
-      expect.arrayContaining(["/automation", "/summaries", "/overview"]),
+      expect.arrayContaining(["/automation", "/finance/reports", "/overview"]),
     );
+    expect(hrefs("OWNER")).not.toContain("/reports");
+    expect(hrefs("OWNER")).not.toContain("/summaries");
+    expect(matchRoute("/reports")?.title).toBe("Operational reports");
+    expect(matchRoute("/summaries")?.title).toBe("Summary archive");
+    expect(matchRoute("/summaries/example-id")?.title).toBe("Summary");
   });
   it("omits the retired Product roadmap tab and route", () => {
     expect(hrefs("OWNER")).not.toContain("/roadmap");
     expect(matchRoute("/roadmap")).toBeUndefined();
   });
-  it("keeps Settings as a category and moves business configuration into its own category", () => {
+  it("keeps Business settings under the Settings side-menu button", () => {
     const sections = navForRole("OWNER");
     const settings = sections.find((section) => section.id === "settings")!;
-    const businessSetup = sections.find((section) => section.id === "business-setup")!;
     expect(settings.label).toBe("Settings");
-    expect(settings.items.every((item) => item.label !== "Settings")).toBe(true);
-    expect(settings.items.map((item) => item.href)).toEqual([
+    expect(settings.items).toHaveLength(1);
+    const settingsMenu = settings.items[0];
+    expect(settingsMenu.label).toBe("Settings");
+    expect(settingsMenu.menuOnly).toBe(true);
+    expect(matchRoute(settingsMenu.href)).toBeUndefined();
+    expect(allNavItems("OWNER").some((item) => item.menuOnly)).toBe(false);
+    expect(settingsMenu.children?.map((item) => item.href)).toEqual([
+      "/settings",
       "/reminders",
       "/notifications",
       "/settings/account",
       "/automation",
     ]);
-    expect(settings.items.some((item) => item.href === "/settings")).toBe(false);
-    expect(businessSetup.items.map((item) => item.href)).toEqual([
-      "/settings",
-      "/settings/import",
-      "/settings/station-data",
-    ]);
-    expect(businessSetup.items[0].label).toBe("Business settings");
-    expect(businessSetup.items.filter((item) => item.category === "Business operations")
-      .map((item) => item.href)).toEqual(["/settings", "/settings/import"]);
-    expect(businessSetup.items.filter((item) => item.category === "Emissions & certificates")
-      .map((item) => item.href)).toEqual(["/settings/station-data"]);
-    expect(matchRoute("/settings")?.section).toBe("Business setup");
+    expect(settingsMenu.children?.[0].label).toBe("Business settings");
+    expect(settingsMenu.children?.[0].category).toBe("Business operations");
+    expect(matchRoute("/settings")?.section).toBe("Settings");
     expect(matchRoute("/settings")?.title).toBe("Business settings");
     expect(breadcrumbs("/settings")).toEqual([
-      { label: "Business setup" },
+      { label: "Settings" },
       { label: "Business settings" },
     ]);
+    expect(sections.some((section) => section.id === "business-setup")).toBe(false);
+    expect(matchRoute("/settings/import")).toBeUndefined();
+    expect(matchRoute("/settings/station-data")).toBeUndefined();
     expect(hrefs("ADMIN")).toContain("/settings/account");
+    expect(hrefs("OWNER")).not.toContain("/settings/import");
     expect(hrefs("ADMIN")).not.toContain("/settings/station-data");
     expect(matchRoute("/performance/settings")).toBeUndefined();
   });
-  it("puts reminder, notification, and account links directly beneath the Settings heading", () => {
+  it("groups reminder, notification, and account links in the Settings side menu", () => {
     const sections = navForRole("OWNER");
     const overview = sections.find((section) => section.id === "overview")!;
     expect(overview.items.map((item) => item.href)).not.toContain("/reminders");
     expect(overview.items.map((item) => item.href)).not.toContain("/notifications");
     const settings = sections.find((section) => section.id === "settings")!;
-    expect(settings.items.map((item) => item.href)).toContain("/reminders");
-    expect(settings.items.map((item) => item.href)).toContain("/notifications");
-    expect(settings.items.map((item) => item.href)).toContain("/settings/account");
-    expect(settings.items.filter((item) => item.category === "Reminders & notifications")
+    const destinations = settings.items[0].children ?? [];
+    expect(destinations.map((item) => item.href)).toContain("/settings");
+    expect(destinations.map((item) => item.href)).toContain("/reminders");
+    expect(destinations.map((item) => item.href)).toContain("/notifications");
+    expect(destinations.map((item) => item.href)).toContain("/settings/account");
+    expect(destinations.filter((item) => item.category === "Reminders & notifications")
       .map((item) => item.href)).toEqual(["/reminders", "/notifications"]);
-    expect(settings.items.find((item) => item.href === "/settings/account")?.category)
+    expect(destinations.find((item) => item.href === "/settings/account")?.category)
       .toBe("Account & security");
     expect(allNavItems("ADMIN").some((item) => item.href === "/settings/import")).toBe(false);
   });

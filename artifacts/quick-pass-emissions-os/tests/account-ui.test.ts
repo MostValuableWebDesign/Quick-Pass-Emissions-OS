@@ -29,16 +29,18 @@ describe("account navigation and controls", () => {
     expect(header).not.toContain("user-label");
   });
 
-  it("keeps the Settings heading non-clickable and groups settings pages by purpose", () => {
+  it("renders Settings as a button and groups its destinations by purpose", () => {
     const props = { role: "OWNER", children: "Dashboard" };
     const html = renderToStaticMarkup(createElement(Shell, props));
     const settingsSection = html.indexOf('data-nav-section="settings"');
     const businessSettingsLink = html.indexOf('href="/settings"');
     expect(settingsSection).toBeGreaterThan(-1);
     expect(businessSettingsLink).toBeGreaterThan(-1);
-    expect(businessSettingsLink).toBeLessThan(settingsSection);
+    expect(businessSettingsLink).toBeGreaterThan(settingsSection);
     expect(html).toContain('id="nav-settings">SETTINGS</p>');
-    expect(html).toContain("BUSINESS SETUP");
+    expect(html).toContain("Business settings");
+    expect(html).toContain('class="nav-link nav-menu-trigger"');
+    expect(html).toContain('aria-controls="nav-submenu-settings-#settings-menu"');
     expect(html).toContain("Business operations");
     expect(html).toContain("Reminders &amp; notifications");
     expect(html).toContain("Account &amp; security");

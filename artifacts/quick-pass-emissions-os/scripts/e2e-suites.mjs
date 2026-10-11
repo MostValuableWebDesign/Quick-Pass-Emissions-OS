@@ -13,8 +13,8 @@ export function browserSuite(env) {
   if (env.E2E_PERFORMANCE_ONLY === "1") return { "performance.spec.ts": 2 };
   if (env.E2E_SUPPORT_ONLY === "1") return { "support.spec.ts": 1 };
   if (env.E2E_CERTIFICATES_ONLY === "1") return { "certificate-order.spec.ts": 4 };
-  if (env.E2E_IMPORT_ONLY === "1") return { "business-import.spec.ts": 1 };
-  if (env.E2E_STATION_ONLY === "1") return { "station.spec.ts": 1 };
+  if (env.E2E_IMPORT_ONLY === "1" || env.E2E_STATION_ONLY === "1")
+    return { "settings-pages-retired.spec.ts": 1 };
   return {
     "login.spec.ts": 1,
     "theme.spec.ts": 1,
@@ -25,7 +25,9 @@ export function browserSuite(env) {
     "phase3.spec.ts": 1,
     "phase4.spec.ts": 1,
     "phase5.spec.ts": 2,
-    ...(env.E2E_STATION_HISTORY === "1" ? { "station.spec.ts": 2, "performance.spec.ts": 2 } : {}),
+    ...(env.E2E_STATION_HISTORY === "1"
+      ? { "settings-pages-retired.spec.ts": 1, "performance.spec.ts": 2 }
+      : {}),
   };
 }
 export function assertSuiteReport(report, suite) {

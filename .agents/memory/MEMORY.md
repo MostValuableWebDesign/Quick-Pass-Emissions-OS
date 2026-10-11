@@ -9,3 +9,4 @@
 - [Performance business rules](performance-business-rules.md) — $20 revenue, VIN/30-day free retests, shop-wide commissions and five-shift pay assumptions.
 - [Cold preview startup](cold-preview-startup.md) — framework “Ready” did not establish reachability after a workspace restart; Webpack restored the imported Next preview.
 - [Performance panel interactions](dashboard-panel-interactions.md) — browser-local layouts stay separate from business data; pointer and keyboard controls support reliable resizing and reordering.
+- [Business-area separation](business-area-separation.md) — Emissions and Car Wash have different employees and duties; keep their navigation distinct.

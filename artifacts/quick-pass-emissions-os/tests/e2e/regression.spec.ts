@@ -19,7 +19,7 @@ test("public clients cannot open protected pages", async ({ browser, baseURL }) 
 
 test("signed-in owner can use new operation navigation", async ({ page }) => {
   await page.goto("/dashboard");
-  for (const route of ["/payroll", "/certificates", "/carwash", "/maintenance", "/rentals"]) {
+  for (const route of ["/payroll", "/certificates", "/carwash", "/equipment", "/vendors"]) {
     const navigation = await expandGroups(page);
     await navigation.locator(`a[href="${route}"]`).click();
     await expect(page).toHaveURL(new RegExp(`${route}$`));

@@ -171,6 +171,10 @@ async function main() {
   const fixtures = await navigationFixtures(db, password, user.id, (value) => {
     stage = value;
   });
+  if ("vendor-entry.spec.ts" in suite) {
+    stage = "owned support filter fixtures";
+    await (await import("./support-browser-fixtures")).supportBrowserFixtures(db);
+  }
   if (process.env.E2E_PORTAL_LIVE !== "1") {
     stage = "owned performance cache fixtures";
     env.GA_STATION_ID =

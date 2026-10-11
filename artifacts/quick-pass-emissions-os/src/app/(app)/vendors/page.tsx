@@ -4,7 +4,6 @@ import { currentUser } from "@/lib/access";
 import { directory } from "@/modules/support/service";
 import { CATEGORIES } from "@/modules/support/rules";
 import { PageHeader, Empty } from "@/components/shared";
-import { Field } from "@/components/action-form";
 import { DemoNotice } from "@/components/phase3";
 import { ContactLine } from "@/components/support-contact";
 import { VendorForm } from "@/components/support-vendor-form";
@@ -36,16 +35,25 @@ export default async function Vendors({
       />
       <DemoNotice demo={data.demo} />
       <form
+        key={JSON.stringify([q.search ?? "", category ?? "", q.archived === "1"])}
         method="get"
         className="card card-body form-grid"
         role="search"
         aria-label="Filter providers"
       >
-        <Field label="Search name, contact or services">
-          <input type="search" name="search" defaultValue={q.search ?? ""} maxLength={160} />
-        </Field>
-        <Field label="Category">
-          <select name="category" defaultValue={category ?? ""}>
+        <div className="field">
+          <label htmlFor="provider-search">Search name, contact or services</label>
+          <input
+            id="provider-search"
+            type="search"
+            name="search"
+            defaultValue={q.search ?? ""}
+            maxLength={160}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="provider-category">Category</label>
+          <select id="provider-category" name="category" defaultValue={category ?? ""}>
             <option value="">All categories</option>
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -53,7 +61,7 @@ export default async function Vendors({
               </option>
             ))}
           </select>
-        </Field>
+        </div>
         <div className="field">
           <label>
             <input type="checkbox" name="archived" value="1" defaultChecked={q.archived === "1"} />{" "}

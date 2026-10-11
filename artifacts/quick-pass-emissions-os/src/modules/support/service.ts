@@ -57,6 +57,7 @@ export async function directory(
                 { name: { contains: search, mode: "insensitive" } },
                 { contact: { contains: search, mode: "insensitive" } },
                 { alternateContact: { contains: search, mode: "insensitive" } },
+                { services: { contains: search, mode: "insensitive" } },
                 { supportedServices: { contains: search, mode: "insensitive" } },
               ],
             }

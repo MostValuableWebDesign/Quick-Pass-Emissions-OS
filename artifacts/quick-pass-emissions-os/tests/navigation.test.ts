@@ -42,6 +42,26 @@ describe("role-filtered navigation", () => {
     const all = NAV_SECTIONS.flatMap((s) => s.items.map((i) => i.href));
     expect(new Set(all).size).toBe(all.length);
   });
+  it("separates emissions, car wash and shared tools without exposing retired tabs", () => {
+    for (const role of ["OWNER", "ADMIN"]) {
+      const sections = navForRole(role);
+      const emissions = sections.find((s) => s.id === "emissions")!;
+      const carwash = sections.find((s) => s.id === "carwash")!;
+      const shared = sections.find((s) => s.id === "shared-business")!;
+      expect(emissions.items.map((i) => i.href)).toEqual(
+        expect.arrayContaining(["/certificates", "/dealerships", "/invoices"]),
+      );
+      expect(carwash.items.map((i) => i.href)).toEqual(["/carwash", "/equipment"]);
+      expect(shared.items.map((i) => i.href)).toEqual(["/payroll", "/vendors", "/finance"]);
+      for (const path of ["/maintenance", "/maintenance/plans", "/chemicals", "/rentals"]) {
+        expect(hrefs(role)).not.toContain(path);
+        expect(matchRoute(path)).toBeDefined();
+        expect(safeReturnPath(path, role)).toBe(path);
+        expect(activeNavHref(path, role)).toBeUndefined();
+      }
+    }
+    expect(returnTarget("/rentals/r1", null, "OWNER")?.href).toBe("/rentals");
+  });
 });
 
 describe("route matching", () => {
@@ -51,8 +71,8 @@ describe("route matching", () => {
     expect(activeNavHref("/tasks/templates", "OWNER")).toBeUndefined();
     expect(activeNavHref("/tasks/abc", "OWNER")).toBeUndefined();
     expect(activeNavHref("/finance/reports", "ADMIN")).toBe("/finance/reports");
-    expect(activeNavHref("/maintenance/plans", "ADMIN")).toBe("/maintenance/plans");
-    expect(activeNavHref("/maintenance/t1", "ADMIN")).toBe("/maintenance");
+    expect(activeNavHref("/maintenance/plans", "ADMIN")).toBeUndefined();
+    expect(activeNavHref("/maintenance/t1", "ADMIN")).toBeUndefined();
     expect(matchRoute("/reminders/certification")).toBeUndefined();
     expect(activeNavHref("/tasksx", "OWNER")).toBeUndefined();
   });
@@ -62,12 +82,12 @@ describe("route matching", () => {
   });
   it("builds breadcrumbs for details", () => {
     expect(breadcrumbs("/invoices/i1")).toEqual([
-      { label: "Dealerships & Billing" },
+      { label: "Emissions" },
       { label: "Invoices & payments", href: "/invoices" },
       { label: "Invoice" },
     ]);
     expect(breadcrumbs("/payroll")).toEqual([
-      { label: "Payroll" },
+      { label: "Shared Business" },
       { label: "Payroll & commissions" },
     ]);
   });

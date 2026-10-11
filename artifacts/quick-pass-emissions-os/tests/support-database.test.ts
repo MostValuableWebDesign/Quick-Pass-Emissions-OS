@@ -121,6 +121,23 @@ if (enabled) {
       await expect(s.ticketSupport(actor, ticket)).rejects.toThrow("permission");
     }
   });
+  it("combines category with case-insensitive contact and both service searches", async () => {
+    for (const search of [" service TEAM ", "OPERATIONAL support", "private LEGACY"]) {
+      expect((await s.directory(owner, { search })).providers.map((p) => p.id)).toEqual([vendor]);
+      expect(
+        (await s.directory(owner, { search, category: CATEGORIES[2] })).providers.map((p) => p.id),
+      ).toEqual([vendor]);
+      expect(
+        (await s.directory(owner, { search, category: CATEGORIES[1] })).providers,
+      ).toEqual([]);
+    }
+    await db.vendor.update({ where: { id: vendor }, data: { active: false } });
+    expect((await s.directory(owner, { search: "legacy" })).providers).toEqual([]);
+    expect(
+      (await s.directory(owner, { search: "legacy", category: CATEGORIES[2], archived: true }))
+        .providers.map((p) => p.id),
+    ).toEqual([vendor]);
+  });
   it("changes category-specific preferences explicitly with durable stale-write protection", async () => {
     const input = {
       category: CATEGORIES[0],

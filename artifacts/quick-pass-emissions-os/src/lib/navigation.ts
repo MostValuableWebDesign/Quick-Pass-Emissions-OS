@@ -50,47 +50,34 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "dashboard", roles: ALL },
       { href: "/overview", label: "Owner exceptions", icon: "gauge", roles: OWNER_ONLY },
-      { href: "/performance", label: "Performance", icon: "chart", roles: OWNER_ONLY },
       { href: "/reminders", label: "Reminders", icon: "reminder", roles: ALL },
       { href: "/notifications", label: "Notifications", icon: "bell", roles: ALL },
     ],
   },
   {
-    id: "payroll",
-    label: "Payroll",
-    items: [{ href: "/payroll", label: "Payroll & commissions", icon: "wallet", roles: FINANCE }],
-  },
-  {
-    id: "inventory",
-    label: "Inventory",
+    id: "emissions",
+    label: "Emissions",
     items: [
+      { href: "/performance", label: "Performance", icon: "chart", roles: OWNER_ONLY },
       { href: "/certificates", label: "Certificates", icon: "package", roles: FINANCE },
-      { href: "/chemicals", label: "Chemicals", icon: "flask", roles: MANAGERS },
+      { href: "/dealerships", label: "Dealerships", icon: "building", roles: FINANCE },
+      { href: "/invoices", label: "Invoices & payments", icon: "receipt", roles: FINANCE },
     ],
   },
   {
     id: "carwash",
-    label: "Carwash & Maintenance",
+    label: "Car Wash",
     items: [
       { href: "/carwash", label: "Carwash & bays", icon: "car", roles: MANAGERS },
-      { href: "/maintenance", label: "Maintenance tickets", icon: "wrench", roles: OPERATORS },
-      {
-        href: "/maintenance/plans",
-        label: "Preventative schedules",
-        icon: "calendarCheck",
-        roles: MANAGERS,
-      },
       { href: "/equipment", label: "Equipment", icon: "cog", roles: MANAGERS },
-      { href: "/vendors", label: "Service & Support", icon: "truck", roles: OPERATORS },
     ],
   },
   {
-    id: "billing",
-    label: "Dealerships & Billing",
+    id: "shared-business",
+    label: "Shared Business",
     items: [
-      { href: "/dealerships", label: "Dealerships", icon: "building", roles: FINANCE },
-      { href: "/invoices", label: "Invoices & payments", icon: "receipt", roles: FINANCE },
-      { href: "/rentals", label: "Detailing rentals", icon: "key", roles: FINANCE },
+      { href: "/payroll", label: "Payroll & commissions", icon: "wallet", roles: FINANCE },
+      { href: "/vendors", label: "Service & Support", icon: "truck", roles: OPERATORS },
       { href: "/finance", label: "Operational finance", icon: "ledger", roles: FINANCE },
     ],
   },
@@ -153,6 +140,34 @@ const navDefs: RouteDef[] = NAV_SECTIONS.flatMap((s) =>
 // Keep these routes resolvable for existing deep links and notifications,
 // without exposing them as sidebar navigation entries.
 const detachedNavDefs: RouteDef[] = [
+  {
+    pattern: "/maintenance",
+    title: "Maintenance tickets",
+    section: "Car Wash",
+    navHref: "/maintenance",
+    roles: OPERATORS,
+  },
+  {
+    pattern: "/maintenance/plans",
+    title: "Preventative schedules",
+    section: "Car Wash",
+    navHref: "/maintenance/plans",
+    roles: MANAGERS,
+  },
+  {
+    pattern: "/chemicals",
+    title: "Chemicals",
+    section: "Car Wash",
+    navHref: "/chemicals",
+    roles: MANAGERS,
+  },
+  {
+    pattern: "/rentals",
+    title: "Detailing rentals",
+    section: "Car Wash",
+    navHref: "/rentals",
+    roles: FINANCE,
+  },
   { pattern: "/tasks", title: "Tasks", section: "Operations", navHref: "/tasks", roles: OPERATORS },
   {
     pattern: "/schedule",
@@ -185,7 +200,7 @@ function detail(
 ): RouteDef {
   // Detail routes may remain directly reachable after their parent link has
   // been removed from the sidebar. Keep matching/breadcrumb metadata valid.
-  const p = navDefs.find((d) => d.pattern === parent);
+  const p = [...navDefs, ...detachedNavDefs].find((d) => d.pattern === parent);
   return { pattern, title, section: p?.section ?? "Records", navHref: parent, parent, roles };
 }
 

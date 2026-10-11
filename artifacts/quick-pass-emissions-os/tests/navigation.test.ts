@@ -42,24 +42,52 @@ describe("role-filtered navigation", () => {
     expect(hrefs("OWNER")).not.toContain("/roadmap");
     expect(matchRoute("/roadmap")).toBeUndefined();
   });
-  it("nests account and station data under Settings instead of Performance setup", () => {
-    const settings = navForRole("OWNER").find((section) => section.id === "settings")!;
-    expect(settings.items.find((item) => item.href === "/settings")?.label).toBe("Settings");
-    expect(allNavItems("OWNER").find((item) => item.href === "/settings/account")?.parent).toBe("/settings");
-    expect(allNavItems("OWNER").find((item) => item.href === "/settings/station-data")?.parent).toBe("/settings");
+  it("keeps Settings as a category and moves business configuration into its own category", () => {
+    const sections = navForRole("OWNER");
+    const settings = sections.find((section) => section.id === "settings")!;
+    const businessSetup = sections.find((section) => section.id === "business-setup")!;
+    expect(settings.label).toBe("Settings");
+    expect(settings.items.every((item) => item.label !== "Settings")).toBe(true);
+    expect(settings.items.map((item) => item.href)).toEqual([
+      "/reminders",
+      "/notifications",
+      "/settings/account",
+      "/automation",
+    ]);
+    expect(settings.items.some((item) => item.href === "/settings")).toBe(false);
+    expect(businessSetup.items.map((item) => item.href)).toEqual([
+      "/settings",
+      "/settings/import",
+      "/settings/station-data",
+    ]);
+    expect(businessSetup.items[0].label).toBe("Business settings");
+    expect(businessSetup.items.filter((item) => item.category === "Business operations")
+      .map((item) => item.href)).toEqual(["/settings", "/settings/import"]);
+    expect(businessSetup.items.filter((item) => item.category === "Emissions & certificates")
+      .map((item) => item.href)).toEqual(["/settings/station-data"]);
+    expect(matchRoute("/settings")?.section).toBe("Business setup");
+    expect(matchRoute("/settings")?.title).toBe("Business settings");
+    expect(breadcrumbs("/settings")).toEqual([
+      { label: "Business setup" },
+      { label: "Business settings" },
+    ]);
     expect(hrefs("ADMIN")).toContain("/settings/account");
     expect(hrefs("ADMIN")).not.toContain("/settings/station-data");
     expect(matchRoute("/performance/settings")).toBeUndefined();
   });
-  it("groups reminders and notifications inside the categorized Settings submenu", () => {
+  it("puts reminder, notification, and account links directly beneath the Settings heading", () => {
     const sections = navForRole("OWNER");
     const overview = sections.find((section) => section.id === "overview")!;
     expect(overview.items.map((item) => item.href)).not.toContain("/reminders");
     expect(overview.items.map((item) => item.href)).not.toContain("/notifications");
-    const settings = sections.find((section) => section.id === "settings")!.items[0];
-    expect(settings.children?.filter((item) => item.category === "Reminders & notifications")
+    const settings = sections.find((section) => section.id === "settings")!;
+    expect(settings.items.map((item) => item.href)).toContain("/reminders");
+    expect(settings.items.map((item) => item.href)).toContain("/notifications");
+    expect(settings.items.map((item) => item.href)).toContain("/settings/account");
+    expect(settings.items.filter((item) => item.category === "Reminders & notifications")
       .map((item) => item.href)).toEqual(["/reminders", "/notifications"]);
-    expect(settings.children?.every((item) => !!item.category)).toBe(true);
+    expect(settings.items.find((item) => item.href === "/settings/account")?.category)
+      .toBe("Account & security");
     expect(allNavItems("ADMIN").some((item) => item.href === "/settings/import")).toBe(false);
   });
   it("nests invoices and the payments view beneath Dealerships", () => {
@@ -82,11 +110,15 @@ describe("role-filtered navigation", () => {
       const emissions = sections.find((s) => s.id === "emissions")!;
       const carwash = sections.find((s) => s.id === "carwash")!;
       const shared = sections.find((s) => s.id === "shared-business")!;
+      const employees = shared.items.find((item) => item.href === "/employees")!;
+      expect(shared.label).toBe("Business");
       expect(emissions.items.map((i) => i.href)).toEqual(
         expect.arrayContaining(["/certificates", "/dealerships"]),
       );
       expect(carwash.items.map((i) => i.href)).toEqual(["/carwash", "/equipment"]);
-      expect(shared.items.map((i) => i.href)).toEqual(["/employees", "/payroll", "/vendors", "/finance"]);
+      expect(shared.items.map((i) => i.href)).toEqual(["/employees", "/vendors", "/finance"]);
+      expect(employees.children?.map((item) => item.href)).toEqual(["/payroll"]);
+      expect(allNavItems(role).find((item) => item.href === "/payroll")?.parent).toBe("/employees");
       for (const path of ["/maintenance", "/maintenance/plans", "/chemicals", "/rentals"]) {
         expect(hrefs(role)).not.toContain(path);
         expect(matchRoute(path)).toBeDefined();
@@ -121,7 +153,8 @@ describe("route matching", () => {
       { label: "Invoice" },
     ]);
     expect(breadcrumbs("/payroll")).toEqual([
-      { label: "Shared Business" },
+      { label: "Business" },
+      { label: "Employees", href: "/employees" },
       { label: "Payroll & commissions" },
     ]);
   });

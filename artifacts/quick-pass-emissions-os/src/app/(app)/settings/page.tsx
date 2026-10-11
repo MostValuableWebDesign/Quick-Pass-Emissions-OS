@@ -24,7 +24,7 @@ export default async function Settings() {
   return (
     <>
       <PageHeader
-        title="Settings"
+        title="Business settings"
         description="Manage business operations, Emissions station data, and recent activity."
       />
       <section className="settings-group">

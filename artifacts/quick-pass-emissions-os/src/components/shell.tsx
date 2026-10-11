@@ -228,10 +228,13 @@ export function Shell({
                   {section.label.toUpperCase()}
                 </p>
                 <ul aria-labelledby={`nav-${section.id}`}>
-                  {section.items.map((item) => {
+                  {section.items.flatMap((item, index) => {
                     const Icon = ICONS[item.icon];
                     const children = item.children ?? [];
                     const hasChildren = children.length > 0;
+                    const categoryStarts = Boolean(
+                      item.category && (index === 0 || section.items[index - 1].category !== item.category),
+                    );
                     const current = item.href === active;
                     const childIsCurrent = children.some((child) => child.href === active);
                     const submenuOpen = isMobile
@@ -239,8 +242,16 @@ export function Shell({
                       : sideMenu?.href === item.href;
                     const categories = [...new Set(children.map((child) => child.category ?? ""))];
                     const submenuId = `nav-submenu-${section.id}-${item.href.replaceAll("/", "-")}`;
-                    return (
-                      <li
+                    return [
+                      ...(categoryStarts
+                        ? [
+                            <li className="nav-category-caption" key={`category-${index}`}>
+                              {item.category}
+                            </li>,
+                          ]
+                        : []),
+                      (
+                        <li
                         className={[
                           "nav-item",
                           hasChildren ? "nav-item-with-children" : "",
@@ -291,7 +302,6 @@ export function Shell({
                               "nav-link",
                               current ? "active" : "",
                               childIsCurrent ? "nav-parent-active" : "",
-                              item.href === "/settings" ? "nav-link-settings-root" : "",
                             ]
                               .filter(Boolean)
                               .join(" ")}
@@ -369,8 +379,9 @@ export function Shell({
                             ))}
                           </div>
                         )}
-                      </li>
-                    );
+                        </li>
+                      ),
+                    ];
                   })}
                 </ul>
               </div>

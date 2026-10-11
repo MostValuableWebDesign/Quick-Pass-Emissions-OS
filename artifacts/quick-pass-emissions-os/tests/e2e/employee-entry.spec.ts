@@ -7,7 +7,7 @@ test("management can add, remove and restore staff without losing the record", a
   await page.goto("/employees");
   const navigation = page.getByRole("navigation", { name: "Main navigation" });
   await expect(
-    navigation.getByRole("list", { name: /^shared business$/i })
+    navigation.getByRole("list", { name: /^business$/i })
       .getByRole("link", { name: "Employees", exact: true }),
   ).toBeVisible();
   await page.getByText("+ Add an employee", { exact: true }).click();

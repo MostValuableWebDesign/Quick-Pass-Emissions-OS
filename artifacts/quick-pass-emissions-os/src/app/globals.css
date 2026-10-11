@@ -295,15 +295,25 @@ svg {
 .nav-group[data-nav-section="settings"] {
   margin-bottom: 16px;
 }
+.nav-category-caption {
+  margin: 12px 0 3px;
+  padding: 0 12px;
+  color: var(--nav-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+.collapsed .nav-category-caption {
+  display: none;
+}
 .nav-link.nav-link-child {
   margin-left: 12px;
   width: calc(100% - 12px);
   min-height: 38px;
   padding-left: 13px;
   font-size: 12px;
-}
-.nav-link.nav-link-settings-root {
-  margin-bottom: 9px;
 }
 .collapsed .nav-group + .nav-group {
   margin-top: 8px;

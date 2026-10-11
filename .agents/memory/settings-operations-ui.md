@@ -13,13 +13,13 @@ Account & password belongs beneath Settings, and pay setup belongs in Payroll ra
 
 **Why:** The user requested these locations and a better-organized Settings area.
 
-**How to apply:** Keep the Settings label concise, use nested account navigation, and retain extra spacing below the Settings navigation area. Retire the Performance setup screen without deleting saved data or station-import capabilities.
+**How to apply:** Keep pay setup in Payroll. Retire the Performance setup screen without deleting saved data or station-import capabilities.
 
-Reminders and Notifications belong under Settings. Settings and Dealerships use categorized side-menu flyouts that open on hover, focus, or their chevron; Invoices and Payments belong under Dealerships.
+Settings is a non-clickable navigation heading. Place business-setting functions in their own Business setup category; group Reminders & notifications, Account & security, and Automation under Settings. Reminders and Notifications still belong to Settings. Dealership invoices and payments remain grouped in a side-menu flyout.
 
-**Why:** The user requested hover-revealed nesting and explicitly rejected an uncategorized Settings list.
+**Why:** The user explicitly asked for a non-clickable Settings heading and requested that the existing Settings page move into its own category, while keeping functions organized by purpose.
 
-**How to apply:** Preserve these navigation groups, role restrictions, and keyboard/touch access when adding related pages. Flyouts open beside their parent tab on desktop; keep mobile expansion usable within the drawer. Do not return these tools to the top-level sidebar.
+**How to apply:** Do not make the Settings heading a link. Keep business configuration separate from account/security, reminders, and automation. Preserve categorized Dealership flyouts, role restrictions, and accessible keyboard and mobile navigation.
 
 The user removed the Issued By mappings, Outcome rules & prices, Operations scheduler, Product roadmap, Data storage & recovery, and sidebar slogan panels as unnecessary.
 

@@ -29,6 +29,21 @@ describe("account navigation and controls", () => {
     expect(header).not.toContain("user-label");
   });
 
+  it("keeps the Settings heading non-clickable and groups settings pages by purpose", () => {
+    const props = { role: "OWNER", children: "Dashboard" };
+    const html = renderToStaticMarkup(createElement(Shell, props));
+    const settingsSection = html.indexOf('data-nav-section="settings"');
+    const businessSettingsLink = html.indexOf('href="/settings"');
+    expect(settingsSection).toBeGreaterThan(-1);
+    expect(businessSettingsLink).toBeGreaterThan(-1);
+    expect(businessSettingsLink).toBeLessThan(settingsSection);
+    expect(html).toContain('id="nav-settings">SETTINGS</p>');
+    expect(html).toContain("BUSINESS SETUP");
+    expect(html).toContain("Business operations");
+    expect(html).toContain("Reminders &amp; notifications");
+    expect(html).toContain("Account &amp; security");
+  });
+
   it("keeps add user collapsed behind a button and protects the current owner's account", () => {
     const html = renderToStaticMarkup(createElement(ManagementAccounts, {
       currentUserId: "owner",

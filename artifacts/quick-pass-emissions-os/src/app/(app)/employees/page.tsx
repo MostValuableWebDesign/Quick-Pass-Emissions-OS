@@ -43,7 +43,6 @@ export default async function Employees({
             {label}
           </Link>
         ))}
-        <Link href="/payroll" className="badge neutral">Manage pay & commissions</Link>
       </nav>
       {status !== "inactive" && (
         <details className="card dealership-add-card space-top">

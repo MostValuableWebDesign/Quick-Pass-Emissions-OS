@@ -59,3 +59,47 @@ Daily-count review has 100 rows per page, all/pending-approval filtering and an 
 Read VERIFICATION.md for actual results. Apply all version-controlled migrations (including Phase 3 migration 004 when using this complete source) with `npm run db:migrate`; never reset business data. Configure real owners/approvers, current compensation, attribution, periods, export mapping, actual opening inventory and ordering terms before live use. Keep production, demo and `_test` databases separate. Existing Phase 1 scheduling/backup requirements still apply.
 
 The generic Next.js production command remains `npm run build`. This host blocks Turbopack's CSS-worker port binding; `npm run build -- --webpack` uses the supported alternate builder for local verification. On hosts where Turbopack works, the ordinary build is unchanged.
+
+## Employee pay overview and dated adjustments
+
+**Payroll & commissions** opens with a paginated employee overview. Choose an Eastern business
+date and the first day of the display week (Monday initially). Daily and weekly base columns
+show configured rates/equivalents, not worked-time evidence. Optional configured paid days/week
+and minutes/day supply equivalents; missing schedule inputs remain unavailable. Legacy FIXED
+arrangements remain amounts for an entire payroll period and are never silently prorated.
+Daily/weekly commission columns use independently approved personal counts and the policy
+effective on each count date. Weekly amounts are approved-record subtotals; the average is
+rounded half up across approved record days in that week, including explicit zero days, excluding
+pending/missing days. Missing policies remain unavailable. Latest approved payroll links to its
+immutable period snapshot, with base, commission and gross shown separately.
+
+Owners may authorize FIXED, HOURLY, DAILY or WEEKLY base rates in integer cents. DAILY payroll
+requires explicit approved whole paid days, bounded by the period duration. WEEKLY payroll
+requires complete seven-day periods (or whole multiples), using the authorized weekly amount
+once per week. Enter zero worked minutes for all non-hourly arrangements. No schedule, daily
+count or shift is substituted for approved paid days/minutes. Split periods at base-rate changes.
+Existing arrangements, inputs and approved snapshots retain their original meaning.
+
+To change an exact amount, authorize another dated arrangement/policy below the overview. To
+apply a percentage, open **Adjust [employee]** in the employee row, choose increase/decrease,
+enter a percentage (10 means 10%, up to two decimal places), effective date and reason. A stale
+source rate is rejected inside the shared transaction lock. Increases support up to 10,000%;
+decreases up to 100%; cents round half up once. Commission percentage adjustments change the
+base per-test rate and retain the explicitly configured eligibility, thresholds and volume boost.
+Frozen payroll dates cannot be rewritten; earlier versions remain in the database and audit.
+
+An optional progressive volume boost uses each employee's approved daily personal count:
+`max(0, count - threshold) × rateCents + max(0, count - volumeThreshold) × volumeIncreaseCents`.
+Both boost fields must be entered together, and the volume threshold must be at least the base
+threshold. Only tests above the higher threshold receive the extra amount. No eligibility,
+rates, thresholds or employee schedules are preconfigured. Draft snapshots retain both boost
+fields. The Performance view shares these commission and actual-period base calculations.
+
+Employee rows, daily count review, payroll periods, transaction history, period inputs, draft
+revisions and each draft's employee lines display at most **15 items per page**. Page links
+retain the selected date/week and other page/filter parameters; shrinking lists clamp to the
+last available page. Dropdowns retain all choices and approved CSV exports remain uncapped.
+The transaction ledger includes the actor, recording time in Eastern time, effective date,
+reason and retained calculation/change details for pay, commissions, counts and payroll actions.
+These are compensation/preparation records, not proof of a bank payment. All saved information
+continues to use persistent PostgreSQL storage; additive migration 012 does not reset business data.

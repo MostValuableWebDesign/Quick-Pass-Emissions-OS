@@ -4,7 +4,9 @@ import { currentUser } from "@/lib/access";
 import { businessDate } from "@/lib/time";
 import { payrollOverview } from "@/modules/payroll/service";
 import { approvalRoles } from "@/modules/phase2";
-import { formatMoney } from "@/modules/payroll/calculations";
+import { dashboardInput, payrollDashboard } from "@/modules/payroll/dashboard";
+import { PayrollSummary, PayrollHistory } from "@/components/payroll-summary";
+import { PayrollPagination } from "@/components/payroll-pagination";
 import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import {
@@ -19,14 +21,33 @@ import {
 export default async function Payroll({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; status?: string; periodId?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    status?: string;
+    periodId?: string;
+    date?: string;
+    weekStart?: string;
+    employeesPage?: string;
+    historyPage?: string;
+    periodsPage?: string;
+  }>;
 }) {
   const actor = await currentUser();
   const params = await searchParams;
   const data = await payrollOverview(actor.id, params);
+  const parsed = dashboardInput.safeParse(params);
+  const dashboard = await payrollDashboard(actor.id, parsed.success ? parsed.data : {});
+  const href = (key: string, page: number) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    );
+    query.set(key, String(page));
+    return `/payroll?${query}`;
+  };
   const review = data.countReview;
-  const reviewHref = (page: number) =>
-    `/payroll?${new URLSearchParams({ page: String(page), status: review.status, ...(review.periodId ? { periodId: review.periodId } : {}) })}`;
+  const reviewHref = (page: number) => href("page", page);
   const today = businessDate();
   const approver = approvalRoles.includes(actor.role);
   const employees = data.employees.map((e) => (
@@ -39,7 +60,7 @@ export default async function Payroll({
     <>
       <PageHeader
         title="Payroll & commissions"
-        description="Prepare gross compensation from approved records. Owner-configured rates and personal daily counts are required."
+        description="Employee daily and weekly base pay, approved commissions, pay adjustments and transaction history."
       />
       {data.employees.some((e) => e.demo) && (
         <div className="notice warning">
@@ -51,7 +72,18 @@ export default async function Payroll({
         Approval requires a different manager or owner. This workspace prepares payroll records;
         send approved exports to your established payroll processor.
       </p>
-      <div className="two-columns">
+      {!parsed.success && (
+        <p className="notice warning">
+          Choose a valid pay overview date, week start and page. Showing the current week.
+        </p>
+      )}
+      <PayrollSummary data={dashboard} owner={actor.role === "OWNER"} href={href} />
+      <PayrollHistory
+        data={dashboard}
+        names={Object.fromEntries(data.employees.map((e) => [e.id, e.user.name]))}
+        href={(page) => href("historyPage", page)}
+      />
+      <div className="two-columns space-top">
         <section className="card card-body">
           <h2>Payroll periods</h2>
           <ActionForm action={createPayrollPeriod} submit="Create payroll period">
@@ -65,7 +97,7 @@ export default async function Payroll({
               <input type="date" name="endDate" required />
             </Field>
           </ActionForm>
-          {data.periods.map((p) => (
+          {dashboard.periods.map((p) => (
             <div className="list-row" key={p.id}>
               <RecordLink className="task-name" href={`/payroll/${p.id}`}>
                 {p.label}
@@ -76,7 +108,12 @@ export default async function Payroll({
               <span className="badge neutral">{p.status.toLowerCase()}</span>
             </div>
           ))}
-          {!data.periods.length && <p className="muted">No payroll periods recorded.</p>}
+          <PayrollPagination
+            label="Periods"
+            paging={dashboard.periodsPaging}
+            href={(page) => href("periodsPage", page)}
+          />
+          {!dashboard.periods.length && <p className="muted">No payroll periods recorded.</p>}
         </section>
         <section className="card card-body">
           <h2>Record personal daily tests</h2>
@@ -136,8 +173,8 @@ export default async function Payroll({
             <h2>Authorize a pay arrangement</h2>
             <p className="muted">
               New dated versions retain history. Fixed amount applies once to an entire payroll
-              period. Hourly rates use approved minutes; shifts do not prove worked time. Split
-              periods at pay arrangement changes.
+              period. Daily pay uses approved paid days; weekly pay uses complete seven-day periods.
+              Hourly rates use approved minutes. Split periods at pay arrangement changes.
             </p>
             <ActionForm action={savePayArrangement} submit="Authorize pay arrangement">
               <Field label="Pay employee">
@@ -152,11 +189,23 @@ export default async function Payroll({
                 <select name="kind">
                   <option value="FIXED">Fixed amount per payroll period</option>
                   <option value="HOURLY">Hourly rate</option>
+                  <option value="DAILY">Daily base pay</option>
+                  <option value="WEEKLY">Weekly base pay</option>
                 </select>
               </Field>
               <Field label="Authorized amount · integer cents">
                 <input name="amountCents" type="number" min="0" max="2000000000" required />
               </Field>
+              <Field label="Configured paid days per week · optional for equivalent rates">
+                <input name="scheduledDaysPerWeek" type="number" min="1" max="7" />
+              </Field>
+              <Field label="Configured minutes per day · optional for hourly equivalent rates">
+                <input name="scheduledMinutesPerDay" type="number" min="1" max="1440" />
+              </Field>
+              <p className="muted">
+                Enter a new exact amount to increase or decrease base pay. Equivalent rates use only
+                the schedule you configure; actual payroll requires independent input approval.
+              </p>
               <Field label="Pay authorization reason" wide>
                 <textarea name="reason" maxLength={2000} required />
               </Field>
@@ -166,7 +215,9 @@ export default async function Payroll({
             <h2>Authorize commission policy</h2>
             <p className="muted">
               Confirm eligibility and attribution with the owner. Commission = max(0, approved
-              personal daily tests − threshold) × rate. There are no preconfigured business rates.
+              personal daily tests − threshold) × rate. Optional volume boost adds an extra amount
+              for each test above a higher threshold; earlier tests keep the base rate. New dated
+              policies retain all prior rates.
             </p>
             <ActionForm action={saveCommissionPolicy} submit="Authorize commission policy">
               <input type="hidden" name="attribution" value="PERSONAL_APPROVED_DAILY" />
@@ -190,6 +241,16 @@ export default async function Payroll({
               <Field label="Rate per additional test · cents">
                 <input name="rateCents" type="number" min="0" max="2000000000" required />
               </Field>
+              <Field label="Volume boost starts above tests/day · optional">
+                <input name="volumeThreshold" type="number" min="0" max="100000" />
+              </Field>
+              <Field label="Extra commission per test above volume threshold · cents, optional">
+                <input name="volumeIncreaseCents" type="number" min="0" max="2000000000" />
+              </Field>
+              <p className="muted">
+                Fill both boost fields or leave both blank. Example formula: base commission +
+                max(0, personal tests − volume threshold) × extra cents.
+              </p>
               <Field label="Commission authorization reason" wide>
                 <textarea name="reason" maxLength={2000} required />
               </Field>
@@ -202,6 +263,8 @@ export default async function Payroll({
           <h2>Daily counts · review</h2>
         </div>
         <form action="/payroll" method="get" className="card-body">
+          <input type="hidden" name="date" value={dashboard.filter.date} />
+          <input type="hidden" name="weekStart" value={dashboard.filter.weekStart} />
           <Field label="Count approval filter">
             <select name="status" defaultValue={review.status}>
               <option value="ALL">All counts</option>
@@ -230,9 +293,10 @@ export default async function Payroll({
           {review.page < review.totalPages && (
             <Link href={reviewHref(review.page + 1)}>Next counts</Link>
           )}
+          <small>15 counts per page</small>
         </nav>
         <div className="table-scroll">
-          <table>
+          <table aria-label="Daily count review">
             <thead>
               <tr>
                 <th>Date / employee</th>
@@ -295,28 +359,6 @@ export default async function Payroll({
         </div>
         {!data.counts.length && (
           <p className="card-body muted">No personal test counts recorded.</p>
-        )}
-      </section>
-      <section className="card card-body space-top">
-        <h2>Authorized configuration history · latest 100 of each</h2>
-        {data.arrangements.map((a) => (
-          <p key={a.id}>
-            {a.employee.user.name} · {a.effectiveDate} · {a.kind.toLowerCase()} ·{" "}
-            {formatMoney(a.amountCents)}
-            <small>{a.reason}</small>
-          </p>
-        ))}
-        {data.policies.map((p) => (
-          <p key={p.id}>
-            {p.employee.user.name} · {p.effectiveDate} ·{" "}
-            {p.eligible
-              ? `${formatMoney(p.rateCents)} above ${p.threshold} personal tests/day`
-              : "Not commission eligible"}
-            <small>{p.reason}</small>
-          </p>
-        ))}
-        {!data.arrangements.length && !data.policies.length && (
-          <p className="muted">Owner configuration is required before calculations.</p>
         )}
       </section>
     </>

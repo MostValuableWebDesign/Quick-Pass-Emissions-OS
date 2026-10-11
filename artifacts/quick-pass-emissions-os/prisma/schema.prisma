@@ -261,6 +261,8 @@ model BusinessImport {
 enum PayKind {
   FIXED
   HOURLY
+  DAILY
+  WEEKLY
 }
 enum PayrollStatus {
   OPEN
@@ -293,6 +295,8 @@ model PayArrangement {
   effectiveDate String
   kind PayKind
   amountCents Int
+  scheduledDaysPerWeek Int?
+  scheduledMinutesPerDay Int?
   reason String
   createdBy String
   createdAt DateTime @default(now())
@@ -306,6 +310,8 @@ model CommissionPolicy {
   eligible Boolean
   threshold Int
   rateCents Int
+  volumeThreshold Int?
+  volumeIncreaseCents Int?
   attribution String
   reason String
   createdBy String
@@ -348,6 +354,7 @@ model PayrollInput {
   employeeId String
   employee Employee @relation(fields:[employeeId],references:[id])
   minutes Int
+  paidDays Int?
   emissionsComplete Boolean
   reason String
   version Int @default(0)

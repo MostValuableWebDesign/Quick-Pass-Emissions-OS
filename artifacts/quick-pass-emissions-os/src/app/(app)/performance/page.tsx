@@ -473,6 +473,12 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
                                 <>
                                   {d.policy.eligible ? "Eligible" : "Not eligible"} ·{" "}
                                   {usd(d.policy.rateCents)} over {d.policy.threshold}
+                                  {d.policy.volumeThreshold !== null && (
+                                    <small>
+                                      Volume boost: +{usd(d.policy.volumeIncreaseCents)} per test
+                                      above {d.policy.volumeThreshold}/day
+                                    </small>
+                                  )}
                                   <small>Effective {d.policy.effectiveDate}</small>
                                 </>
                               ) : (

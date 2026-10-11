@@ -1,3 +1,4 @@
+import { Temporal } from "@js-temporal/polyfill";
 import { businessDate, addDays } from "@/lib/time";
 import { type Tx } from "../phase2";
 import {
@@ -46,7 +47,7 @@ async function payEvidence(
       count: c.count,
       approved: !!c.approvedAt,
       policy: p,
-      commissionCents: p ? commissionCents(c.count, p.threshold, p.rateCents, p.eligible) : null,
+      commissionCents: p ? commissionCents(c.count, p.threshold, p.rateCents, p.eligible, p) : null,
       calculationPeriod: "Daily qualifying personal count. Not a weekly threshold.",
       sourceRef: c.sourceRef,
       version: c.version,
@@ -113,15 +114,15 @@ async function payEvidence(
           : []),
         ...(personal.some((c) => !c.approvedAt) ? ["Independent daily count approval"] : []),
         ...(!policyConfigured ? ["Effective commission eligibility/policy at period start"] : []),
-        ...(arrangement?.kind === "FIXED" && input?.minutes !== 0
-          ? ["Fixed compensation requires explicit zero minutes"]
+        ...(arrangement && arrangement.kind !== "HOURLY" && input?.minutes !== 0
+          ? ["Non-hourly compensation requires explicit zero minutes"]
           : []),
       ];
       const amounts = personal.map((c) => {
         const p = periodPolicies.find(
           (p) => p.employeeId === employee.id && p.effectiveDate <= c.date,
         );
-        return p ? commissionCents(c.count, p.threshold, p.rateCents, p.eligible) : null;
+        return p ? commissionCents(c.count, p.threshold, p.rateCents, p.eligible, p) : null;
       });
       if (amounts.some((n) => n === null))
         missing.push("Effective commission policy for every test date");
@@ -129,7 +130,13 @@ async function payEvidence(
         arrangement && !crosses ? arrangement : null,
         input?.approvedAt && input.emissionsComplete ? input.minutes : null,
         amounts,
+        {
+          paidDays: input?.paidDays,
+          periodDays: Temporal.PlainDate.from(period.startDate).until(period.endDate).days + 1,
+        },
       );
+      if (calculated.baseCents === null && !missing.length)
+        missing.push("Approved paid days or whole weekly period required for configured pay basis");
       const base = calculated.baseCents;
       const commission = calculated.commissionCents;
       const snapshot = period.drafts

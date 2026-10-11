@@ -11,6 +11,13 @@ A PostgreSQL-backed Phases 1–5 business application for Quick Pass Emissions, 
 
 **Station performance:** the owner-only **Performance** view adds verified original-report imports, explicit identity/coverage/count review, revenue evidence separation, outcome breakdowns, daily/hourly trends, an employee payroll-evidence table, and draggable/resizable panels saved per owner in this browser. Comparisons require reviewed complete historical coverage; partial pay periods are not prorated. Live portal synchronization and current-day earnings forecasts remain unverified/unsupported, not simulated. Read [STATION_HISTORY.md](STATION_HISTORY.md) for secure setup, source discovery, operating instructions and limitations.
 
+**Payroll & commissions:** employee-first daily/weekly base rates, approved daily/weekly commissions,
+average commission per approved day, effective-dated exact/percentage pay changes, progressive
+personal-volume incentives, latest approved gross payroll and a durable transaction history.
+Payroll display lists use 15 items per page; approved exports include all rows. Owners configure
+rates and changes; management prepares/reviews records. Read [PHASE2.md](PHASE2.md) for pay
+bases, approval evidence and the additive migration that preserves existing data.
+
 ## Quick start
 
 Use Node.js 22.12+ (22 or 24 LTS recommended), npm, and PostgreSQL 16+. Actual validation for this delivery is recorded in [VERIFICATION.md](VERIFICATION.md).

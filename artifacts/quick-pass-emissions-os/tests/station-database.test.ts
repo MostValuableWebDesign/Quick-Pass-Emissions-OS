@@ -509,6 +509,61 @@ if (enabled) {
     expect((await db.payrollLine.findFirst())!.totalCents).toBe(118);
     expect(before).toContain('"totalCents":118');
   });
+  it("shares daily base and progressive volume calculations with payroll drafts", async () => {
+    await setup();
+    await payroll.saveArrangement(owner, {
+      employeeId: empId,
+      effectiveDate: date,
+      kind: "DAILY",
+      amountCents: 10000,
+      reason: "Daily base",
+    });
+    await payroll.savePolicy(owner, {
+      employeeId: empId,
+      effectiveDate: date,
+      eligible: true,
+      threshold: 1,
+      rateCents: 101,
+      volumeThreshold: 2,
+      volumeIncreaseCents: 50,
+      attribution: "PERSONAL_APPROVED_DAILY",
+      reason: "Progressive volume",
+    });
+    await payroll.importEmissions(owner, [
+      {
+        employeeId: empId,
+        date,
+        count: 3,
+        sourceRef: "volume-commission",
+        reason: "Personal count",
+      },
+    ]);
+    const count = await db.dailyEmission.findFirstOrThrow();
+    await payroll.approveEmissions(manager, { id: count.id, version: count.version });
+    const period = await payroll.createPeriod(owner, {
+      startDate: date,
+      endDate: date,
+      label: "Daily pay",
+    });
+    const input = await payroll.savePayrollInput(owner, {
+      periodId: period.id,
+      employeeId: empId,
+      minutes: 0,
+      paidDays: 1,
+      emissionsComplete: true,
+      version: 0,
+      reason: "Verified paid day",
+    });
+    await payroll.approvePayrollInput(manager, { id: input.id, version: input.version });
+    const provisional = await p.performance(owner, { start: date, end: date });
+    expect(provisional.pay.daily[0].commissionCents).toBe(252);
+    expect(provisional.pay.periods[0]).toMatchObject({
+      baseCents: 10000,
+      commissionCents: 252,
+      grossCents: 10252,
+    });
+    expect((await payroll.generateDraft(owner, period.id)).totalCents).toBe(10252);
+  });
   it("never invents worked time or period totals from a daily/weekly screen", async () => {
     await setup();
     await payroll.saveArrangement(owner, {

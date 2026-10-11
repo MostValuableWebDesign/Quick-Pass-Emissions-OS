@@ -46,6 +46,9 @@ export type NavItem = {
   icon: IconKey;
   roles: readonly NavRole[];
   parent?: string;
+  category?: string;
+  matchQuery?: Record<string, string>;
+  children?: NavItem[];
 };
 export type NavSection = { id: string; label: string; items: NavItem[] };
 
@@ -56,8 +59,6 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "dashboard", roles: ALL },
       { href: "/overview", label: "Owner exceptions", icon: "gauge", roles: OWNER_ONLY },
-      { href: "/reminders", label: "Reminders", icon: "reminder", roles: ALL },
-      { href: "/notifications", label: "Notifications", icon: "bell", roles: ALL },
     ],
   },
   {
@@ -66,8 +67,23 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/performance", label: "Performance", icon: "chart", roles: OWNER_ONLY },
       { href: "/certificates", label: "Certificates", icon: "package", roles: FINANCE },
-      { href: "/dealerships", label: "Dealerships", icon: "building", roles: FINANCE },
-      { href: "/invoices", label: "Invoices & payments", icon: "receipt", roles: FINANCE },
+      {
+        href: "/dealerships",
+        label: "Dealerships",
+        icon: "building",
+        roles: FINANCE,
+        children: [
+          { href: "/invoices", label: "Invoices", icon: "receipt", roles: FINANCE, category: "Billing" },
+          {
+            href: "/invoices?view=payments",
+            label: "Payments",
+            icon: "wallet",
+            roles: FINANCE,
+            category: "Billing",
+            matchQuery: { view: "payments" },
+          },
+        ],
+      },
     ],
   },
   {
@@ -101,22 +117,56 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "settings",
     label: "Settings",
     items: [
-      { href: "/settings", label: "Settings", icon: "settings", roles: MANAGERS },
       {
-        href: "/settings/account",
-        label: "Account & password",
-        icon: "shield",
-        roles: ALL,
-        parent: "/settings",
+        href: "/settings",
+        label: "Settings",
+        icon: "settings",
+        roles: MANAGERS,
+        children: [
+          {
+            href: "/settings/import",
+            label: "Configuration import",
+            icon: "archive",
+            roles: OWNER_ONLY,
+            category: "Business operations",
+          },
+          {
+            href: "/reminders",
+            label: "Reminders",
+            icon: "reminder",
+            roles: ALL,
+            category: "Reminders & notifications",
+          },
+          {
+            href: "/notifications",
+            label: "Notifications",
+            icon: "bell",
+            roles: ALL,
+            category: "Reminders & notifications",
+          },
+          {
+            href: "/settings/account",
+            label: "Account & password",
+            icon: "shield",
+            roles: ALL,
+            category: "Account & security",
+          },
+          {
+            href: "/settings/station-data",
+            label: "Station data",
+            icon: "archive",
+            roles: OWNER_ONLY,
+            category: "Emissions",
+          },
+          {
+            href: "/automation",
+            label: "Automation",
+            icon: "automation",
+            roles: OWNER_ONLY,
+            category: "Automation",
+          },
+        ],
       },
-      {
-        href: "/settings/station-data",
-        label: "Station data",
-        icon: "archive",
-        roles: OWNER_ONLY,
-        parent: "/settings",
-      },
-      { href: "/automation", label: "Automation", icon: "automation", roles: OWNER_ONLY },
     ],
   },
 ];
@@ -128,10 +178,24 @@ function isRole(role: string): role is NavRole {
 /** Sections filtered for a role; empty sections are dropped. Same output for desktop and mobile. */
 export function navForRole(role: string): NavSection[] {
   if (!isRole(role)) return [];
+  const filterItem = (item: NavItem, parent?: string): NavItem | null => {
+    if (!item.roles.includes(role)) return null;
+    const children = item.children
+      ?.map((child) => filterItem(child, item.href))
+      .filter((child): child is NavItem => !!child);
+    return { ...item, ...(parent ? { parent } : {}), ...(item.children ? { children } : {}) };
+  };
   return NAV_SECTIONS.map((s) => ({
     ...s,
-    items: s.items.filter((i) => i.roles.includes(role)),
+    items: s.items.map(filterItem).filter((item): item is NavItem => !!item),
   })).filter((s) => s.items.length > 0);
+}
+
+/** Flatten the role-filtered tree for route checks and tests. */
+export function allNavItems(role: string): NavItem[] {
+  const flatten = (items: NavItem[]): NavItem[] =>
+    items.flatMap((item) => [item, ...flatten(item.children ?? [])]);
+  return flatten(navForRole(role).flatMap((section) => section.items));
 }
 
 export type RouteDef = {
@@ -146,16 +210,31 @@ export type RouteDef = {
   roles: readonly NavRole[];
 };
 
-const navDefs: RouteDef[] = NAV_SECTIONS.flatMap((s) =>
-  s.items.map((i) => ({
-    pattern: i.href,
-    title: i.label,
-    section: s.label,
-    navHref: i.href,
-    parent: i.parent,
-    roles: i.roles,
-  })),
-);
+const navDefs: RouteDef[] = (() => {
+  const seen = new Set<string>();
+  return NAV_SECTIONS.flatMap((section) =>
+    section.items.flatMap((item) => [
+      { item, parent: item.parent },
+      ...(item.children ?? []).map((child) => ({ item: child, parent: item.href })),
+    ]),
+  )
+    .filter(({ item }) => {
+      const pattern = item.href.split("?")[0];
+      if (seen.has(pattern)) return false;
+      seen.add(pattern);
+      return true;
+    })
+    .map(({ item, parent }) => ({
+      pattern: item.href.split("?")[0],
+      title: item.label,
+      section: NAV_SECTIONS.find((section) => section.items.some((root) => root.href === parent))?.label ??
+        NAV_SECTIONS.find((section) => section.items.some((root) => root.href === item.href))?.label ??
+        "Settings",
+      navHref: item.href,
+      parent,
+      roles: item.roles,
+    }));
+})();
 
 // Keep these routes resolvable for existing deep links and notifications,
 // without exposing them as sidebar navigation entries.
@@ -255,14 +334,26 @@ export function matchRoute(pathname: string): RouteDef | undefined {
  * The single nav href to mark current: the route's own nav entry if visible,
  * otherwise the longest visible nav href that prefixes the path on a segment boundary.
  */
-export function activeNavHref(pathname: string, role: string): string | undefined {
-  const visible = navForRole(role).flatMap((s) => s.items.map((i) => i.href));
+export function activeNavHref(
+  pathname: string,
+  role: string,
+  search = "",
+): string | undefined {
+  const query = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  const items = allNavItems(role);
+  const exact = items.find((item) => {
+    if (item.href.split("?")[0] !== pathname) return false;
+    return Object.entries(item.matchQuery ?? {}).every(([key, value]) => query.get(key) === value);
+  });
+  if (exact) return exact.href;
+  const visible = items.map((item) => item.href);
   const route = matchRoute(pathname);
   if (route && visible.includes(route.navHref)) return route.navHref;
   let best: string | undefined;
   for (const href of visible) {
-    if (pathname === href || pathname.startsWith(href + "/")) {
-      if (!best || href.length > best.length) best = href;
+    const base = href.split("?")[0];
+    if (pathname === base || pathname.startsWith(base + "/")) {
+      if (!best || base.length > best.split("?")[0].length) best = href;
     }
   }
   return best;

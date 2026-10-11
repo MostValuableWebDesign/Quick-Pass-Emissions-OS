@@ -578,6 +578,33 @@ export async function invoiceOverview(actorId: string, query = "") {
     demo: (await tx.employee.count({ where: { demo: true } })) > 0,
   }));
 }
+export async function paymentOverview(actorId: string, query = "") {
+  const search = z.string().max(160).parse(query);
+  return phase4(actorId, financeRoles, async (tx) => ({
+    payments: await tx.dealerPayment.findMany({
+      where: search
+        ? {
+            OR: [
+              { reference: { contains: search, mode: "insensitive" } },
+              { invoice: { number: { contains: search, mode: "insensitive" } } },
+              {
+                invoice: {
+                  dealership: { name: { contains: search, mode: "insensitive" } },
+                },
+              },
+            ],
+          }
+        : {},
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      take: 100,
+      include: {
+        invoice: { select: { number: true, dealership: { select: { name: true } } } },
+        reversal: true,
+      },
+    }),
+    demo: (await tx.employee.count({ where: { demo: true } })) > 0,
+  }));
+}
 export async function invoiceDetail(actorId: string, key: string) {
   return phase4(actorId, financeRoles, async (tx) => ({
     invoice: await tx.dealerInvoice.findUnique({

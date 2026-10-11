@@ -39,6 +39,7 @@ import {
   Archive,
   Workflow,
   BellRing,
+  ChevronDown,
   Map,
   ArrowLeft,
   type LucideIcon,
@@ -108,12 +109,13 @@ export function Shell({
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
   const sidebarRef = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const { resolvedTheme, setTheme } = useTheme();
 
   const sections = navForRole(role);
-  const active = activeNavHref(path, role);
+  const active = activeNavHref(path, role, params.toString());
   const route = matchRoute(path);
   const crumbs = breadcrumbs(path);
   const back = returnTarget(path, params.get("from"), role);
@@ -214,27 +216,91 @@ export function Shell({
                 <ul aria-labelledby={`nav-${section.id}`}>
                   {section.items.map((item) => {
                     const Icon = ICONS[item.icon];
+                    const children = item.children ?? [];
+                    const hasChildren = children.length > 0;
                     const current = item.href === active;
+                    const childIsCurrent = children.some((child) => child.href === active);
+                    const submenuOpen = openSubmenus[item.href] ?? childIsCurrent;
+                    const categories = [...new Set(children.map((child) => child.category ?? ""))];
                     return (
-                      <li className={item.parent ? "nav-subitem" : undefined} key={item.href}>
-                        <Link
-                          title={collapsed ? item.label : undefined}
-                          className={[
-                            "nav-link",
-                            current ? "active" : "",
-                            item.parent ? "nav-link-child" : "",
-                            item.href === "/settings" ? "nav-link-settings-root" : "",
-                          ]
-                            .filter(Boolean)
-                            .join(" ")}
-                          aria-current={current ? "page" : undefined}
-                          href={item.href}
-                          onClick={() => setMobileOpen(false)}
-                        >
-                          <Icon size={18} aria-hidden="true" />
-                          <span className="nav-label">{item.label}</span>
-                          {collapsed && <span className="sr-only">{item.label}</span>}
-                        </Link>
+                      <li
+                        className={[
+                          "nav-item",
+                          hasChildren ? "nav-item-with-children" : "",
+                          submenuOpen ? "submenu-open" : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                        key={item.href}
+                      >
+                        <div className="nav-main-row">
+                          <Link
+                            title={collapsed ? item.label : undefined}
+                            className={[
+                              "nav-link",
+                              current ? "active" : "",
+                              childIsCurrent ? "nav-parent-active" : "",
+                              item.href === "/settings" ? "nav-link-settings-root" : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                            aria-current={current ? "page" : undefined}
+                            href={item.href}
+                            onClick={() => setMobileOpen(false)}
+                          >
+                            <Icon size={18} aria-hidden="true" />
+                            <span className="nav-label">{item.label}</span>
+                            {collapsed && <span className="sr-only">{item.label}</span>}
+                          </Link>
+                          {hasChildren && (
+                            <button
+                              type="button"
+                              className="nav-submenu-toggle"
+                              aria-label={`${submenuOpen ? "Hide" : "Show"} ${item.label} pages`}
+                              aria-expanded={submenuOpen}
+                              aria-controls={`nav-submenu-${section.id}-${item.href.replaceAll("/", "-")}`}
+                              title={`${submenuOpen ? "Hide" : "Show"} ${item.label} pages`}
+                              onClick={() =>
+                                setOpenSubmenus((old) => ({ ...old, [item.href]: !submenuOpen }))
+                              }
+                            >
+                              <ChevronDown size={14} aria-hidden="true" />
+                            </button>
+                          )}
+                        </div>
+                        {hasChildren && (
+                          <div
+                            id={`nav-submenu-${section.id}-${item.href.replaceAll("/", "-")}`}
+                            className={`nav-submenu${submenuOpen ? " open" : ""}`}
+                          >
+                            {categories.map((category) => (
+                              <div className="nav-submenu-group" key={category || "pages"}>
+                                {category && <p className="nav-submenu-caption">{category}</p>}
+                                <ul>
+                                  {children
+                                    .filter((child) => (child.category ?? "") === category)
+                                    .map((child) => {
+                                      const ChildIcon = ICONS[child.icon];
+                                      const childCurrent = child.href === active;
+                                      return (
+                                        <li key={child.href}>
+                                          <Link
+                                            className={`nav-submenu-link${childCurrent ? " active" : ""}`}
+                                            aria-current={childCurrent ? "page" : undefined}
+                                            href={child.href}
+                                            onClick={() => setMobileOpen(false)}
+                                          >
+                                            <ChildIcon size={15} aria-hidden="true" />
+                                            <span>{child.label}</span>
+                                          </Link>
+                                        </li>
+                                      );
+                                    })}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </li>
                     );
                   })}

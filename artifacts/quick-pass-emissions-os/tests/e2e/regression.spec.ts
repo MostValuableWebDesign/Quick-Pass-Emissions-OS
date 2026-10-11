@@ -40,27 +40,26 @@ test("protected vendor save survives reload through preview", async ({ page }) =
   await expect(page).toHaveURL(/\/vendors$/);
   checkpoint("form");
   const form = page.locator("form").filter({
-    has: page.getByRole("button", { name: "Save verified vendor", exact: true }),
+    has: page.getByRole("button", { name: "Add vendor", exact: true }),
   });
   await expect(form).toHaveCount(1);
   checkpoint("form-found");
   await form.locator('input[name="name"]').fill(name);
   checkpoint("name");
-  await form.locator('input[name="contact"]').fill("Owned fixture contact");
-  checkpoint("contact");
   await form.locator('input[name="phone"]').fill("555-fixture");
   checkpoint("phone");
   await form.locator('textarea[name="services"]').fill("Regression-only service");
   checkpoint("services");
-  await form.locator('input[name="reference"]').fill("owned-regression");
-  checkpoint("reference");
-  await form.locator('textarea[name="reason"]').fill("Owned fixture browser regression");
-  await form.locator('input[name="verifiedDate"]').fill("2026-10-01");
+  await expect(form.locator('input[name="name"]')).toHaveAttribute("required", "");
+  await expect(form.locator('input[name="phone"]')).toHaveAttribute("required", "");
+  await expect(form.locator('input[name="verifiedDate"]')).toHaveCount(0);
+  await expect(form.locator('select[name="active"]')).toHaveCount(0);
+  await expect(form.locator('textarea[name="reason"]')).toHaveCount(0);
   checkpoint("submit");
   const response = page.waitForResponse(
     (r) => r.request().method() === "POST" && !!r.request().headers()["next-action"],
   );
-  await form.getByRole("button", { name: "Save verified vendor", exact: true }).click();
+  await form.getByRole("button", { name: "Add vendor", exact: true }).click();
   expect((await response).ok()).toBe(true);
   checkpoint("confirm");
   await expect(form.getByRole("status")).toHaveText("Saved successfully.");

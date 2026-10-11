@@ -62,6 +62,17 @@ export const vendorInput = vendorReferenceInput.refine(
   (v) => !!v.verifiedDate,
   "Enter a contact verification date.",
 );
+export const unverifiedVendorInput = z
+  .object({
+    name: label,
+    phone: z.string().trim().min(1, "Phone number is required.").max(50),
+    contact: z.string().trim().max(160).default(""),
+    email: z.union([z.email().max(254), z.literal("")]).default(""),
+    services: z.string().trim().max(2000).default(""),
+    reference: z.string().trim().max(160).default(""),
+    notes,
+  })
+  .strict();
 export const equipmentInput = z.object({
   id: optionalId,
   version,

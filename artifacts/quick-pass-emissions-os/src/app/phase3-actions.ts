@@ -40,6 +40,9 @@ export async function saveVendor(_: ActionState, form: FormData) {
     maintenance.saveVendor(actor, { ...fields(form), active: form.get("active") === "true" }),
   );
 }
+export async function addUnverifiedVendor(_: ActionState, form: FormData) {
+  return perform((actor) => maintenance.addUnverifiedVendor(actor, fields(form)));
+}
 export async function saveEquipment(_: ActionState, form: FormData) {
   return perform((actor) =>
     maintenance.saveEquipment(actor, { ...fields(form), active: form.get("active") === "true" }),

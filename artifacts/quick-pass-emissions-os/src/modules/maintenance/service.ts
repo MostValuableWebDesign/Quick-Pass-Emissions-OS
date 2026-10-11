@@ -103,6 +103,25 @@ export async function saveVendor(actorId: string, input: unknown) {
   const data = v.vendorInput.parse(input);
   return phase3(actorId, managers, (tx) => saveVendorInTransaction(tx, actorId, data));
 }
+export async function addUnverifiedVendor(actorId: string, input: unknown) {
+  const data = v.unverifiedVendorInput.parse(input);
+  return phase3(actorId, managers, async (tx) => {
+    const duplicate = await tx.vendor.findFirst({
+      where: { name: { equals: data.name, mode: "insensitive" }, phone: data.phone },
+      select: { id: true },
+    });
+    requireRule(!duplicate, "A vendor with this name and phone is already listed.");
+    const row = await tx.vendor.create({
+      data: { ...data, verifiedDate: null, active: true },
+    });
+    await audit(tx, actorId, "VENDOR_SAVED", row.id, {
+      before: null,
+      after: { ...data, verifiedDate: null, active: true },
+      reason: "Added as an unconfirmed vendor contact",
+    });
+    return row;
+  });
+}
 // Shared mutation boundary for validated manual records and unverified imported references.
 export async function saveVendorInTransaction(tx: Tx, actorId: string, input: unknown) {
   const { id: recordId, version, reason, ...data } = v.vendorReferenceInput.parse(input);

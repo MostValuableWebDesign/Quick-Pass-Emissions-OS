@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { rentalMonth, paymentSummary } from "../src/modules/rentals/rules";
 import { agreementInput } from "../src/modules/rentals/service";
 import { movementInput } from "../src/modules/chemicals/service";
-import { vendorInput } from "../src/modules/maintenance/validation";
+import { unverifiedVendorInput, vendorInput } from "../src/modules/maintenance/validation";
 describe("Phase 3 calendar, money and validation", () => {
   it("clamps payment due days at leap and non-leap month ends", () => {
     expect(rentalMonth("2028-02", 31).dueDate).toBe("2028-02-29");
@@ -58,6 +58,16 @@ describe("Phase 3 calendar, money and validation", () => {
         reason: "checked",
       }).success,
     ).toBe(false);
+  });
+  it("allows only vendor name and phone to be required for an unverified vendor", () => {
+    const minimal = { name: "New vendor", phone: "555-0100" };
+    expect(unverifiedVendorInput.safeParse(minimal).success).toBe(true);
+    expect(unverifiedVendorInput.safeParse({ name: "", phone: "555-0100" }).success).toBe(false);
+    expect(unverifiedVendorInput.safeParse({ name: "New vendor", phone: "" }).success).toBe(false);
+    expect(
+      unverifiedVendorInput.safeParse({ ...minimal, verifiedDate: "2026-10-01" }).success,
+    ).toBe(false);
+    expect(unverifiedVendorInput.safeParse({ ...minimal, active: false }).success).toBe(false);
   });
   it("rejects fractional/overflow stock and preserves explicit zero physical counts", () => {
     const m = {

@@ -38,7 +38,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ id: s
         {p.verifiedDate ? (
           <span className="badge green">Verified contact {p.verifiedDate}</span>
         ) : (
-          <span className="badge amber">Document-sourced · unconfirmed</span>
+          <span className="badge amber">Unconfirmed</span>
         )}
         {p.preferences.map((x) => (
           <span key={x.category} className="badge">
@@ -51,7 +51,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ id: s
       </p>
       {!p.verifiedDate && (
         <p className="notice">
-          Source-provided reference only. Confirm independently before relying on it.
+          Contact details are unconfirmed. Verify them before assigning this vendor.
         </p>
       )}
       <div className="two-columns space-top">

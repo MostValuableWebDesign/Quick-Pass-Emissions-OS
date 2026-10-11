@@ -270,6 +270,34 @@ if (enabled) {
       "Private vendor notes",
     );
   });
+  it("adds minimal vendor contacts as active but unconfirmed and blocks their assignment", async () => {
+    const input = { name: "Unconfirmed fixture vendor", phone: "555-unconfirmed" };
+    const added = await m.addUnverifiedVendor(manager, input);
+    expect(added).toMatchObject({
+      name: input.name,
+      phone: input.phone,
+      active: true,
+      verifiedDate: null,
+      contact: "",
+      services: "",
+      reference: "",
+    });
+    await expect(m.addUnverifiedVendor(manager, input)).rejects.toThrow("already listed");
+    await expect(m.addUnverifiedVendor(employee, input)).rejects.toThrow();
+    await expect(
+      m.saveEquipment(manager, {
+        id: "",
+        version: 0,
+        code: "UNCONFIRMED-PUMP",
+        name: "Unconfirmed pump",
+        category: "PUMP",
+        bayId: "",
+        vendorId: added.id,
+        active: true,
+        reason: why,
+      }),
+    ).rejects.toThrow("active verified");
+  });
   it("retains equipment downtime and prevents archival with unresolved work", async () => {
     const t = await ticket(),
       e = await db.equipment.findUniqueOrThrow({ where: { id: t.equipmentId! } });

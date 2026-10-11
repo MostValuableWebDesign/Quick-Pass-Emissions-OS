@@ -56,17 +56,23 @@ test("six bays, management-recorded issue and reviewed repair, preventative work
   await save(f, "Update bay");
   await expect(bay.locator(".badge").filter({ hasText: "out of service" })).toBeVisible();
   await page.goto("/vendors");
-  f = form(page, "Save verified vendor");
+  f = form(page, "Add vendor");
   await f.getByLabel("Vendor name").fill("E2E Verified Vendor");
+  await f.getByLabel("Phone number").fill("555-fixture");
+  await f.getByLabel("Services provided").fill("Fixture pump service");
+  await save(f, "Add vendor");
+  const vendorCard = page.locator("section.card").filter({ hasText: "E2E Verified Vendor" });
+  await expect(vendorCard.locator(".badge").filter({ hasText: "Unconfirmed" })).toBeVisible();
+  await page.getByRole("link", { name: "E2E Verified Vendor", exact: true }).click();
+  f = form(page, "Update verified contact");
   await f.getByLabel("Verified contact person / department").fill("Fixture support desk");
   await f.getByLabel("Verified phone", { exact: false }).fill("555-fixture");
-  await f.getByLabel("Services provided").fill("Fixture pump service");
   await f
     .getByLabel("Business reference / contact verification evidence")
     .fill("e2e-contact-reference");
   await f.getByLabel("Contact verification date").fill("2026-10-01");
   await f.getByLabel("Change reason").fill("E2E checked contact");
-  await save(f, "Save verified vendor");
+  await save(f, "Update verified contact");
   await page.goto("/equipment");
   f = form(page, "Register equipment");
   await f.getByLabel("Unique equipment code").fill("E2E-PUMP");

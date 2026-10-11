@@ -4,11 +4,10 @@ import { currentUser } from "@/lib/access";
 import { directory } from "@/modules/support/service";
 import { CATEGORIES } from "@/modules/support/rules";
 import { PageHeader, Empty } from "@/components/shared";
-import { ActionForm, Field } from "@/components/action-form";
-import { DemoNotice, Reason } from "@/components/phase3";
+import { Field } from "@/components/action-form";
+import { DemoNotice } from "@/components/phase3";
 import { ContactLine } from "@/components/support-contact";
 import { VendorForm } from "@/components/support-vendor-form";
-import { setPreference } from "@/app/support-actions";
 
 export default async function Vendors({
   searchParams,
@@ -105,7 +104,7 @@ export default async function Vendors({
                   {p.verifiedDate ? (
                     <span className="badge green">Verified contact {p.verifiedDate}</span>
                   ) : (
-                    <span className="badge amber">Document-sourced · unconfirmed</span>
+                    <span className="badge amber">Unconfirmed</span>
                   )}
                   {(preferredBy.get(p.id) ?? []).map((c) => (
                     <span key={c} className="badge">
@@ -119,7 +118,7 @@ export default async function Vendors({
                 {p.categories.length > 0 && <p>{p.categories.join(" · ")}</p>}
                 {!p.verifiedDate && (
                   <p className="notice">
-                    Source-provided reference only. Confirm independently before relying on it.
+                    Contact details are unconfirmed. Verify them before assigning this vendor.
                   </p>
                 )}
                 {p.contact && <p>Contact: {p.contact}</p>}
@@ -134,43 +133,14 @@ export default async function Vendors({
         </div>
       )}
       {data.management && (
-        <>
-          <section className="card card-body space-top">
-            <h2>Preferred provider by category</h2>
-            <p className="muted">
-              Only active, verified providers listed in that category can be preferred. Choose none
-              to clear.
-            </p>
-            <div className="two-columns">
-              {CATEGORIES.map((c) => {
-                const pref = data.preferences.find((p) => p.category === c);
-                const choices = data.preferenceChoices.filter((p) => p.categories.includes(c));
-                return (
-                  <ActionForm key={c} action={setPreference} submit="Save preference">
-                    <h3 className="wide">{c}</h3>
-                    <input type="hidden" name="category" value={c} />
-                    <input type="hidden" name="version" value={pref?.version ?? 0} />
-                    <Field label={`Preferred provider for ${c}`}>
-                      <select name="vendorId" defaultValue={pref?.vendorId ?? ""}>
-                        <option value="">None</option>
-                        {choices.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-                    <Reason />
-                  </ActionForm>
-                );
-              })}
-            </div>
-          </section>
-          <section className="card card-body space-top">
-            <h2>Add a verified vendor</h2>
-            <VendorForm />
-          </section>
-        </>
+        <section className="card card-body space-top">
+          <h2>Add a vendor</h2>
+          <p className="muted">
+            Vendor name and phone are required. New vendors are active but remain unconfirmed until
+            their contact details are verified.
+          </p>
+          <VendorForm />
+        </section>
       )}
     </>
   );

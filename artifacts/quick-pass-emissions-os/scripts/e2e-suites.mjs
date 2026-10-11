@@ -1,4 +1,5 @@
 export function browserSuite(env) {
+  if (env.E2E_VENDOR_ONLY === "1") return { "vendor-entry.spec.ts": 1 };
   if (env.E2E_PERFORMANCE_PANELS === "1")
     return {
       "performance-panels.spec.ts": 1,

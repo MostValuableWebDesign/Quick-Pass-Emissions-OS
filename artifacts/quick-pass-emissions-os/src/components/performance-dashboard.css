@@ -1,9 +1,9 @@
 .pd {
-  --pd-ink: #122c35;
-  --pd-teal: #147b68;
-  --pd-mint: #47c99d;
-  --pd-amber: #c98a2b;
-  --pd-rose: #b76057;
+  --pd-ink: var(--nav-bg);
+  --pd-teal: var(--action);
+  --pd-mint: var(--chart-green);
+  --pd-amber: var(--warning);
+  --pd-rose: var(--danger);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -48,9 +48,9 @@
   color: var(--muted);
 }
 .pd-chip.warn {
-  background: #fff3dc;
-  border-color: #f3dfba;
-  color: #825d1b;
+  background: var(--warning-bg);
+  border-color: var(--warning-line);
+  color: var(--warning);
 }
 .pd-chip.ok {
   background: var(--soft);
@@ -58,8 +58,8 @@
   color: var(--primary);
 }
 .pd-chip.bad {
-  background: #fbeceb;
-  border-color: #f1d3cf;
+  background: var(--danger-bg);
+  border-color: var(--danger-line);
   color: var(--pd-rose);
 }
 .pd-dot {
@@ -88,13 +88,13 @@
 }
 .pd-today {
   padding: 24px 26px;
-  border-right: 1px solid #24434d;
+  border-right: 1px solid var(--nav-line);
   position: relative;
 }
 .pd-today .lab {
   font-size: 10px;
   letter-spacing: 1.7px;
-  color: #75ccac;
+  color: var(--nav-accent);
   font-weight: 700;
 }
 .pd-today strong {
@@ -106,7 +106,7 @@
   color: #f4fffb;
 }
 .pd-today small {
-  color: #9ebebf;
+  color: var(--nav-muted);
   font-size: 11px;
 }
 .pd-split {
@@ -114,7 +114,7 @@
   height: 6px;
   border-radius: 4px;
   overflow: hidden;
-  background: #24434d;
+  background: var(--nav-line);
   margin: 14px 0 10px;
 }
 .pd-split span {
@@ -132,7 +132,7 @@
   display: flex;
   gap: 14px;
   font-size: 11px;
-  color: #b6c5ca;
+  color: var(--nav-muted);
   flex-wrap: wrap;
 }
 .pd-legend i {
@@ -146,7 +146,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1px;
-  background: #24434d;
+  background: var(--nav-line);
 }
 .pd-hero .pd-kpis {
   gap: 1px;
@@ -160,7 +160,7 @@
 }
 .pd-kpi .lab {
   font-size: 11px;
-  color: #9eb7bb;
+  color: var(--nav-muted);
   font-weight: 600;
 }
 .pd-kpi strong {
@@ -171,10 +171,10 @@
 }
 .pd-kpi small {
   font-size: 11px;
-  color: #82a9ad;
+  color: var(--nav-muted);
 }
 .pd-kpi.accent strong {
-  color: #80dfbd;
+  color: var(--nav-accent);
 }
 .pd > .pd-kpis {
   background: none;
@@ -189,7 +189,7 @@
   align-items: end;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 14px;
 }
 .pd-controls form {
@@ -345,7 +345,7 @@
   outline: none;
 }
 .pd-cal-day:focus-visible span {
-  outline: 3px solid #43a990;
+  outline: 3px solid var(--brand);
   outline-offset: 1px;
 }
 .pd-cal-side {
@@ -415,12 +415,12 @@
 .pd-widget[data-drag-over="true"] {
   outline: 2px solid var(--pd-teal);
   outline-offset: 3px;
-  border-radius: 12px;
+  border-radius: 14px;
 }
 .pd-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   min-width: 0;
   height: 100%;
   display: flex;
@@ -462,7 +462,7 @@
   background: var(--bg);
 }
 .pd-panel-tool:focus-visible {
-  outline: 3px solid #43a990;
+  outline: 3px solid var(--brand);
   outline-offset: 1px;
 }
 .pd-panel-tool:disabled {
@@ -496,7 +496,7 @@
   color: var(--text);
 }
 .pd-panel-resize-handle:focus-visible {
-  outline: 2px solid #43a990;
+  outline: 2px solid var(--brand);
   outline-offset: -2px;
   border-radius: 4px;
 }
@@ -556,7 +556,7 @@
   align-items: center;
 }
 .pd-table th button:focus-visible {
-  outline: 3px solid #43a990;
+  outline: 3px solid var(--brand);
 }
 .pd-table td.r,
 .pd-table th.r {
@@ -606,7 +606,7 @@
   box-shadow: 0 30px 80px #0b1a2040;
 }
 .pd-dialog::backdrop {
-  background: #0b1a2080;
+  background: #0e211580;
 }
 .pd-dialog-h {
   display: flex;
@@ -688,7 +688,7 @@
   align-items: center;
 }
 .pd-skel {
-  border-radius: 12px;
+  border-radius: 14px;
   background: linear-gradient(90deg, var(--line), var(--bg), var(--line));
   background-size: 200% 100%;
   animation: pd-shimmer 1.3s linear infinite;
@@ -705,7 +705,7 @@
   }
   .pd-today {
     border-right: 0;
-    border-bottom: 1px solid #24434d;
+    border-bottom: 1px solid var(--nav-line);
   }
 }
 @media (max-width: 760px) {

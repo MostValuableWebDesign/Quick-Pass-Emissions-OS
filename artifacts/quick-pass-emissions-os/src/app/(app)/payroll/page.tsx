@@ -262,7 +262,7 @@ export default async function Payroll({
         <div className="card-heading">
           <h2>Daily counts · review</h2>
         </div>
-        <form action="/payroll" method="get" className="card-body">
+        <form action="/payroll" method="get" className="card-body filter-form">
           <input type="hidden" name="date" value={dashboard.filter.date} />
           <input type="hidden" name="weekStart" value={dashboard.filter.weekStart} />
           <Field label="Count approval filter">
@@ -281,7 +281,7 @@ export default async function Payroll({
               ))}
             </select>
           </Field>
-          <button className="button" type="submit">
+          <button className="button button-primary" type="submit">
             Filter counts
           </button>
         </form>

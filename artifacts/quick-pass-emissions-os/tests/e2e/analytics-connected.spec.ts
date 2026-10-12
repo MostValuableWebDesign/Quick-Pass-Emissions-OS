@@ -39,16 +39,10 @@ test("synthetic Google OAuth, mapping, queued sync and reports persist across re
   } finally {
     await fixtureDb.$disconnect();
   }
-  const sync = form(page, "Queue refresh & historical backfill");
-  await sync.getByLabel("Backfill from").fill("2026-05-01");
-  await sync.getByLabel("Backfill through").fill("2026-05-31");
-  await save(sync, "Queue refresh & historical backfill");
-  for (let i = 0; i < 3; i++) {
-    const response = await page.request.post("/api/jobs", {
-      headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
-    });
-    expect(response.ok()).toBe(true);
-  }
+  await page.getByRole("button", { name: "Sync now", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Completed ·" })).toBeVisible({
+    timeout: 120000,
+  });
   await page.reload();
   await expect(
     page.getByText("Synthetic fixture: a long wait for service", { exact: true }),

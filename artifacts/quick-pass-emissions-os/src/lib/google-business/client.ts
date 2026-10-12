@@ -11,6 +11,7 @@ export class GoogleError extends BusinessError {
   constructor(
     public code: string,
     public retryable = false,
+    public retryAfterMs = 0,
   ) {
     super(
       (
@@ -30,14 +31,18 @@ export class GoogleError extends BusinessError {
 export function googleConfig() {
   const clientId = process.env.GOOGLE_BUSINESS_CLIENT_ID?.trim();
   const clientSecret = process.env.GOOGLE_BUSINESS_CLIENT_SECRET?.trim();
-  const raw = process.env.BETTER_AUTH_URL;
   requireRule(
     clientId &&
       clientSecret &&
-      raw &&
       /^[a-f0-9]{64}$/i.test(process.env.GOOGLE_BUSINESS_ENCRYPTION_KEY ?? ""),
     "Google setup needed: configure the OAuth client, app URL and encryption key. See GOOGLE_ANALYTICS.md.",
   );
+  const base = canonicalOrigin();
+  return { clientId, clientSecret, redirectUri: googleCallbackUrl(), origin: base.origin };
+}
+function canonicalOrigin() {
+  const raw = process.env.BETTER_AUTH_URL;
+  requireRule(raw, "Configure the canonical BETTER_AUTH_URL.");
   const base = new URL(raw);
   requireRule(
     (base.protocol === "https:" ||
@@ -51,12 +56,10 @@ export function googleConfig() {
       !base.hash,
     "Use a secure canonical BETTER_AUTH_URL (localhost HTTP is allowed for development).",
   );
-  return {
-    clientId,
-    clientSecret,
-    redirectUri: new URL("/api/google-business/callback", base).href,
-    origin: base.origin,
-  };
+  return base;
+}
+export function googleCallbackUrl() {
+  return new URL("/api/google-business/callback", canonicalOrigin()).href;
 }
 export function googleConfigured() {
   try {
@@ -82,6 +85,11 @@ export function authorizationUrl(state: string, challenge: string) {
   }).toString();
   return u.href;
 }
+export function retryDelay(value: string | null, now = Date.now()) {
+  if (!value) return 0;
+  const delay = /^\d+$/.test(value) ? Number(value) * 1000 : Date.parse(value) - now;
+  return Number.isFinite(delay) ? Math.max(0, Math.min(delay, 86400000)) : 0;
+}
 // Fixed endpoints only. No caller-controlled host, redirects, raw response logging or API writes.
 async function request(url: URL, init: RequestInit, deadline: number) {
   let response: Response;
@@ -106,6 +114,7 @@ async function request(url: URL, init: RequestInit, deadline: number) {
                 ? "NETWORK"
                 : "RANGE",
         response.status === 429 || response.status >= 500,
+        retryDelay(response.headers.get("Retry-After")),
       );
     const text = await response.text();
     if (text.length > 4_000_000) throw new GoogleError("RESPONSE");

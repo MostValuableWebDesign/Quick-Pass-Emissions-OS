@@ -69,6 +69,7 @@ export async function finishConnection(
     requireRule(c.generation === attempt.generation, "Connection changed. Reconnect Google.");
     await tx.googleBusinessCache.deleteMany({});
     await tx.googleBusinessSync.deleteMany({});
+    await tx.googleBusinessRequest.deleteMany({});
     await tx.googleBusinessLocation.updateMany({ data: { enabled: false } });
     await tx.googleBusinessConnection.update({
       where: { id: CONNECTION },
@@ -82,7 +83,6 @@ export async function finishConnection(
         discovery: null,
         discoveryAt: null,
         discoveryExpiresAt: null,
-        lastScheduledDate: null,
         cooldownUntil: null,
       },
     });
@@ -251,6 +251,7 @@ export async function disconnectGoogle(actorId: string) {
     await tx.googleBusinessOAuth.deleteMany({});
     await tx.googleBusinessCache.deleteMany({});
     await tx.googleBusinessSync.deleteMany({});
+    await tx.googleBusinessRequest.deleteMany({});
     await tx.googleBusinessLocation.updateMany({ data: { enabled: false } });
     await audit(tx, actorId, "GOOGLE_DISCONNECTED", CONNECTION, { revocationConfirmed: revoked });
   });

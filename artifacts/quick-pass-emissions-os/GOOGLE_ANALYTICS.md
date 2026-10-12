@@ -3,7 +3,9 @@
 Implemented locally for **Quick Pass Emissions & Tag Renewal**. This is an ongoing
 OAuth/API integration, not a Google Analytics GA4, Ads, Places, scraping or browser-cookie
 integration. No real Google authorization or API import is claimed by the synthetic tests.
-The user requested this delivery remain uncommitted and unpublished.
+Manual syncing only: Connect Google once → select/map a location → select the reporting
+period → **Sync now** → updated reports. OAuth refresh remains server-side; no Google
+password, browser cookie import, listing edits or published replies are used.
 
 ## Exact external setup
 
@@ -43,14 +45,30 @@ The user requested this delivery remain uncommitted and unpublished.
 7. Grant managers explicit Analytics access to that station. Owners can read all Analytics
    stations; managers can connect Google but cannot map locations, grant permissions or
    record/review improvement actions. Employees and bookkeepers have no app access.
-8. Use **Queue refresh & historical backfill** for both the desired period and its comparison
-   dates. The form initially includes the previous period. May 2026 and September 2026 have
-   shortcuts. Requests are bounded to 367 days and split into full calendar months.
-9. Provision an independent persistent trigger for the existing authenticated **POST `/api/jobs`**
-   every five minutes (or run the existing `pnpm --filter @workspace/quick-pass-emissions-os jobs`
-   command on that schedule). Use the configured server `CRON_SECRET` as a bearer token.
-   Keep job endpoints out of public logs containing authorization headers. Monitor failed
-   JobRun records and Analytics sync errors externally. No scheduler was provisioned here.
+8. Select the mapped station/location and reporting dates, then click **Sync now**.
+   It includes the displayed equal-length previous comparison period, full source months,
+   monthly keywords and all available review pages. The selected report is 1–367 days;
+   this is an application safety bound, **not a promise of Google's historical availability**.
+   May 2026 and September 2026 shortcuts remain. Unsupported/omitted history stays unavailable.
+9. The click creates one durable manual request, then the submit interaction advances one
+   bounded, authenticated worker page per Server Action until every source finishes.
+   There is no terminal command or `/api/jobs` call required from the owner. Keep the page
+   open; after an interrupted interaction, **Resume sync** advances that same request.
+   Closing the page preserves queued work. Page visits and filter changes perform no
+   provider work. No new Google work is scheduled by browser timers.
+10. Keep/provision the **existing** independent persistent worker for recovery, pagination
+    and retries after a page is closed, and timely content expiry. POST `/api/jobs` every
+    five minutes with `Authorization: Bearer <CRON_SECRET>`, or use the existing workspace
+    `jobs` command on that schedule. It drains only explicitly requested manual Google
+    work; **running a worker does not authorize automatic Google data collection**.
+    Unrelated operations, owner email and door-access jobs retain their schedules. No
+    persistent trigger is provisioned by this code. Monitor job failures and cache cleanup.
+
+The exact callback for the current deployment is displayed in **Analytics → Google
+Business Profile**, including when client credentials are still missing. Copy it verbatim
+into Google Cloud; it is `<canonical BETTER_AUTH_URL origin>/api/google-business/callback`.
+Configure each preview/production/local origin separately. The production hostname cannot
+be inferred from a local checkout. If it is not displayed, set the canonical auth URL first.
 
 Google's OAuth test publishing mode can expire refresh grants after seven days for this scope;
 use the correct production/internal consent configuration and complete Google's verification
@@ -105,20 +123,43 @@ are not implemented. Historical months are refetched while Google still serves t
 
 ## Synchronization and historical boundaries
 
-A unique location/kind/month task prevents duplicate imports. An independently committed two-minute
-claim lease protects workers; dispatch rechecks the lease, connection and mapping owner. Cursor/page
-progress commits with source responses. Four attempts per failed page, with 1/2/4-minute retry delays;
-429/network/5xx responses retry, revoked tokens require reconnection, configuration/range failures
-remain visible until corrected and manually refreshed. Terminal interrupted claims remain failed.
-Manual refresh and discovery share a 60-second cooldown. Pending work is never duplicated by clicks.
+A unique location/kind/month task and one active request per location prevent duplicate
+concurrent imports, including clicks after the shared cooldown expires. Manual requests
+and discovery share a 60-second connection cooldown. A request records its actor, selected
+reporting dates, request time, state and terminal time. Each provider page rechecks active
+management access, explicit station grants, the mapping owner and the connection. An
+independently committed two-minute claim lease excludes stale workers.
 
-Each trigger processes at most three requests; review/keyword pagination persists between triggers,
-with a visible failure above 200 pages. Review lists are incomplete until all pages are present.
-Daily enqueue refreshes the current and prior calendar months to catch delayed/revised data.
-Missed older periods can be explicitly backfilled; no claim of unlimited automatic catch-up is made.
-Successful source timestamps and safe per-task errors are visible. An old last-success timestamp
-is history, not confirmation that the current queued cycle has finished. Display lists use 15 rows;
-metric totals include every usable matching source response.
+Each interactive Server Action processes at most one page (25-second provider budget);
+the independent worker processes at most three pages per trigger. No provider work runs
+inside page rendering. Pagination commits securely with source pages. A request is **queued**
+before dispatch, **running** while pages remain, **successful** only when every requested
+resource and final cursor succeeds, **partial** when some resources succeed and others fail,
+or **failed** if none complete. Four attempts per failing page use 1/2/4-minute backoff.
+429 responses also enforce shared connection backoff, respecting Retry-After up to 24 hours.
+Revoked credentials stop remaining pages and request reconnection. Range/access/schema
+failures stay visible with corrective instructions; retry with Sync now after correction.
+Review/keyword requests fail visibly above 200 pages rather than claiming completeness.
+
+Replacement pages stage separately. The last published usable cycle remains visible
+through queueing, partial pagination, failed refreshes and reconnection-required errors,
+with **its original fetched times**. A resource switches to its replacement only after its
+final page succeeds. A first incomplete import may show partial pages but never claims
+complete review/keyword coverage. Expired content remains unavailable regardless of prior
+success. Charts, comparisons, themes and recommendations derive from displayed, unexpired
+raw responses; no permanent Google aggregate archive is stored.
+
+The UI separates selected reporting dates, latest request state/time, last **fully** successful
+request, resource-level fetched times and per-source errors. Lists show at most 15 rows.
+A successful API transport can still have missing/delayed metric dates; coverage labels
+remain separate from queue success. Mixed-resource freshness is explicitly displayed.
+
+Migration `202610120008_manual_google_sync` removes the obsolete daily cursor, retains
+existing tokens/mappings/cache/business records, initializes published cache pointers and
+cancels ambiguous legacy queued/running/retry tasks. It does not resume historical work
+whose manual origin cannot be established. Only tasks linked to a new explicit manual
+request can be claimed. Neither independent jobs nor page visits enqueue Google syncs.
+Expired-content maintenance remains active and unrelated automation is unchanged.
 
 Official Google help describes six months in the web performance interface. Current v1 method
 references do not promise a numeric 18-month API retention window; legacy API examples are not a
@@ -177,7 +218,7 @@ any hosting or scheduler purchase is an owner decision. No paid AI service is re
 initial deterministic rules or drafts. No new service was purchased or Google Cloud project created.
 [Google pricing](https://developers.google.com/my-business/content/pricing).
 
-Read-only browser observation on October 12, 2026: the signed-in business Performance panel showed
+Earlier read-only browser observation on October 12, 2026: the signed-in business Performance panel showed
 May–October 2026 and separate Overview, Calls, Bookings, Directions and Website clicks tabs.
 This observation did not authorize the API or populate application records. Live Google OAuth,
 real data sync and deployment remain unverified until the setup above is completed and a real

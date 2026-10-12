@@ -9,6 +9,8 @@ import {
   exchange,
   SCOPE,
   GoogleError,
+  retryDelay,
+  googleCallbackUrl,
 } from "../src/lib/google-business/client";
 import {
   bounds,
@@ -185,6 +187,17 @@ describe("Google credential and fixed-origin transport security", () => {
       vi.stubEnv("BETTER_AUTH_URL", url);
       expect(() => googleConfig()).toThrow();
     }
+  });
+  it("displays the exact canonical callback before OAuth credentials are configured", () => {
+    vi.stubEnv("BETTER_AUTH_URL", "https://quickpass.example.test");
+    vi.stubEnv("GOOGLE_BUSINESS_CLIENT_ID", "");
+    expect(googleCallbackUrl()).toBe("https://quickpass.example.test/api/google-business/callback");
+  });
+  it("handles numeric and HTTP-date Retry-After safely", () => {
+    expect(retryDelay("120", 0)).toBe(120000);
+    expect(retryDelay("Thu, 01 Jan 1970 00:02:00 GMT", 0)).toBe(120000);
+    expect(retryDelay("invalid", 0)).toBe(0);
+    expect(retryDelay("999999999", 0)).toBe(86400000);
   });
   it("uses only read requests and rejects arbitrary destinations", async () => {
     config();

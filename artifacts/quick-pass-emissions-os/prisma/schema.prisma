@@ -1536,7 +1536,7 @@ model GoogleBusinessConnection {
   discoveryAt        DateTime?
   discovery          String?
   discoveryExpiresAt DateTime?
-  lastScheduledDate  String?
+  rateLimitedUntil   DateTime?
   cooldownUntil      DateTime?
   locations          GoogleBusinessLocation[]
 }
@@ -1581,26 +1581,46 @@ model GoogleBusinessLocation {
   enabled      Boolean                  @default(true)
   createdBy    String
   tasks        GoogleBusinessSync[]
+  requests     GoogleBusinessRequest[]
   cache        GoogleBusinessCache[]
 }
 
+model GoogleBusinessRequest {
+  id          String                 @id @default(cuid())
+  locationId  String
+  location    GoogleBusinessLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  createdBy   String
+  start       String
+  end         String
+  status      String                 @default("QUEUED")
+  createdAt   DateTime               @default(now())
+  completedAt DateTime?
+  tasks       GoogleBusinessSync[]
+
+  @@index([locationId, createdAt])
+}
+
 model GoogleBusinessSync {
-  id            String                 @id @default(cuid())
-  locationId    String
-  location      GoogleBusinessLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  kind          String
-  period        String
-  status        String                 @default("QUEUED")
-  cycle         String
-  page          Int                    @default(0)
-  cursor        String?
-  attempts      Int                    @default(0)
-  nextAttemptAt DateTime               @default(now())
-  leaseToken    String?
-  leaseUntil    DateTime?
-  lastSuccessAt DateTime?
-  error         String?
-  updatedAt     DateTime               @updatedAt
+  id             String                 @id @default(cuid())
+  locationId     String
+  location       GoogleBusinessLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  requestId      String?
+  request        GoogleBusinessRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  publishedCycle String?
+  publishedPage  Int?
+  kind           String
+  period         String
+  status         String                 @default("QUEUED")
+  cycle          String
+  page           Int                    @default(0)
+  cursor         String?
+  attempts       Int                    @default(0)
+  nextAttemptAt  DateTime               @default(now())
+  leaseToken     String?
+  leaseUntil     DateTime?
+  lastSuccessAt  DateTime?
+  error          String?
+  updatedAt      DateTime               @updatedAt
 
   @@unique([locationId, kind, period])
   @@index([status, nextAttemptAt])

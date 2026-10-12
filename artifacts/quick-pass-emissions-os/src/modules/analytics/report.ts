@@ -1,7 +1,7 @@
 import { Temporal } from "@js-temporal/polyfill";
 import { z } from "zod";
 import { businessDate, addDays } from "@/lib/time";
-import { googleConfigured } from "@/lib/google-business/client";
+import { googleConfigured, googleCallbackUrl } from "@/lib/google-business/client";
 import { decrypt } from "@/lib/google-business/crypto";
 import { audit, requireRule, type Tx } from "../phase2";
 import { dashboardDaySchema } from "../station/dashboard-service";
@@ -114,7 +114,14 @@ export async function analyticsOverview(
       station && actor.role === "OWNER"
         ? await tx.analyticsStationGrant.findMany({ where: { stationId: station.id } })
         : [];
+    let redirectUri: string | null = null;
+    try {
+      redirectUri = googleCallbackUrl();
+    } catch {
+      /* Safe unset setup state. */
+    }
     const empty = {
+      redirectUri,
       actorRole: actor.role,
       configured: googleConfigured(),
       stations,
@@ -135,7 +142,7 @@ export async function analyticsOverview(
         })
       : [];
     const caches =
-      location && location.enabled && c?.status === "CONNECTED"
+      location && location.enabled && c && c.status !== "DISCONNECTED"
         ? await tx.googleBusinessCache.findMany({
             where: { locationId: location.id, expiresAt: { gt: new Date() } },
           })
@@ -151,9 +158,10 @@ export async function analyticsOverview(
     }[] = [];
     const reviewMap = new Map<string, Review>();
     const fetched: Date[] = [];
+    const freshness: { kind: string; period: string; page: number; fetchedAt: Date }[] = [];
     for (const cache of caches) {
       const task = tasks.find((t) => t.kind === cache.kind && t.period === cache.period);
-      if (!task || task.cycle !== cache.cycle) continue;
+      if (!task || (task.publishedCycle ?? task.cycle) !== cache.cycle) continue;
       try {
         const raw = decrypt(
           cache.payload,
@@ -167,7 +175,16 @@ export async function analyticsOverview(
               keyword: row.searchKeyword,
               value: row.insightsValue.value ?? null,
               threshold: row.insightsValue.threshold ?? null,
-              complete: task.status === "SUCCESS" && cache.period < businessDate().slice(0, 7),
+              complete:
+                task.publishedPage !== null &&
+                caches.filter(
+                  (c) =>
+                    c.kind === task.kind &&
+                    c.period === task.period &&
+                    c.cycle === task.publishedCycle,
+                ).length ===
+                  task.publishedPage + 1 &&
+                cache.period < businessDate().slice(0, 7),
             });
         if (cache.kind === "REVIEWS")
           for (const review of reviewsSchema.parse(raw).reviews ?? []) {
@@ -175,7 +192,18 @@ export async function analyticsOverview(
             if (!prior || review.updateTime > prior.updateTime)
               reviewMap.set(review.reviewId, review);
           }
-        fetched.push(cache.fetchedAt);
+        if (
+          cache.kind === "REVIEWS" ||
+          months(range.previous.start, range.end).includes(cache.period)
+        ) {
+          fetched.push(cache.fetchedAt);
+          freshness.push({
+            kind: cache.kind,
+            period: cache.period,
+            page: cache.page,
+            fetchedAt: cache.fetchedAt,
+          });
+        }
       } catch {
         unreadable++;
       }
@@ -190,9 +218,31 @@ export async function analyticsOverview(
     );
     const reviewTask = tasks.find((t) => t.kind === "REVIEWS");
     const reviewComplete =
-      reviewTask?.status === "SUCCESS" &&
-      caches.filter((k) => k.kind === "REVIEWS" && k.cycle === reviewTask.cycle).length ===
-        reviewTask.page + 1;
+      !!reviewTask &&
+      reviewTask.publishedPage !== null &&
+      caches.filter((k) => k.kind === "REVIEWS" && k.cycle === reviewTask.publishedCycle).length ===
+        reviewTask.publishedPage + 1;
+    const latestRequest = location
+      ? await tx.googleBusinessRequest.findFirst({
+          where: { locationId: location.id },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          select: {
+            id: true,
+            start: true,
+            end: true,
+            status: true,
+            createdAt: true,
+            completedAt: true,
+          },
+        })
+      : null;
+    const lastSuccessfulRequest = location
+      ? await tx.googleBusinessRequest.findFirst({
+          where: { locationId: location.id, status: "SUCCESS" },
+          orderBy: { completedAt: "desc" },
+          select: { completedAt: true },
+        })
+      : null;
     const reviewLocalDate = (r: Review) => businessDate(new Date(r.createTime));
     const selectedReviews = reviews.filter(
       (r) => reviewLocalDate(r) >= range.start && reviewLocalDate(r) <= range.end,
@@ -228,6 +278,12 @@ export async function analyticsOverview(
       report: {
         current,
         previous,
+        latestRequest,
+        lastSuccessfulSync: lastSuccessfulRequest?.completedAt ?? null,
+        freshness,
+        oldestFetchedAt: fetched.length
+          ? new Date(Math.min(...fetched.map((d) => d.getTime())))
+          : null,
         comparisons: current.map((m) => ({
           metric: m.metric,
           change: delta(

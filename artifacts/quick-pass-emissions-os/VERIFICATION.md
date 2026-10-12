@@ -712,3 +712,57 @@ Turbopack attempt was stopped after making no progress. No live Google
 authorization/sync, database/browser rerun, scheduler provisioning or deployment
 was performed during publication. Earlier implementation verification above
 remains a separate record.
+
+## 2026-10-12 — Owner-triggered manual Google sync
+
+Reused the existing OAuth, encrypted token storage/refresh, mapping, grants and
+independent worker. Sync now creates an explicit persistent request and advances
+bounded worker pages from the submit interaction; Resume sync continues an
+interrupted request. Page rendering/filter changes make no Google requests.
+There is no daily Google enqueue path or scheduling cursor. Independent jobs
+only drain manual requests and maintain expiry; operations, owner email, door
+access and Marketing behavior remain unchanged.
+
+Forward migration `202610120008_manual_google_sync` preserves credentials and
+cached content, initializes published generations, and cancels ambiguous legacy
+queued/running/retry work. Workers cannot claim tasks without manual request
+provenance. Published responses, including partial first imports, retain their
+original fetch times during failed refreshes. Replacement paginated resources
+publish only after their final page. Request success requires every resource to
+complete; partial/failed states, explicit coverage, per-source freshness, full
+request success time, reconnect instructions and shared Retry-After backoff are
+separate. Monthly charts use missing-value gaps and explicit partial coverage.
+
+Verification:
+
+- **702 tests in 77 files passed, none skipped**, in a uniquely owned disposable
+  PostgreSQL `_test` database. The normal upgrade verifier retained approved
+  payroll/invoice/signed-reversal sentinels. A dedicated migration test retained
+  existing encrypted credentials/cache and canceled all three legacy active states.
+- Coverage includes OAuth/token refresh/revocation, roles and station grants,
+  request-to-worker completion, duplicate prevention, partial failures and review
+  pagination, preservation of old/partial data and timestamps, missing/delayed/zero
+  definitions, date boundaries, shared quota backoff and disabled daily enqueueing.
+  Existing automation/email/door/Marketing tests remain in the full suite.
+- **Two Analytics setup/access browser checks passed**. **One complete synthetic
+  OAuth → mapping → Sync now → metrics/reviews → reload → disconnect browser check
+  passed**, without a terminal command or a separate `/api/jobs` request from the test.
+  Provider responses and consent were synthetic; this is not live authorization.
+- TypeScript, ESLint and production build passed. Build used an unreachable build-only
+  database. **71 production trace manifests** contained zero private verification
+  references; **45 client chunks** contained zero checked Google credential/fixture
+  markers. Changed supported files pass Prettier. Repository-wide formatting has
+  existing unrelated failures; no unrelated formatting sweep was performed.
+- Source search found no Google daily enqueuer, scheduling cursor or obsolete backfill
+  button in current runtime code. Only migration history mentions the removed cursor.
+  The full default browser suite was not rerun; the three targeted Analytics checks
+  are the browser coverage claimed here.
+
+**Locally implemented: yes. Tested: isolated automated checks above. Live Google
+OAuth authorization: unverified. Live Google sync: unverified. Deployed: no.**
+External Google project/API approval, client credentials, production consent
+configuration, canonical HTTPS redirect registration and persistent worker recovery
+provisioning remain operator setup. A presence-only check found no local Google client ID,
+client secret, encryption key or canonical BETTER_AUTH_URL configured; no secret values
+were printed. Deployed environment configuration was not inspected. The exact runtime callback is displayed in
+Analytics; detailed steps are in [GOOGLE_ANALYTICS.md](GOOGLE_ANALYTICS.md).

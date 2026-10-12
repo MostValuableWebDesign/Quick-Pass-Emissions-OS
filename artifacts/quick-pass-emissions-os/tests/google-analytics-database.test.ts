@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import type { PrismaClient } from "@prisma/client";
 import { beforeAll, beforeEach, afterEach, afterAll, describe, it, expect, vi } from "vitest";
@@ -261,14 +262,14 @@ if (enabled) {
   });
   it("persists an idempotent queue and shares manual refresh cooldown", async () => {
     await queue();
-    expect(await db.googleBusinessSync.count()).toBe(3);
+    expect(await db.googleBusinessSync.count()).toBe(7);
     await expect(queue()).rejects.toThrow(/cooling down/);
     await db.googleBusinessConnection.update({
       where: { id: "business" },
       data: { cooldownUntil: null },
     });
-    await queue();
-    expect(await db.googleBusinessSync.count()).toBe(3);
+    await expect(queue()).rejects.toThrow(/already active/);
+    expect(await db.googleBusinessSync.count()).toBe(7);
     expect(fetcher).not.toHaveBeenCalled();
   });
   it("commits imported source pages and preserves explicit zero and keyword thresholds", async () => {
@@ -285,14 +286,14 @@ if (enabled) {
     expect(data.report?.reviewComplete).toBe(true);
     expect(data.report?.currentBusiness.paidInspections).toBeNull();
     expect(data.report?.recommendations).toEqual([]);
-    expect(await db.googleBusinessCache.count()).toBe(3);
+    expect(await db.googleBusinessCache.count()).toBe(7);
     await db.googleBusinessConnection.update({
       where: { id: "business" },
       data: { cooldownUntil: null },
     });
     await queue();
     await processAll();
-    expect(await db.googleBusinessCache.count()).toBe(3);
+    expect(await db.googleBusinessCache.count()).toBe(7);
     expect((await overview()).report?.reviews).toHaveLength(1);
   });
   it("keeps paginated review results partial until the final page", async () => {
@@ -327,14 +328,9 @@ if (enabled) {
   });
   it("serializes claims and rejects stale workers", async () => {
     await queue();
-    const claims = await Promise.all([
-      s.claimGoogleSync(),
-      s.claimGoogleSync(),
-      s.claimGoogleSync(),
-      s.claimGoogleSync(),
-    ]);
-    expect(claims.filter(Boolean)).toHaveLength(3);
-    expect(new Set(claims.filter(Boolean).map((c) => c!.id)).size).toBe(3);
+    const claims = await Promise.all(Array.from({ length: 8 }, () => s.claimGoogleSync()));
+    expect(claims.filter(Boolean)).toHaveLength(7);
+    expect(new Set(claims.filter(Boolean).map((c) => c!.id)).size).toBe(7);
     const claim = claims.find(Boolean)!;
     await db.googleBusinessSync.update({
       where: { id: claim.id },
@@ -367,12 +363,14 @@ if (enabled) {
       where: { id: job.id },
       data: { attempts: 3, nextAttemptAt: new Date(0) },
     });
+    await db.googleBusinessConnection.updateMany({ data: { rateLimitedUntil: null } });
     job = (await s.claimGoogleSync())!;
     await s.processGoogleSync(job);
     expect(
       (await db.googleBusinessSync.findUniqueOrThrow({ where: { id: job.id } })).error,
     ).not.toContain("not logged");
     fetcher.mockResolvedValue(Response.json({}, { status: 401 }));
+    await db.googleBusinessConnection.updateMany({ data: { rateLimitedUntil: null } });
     job = (await s.claimGoogleSync())!;
     await s.processGoogleSync(job);
     expect(
@@ -390,7 +388,7 @@ if (enabled) {
     });
     expect((await overview()).report?.reviews).toEqual([]);
     vi.stubEnv("GOOGLE_BUSINESS_CLIENT_ID", "");
-    await s.enqueueDailyGoogle();
+    await s.runGoogleAnalytics();
     expect(await db.googleBusinessCache.count()).toBe(0);
   });
   it("disconnect removes provider cache and tokens while preserving owner records", async () => {
@@ -531,13 +529,223 @@ if (enabled) {
     expect(next.report?.actions).toHaveLength(1);
     expect(next.report?.actionCount).toBe(16);
   });
-  it("schedules once per business date and performs no network on report reads", async () => {
-    await s.enqueueDailyGoogle();
-    const count = await db.googleBusinessSync.count();
-    expect(count).toBeGreaterThan(0);
-    await s.enqueueDailyGoogle();
-    expect(await db.googleBusinessSync.count()).toBe(count);
-    await overview();
+  it("migrates legacy queued work safely without deleting credentials or cached data", async () => {
+    const schema = `google_upgrade_${randomUUID().replaceAll("-", "")}`;
+    const migration = readFileSync(
+      new URL(
+        "../prisma/migrations/202610120008_manual_google_sync/migration.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    await db.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(`CREATE SCHEMA "${schema}"`);
+      await tx.$executeRawUnsafe(`SET LOCAL search_path TO "${schema}"`);
+      for (const sql of [
+        `CREATE TABLE "GoogleBusinessConnection" ("id" TEXT PRIMARY KEY, "lastScheduledDate" TEXT, "credentials" TEXT)`,
+        `CREATE TABLE "GoogleBusinessLocation" ("id" TEXT PRIMARY KEY)`,
+        `CREATE TABLE "GoogleBusinessSync" ("id" TEXT PRIMARY KEY,"locationId" TEXT,"kind" TEXT,"period" TEXT,"cycle" TEXT,"status" TEXT,"page" INTEGER,"cursor" TEXT,"leaseToken" TEXT,"leaseUntil" TIMESTAMP,"error" TEXT)`,
+        `CREATE TABLE "GoogleBusinessCache" ("locationId" TEXT,"kind" TEXT,"period" TEXT,"cycle" TEXT,"payload" TEXT)`,
+        `INSERT INTO "GoogleBusinessConnection" VALUES ('business','2026-10-12','encrypted-existing-credentials')`,
+        `INSERT INTO "GoogleBusinessLocation" VALUES ('location')`,
+        ...["QUEUED", "RUNNING", "RETRY", "SUCCESS"].flatMap((status, i) => [
+          `INSERT INTO "GoogleBusinessSync" VALUES ('${i}','location','PERFORMANCE','2026-0${i + 1}','cycle${i}','${status}',0,'cursor','lease',CURRENT_TIMESTAMP,NULL)`,
+          `INSERT INTO "GoogleBusinessCache" VALUES ('location','PERFORMANCE','2026-0${i + 1}','cycle${i}','encrypted-source')`,
+        ]),
+        ...migration
+          .split(";")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      ])
+        await tx.$executeRawUnsafe(sql);
+      const tasks = await tx.$queryRawUnsafe<
+        {
+          status: string;
+          publishedCycle: string;
+          publishedPage: number | null;
+          requestId: string | null;
+          leaseToken: string | null;
+        }[]
+      >('SELECT * FROM "GoogleBusinessSync" ORDER BY "id"');
+      expect(tasks.map((t) => t.status)).toEqual(["CANCELED", "CANCELED", "CANCELED", "SUCCESS"]);
+      expect(tasks.every((t) => t.publishedCycle && t.requestId === null)).toBe(true);
+      expect(
+        tasks.slice(0, 3).every((t) => t.leaseToken === null && t.publishedPage === null),
+      ).toBe(true);
+      expect(tasks[3].publishedPage).toBe(0);
+      expect(
+        await tx.$queryRawUnsafe('SELECT "credentials" FROM "GoogleBusinessConnection"'),
+      ).toEqual([{ credentials: "encrypted-existing-credentials" }]);
+      expect(
+        await tx.$queryRawUnsafe('SELECT COUNT(*)::int AS n FROM "GoogleBusinessCache"'),
+      ).toEqual([{ n: 4 }]);
+      await tx.$executeRawUnsafe(`DROP SCHEMA "${schema}" CASCADE`);
+    });
+  });
+  it("preserves completed request time through repeated status reads", async () => {
+    const id = await s.requestGoogleSync(owner, location, {
+      start: "2026-05-01",
+      end: "2026-05-31",
+    });
+    await processAll();
+    const before = await db.googleBusinessRequest.findUniqueOrThrow({ where: { id } });
+    await s.manualSyncStatus(owner, id);
+    await s.manualSyncStatus(owner, id);
+    expect(
+      (await db.googleBusinessRequest.findUniqueOrThrow({ where: { id } })).completedAt,
+    ).toEqual(before.completedAt);
+  });
+  it("rejects new or resumed work when server Google configuration disappears", async () => {
+    const id = await s.requestGoogleSync(owner, location, {
+      start: "2026-05-01",
+      end: "2026-05-31",
+    });
+    vi.stubEnv("GOOGLE_BUSINESS_CLIENT_SECRET", "");
+    await expect(s.advanceManualSync(owner, id)).rejects.toThrow(/configuration is missing/);
     expect(fetcher).not.toHaveBeenCalled();
+  });
+  it("never enqueues Google work on independent worker runs or report reads", async () => {
+    await s.runGoogleAnalytics();
+    await s.runGoogleAnalytics();
+    await overview();
+    expect(await db.googleBusinessSync.count()).toBe(0);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+  it("does not claim legacy tasks without explicit manual provenance", async () => {
+    await db.googleBusinessSync.create({
+      data: { locationId: location, kind: "REVIEWS", period: "all", cycle: randomUUID() },
+    });
+    expect(await s.claimGoogleSync()).toBeNull();
+    await s.runGoogleAnalytics();
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+  it("advances a manual request to completion without calling the jobs endpoint", async () => {
+    const id = await s.requestGoogleSync(owner, location, {
+      start: "2026-05-01",
+      end: "2026-05-31",
+    });
+    expect((await s.manualSyncStatus(owner, id)).status).toBe("QUEUED");
+    let result = await s.advanceManualSync(owner, id);
+    expect(result.pending).toBeGreaterThan(0);
+    expect(result.status).toBe("RUNNING");
+    for (let i = 0; i < 12 && result.pending; i++) result = await s.advanceManualSync(owner, id);
+    expect(result).toMatchObject({ status: "SUCCESS", pending: 0, successful: 7, total: 7 });
+    expect((await overview()).report?.lastSuccessfulSync).not.toBeNull();
+  });
+  it("keeps previous data and its original freshness through failed refreshes", async () => {
+    await queue();
+    await processAll();
+    const before = (await overview()).report!;
+    await db.googleBusinessConnection.updateMany({ data: { cooldownUntil: null } });
+    const id = await s.requestGoogleSync(owner, location, {
+      start: "2026-05-01",
+      end: "2026-05-31",
+    });
+    expect((await overview()).report?.fetchedAt).toEqual(before.fetchedAt);
+    fetcher.mockResolvedValue(Response.json({}, { status: 403 }));
+    await processAll();
+    const after = (await overview()).report!;
+    expect(after.current).toEqual(before.current);
+    expect(after.reviews).toEqual(before.reviews);
+    expect(after.reviewComplete).toBe(true);
+    expect(after.fetchedAt).toEqual(before.fetchedAt);
+    expect((await s.manualSyncStatus(owner, id)).status).toBe("FAILED");
+  });
+  it("retains a first partial review import when its next refresh fails", async () => {
+    await queue();
+    await db.googleBusinessSync.deleteMany({ where: { kind: { not: "REVIEWS" } } });
+    fetcher.mockResolvedValueOnce(
+      Response.json({
+        reviews: [
+          {
+            reviewId: "partial",
+            starRating: "ONE",
+            comment: "Waited a long time",
+            createTime: "2026-05-02T12:00:00Z",
+            updateTime: "2026-05-02T12:00:00Z",
+          },
+        ],
+        nextPageToken: "next",
+      }),
+    );
+    await s.processGoogleSync((await s.claimGoogleSync())!);
+    fetcher.mockResolvedValueOnce(Response.json({}, { status: 403 }));
+    await s.processGoogleSync((await s.claimGoogleSync())!);
+    const before = (await overview()).report!;
+    expect(before.reviewComplete).toBe(false);
+    expect(before.reviews).toHaveLength(1);
+    await db.googleBusinessConnection.updateMany({ data: { cooldownUntil: null } });
+    await queue();
+    expect((await overview()).report?.reviews).toEqual(before.reviews);
+    expect((await overview()).report?.fetchedAt).toEqual(before.fetchedAt);
+  });
+  it("publishes replacement reviews only after every new page completes", async () => {
+    await queue();
+    await processAll();
+    await db.googleBusinessConnection.updateMany({ data: { cooldownUntil: null } });
+    await queue();
+    await db.googleBusinessSync.updateMany({
+      where: { kind: { not: "REVIEWS" } },
+      data: { status: "SUCCESS" },
+    });
+    fetcher.mockResolvedValueOnce(Response.json({ reviews: [], nextPageToken: "next" }));
+    await s.processGoogleSync((await s.claimGoogleSync())!);
+    expect((await overview()).report?.reviews[0].comment).toBe("Quick service");
+    expect((await overview()).report?.reviewComplete).toBe(true);
+    fetcher.mockResolvedValueOnce(Response.json({ reviews: [] }));
+    await s.processGoogleSync((await s.claimGoogleSync())!);
+    expect((await overview()).report?.reviews).toEqual([]);
+  });
+  it("reports partial completion when reviews succeed but performance fails", async () => {
+    const original = fetcher.getMockImplementation() as (input: unknown) => Promise<Response>;
+    fetcher.mockImplementation(async (input: unknown) =>
+      String(input).includes(":fetchMultiDailyMetrics")
+        ? Response.json({}, { status: 400 })
+        : original(input),
+    );
+    const id = await s.requestGoogleSync(owner, location, {
+      start: "2026-05-01",
+      end: "2026-05-31",
+    });
+    await processAll();
+    expect((await s.manualSyncStatus(owner, id)).status).toBe("PARTIAL");
+    expect((await overview()).report?.lastSuccessfulSync).toBeNull();
+  });
+  it("stops all pending work on revoked credentials while retaining prior cached data", async () => {
+    await queue();
+    await processAll();
+    await db.googleBusinessConnection.updateMany({ data: { cooldownUntil: null } });
+    const id = await s.requestGoogleSync(owner, location, {
+      start: "2026-05-01",
+      end: "2026-05-31",
+    });
+    fetcher.mockResolvedValue(Response.json({}, { status: 401 }));
+    await s.advanceManualSync(owner, id);
+    expect(await s.manualSyncStatus(owner, id)).toMatchObject({ status: "FAILED", pending: 0 });
+    expect((await overview()).report?.reviews).toHaveLength(1);
+    expect((await overview()).connection?.status).toBe("RECONNECT");
+  });
+  it("rechecks a manual requester's station grant before provider dispatch", async () => {
+    await c.grantAnalyticsStation(owner, { stationId: station, userId: manager, allow: true });
+    const id = await s.requestGoogleSync(manager, location, {
+      start: "2026-05-01",
+      end: "2026-05-31",
+    });
+    await c.grantAnalyticsStation(owner, { stationId: station, userId: manager, allow: false });
+    await expect(s.advanceManualSync(manager, id)).rejects.toThrow();
+    await processAll();
+    expect(fetcher).not.toHaveBeenCalled();
+    expect((await s.manualSyncStatus(owner, id)).status).toBe("FAILED");
+  });
+  it("shares Google quota backoff across tasks and honors Retry-After", async () => {
+    await queue();
+    fetcher.mockResolvedValue(
+      Response.json({}, { status: 429, headers: { "Retry-After": "120" } }),
+    );
+    await s.processGoogleSync((await s.claimGoogleSync())!);
+    expect(await s.claimGoogleSync()).toBeNull();
+    const conn = await db.googleBusinessConnection.findUniqueOrThrow({ where: { id: "business" } });
+    expect(conn.rateLimitedUntil!.getTime()).toBeGreaterThan(Date.now() + 110000);
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });

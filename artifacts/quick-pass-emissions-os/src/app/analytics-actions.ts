@@ -14,7 +14,7 @@ import {
   registerAnalyticsStation,
   grantAnalyticsStation,
 } from "@/modules/analytics/connection";
-import { requestGoogleSync } from "@/modules/analytics/sync";
+import { requestGoogleSync, advanceManualSync } from "@/modules/analytics/sync";
 import {
   recordAnalyticsAction,
   reviewAnalyticsAction,
@@ -97,13 +97,37 @@ export async function mapGoogleLocationAction(_: ActionState, form: FormData) {
     });
   });
 }
-export async function syncGoogleAction(_: ActionState, form: FormData) {
-  return perform((actor) =>
-    requestGoogleSync(actor, z.string().parse(form.get("locationId")), {
-      start: form.get("start"),
-      end: form.get("end"),
-    }),
-  );
+export async function syncGoogleAction(form: { locationId: string; start: string; end: string }) {
+  const actor = await manager();
+  try {
+    const id = await requestGoogleSync(actor.id, z.string().parse(form.locationId), form);
+    revalidatePath("/analytics");
+    return { id };
+  } catch (e) {
+    return {
+      error:
+        e instanceof BusinessError
+          ? e.message
+          : "Unable to request sync. Check the connection and reporting dates.",
+    };
+  }
+}
+export async function advanceGoogleSyncAction(requestId: string) {
+  const actor = await manager();
+  try {
+    const result = await advanceManualSync(actor.id, z.string().min(1).max(100).parse(requestId));
+    revalidatePath("/analytics");
+    return { ok: true as const, ...result };
+  } catch (e) {
+    revalidatePath("/analytics");
+    return {
+      ok: false as const,
+      error:
+        e instanceof BusinessError
+          ? e.message
+          : "Processing was interrupted. Resume the sync after checking the connection.",
+    };
+  }
 }
 export async function recordAnalyticsActionAction(_: ActionState, form: FormData) {
   return perform((actor) => recordAnalyticsAction(actor, Object.fromEntries(form)));

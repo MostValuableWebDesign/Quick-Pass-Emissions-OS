@@ -110,8 +110,10 @@ Server tokens and unmodified response caches use authenticated encryption. Persi
 station mappings/grants, per-resource/month sync queues with leases/pagination/retries,
 owner actions and documented marketing observations share PostgreSQL. Google content
 expires after 29 days; calculated aggregates and review findings are read-time only.
-The existing independent worker imports at most three pages per trigger, refreshes
-recent months daily and purges expired content even without provider configuration.
+Manual request records authorize bounded processing from the explicit Sync now interaction.
+The independent worker drains only those requests (three pages per trigger) and purges
+expired content even without provider configuration; it never enqueues Google collection.
+Published cycle pointers keep existing usable results visible while replacement pages stage.
 Fresh role/station checks use personnel and domain locks followed by station lock
 7183507 and Analytics lock 7183509. Rendering performs no network I/O. See
 [GOOGLE_ANALYTICS.md](GOOGLE_ANALYTICS.md) for scope, provisioning, retention and limits.

@@ -185,6 +185,10 @@ an owner-confirmed Quick Pass station, and compares available daily/monthly Goog
 metrics with cached paid-inspection/free-retest evidence and documented marketing
 observations. Managers need explicit Analytics station access. Reviews, separate
 feedback themes, suggested replies and owner action/follow-up records are included.
+Click **Sync now** for the selected period and comparison dates; the explicit interaction
+processes the durable request, with **Resume sync** after interruption. Google daily
+enqueueing is disabled; independent jobs only recover manually requested pages/retries
+and maintain retention. Previously usable data stays visible with its original freshness.
 No replies are posted. Unavailable collections/refunds and incomplete days remain
 clearly labeled. Setup, source retention and independent sync instructions are in
 [GOOGLE_ANALYTICS.md](GOOGLE_ANALYTICS.md). Google authorization, real sync and

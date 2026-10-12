@@ -1,3 +1,5 @@
+import { GoogleSync } from "@/components/google-sync";
+import { AnalyticsTrend } from "@/components/analytics-trend";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { manager } from "@/lib/access";
@@ -88,6 +90,13 @@ export default async function AnalyticsPage({
               {data.connection.error}
             </p>
           ) : null}
+          {data.redirectUri ? (
+            <p>
+              Google Cloud authorized redirect URI: <code>{data.redirectUri}</code>
+            </p>
+          ) : (
+            <p>Set the canonical HTTPS BETTER_AUTH_URL to display the exact Google redirect URI.</p>
+          )}
           {!data.configured ? (
             <div>
               <h3>Connection setup needed</h3>
@@ -257,28 +266,14 @@ export default async function AnalyticsPage({
                 monthly and can take five days to appear.
               </p>
               {location?.enabled && data.connection?.status === "CONNECTED" ? (
-                <ActionForm
-                  action={actions.syncGoogleAction}
-                  submit="Queue refresh & historical backfill"
-                >
-                  <input type="hidden" name="locationId" value={location.id} />
-                  <Field label="Backfill from">
-                    <input
-                      type="date"
-                      name="start"
-                      defaultValue={range.previous.start}
-                      max={today}
-                      required
-                    />
-                  </Field>
-                  <Field label="Backfill through">
-                    <input type="date" name="end" defaultValue={range.end} max={today} required />
-                  </Field>
-                  <p>
-                    Includes full reporting months and reviews. The independent jobs worker
-                    processes the queue. Manual refresh shares a 60-second cooldown.
-                  </p>
-                </ActionForm>
+                <GoogleSync
+                  locationId={location.id}
+                  start={range.start}
+                  end={range.end}
+                  previousStart={range.previous.start}
+                  previousEnd={range.previous.end}
+                  request={report?.latestRequest ?? null}
+                />
               ) : (
                 <p>
                   Google data is disconnected or this station is not mapped. Recorded Quick Pass
@@ -293,7 +288,7 @@ export default async function AnalyticsPage({
                 <div className="card-heading">
                   <h2>Google performance</h2>
                   <span className="muted">
-                    Latest source response: <Stamp date={report.fetchedAt} />
+                    Newest displayed response: <Stamp date={report.fetchedAt} />
                   </span>
                 </div>
                 <div className="card-body">
@@ -303,6 +298,15 @@ export default async function AnalyticsPage({
                     cross-platform unique audience. Call clicks are not answered calls; directions
                     are not visits; website clicks are not customers.
                   </p>
+                  <p>
+                    Displayed data fetched between <Stamp date={report.oldestFetchedAt} /> and{" "}
+                    <Stamp date={report.fetchedAt} />. Refreshing keeps earlier usable results with
+                    their original fetch times.
+                  </p>
+                  <AnalyticsTrend
+                    labels={METRICS}
+                    rows={report.monthly.map((m) => ({ month: m.month, metrics: m.metrics }))}
+                  />
                   {report.unreadable ? (
                     <p role="alert">
                       {report.unreadable} source responses could not be read. Reconnect or restore
@@ -756,10 +760,32 @@ export default async function AnalyticsPage({
                 </div>
                 <div className="card-body">
                   <p>
-                    Daily sync rechecks the current and prior month. An independent authenticated
-                    job trigger must run every five minutes to process backfill, pagination and
-                    retries. No page visit starts synchronization.
+                    Google syncing is manual only. The independent worker processes already
+                    requested pages and retries; running it never authorizes a new Google
+                    collection.
                   </p>
+                  <p>
+                    Last fully successful sync: <Stamp date={report.lastSuccessfulSync} />
+                  </p>
+                  {report.latestRequest ? (
+                    <p>
+                      Latest request: {report.latestRequest.status} · reporting{" "}
+                      {report.latestRequest.start} – {report.latestRequest.end} · requested{" "}
+                      <Stamp date={report.latestRequest.createdAt} />
+                      {report.latestRequest.completedAt ? (
+                        <>
+                          {" "}
+                          · finished <Stamp date={report.latestRequest.completedAt} />
+                        </>
+                      ) : null}
+                    </p>
+                  ) : null}
+                  {report.freshness.slice((data.page - 1) * 15, data.page * 15).map((f, i) => (
+                    <p key={i}>
+                      Displayed {f.kind} · {f.period} · page {f.page + 1} · fetched{" "}
+                      <Stamp date={f.fetchedAt} />
+                    </p>
+                  ))}
                   {!report.tasks.length ? (
                     <p>No sync requests yet.</p>
                   ) : (
@@ -790,6 +816,7 @@ export default async function AnalyticsPage({
                   report.actionCount,
                   report.attributionCount,
                   report.taskCount,
+                  report.freshness.length,
                 ) ? (
                   <Link className="button button-outline" href={href(data.page + 1)}>
                     Next

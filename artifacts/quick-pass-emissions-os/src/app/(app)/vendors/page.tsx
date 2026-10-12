@@ -95,7 +95,6 @@ export default async function Vendors({
                     <Link href={`/vendors/${p.id}`}>{p.name}</Link>
                   </h2>
                   {!p.active && <span className="badge neutral">Archived</span>}
-                  {!p.verifiedDate && <span className="badge amber">Unconfirmed</span>}
                 </div>
                 <div className="vendor-directory-categories">
                   <span className="eyebrow">Category</span>

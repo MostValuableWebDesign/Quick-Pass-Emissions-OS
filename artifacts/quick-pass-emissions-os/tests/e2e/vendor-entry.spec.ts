@@ -109,7 +109,7 @@ test("vendor filters, minimal entry and separate business navigation work", asyn
   const vendorLink = page.getByRole("link", { name, exact: true });
   await expect(vendorLink).toBeVisible();
   const vendorCard = page.locator(".vendor-directory-card").filter({ has: vendorLink });
-  await expect(vendorCard).toContainText("Description");
+  await expect(vendorCard.getByText("Unconfirmed", { exact: true })).toHaveCount(0);
   await expect(vendorCard).toContainText("No description recorded.");
   await expect(vendorCard).toContainText("555-0100");
   await expect(vendorCard.getByRole("link", { name: /^Email / })).toHaveCount(0);
@@ -117,7 +117,7 @@ test("vendor filters, minimal entry and separate business navigation work", asyn
   await page.getByRole("link", { name, exact: true }).click();
   await expect(page).toHaveURL(/\/vendors\/[A-Za-z0-9_-]+$/);
   await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
-  await expect(page.getByText("Unconfirmed", { exact: true })).toBeVisible();
+  await expect(page.getByText("Unconfirmed", { exact: true })).toHaveCount(0);
 
   await page.setViewportSize({ width: 402, height: 874 });
   await page.getByRole("button", { name: "Open navigation menu", exact: true }).click();

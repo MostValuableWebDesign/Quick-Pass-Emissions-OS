@@ -35,10 +35,8 @@ export default async function ProviderPage({ params }: { params: Promise<{ id: s
         <span className={p.active ? "badge green" : "badge neutral"}>
           {p.active ? "Active" : "Archived"}
         </span>
-        {p.verifiedDate ? (
+        {p.verifiedDate && (
           <span className="badge green">Verified contact {p.verifiedDate}</span>
-        ) : (
-          <span className="badge amber">Unconfirmed</span>
         )}
         {p.preferences.map((x) => (
           <span key={x.category} className="badge">

@@ -62,7 +62,7 @@ test("six bays, management-recorded issue and reviewed repair, preventative work
   await f.getByLabel("Services provided").fill("Fixture pump service");
   await save(f, "Add vendor");
   const vendorCard = page.locator("section.card").filter({ hasText: "E2E Verified Vendor" });
-  await expect(vendorCard.locator(".badge").filter({ hasText: "Unconfirmed" })).toBeVisible();
+  await expect(vendorCard.locator(".badge").filter({ hasText: "Unconfirmed" })).toHaveCount(0);
   await page.getByRole("link", { name: "E2E Verified Vendor", exact: true }).click();
   f = form(page, "Update verified contact");
   await f.getByLabel("Verified contact person / department").fill("Fixture support desk");

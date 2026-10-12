@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { currentUser, manager } from "@/lib/access";
 import { canManageRole, isManager } from "@/lib/policy";
+import { savedContactAddress } from "@/lib/address-provenance";
 import { contactEmployeeInput } from "@/lib/contact-address";
 import { businessHoursFromForm } from "@/lib/business-hours";
 import {
@@ -170,7 +171,7 @@ export async function saveEmployee(_: ActionState, form: FormData) {
     const employeeId = form.get("id")?.toString();
     await db.$transaction(async (tx) => {
       const actor = await personnelActor(tx, identity.id);
-      const { name, ...profile } = data;
+      const { name, addressProof: proof, ...profile } = data;
       const normalizedName = name.trim().replace(/\s+/g, " ").toLowerCase();
       const existingEmployees = await tx.employee.findMany({
         select: { id: true, user: { select: { name: true, active: true } } },
@@ -193,7 +194,10 @@ export async function saveEmployee(_: ActionState, form: FormData) {
         });
         if (!canManageRole(actor.role, old.user.role))
           throw new Error("Only the owner may manage privileged accounts.");
-        await tx.employee.update({ where: { id: employeeId }, data: profile });
+        await tx.employee.update({
+          where: { id: employeeId },
+          data: { ...profile, ...savedContactAddress({ ...profile, addressProof: proof }, old) },
+        });
         // Contact edits never change login identity, management access, or linked history.
         await tx.user.update({ where: { id: old.userId }, data: { name } });
         await tx.auditLog.create({
@@ -208,6 +212,7 @@ export async function saveEmployee(_: ActionState, form: FormData) {
         const employee = await tx.employee.create({
           data: {
             ...profile,
+            ...savedContactAddress({ ...profile, addressProof: proof }),
             user: {
               create: {
                 name,

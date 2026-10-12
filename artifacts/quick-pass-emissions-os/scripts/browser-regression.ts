@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "better-auth/crypto";
 import { request } from "@playwright/test";
-import { randomBytes, randomUUID } from "node:crypto";
+import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
 import { mkdtemp, readFile, writeFile, rm, chmod, access } from "node:fs/promises";
 import { createServer } from "node:net";
@@ -191,7 +191,10 @@ async function main() {
     "operations.spec.ts" in suite || "login.spec.ts" in suite
       ? await workflowBrowserFixtures(db, password)
       : [];
-  const workflowAccounts: Record<string, string> = { "owner@example.test": email };
+  const workflowAccounts: Record<string, string> = {
+    "owner@example.test": email,
+    "manager@example.test": fixtures.users.find((u) => u.role === "ADMIN")!.email,
+  };
   if (workflowUsers.length) {
     Object.assign(workflowAccounts, {
       "manager@example.test": fixtures.users.find((u) => u.role === "ADMIN")!.email,
@@ -206,6 +209,38 @@ async function main() {
     JSON.stringify({ password, accounts: workflowAccounts }),
     { mode: 0o600 },
   );
+  // Browser responses are synthetic; save actions verify signatures using the real server secret.
+  // Keep fixtures in the owned private directory and disable live paid lookups in this suite.
+  if (process.env.E2E_ADDRESSES_ONLY === "1" || suite["addresses.spec.ts"]) {
+    env.GEOAPIFY_API_KEY = "";
+    const address = {
+      streetAddress: "100 Fixture Street",
+      city: "Atlanta",
+      state: "GA",
+      postalCode: "30303",
+    };
+    const payload = Buffer.from(
+      JSON.stringify({
+        base: [address.streetAddress, address.city, address.state, address.postalCode],
+        providerId: "synthetic-address",
+      }),
+    ).toString("base64url");
+    const proof = `${payload}.${createHmac("sha256", env.BETTER_AUTH_SECRET!).update(`contact-address-v1:${payload}`).digest("base64url")}`;
+    await writeFile(
+      path.join(temporary, "address-suggestions.json"),
+      JSON.stringify({
+        suggestions: [
+          {
+            id: "synthetic-address",
+            label: "100 Fixture Street, Atlanta, GA 30303",
+            address,
+            proof,
+          },
+        ],
+      }),
+      { mode: 0o600 },
+    );
+  }
   stage = "owned station fixture configuration";
   const station =
     process.env.E2E_STATION_HISTORY === "1" ||
@@ -450,31 +485,33 @@ async function main() {
   );
   assertSuiteReport(report, suite);
   console.log(
-    process.env.E2E_PERFORMANCE_PANELS === "1"
-      ? `Passed: 2 Performance panel workflows covering drag/resize/persistence, busy-hour evidence, daily commission progress, employee filters, range pagination and mobile layout${process.env.E2E_CERTIFICATE_UX === "1" ? ", plus 5 certificate portal checks" : ""}; no skips.`
-      : process.env.E2E_NAVIGATION_ONLY === "1"
-        ? "Passed: 2 owner and admin desktop/mobile navigation workflows, including non-navigating nested menu headings; no skips."
-      : process.env.E2E_SECURITY_ONLY === "1"
-        ? "Passed: 3 future Security camera checks covering owner/manager desktop/mobile navigation, light/dark layouts, pending setup and anonymous/legacy role rejection; no skips."
-        : process.env.E2E_THEME_ONLY === "1"
-          ? "Passed: 1 complete workspace theme workflow covering every main navigation page in light/dark desktop, tablet and phone layouts, keyboard forms and responsive navigation; no skips."
-          : process.env.E2E_LOGIN_ONLY === "1"
-            ? "Passed: 1 login workflow covering branding, desktop/tablet/mobile layout, keyboard access, error states and native management sign-in; no skips."
-            : process.env.E2E_PERFORMANCE_ONLY === "1"
-              ? "Passed: 2 Performance checks covering trends, employee evidence, pointer/keyboard panel layout, browser persistence, mobile and role exclusions; no skips."
-              : process.env.E2E_SUPPORT_ONLY === "1"
-                ? "Passed: 1 complete Service & Support desktop/mobile flow with directory management, contact history, management provider association and private role exclusions; no skips."
-                : process.env.E2E_CERTIFICATES_ONLY === "1"
-                  ? "Passed: 4 manual certificate navigation role checks including intercepted new tabs/reopening, same-tab records, desktop/mobile, keyboard and unchanged purchase/stock/alert snapshots; no skips."
-                  : process.env.E2E_IMPORT_ONLY === "1"
-                    ? process.env.E2E_IMPORT_REMAINDER === "1"
-                      ? "Passed: 1 targeted remaining import UI flow including supplier verification/dropdowns, saved staff changes, mobile repeat conflicts and role restrictions; no skips."
-                      : "Passed: 1 complete owner import desktop/mobile journey including backup, reloads, unknown configuration, verification gates, staff-edit conflicts and role restrictions; no skips."
-                    : process.env.E2E_STATION_ONLY === "1"
-                      ? "Passed: 1 targeted station lifecycle check; no skips."
-                      : process.env.E2E_DEALERSHIPS_ONLY === "1"
-                        ? "Passed: 1 dealership add flow, including right alignment and save behavior; no skips."
-                      : `Passed: ${Object.values(suite).reduce((sum, n) => sum + n, 0)} browser checks across navigation, operations, payroll, certificates, maintenance, rentals, finance and Phase 5 automation${process.env.E2E_STATION_HISTORY === "1" ? ", plus station history" : ""}; no skips.`,
+    process.env.E2E_ADDRESSES_ONLY === "1"
+      ? "Passed: 3 address workflows covering employee/dealership/vendor create/edit persistence, keyboard selection, units, provenance and manual fallback; no skips."
+      : process.env.E2E_PERFORMANCE_PANELS === "1"
+        ? `Passed: 2 Performance panel workflows covering drag/resize/persistence, busy-hour evidence, daily commission progress, employee filters, range pagination and mobile layout${process.env.E2E_CERTIFICATE_UX === "1" ? ", plus 5 certificate portal checks" : ""}; no skips.`
+        : process.env.E2E_NAVIGATION_ONLY === "1"
+          ? "Passed: 2 owner and admin desktop/mobile navigation workflows, including non-navigating nested menu headings; no skips."
+          : process.env.E2E_SECURITY_ONLY === "1"
+            ? "Passed: 3 future Security camera checks covering owner/manager desktop/mobile navigation, light/dark layouts, pending setup and anonymous/legacy role rejection; no skips."
+            : process.env.E2E_THEME_ONLY === "1"
+              ? "Passed: 1 complete workspace theme workflow covering every main navigation page in light/dark desktop, tablet and phone layouts, keyboard forms and responsive navigation; no skips."
+              : process.env.E2E_LOGIN_ONLY === "1"
+                ? "Passed: 1 login workflow covering branding, desktop/tablet/mobile layout, keyboard access, error states and native management sign-in; no skips."
+                : process.env.E2E_PERFORMANCE_ONLY === "1"
+                  ? "Passed: 2 Performance checks covering trends, employee evidence, pointer/keyboard panel layout, browser persistence, mobile and role exclusions; no skips."
+                  : process.env.E2E_SUPPORT_ONLY === "1"
+                    ? "Passed: 1 complete Service & Support desktop/mobile flow with directory management, contact history, management provider association and private role exclusions; no skips."
+                    : process.env.E2E_CERTIFICATES_ONLY === "1"
+                      ? "Passed: 4 manual certificate navigation role checks including intercepted new tabs/reopening, same-tab records, desktop/mobile, keyboard and unchanged purchase/stock/alert snapshots; no skips."
+                      : process.env.E2E_IMPORT_ONLY === "1"
+                        ? process.env.E2E_IMPORT_REMAINDER === "1"
+                          ? "Passed: 1 targeted remaining import UI flow including supplier verification/dropdowns, saved staff changes, mobile repeat conflicts and role restrictions; no skips."
+                          : "Passed: 1 complete owner import desktop/mobile journey including backup, reloads, unknown configuration, verification gates, staff-edit conflicts and role restrictions; no skips."
+                        : process.env.E2E_STATION_ONLY === "1"
+                          ? "Passed: 1 targeted station lifecycle check; no skips."
+                          : process.env.E2E_DEALERSHIPS_ONLY === "1"
+                            ? "Passed: 1 dealership add flow, including right alignment and save behavior; no skips."
+                            : `Passed: ${Object.values(suite).reduce((sum, n) => sum + n, 0)} browser checks across navigation, operations, payroll, certificates, maintenance, rentals, finance and Phase 5 automation${process.env.E2E_STATION_HISTORY === "1" ? ", plus station history" : ""}; no skips.`,
   );
   if (process.env.E2E_MANUAL_TEST === "1") {
     console.log("Private browser checks completed; preview remains available for visual review.");

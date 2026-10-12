@@ -157,6 +157,8 @@ model Employee {
   emissions            DailyEmission[]
   payrollInputs        PayrollInput[]
   payrollLines         PayrollLine[]
+  addressSource        String              @default("MANUAL")
+  addressProviderId    String              @default("")
 }
 
 model Invite {
@@ -637,6 +639,13 @@ model Vendor {
   equipment               Equipment[]
   tickets                 MaintenanceTicket[]
   chemicals               ChemicalItem[]
+  addressSource           String                  @default("MANUAL")
+  addressProviderId       String                  @default("")
+  streetAddress           String                  @default("")
+  addressLine2            String                  @default("")
+  city                    String                  @default("")
+  state                   String                  @default("")
+  postalCode              String                  @default("")
 }
 
 model SupportPreference {
@@ -912,6 +921,8 @@ model Dealership {
   contacts          DealerContact[]
   services          DealerService[]
   invoices          DealerInvoice[]
+  addressSource     String          @default("MANUAL")
+  addressProviderId String          @default("")
 }
 
 model DealerContact {
@@ -1270,9 +1281,9 @@ model AutomationDelivery {
 
 // Shared by every server/account requesting a station's test export.
 model StationTestExportState {
-  stationHash String @id
-  activeToken String?
-  activeUntil DateTime?
+  stationHash   String    @id
+  activeToken   String?
+  activeUntil   DateTime?
   cooldownUntil DateTime
-  updatedAt DateTime @updatedAt
+  updatedAt     DateTime  @updatedAt
 }

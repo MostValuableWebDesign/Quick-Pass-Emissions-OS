@@ -32,6 +32,13 @@ Payroll display lists use 15 items per page; approved exports include all rows. 
 rates and changes; management prepares/reviews records. Read [PHASE2.md](PHASE2.md) for pay
 bases, approval evidence and the additive migration that preserves existing data.
 
+**Contact addresses:** employee, dealership and vendor create/edit forms share keyboard-accessible
+US address suggestions, structured fields, apartment/suite preservation and a manual fallback.
+Saved source labels distinguish provider-selected streets from manual entries; neither claims
+postal validation. Configure the optional server-only `GEOAPIFY_API_KEY` to enable live lookup.
+See [address lookup setup and behavior](docs/ADDRESS_LOOKUP.md). Vendor address edits are separate
+from business-contact verification. `E2E_ADDRESSES_ONLY=1 npm run test:e2e` verifies all three workflows.
+
 ## Quick start
 
 Use Node.js 22.12+ (22 or 24 LTS recommended), npm, and PostgreSQL 16+. Actual validation for this delivery is recorded in [VERIFICATION.md](VERIFICATION.md).

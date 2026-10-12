@@ -1392,3 +1392,136 @@ model DoorAccessCode {
   @@unique([doorId, fingerprint])
   @@index([status, nextCheckAt])
 }
+
+// Google source responses are encrypted, temporary caches (maximum 30 days).
+// Business mappings, permissions and owner-entered actions are durable.
+model GoogleBusinessConnection {
+  id                 String                   @id
+  status             String                   @default("DISCONNECTED")
+  credentials        String?
+  createdBy          String
+  generation         Int                      @default(0)
+  error              String?
+  connectedAt        DateTime?
+  discoveryAt        DateTime?
+  discovery          String?
+  discoveryExpiresAt DateTime?
+  lastScheduledDate  String?
+  cooldownUntil      DateTime?
+  locations          GoogleBusinessLocation[]
+}
+
+model GoogleBusinessOAuth {
+  stateHash   String   @id
+  browserHash String
+  actorId     String
+  generation  Int
+  verifier    String
+  expiresAt   DateTime
+}
+
+model AnalyticsStation {
+  id                String                   @id @default(cuid())
+  name              String
+  stationHash       String                   @unique
+  timezoneConfirmed Boolean                  @default(false)
+  createdBy         String
+  grants            AnalyticsStationGrant[]
+  locations         GoogleBusinessLocation[]
+  actions           AnalyticsAction[]
+  attribution       MarketingAttribution[]
+}
+
+model AnalyticsStationGrant {
+  stationId String
+  userId    String
+  station   AnalyticsStation @relation(fields: [stationId], references: [id], onDelete: Cascade)
+
+  @@id([stationId, userId])
+}
+
+model GoogleBusinessLocation {
+  id           String                   @id @default(cuid())
+  connectionId String
+  connection   GoogleBusinessConnection @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  accountName  String
+  locationName String                   @unique
+  stationId    String                   @unique
+  station      AnalyticsStation         @relation(fields: [stationId], references: [id], onDelete: Restrict)
+  enabled      Boolean                  @default(true)
+  createdBy    String
+  tasks        GoogleBusinessSync[]
+  cache        GoogleBusinessCache[]
+}
+
+model GoogleBusinessSync {
+  id            String                 @id @default(cuid())
+  locationId    String
+  location      GoogleBusinessLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  kind          String
+  period        String
+  status        String                 @default("QUEUED")
+  cycle         String
+  page          Int                    @default(0)
+  cursor        String?
+  attempts      Int                    @default(0)
+  nextAttemptAt DateTime               @default(now())
+  leaseToken    String?
+  leaseUntil    DateTime?
+  lastSuccessAt DateTime?
+  error         String?
+  updatedAt     DateTime               @updatedAt
+
+  @@unique([locationId, kind, period])
+  @@index([status, nextAttemptAt])
+}
+
+model GoogleBusinessCache {
+  id         String                 @id @default(cuid())
+  locationId String
+  location   GoogleBusinessLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  kind       String
+  period     String
+  cycle      String
+  page       Int
+  source     String                 @default("GOOGLE_BUSINESS_PROFILE_API")
+  payload    String
+  fetchedAt  DateTime               @default(now())
+  expiresAt  DateTime
+
+  @@unique([locationId, kind, period, cycle, page])
+  @@index([expiresAt])
+}
+
+model AnalyticsAction {
+  id         String           @id @default(cuid())
+  stationId  String
+  station    AnalyticsStation @relation(fields: [stationId], references: [id], onDelete: Restrict)
+  category   String
+  action     String
+  date       String
+  reviewDate String
+  target     String
+  outcome    String?
+  createdBy  String
+  createdAt  DateTime         @default(now())
+  reviewedAt DateTime?
+
+  @@index([stationId, date])
+}
+
+model MarketingAttribution {
+  id        String           @id @default(cuid())
+  stationId String
+  station   AnalyticsStation @relation(fields: [stationId], references: [id], onDelete: Restrict)
+  date      String
+  channel   String
+  customers Int
+  costCents Int?
+  reference String           @unique
+  evidence  String
+  createdBy String
+  createdAt DateTime         @default(now())
+
+  @@index([stationId, date])
+}

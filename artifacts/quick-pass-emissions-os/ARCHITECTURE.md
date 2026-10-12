@@ -98,3 +98,16 @@ migration 202610120004_contact_address_lookup. Saved data never depends on a pro
 ## Physical door access
 
 Security uses a fixed-origin server-side Seam adapter, persistent DoorLock / DoorAccessCode records and sanitized audit events. Keyed PIN fingerprints are retained; plaintext codes are never stored. Personnel lock 7183502 precedes security lock 7183508, with fresh actor/target checks inside the transaction. Creation intent commits before the bounded provider call; ambiguous calls are reconciled, never replayed. Staff deactivation queues revocation atomically. Independent jobs reconcile one door and 15 codes per trigger; reads remain inert. See DOOR_ACCESS.md for setup and confirmation limits.
+
+## Google Business Profile Analytics
+
+Analytics uses official OAuth with hashed single-use state, a browser binding and PKCE.
+Server tokens and unmodified response caches use authenticated encryption. Persistent
+station mappings/grants, per-resource/month sync queues with leases/pagination/retries,
+owner actions and documented marketing observations share PostgreSQL. Google content
+expires after 29 days; calculated aggregates and review findings are read-time only.
+The existing independent worker imports at most three pages per trigger, refreshes
+recent months daily and purges expired content even without provider configuration.
+Fresh role/station checks use personnel and domain locks followed by station lock
+7183507 and Analytics lock 7183509. Rendering performs no network I/O. See
+[GOOGLE_ANALYTICS.md](GOOGLE_ANALYTICS.md) for scope, provisioning, retention and limits.

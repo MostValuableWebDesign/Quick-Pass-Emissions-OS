@@ -647,3 +647,54 @@ Updating those existing workflow tests is outside this door integration change.
 No real Seam credentials, connected Schlage account or physical locks were used.
 Live provisioning, actual keypad tests, deployment and a persistent scheduler
 remain external setup. Push status is distinct from deployment.
+
+## 2026-10-12 — Google Business Profile Analytics (local, uncommitted)
+
+Pulled shared main through `d2384cc` before implementation. Added Analytics navigation,
+explicit station grants/mapping, official OAuth state/browser/PKCE flow, encrypted
+server-side tokens, refresh/disconnect/reconnection, persistent bounded sync queue,
+raw expiring Google response caches, daily/manual historical requests, metric/monthly
+coverage/comparisons, reviews and separate feedback themes/drafts, documented marketing
+observations and owner action/follow-up history. No listing or review write endpoint.
+See [GOOGLE_ANALYTICS.md](GOOGLE_ANALYTICS.md) for exact setup and reporting limits.
+
+Verification:
+
+- **669 tests in 75 files passed**, none skipped, using a uniquely owned disposable
+  PostgreSQL `_test` database. The additive migration applied and retained existing
+  approved payroll, approved invoice and signed-reversal upgrade sentinels.
+- New tests cover fresh roles and station grants, personnel-lock races, OAuth state
+  user/browser/expiry/single-use/generation checks, encrypted tokens/context/tampering,
+  required scope, fixed endpoints, refresh and revocation, idempotent queues/caches,
+  claims/stale workers, retry failures, pagination, retention, explicit zero versus
+  missing/delayed data, DST/leap/month boundaries, incomplete VIN retest evidence,
+  thresholded keywords, deterministic recommendations and owner action history.
+- **Two Analytics setup/access browser checks passed**, covering owner registration,
+  persisted action history, May filters, 390px fit and manager denial without a grant.
+- **One complete synthetic Google browser workflow passed**, covering actual application
+  OAuth initiation/callback/cookie handling, authorized location discovery/mapping,
+  authenticated independent job processing, explicit zero/threshold/review display,
+  reload persistence and disconnect removal. Google HTTP responses and consent redirect
+  were intercepted only in the explicit runner-owned test mode. No real Google data,
+  credentials or account was used; no skips counted. Initial fixture assertions were
+  corrected for the shared cooldown and the disappearing disconnect form.
+- TypeScript and ESLint passed. Production build passed with an unreachable build-only
+  database, confirming rendering/build does not require provider or business DB access.
+  **66** production trace manifests contained **zero** private verifier or synthetic
+  provider references. Changed supported files pass Prettier; repository-wide formatting
+  still fails on **39 untouched files**.
+- The default browser manifest now includes the two Analytics checks (**34 total**, or
+  37 with station history). Strict per-file/count/skip guards remain. The full default
+  suite was not rerun; previously documented stale workflow-selector failures remain.
+
+Read-only observation of the already signed-in Google Performance page showed May–October
+2026 with separate interaction views. That browser observation did not populate the app
+or verify API authorization. **Live Google authorization: unverified. Live Google sync:
+unverified. External scheduler: not provisioned. Deployment: not performed. Commit/push:
+not performed, as requested.**
+
+Station-linked retail collections and actual refunds have no existing source register;
+Analytics labels those unavailable and keeps unallocated dealership receipts/reversals
+separate. Google raw content is cached for 29 days under its current API policy; business
+records, mapping, grants and owner-entered actions survive builds/restarts. There is no
+permanent Google archive, inferred conversion/ROI, automatic reply or fabricated insight.

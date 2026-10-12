@@ -97,3 +97,15 @@ create/drop their uniquely generated recovery fixture database, and `pg_dump`/`p
 authorization, complete all-table backup/restore equality, private permissions, wrong-target
 refusal and incomplete-backup cleanup. They never truncate a business database. See
 [VERIFICATION.md](VERIFICATION.md) for actual rebuild/restart results and remaining limits.
+
+## Google Analytics source-cache exception
+
+Analytics station mappings/grants, documented marketing observations, owner actions,
+follow-up history, sync progress and encrypted OAuth credentials use the same persistent
+PostgreSQL database. Preserve `GOOGLE_BUSINESS_ENCRYPTION_KEY` alongside the stable auth
+and storage configuration. A build never clears or recreates these records. Google API
+response content is deliberately temporary (29 days) under Google's current policy;
+expired source responses are hidden and removed by the independent worker. Provider
+content must be refetched when available; it is not a permanent business archive.
+Keep backups containing this content for less than 30 days and purge expired caches
+before serving a restored environment. See [GOOGLE_ANALYTICS.md](GOOGLE_ANALYTICS.md).

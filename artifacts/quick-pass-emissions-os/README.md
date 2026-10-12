@@ -177,3 +177,15 @@ Read [BUSINESS_RULES.md](BUSINESS_RULES.md) before configuring recurrence or cha
 ## Daily owner email
 
 Owner-only **Automation → Configure daily owner email** provides recipient selection, a live report preview, saved reports and email history with 15 rows per page. The owner-requested schedule is **6:30 PM America/New_York**, every day, for the **current day**. Delivery starts paused; configure the server email provider and persistent scheduler, then enable it explicitly. Reports separate estimated revenue, billing, receipts and incomplete payroll. Read [OWNER_DAILY_EMAIL.md](OWNER_DAILY_EMAIL.md) for activation and recovery.
+
+## Google Business Profile Analytics
+
+**Analytics** connects an authorized Google business account, maps its location to
+an owner-confirmed Quick Pass station, and compares available daily/monthly Google
+metrics with cached paid-inspection/free-retest evidence and documented marketing
+observations. Managers need explicit Analytics station access. Reviews, separate
+feedback themes, suggested replies and owner action/follow-up records are included.
+No replies are posted. Unavailable collections/refunds and incomplete days remain
+clearly labeled. Setup, source retention and independent sync instructions are in
+[GOOGLE_ANALYTICS.md](GOOGLE_ANALYTICS.md). Google authorization, real sync and
+production deployment must be verified separately.

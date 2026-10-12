@@ -1,3 +1,4 @@
+import { runGoogleAnalytics } from "../analytics/sync";
 import { runDoorAccess } from "../security/service";
 import { runOwnerEmails } from "./owner-email";
 import { randomUUID } from "node:crypto";
@@ -229,5 +230,6 @@ export async function runAutomation(now = new Date()) {
     failed,
     ownerEmail: await runOwnerEmails(now),
     doorAccess: await runDoorAccess(now),
+    googleAnalytics: await runGoogleAnalytics(now),
   };
 }

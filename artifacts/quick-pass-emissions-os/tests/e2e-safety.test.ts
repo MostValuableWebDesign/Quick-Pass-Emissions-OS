@@ -21,6 +21,7 @@ describe("Browser isolation gates", () => {
     const suite = browserSuite({});
     expect(Object.keys(suite)).toEqual(
       expect.arrayContaining([
+        "analytics.spec.ts",
         "door-access.spec.ts",
         "addresses.spec.ts",
         "login.spec.ts",
@@ -34,7 +35,7 @@ describe("Browser isolation gates", () => {
         "phase5.spec.ts",
       ]),
     );
-    expect(Object.values(suite).reduce((sum, n) => sum + n, 0)).toBe(32);
+    expect(Object.values(suite).reduce((sum, n) => sum + n, 0)).toBe(34);
     const suites = Object.entries(suite).map(([file, count]) => ({
       file,
       specs: Array.from({ length: count }, () => ({ tests: [{}] })),
@@ -63,6 +64,9 @@ describe("Browser isolation gates", () => {
       EXPECTED_DATABASE_ID: "business-id",
       DATA_BACKUP_DIR: "/private/business-backups",
       RESTORE_DATABASE_URL: "postgresql://localhost/recovery",
+      GOOGLE_BUSINESS_CLIENT_ID: "private-google-client",
+      GOOGLE_BUSINESS_CLIENT_SECRET: "must-not-connect-google",
+      GOOGLE_BUSINESS_ENCRYPTION_KEY: "private-google-key",
       SEAM_API_KEY: "must-not-touch-doors",
       SEAM_CONNECTED_ACCOUNT_ID: "private-account",
       DOOR_CODE_HMAC_KEY: "private-key",
@@ -77,6 +81,9 @@ describe("Browser isolation gates", () => {
       EXPECTED_DATABASE_ID: "",
       DATA_BACKUP_DIR: "",
       RESTORE_DATABASE_URL: "",
+      GOOGLE_BUSINESS_CLIENT_ID: "",
+      GOOGLE_BUSINESS_CLIENT_SECRET: "",
+      GOOGLE_BUSINESS_ENCRYPTION_KEY: "",
       SEAM_API_KEY: "",
       SEAM_CONNECTED_ACCOUNT_ID: "",
       DOOR_CODE_HMAC_KEY: "",

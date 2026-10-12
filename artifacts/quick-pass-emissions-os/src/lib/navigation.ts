@@ -60,6 +60,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Overview",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "dashboard", roles: ALL },
+      { href: "/analytics", label: "Analytics", icon: "chart", roles: MANAGERS },
       { href: "/overview", label: "Owner exceptions", icon: "gauge", roles: OWNER_ONLY },
     ],
   },

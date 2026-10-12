@@ -31,10 +31,6 @@ export default async function Settings() {
         <div className="two-columns settings-card-grid">
           <section className="card card-body">
             <h2>Business operating days</h2>
-            <p className="muted">
-              Confirm with the owner. Timezone is America/New_York. Changes apply to future
-              generation; review already generated duties separately.
-            </p>
             <ActionForm action={saveSettings}>
               <fieldset className="wide">
                 <legend>Open days</legend>
@@ -64,10 +60,6 @@ export default async function Settings() {
           </section>
           <section className="card card-body">
             <h2>Holidays & business closures</h2>
-            <p className="muted">
-              Closures prevent new generation. Cancel existing instances individually, recording a
-              reason.
-            </p>
             <ActionForm action={saveClosure} submit="Add closure">
               <Field label="Closed date">
                 <input name="date" type="date" required />
@@ -101,7 +93,7 @@ export default async function Settings() {
             <section className="card card-body">
               <h2>Low certificate alert</h2>
               <p className="muted">
-                Show a banner across the app when the provider portal balance is at or below this
+                A banner will display across the app when the provider portal balance is at or below this
                 number.
               </p>
               <ActionForm

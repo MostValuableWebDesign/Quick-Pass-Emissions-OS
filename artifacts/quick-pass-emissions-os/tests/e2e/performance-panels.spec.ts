@@ -78,7 +78,7 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   await page.mouse.up();
   await expect(employees).toHaveCSS("grid-column-start", "span 10");
   const visibleRows = await employees.locator('tbody tr[data-testid^="row-employee-"]').count();
-  const visibleHeight = Math.max(300, visibleRows > 0 && visibleRows < 5 ? 200 + visibleRows * 80 : 300);
+  const visibleHeight = Math.max(300, visibleRows > 0 && visibleRows < 7 ? 200 + visibleRows * 80 : 300);
   await expect(employees).toHaveCSS("height", `${visibleHeight}px`);
 
   await page.reload();

@@ -5,21 +5,13 @@ import { formatDate } from "@/lib/time";
 import { registry } from "@/modules/maintenance/service";
 import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
-import {
-  DemoNotice,
-  RecordId,
-  TextField,
-  Reason,
-  SelectField,
-  ActiveField,
-} from "@/components/phase3";
+import { DemoNotice, RecordId, TextField, Reason, SelectField } from "@/components/phase3";
 import { saveEquipment, equipmentDowntime } from "@/app/phase3-actions";
 type Data = Awaited<ReturnType<typeof registry>>;
 function EquipmentForm({ data, e }: { data: Data; e?: Data["equipment"][number] }) {
   return (
     <ActionForm action={saveEquipment} submit={e ? "Update equipment" : "Register equipment"}>
       <RecordId id={e?.id} version={e?.version} />
-      <TextField label="Unique equipment code" name="code" value={e?.code} />
       <TextField label="Equipment name" name="name" value={e?.name} />
       <Field label="Equipment category">
         <select name="category" defaultValue={e?.category}>
@@ -54,16 +46,7 @@ function EquipmentForm({ data, e }: { data: Data; e?: Data["equipment"][number] 
         options={data.vendors.filter((v) => v.active)}
         value={e?.vendorId}
       />
-      <TextField name="model" label="Model · optional" value={e?.model} required={false} />
-      <TextField
-        name="serial"
-        label="Serial number · optional"
-        value={e?.serial}
-        required={false}
-      />
       <TextField name="notes" label="Equipment notes" value={e?.notes} required={false} area />
-      <ActiveField active={e?.active} />
-      <Reason />
     </ActionForm>
   );
 }
@@ -93,9 +76,7 @@ export default async function Equipment() {
           const down = e.downtime.find((d) => !d.endedAt);
           return (
             <section className="card card-body" key={e.id}>
-              <h2>
-                {e.code} · {e.name}
-              </h2>
+              <h2>{e.name}</h2>
               <p>
                 <Link href="/vendors">Service &amp; Support</Link>
               </p>

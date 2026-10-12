@@ -64,3 +64,9 @@ Employee pay overview is an informational employee view, without approval/config
 **Why:** The user asked to remove instances/concepts of approvals and configuration from that overview and “just present the information for employees.”
 
 **How to apply:** Keep pay setup and audit history separate; do not interpret this presentation change as authorization to change historical payroll or bypass financial controls.
+
+Previously supplied compensation must populate matching Payroll employee records, not only the separate Performance estimator.
+
+**Why:** The user repeated that base pay and commission had already been provided and asked to fill out the employees under Payroll & commissions.
+
+**How to apply:** Reuse confirmed compensation for existing matching employees, preserve the shop-wide daily commission rule, and do not fabricate test counts, worked dates or payroll approvals. Missing roster entries require a separate decision rather than silently creating personnel.

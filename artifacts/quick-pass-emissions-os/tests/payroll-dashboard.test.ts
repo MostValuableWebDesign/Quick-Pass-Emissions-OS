@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   commissionCents,
+  commissionBasisCount,
   periodAmounts,
   baseRateSummary,
   adjustedCents,
@@ -92,5 +93,33 @@ describe("Employee pay and volume commission", () => {
     expect(() => adjustedCents(100, 10001, "DECREASE")).toThrow();
     expect(() => adjustedCents(2000000000, 1, "INCREASE")).toThrow();
     expect(pageInfo(31, 99)).toEqual({ total: 31, totalPages: 3, page: 3, pageSize: 15 });
+  });
+  it("pays each recorded employee day from the shop total, not personal volume", () => {
+    const approvedAt = new Date();
+    const shopCounts = [30, 35, 30].map((count) => ({ date: "2026-10-01", count, approvedAt }));
+    const policies = [
+      {
+        effectiveDate: "2026-10-01",
+        threshold: 50,
+        rateCents: 100,
+        eligible: true,
+        attribution: "SHOP_WIDE_APPROVED_DAILY",
+      },
+    ];
+    for (const count of shopCounts) {
+      expect(commissionSummary(count.date, [count], policies, shopCounts)).toMatchObject({
+        daily: 4500,
+        weekly: 4500,
+        average: 4500,
+      });
+    }
+    expect(
+      commissionSummary("2026-10-01", [shopCounts[0]], policies, [
+        ...shopCounts,
+        { date: "2026-10-01", count: 5, approvedAt: null },
+      ]).daily,
+    ).toBeNull();
+    expect(commissionBasisCount("SHOP_WIDE_APPROVED_DAILY", 30, "2026-10-01", [])).toBeNull();
+    expect(() => commissionBasisCount("UNKNOWN", 30, "2026-10-01", shopCounts)).toThrow();
   });
 });

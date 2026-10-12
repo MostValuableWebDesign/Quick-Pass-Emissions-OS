@@ -58,8 +58,8 @@ export function PayrollSummary({
                   </strong>
                   {e.arrangement && (
                     <small>
-                      {formatMoney(e.arrangement.amountCents)} · {e.arrangement.kind.toLowerCase()} ·
-                      from {e.arrangement.effectiveDate}
+                      {formatMoney(e.arrangement.amountCents)} · {e.arrangement.kind.toLowerCase()}{" "}
+                      · from {e.arrangement.effectiveDate}
                     </small>
                   )}
                   {e.arrangement?.scheduledDaysPerWeek && (
@@ -69,6 +69,9 @@ export function PayrollSummary({
                         ? ` · ${e.arrangement.scheduledMinutesPerDay} minutes/day`
                         : ""}
                     </small>
+                  )}
+                  {e.arrangement?.reason.toLowerCase().includes("approximate") && (
+                    <small>Approximate; actual hours may vary.</small>
                   )}
                 </td>
                 <td>
@@ -84,7 +87,9 @@ export function PayrollSummary({
                   {e.policy ? (
                     e.policy.eligible ? (
                       <>
-                        {formatMoney(e.policy.rateCents)} / test above {e.policy.threshold}
+                        {formatMoney(e.policy.rateCents)} /{" "}
+                        {e.policy.attribution === "SHOP_WIDE_APPROVED_DAILY" ? "shop test" : "test"}{" "}
+                        above {e.policy.threshold}
                         {e.policy.volumeThreshold !== null && (
                           <small>
                             Above {e.policy.volumeThreshold} tests/day: add{" "}
@@ -104,9 +109,7 @@ export function PayrollSummary({
           </tbody>
         </table>
       </div>
-      {!data.employees.length && (
-        <p className="card-body muted">No employees to display.</p>
-      )}
+      {!data.employees.length && <p className="card-body muted">No employees to display.</p>}
     </section>
   );
 }

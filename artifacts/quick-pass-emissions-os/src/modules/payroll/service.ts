@@ -13,6 +13,7 @@ import {
 } from "../phase2";
 import {
   MAX_CENTS,
+  commissionBasisCount,
   commissionCents,
   periodAmounts,
   sumCents,
@@ -45,7 +46,7 @@ export const policyInput = z.object({
   rateCents: cents,
   volumeThreshold: optionalInteger(0, 100000),
   volumeIncreaseCents: optionalInteger(0, MAX_CENTS),
-  attribution: z.literal("PERSONAL_APPROVED_DAILY"),
+  attribution: z.enum(["PERSONAL_APPROVED_DAILY", "SHOP_WIDE_APPROVED_DAILY"]),
   reason,
 });
 export const emissionInput = z.object({
@@ -564,10 +565,13 @@ export async function generateDraft(actorId: string, periodId: string) {
         .map((c) => {
           const policy = policies.find((p) => p.effectiveDate <= c.date);
           requireRule(policy, "Configure a commission policy for every test date.");
+          const basis = commissionBasisCount(policy.attribution, c.count, c.date, counts);
+          requireRule(basis !== null, "Shop-wide commission requires approved daily shop counts.");
           return {
             id: c.id,
             date: c.date,
             count: c.count,
+            commissionBasisCount: basis,
             sourceRef: c.sourceRef,
             version: c.version,
             approvedBy: c.approvedBy,
@@ -583,7 +587,7 @@ export async function generateDraft(actorId: string, periodId: string) {
               volumeIncreaseCents: policy.volumeIncreaseCents,
             },
             cents: commissionCents(
-              c.count,
+              basis,
               policy.threshold,
               policy.rateCents,
               policy.eligible,

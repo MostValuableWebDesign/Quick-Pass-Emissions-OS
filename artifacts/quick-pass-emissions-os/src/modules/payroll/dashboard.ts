@@ -3,7 +3,13 @@ import { dateString, requiredInteger } from "../../lib/validation";
 import { businessDate } from "../../lib/time";
 import { phase2, financeRoles } from "../phase2";
 import { weekBounds } from "../station/projections";
-import { baseRateSummary, commissionCents, exactCents, sumCents } from "./calculations";
+import {
+  baseRateSummary,
+  commissionBasisCount,
+  commissionCents,
+  exactCents,
+  sumCents,
+} from "./calculations";
 
 export const PAYROLL_PAGE_SIZE = 15;
 export const dashboardInput = z.object({
@@ -26,17 +32,28 @@ export function commissionSummary(
     threshold: number;
     rateCents: number;
     eligible: boolean;
+    attribution?: string;
     volumeThreshold?: number | null;
     volumeIncreaseCents?: number | null;
   }[],
+  shopCounts: { date: string; count: number; approvedAt: Date | null }[] = [],
 ) {
   const ordered = [...policies].sort((a, b) => b.effectiveDate.localeCompare(a.effectiveDate));
   const approved = counts.filter((c) => c.approvedAt);
   const amount = (c: (typeof counts)[number]) => {
     const p = ordered.find((p) => p.effectiveDate <= c.date);
     if (!p) return null;
+    if (!p.eligible) return 0;
     try {
-      return commissionCents(c.count, p.threshold, p.rateCents, p.eligible, p);
+      const basis = commissionBasisCount(
+        p.attribution ?? "PERSONAL_APPROVED_DAILY",
+        c.count,
+        c.date,
+        shopCounts,
+      );
+      return basis === null
+        ? null
+        : commissionCents(basis, p.threshold, p.rateCents, p.eligible, p);
     } catch {
       return null;
     }
@@ -114,6 +131,10 @@ export async function payrollDashboard(actorId: string, input: unknown = {}) {
         },
       },
     });
+    const shopCounts = await tx.dailyEmission.findMany({
+      where: { date: { gte: week.start, lte: week.end } },
+      select: { date: true, count: true, approvedAt: true },
+    });
     return {
       filter,
       week,
@@ -136,7 +157,7 @@ export async function payrollDashboard(actorId: string, input: unknown = {}) {
           arrangement,
           policy,
           base,
-          commission: commissionSummary(filter.date, e.emissions, e.commissionPolicies),
+          commission: commissionSummary(filter.date, e.emissions, e.commissionPolicies, shopCounts),
           approvedPayroll: e.payrollLines[0] ?? null,
         };
       }),

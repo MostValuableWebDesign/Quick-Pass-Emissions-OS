@@ -95,6 +95,38 @@ if (enabled) {
       vendorId: "",
     });
   }
+  it("generates internal equipment IDs and preserves hidden asset details during registry edits", async () => {
+    const e = await m.saveEquipment(manager, {
+      id: "",
+      version: 0,
+      name: "Analyzer",
+      category: "ANALYZER",
+      bayId: "",
+      vendorId: "",
+      model: "OPUS fixture",
+      serial: "HT fixture",
+      notes: "Existing asset detail",
+      reason: why,
+    });
+    expect(e.code).toMatch(/^EQ-[0-9A-F-]{36}$/);
+    expect(e.active).toBe(true);
+    const updated = await m.saveEquipment(manager, {
+      id: e.id,
+      version: e.version,
+      name: "Analyzer",
+      category: "ANALYZER",
+      bayId: "",
+      vendorId: "",
+      notes: "Updated without hidden asset fields",
+    });
+    expect(updated).toMatchObject({
+      code: e.code,
+      model: "OPUS fixture",
+      serial: "HT fixture",
+      active: true,
+      notes: "Updated without hidden asset fields",
+    });
+  });
   async function chemical(balance?: number) {
     let item = await c.saveChemical(owner, {
       id: "",
@@ -315,9 +347,14 @@ if (enabled) {
     ).rejects.toThrow("Close open");
     await m.equipmentDowntime(owner, { id: e.id, version: 1, decision: "END", reason: why });
     expect((await db.downtimeEvent.findFirstOrThrow()).endedAt).not.toBeNull();
-    await expect(
-      m.saveEquipment(manager, { ...e, id: "", code: e.code, active: true, reason: why }),
-    ).rejects.toThrow("already exists");
+    const duplicateSubmission = await m.saveEquipment(manager, {
+      ...e,
+      id: "",
+      code: e.code,
+      active: true,
+      reason: why,
+    });
+    expect(duplicateSubmission.code).not.toBe(e.code);
   });
   it("denies staff issue reports, reads and work updates", async () => {
     const t = await ticket();

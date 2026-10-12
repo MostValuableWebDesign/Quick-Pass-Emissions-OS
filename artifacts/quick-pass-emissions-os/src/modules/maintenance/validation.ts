@@ -62,20 +62,18 @@ export const vendorInput = vendorReferenceInput.refine(
   (v) => !!v.verifiedDate,
   "Enter a contact verification date.",
 );
-export const unverifiedVendorInput = z
-  .object({
-    name: label,
-    phone: z.string().trim().min(1, "Phone number is required.").max(50),
-    contact: z.string().trim().max(160).default(""),
-    email: z.union([z.email().max(254), z.literal("")]).default(""),
-    services: z.string().trim().max(2000).default(""),
-    reference: z.string().trim().max(160).default(""),
-    notes,
-  });
+export const unverifiedVendorInput = z.object({
+  name: label,
+  phone: z.string().trim().min(1, "Phone number is required.").max(50),
+  contact: z.string().trim().max(160).default(""),
+  email: z.union([z.email().max(254), z.literal("")]).default(""),
+  services: z.string().trim().max(2000).default(""),
+  reference: z.string().trim().max(160).default(""),
+  notes,
+});
 export const equipmentInput = z.object({
   id: optionalId,
   version,
-  code: label,
   name: label,
   category: z.enum([
     "ANALYZER",
@@ -91,11 +89,11 @@ export const equipmentInput = z.object({
   ]),
   bayId: optionalId,
   vendorId: optionalId,
-  model: z.string().trim().max(160).default(""),
-  serial: z.string().trim().max(160).default(""),
+  model: z.string().trim().max(160).optional(),
+  serial: z.string().trim().max(160).optional(),
   notes,
-  active: z.boolean(),
-  reason,
+  active: z.boolean().optional(),
+  reason: z.string().trim().max(2000).optional(),
 });
 export const ticketInput = z
   .object({

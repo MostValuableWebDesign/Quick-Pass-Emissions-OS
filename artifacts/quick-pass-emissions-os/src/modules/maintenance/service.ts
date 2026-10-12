@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
 import { id, dateString } from "../../lib/validation";
 import { businessDate, dueInstant } from "../../lib/time";
 import { phase3, managers, requireRule, audit, type Tx } from "../phase3";
@@ -139,19 +140,35 @@ export async function saveVendorInTransaction(tx: Tx, actorId: string, input: un
   return row;
 }
 export async function saveEquipment(actorId: string, input: unknown) {
-  const { id: recordId, version, reason, ...data } = v.equipmentInput.parse(input);
+  const {
+    id: recordId,
+    version,
+    reason,
+    active,
+    model,
+    serial,
+    ...data
+  } = v.equipmentInput.parse(input);
   return phase3(actorId, managers, async (tx) => {
     const before = recordId ? await tx.equipment.findUnique({ where: { id: recordId } }) : null;
     if (recordId) current(before, version);
     await validTarget(tx, data.bayId, null);
     await activeVendor(tx, data.vendorId);
+    const code = before?.code ?? `EQ-${randomUUID().toUpperCase()}`;
+    const equipmentData = {
+      ...data,
+      code,
+      model: model ?? before?.model ?? "",
+      serial: serial ?? before?.serial ?? "",
+      active: active ?? before?.active ?? true,
+    };
     requireRule(
       !(await tx.equipment.count({
-        where: { code: data.code, ...(recordId ? { id: { not: recordId } } : {}) },
+        where: { code, ...(recordId ? { id: { not: recordId } } : {}) },
       })),
       "Equipment code already exists.",
     );
-    if (recordId && !data.active) {
+    if (recordId && !equipmentData.active) {
       const [tickets, plans, down] = await Promise.all([
         tx.maintenanceTicket.count({
           where: { equipmentId: recordId, status: { notIn: ["COMPLETED", "CANCELLED"] } },
@@ -167,10 +184,16 @@ export async function saveEquipment(actorId: string, input: unknown) {
     const row = recordId
       ? await tx.equipment.update({
           where: { id: recordId },
-          data: { ...data, version: { increment: 1 } },
+          data: { ...equipmentData, version: { increment: 1 } },
         })
-      : await tx.equipment.create({ data });
-    await audit(tx, actorId, "EQUIPMENT_SAVED", row.id, { before, after: data, reason });
+      : await tx.equipment.create({ data: equipmentData });
+    await audit(tx, actorId, "EQUIPMENT_SAVED", row.id, {
+      before,
+      after: equipmentData,
+      reason:
+        reason ??
+        (recordId ? "Updated from Equipment registry." : "Registered from Equipment registry."),
+    });
     return row;
   });
 }

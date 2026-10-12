@@ -39,6 +39,21 @@ export function commissionCents(
     ? exactCents(BigInt(Math.max(0, count - threshold)) * BigInt(rateCents) + extra)
     : 0;
 }
+/** Shop commission uses complete approved daily counts, never a paginated roster. */
+export function commissionBasisCount(
+  attribution: string,
+  personalCount: number,
+  date: string,
+  shopCounts: { date: string; count: number; approvedAt: Date | null }[],
+) {
+  if (attribution === "PERSONAL_APPROVED_DAILY") return personalCount;
+  if (attribution !== "SHOP_WIDE_APPROVED_DAILY")
+    throw new Error("Unsupported commission attribution.");
+  const daily = shopCounts.filter((c) => c.date === date);
+  if (!daily.length || daily.some((c) => !c.approvedAt)) return null;
+  const total = daily.reduce((sum, c) => sum + boundedInteger(c.count, 100000), 0);
+  return boundedInteger(total, 100000);
+}
 export function sumCents(values: number[]) {
   return exactCents(values.reduce((sum, v) => sum + BigInt(boundedInteger(v)), 0n));
 }

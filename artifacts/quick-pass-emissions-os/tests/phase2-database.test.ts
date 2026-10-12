@@ -111,6 +111,83 @@ if (enabled) {
       reason: "Physical opening count",
     });
   }
+  it("uses approved shop-wide daily totals for every working inspector without rewriting personal counts", async () => {
+    const second = await db.employee.create({
+      data: {
+        user: {
+          create: {
+            name: "Second inspector",
+            email: `${randomUUID()}@example.test`,
+            role: "EMPLOYEE",
+          },
+        },
+      },
+    });
+    for (const employeeId of [employee, second.id]) {
+      await pay.saveArrangement(owner, {
+        employeeId,
+        effectiveDate: date,
+        kind: "FIXED",
+        amountCents: 10000,
+        reason: "Confirmed base",
+      });
+      await pay.savePolicy(owner, {
+        employeeId,
+        effectiveDate: date,
+        eligible: true,
+        threshold: 50,
+        rateCents: 100,
+        attribution: "SHOP_WIDE_APPROVED_DAILY",
+        reason: "Confirmed shop-wide commission",
+      });
+    }
+    const period = await pay.createPeriod(bookkeeper, {
+      startDate: date,
+      endDate: "2026-10-02",
+      label: "Shop-wide commission",
+    });
+    await pay.importEmissions(bookkeeper, [
+      {
+        employeeId: employee,
+        date,
+        count: 30,
+        sourceRef: "shop-a",
+        reason: "Verified personal count",
+      },
+      {
+        employeeId: second.id,
+        date,
+        count: 65,
+        sourceRef: "shop-b",
+        reason: "Verified personal count",
+      },
+    ]);
+    for (const count of await db.dailyEmission.findMany()) {
+      await pay.approveEmissions(owner, { id: count.id, version: count.version });
+    }
+    for (const employeeId of [employee, second.id]) {
+      const input = await pay.savePayrollInput(bookkeeper, {
+        periodId: period.id,
+        employeeId,
+        minutes: 0,
+        emissionsComplete: true,
+        reason: "Complete approved period",
+        version: 0,
+      });
+      await pay.approvePayrollInput(owner, { id: input.id, version: input.version });
+    }
+    const draft = await pay.generateDraft(bookkeeper, period.id);
+    expect(draft.totalCents).toBe(29000);
+    for (const line of await db.payrollLine.findMany({ where: { draftId: draft.id } })) {
+      expect(line.commissionCents).toBe(4500);
+      expect(line.snapshot).toMatchObject({
+        daily: [{ commissionBasisCount: 95, policy: { attribution: "SHOP_WIDE_APPROVED_DAILY" } }],
+      });
+    }
+    expect((await db.dailyEmission.findMany()).map((c) => c.count).sort((a, b) => a - b)).toEqual([
+      30, 65,
+    ]);
+  });
   it("retains daily pay, volume commissions and frozen payroll while recording percentage adjustments", async () => {
     const { payrollDashboard } = await import("../src/modules/payroll/dashboard");
     const arrangement = await pay.saveArrangement(owner, {

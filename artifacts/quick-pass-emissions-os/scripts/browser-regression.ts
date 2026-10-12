@@ -472,6 +472,8 @@ async function main() {
                       : "Passed: 1 complete owner import desktop/mobile journey including backup, reloads, unknown configuration, verification gates, staff-edit conflicts and role restrictions; no skips."
                     : process.env.E2E_STATION_ONLY === "1"
                       ? "Passed: 1 targeted station lifecycle check; no skips."
+                      : process.env.E2E_DEALERSHIPS_ONLY === "1"
+                        ? "Passed: 1 dealership add flow, including right alignment and save behavior; no skips."
                       : `Passed: ${Object.values(suite).reduce((sum, n) => sum + n, 0)} browser checks across navigation, operations, payroll, certificates, maintenance, rentals, finance and Phase 5 automation${process.env.E2E_STATION_HISTORY === "1" ? ", plus station history" : ""}; no skips.`,
   );
   if (process.env.E2E_MANUAL_TEST === "1") {

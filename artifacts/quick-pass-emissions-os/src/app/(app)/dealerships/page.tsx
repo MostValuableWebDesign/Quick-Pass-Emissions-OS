@@ -20,17 +20,19 @@ export default async function Dealers({ searchParams }: { searchParams: Promise<
         description="Billing accounts, contact records, completed services, and owner-authorized terms."
       />
       <DemoNotice demo={data.demo} />
-      <details className="card dealership-add-card">
-        <summary className="button button-primary dealership-add-toggle">
-          <span>Add dealership</span>
-        </summary>
-        <div className="card-body">
-          <ActionForm action={saveDealer} submit="Add dealership">
-            <RecordId />
-            <DealershipFields />
-          </ActionForm>
-        </div>
-      </details>
+      <div className="directory-add-toolbar">
+        <details className="directory-add-details">
+          <summary className="button button-primary dealership-add-toggle">
+            <span>Add dealership</span>
+          </summary>
+          <div className="directory-add-form">
+            <ActionForm action={saveDealer} submit="Add dealership">
+              <RecordId />
+              <DealershipFields />
+            </ActionForm>
+          </div>
+        </details>
+      </div>
       <section className="card space-top">
         <div className="card-heading">
           <h2>{scope === "active" ? "Active dealership partners" : "Dealership directory"}</h2>

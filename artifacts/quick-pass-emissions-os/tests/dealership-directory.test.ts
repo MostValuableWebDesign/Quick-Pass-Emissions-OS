@@ -33,9 +33,11 @@ describe("dealership partner directory", () => {
   it("provides the simplified form and active partners with invoice shortcuts", async () => {
     const html = renderToStaticMarkup(await Dealers({ searchParams: Promise.resolve({}) }));
     expect(mocks.overview).toHaveBeenCalledWith("owner", "", "active");
-    expect(html).toContain('<details class="card dealership-add-card">');
+    expect(html).toContain(
+      '<div class="directory-add-toolbar"><details class="directory-add-details">',
+    );
     expect(html).toContain('<summary class="button button-primary dealership-add-toggle">');
-    expect(html).not.toContain('<details class="card dealership-add-card" open');
+    expect(html).not.toContain('<details class="card dealership-add-card"');
     expect(html).toContain('name="phone"');
     expect(html).toContain('type="tel"');
     expect(html).toContain("Billing address");

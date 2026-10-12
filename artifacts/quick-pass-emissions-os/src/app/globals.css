@@ -823,25 +823,25 @@ main#main {
 .dealership-add-card > .card-body {
   padding: 22px 3px 3px;
 }
-.vendor-directory-toolbar {
+.directory-add-toolbar {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
 }
-.vendor-add-details {
+.directory-add-details {
   display: grid;
   justify-items: end;
   gap: 14px;
   width: 100%;
 }
-.vendor-add-details[open] > .dealership-add-toggle::after {
+.directory-add-details[open] > .dealership-add-toggle::after {
   content: "−";
 }
-.vendor-add-form {
+.directory-add-form {
   width: 100%;
   padding-top: 8px;
 }
-.vendor-add-form > p {
+.directory-add-form > p {
   margin: 0 0 18px;
 }
 .card-heading {

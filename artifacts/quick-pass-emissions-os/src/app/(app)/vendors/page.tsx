@@ -65,12 +65,12 @@ export default async function Vendors({
         </div>
       </form>
       {data.management && (
-        <div className="vendor-directory-toolbar">
-          <details className="vendor-add-details">
+        <div className="directory-add-toolbar">
+          <details className="directory-add-details">
             <summary className="button button-primary dealership-add-toggle vendor-add-toggle">
               Add vendor
             </summary>
-            <div className="vendor-add-form">
+            <div className="directory-add-form">
               <p className="muted">
                 Vendor name and phone are required. New vendors remain unconfirmed until their
                 contact details are verified.

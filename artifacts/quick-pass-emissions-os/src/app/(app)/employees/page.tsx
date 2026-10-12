@@ -45,16 +45,18 @@ export default async function Employees({
         ))}
       </nav>
       {status !== "inactive" && (
-        <details className="card dealership-add-card space-top">
-          <summary className="button button-primary dealership-add-toggle">
-            <span>Add employee</span>
-          </summary>
-          <div className="card-body">
-            <ActionForm action={saveEmployee} submit="Create employee">
-              <EmployeeFields />
-            </ActionForm>
-          </div>
-        </details>
+        <div className="directory-add-toolbar">
+          <details className="directory-add-details">
+            <summary className="button button-primary dealership-add-toggle">
+              <span>Add employee</span>
+            </summary>
+            <div className="directory-add-form">
+              <ActionForm action={saveEmployee} submit="Create employee">
+                <EmployeeFields />
+              </ActionForm>
+            </div>
+          </details>
+        </div>
       )}
       <section className="card space-top">
         <div className="card-heading">

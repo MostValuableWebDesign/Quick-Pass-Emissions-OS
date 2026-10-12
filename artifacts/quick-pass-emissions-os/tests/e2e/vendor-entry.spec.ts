@@ -76,7 +76,7 @@ test("vendor filters, minimal entry and separate business navigation work", asyn
     page.getByRole("heading", { name: "Preferred provider by category", exact: true }),
   ).toHaveCount(0);
 
-  const addDetails = page.locator("details.vendor-add-details");
+  const addDetails = page.locator("details.directory-add-details");
   const list = page.locator(".vendor-directory-grid");
   await expect(addDetails.locator("summary")).toHaveText("Add vendor");
   expect(await addDetails.getAttribute("class")).not.toContain("card");

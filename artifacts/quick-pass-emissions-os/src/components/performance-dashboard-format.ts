@@ -17,6 +17,9 @@ export const shortDate = (d: string) =>
     day: "numeric",
     timeZone: "UTC",
   });
+export function excludeSundayTrendDays<T extends { date: string }>(days: readonly T[]): T[] {
+  return days.filter(({ date }) => new Date(`${date}T12:00:00Z`).getUTCDay() !== 0);
+}
 export const longDate = (d: string) =>
   new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", {
     weekday: "short",

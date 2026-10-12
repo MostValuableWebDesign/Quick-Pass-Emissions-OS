@@ -112,7 +112,6 @@ export default async function Vendors({
                   </div>
                 </div>
                 <div className="vendor-directory-description">
-                  <span className="eyebrow">What they handle</span>
                   <p>{description || "No description recorded."}</p>
                 </div>
                 {p.phone ? (

@@ -51,7 +51,10 @@ test("vendor filters, minimal entry and separate business navigation work", asyn
   const carwashCard = page.locator(".vendor-directory-card").filter({ has: results.carwash });
   await expect(carwashCard).toContainText("Category");
   await expect(carwashCard).toContainText("Carwash Equipment Service");
-  await expect(carwashCard).toContainText("What they handle");
+  await expect(carwashCard.locator(".vendor-directory-description p")).toHaveText(
+    "Hydraulic fixture cleaning",
+  );
+  await expect(carwashCard).not.toContainText("What they handle");
 
   await apply("", "Carwash Equipment Service");
   await expect(results.carwash).toBeVisible();

@@ -5,9 +5,9 @@ description: Routing and credential-submission lessons from importing the Next.j
 
 Imported Next.js endpoints need explicit artifact service prefixes when the workspace also has a shared API scaffold.
 
-**Why:** The root web preview rendered correctly while authentication POST requests were routed to the inactive shared API service and returned 502. A successful login-page screenshot did not verify authentication routing.
+**Why:** The root web preview rendered correctly while authentication POST requests were routed to the inactive shared API service and returned 502. A successful login-page screenshot did not verify authentication routing. Direct-port browser suites also bypass this routing and can pass while a newly imported endpoint goes to the shared scaffold in Preview.
 
-**How to apply:** Check longest-prefix ownership of the app's API paths and explicitly register its Next.js API and HMR paths through the validated artifact workflow. Confirm requests through the public proxy, not only directly on the service port.
+**How to apply:** Check longest-prefix ownership of the app's API paths and explicitly register its Next.js API and HMR paths through the validated artifact workflow, including newly merged endpoints. Confirm requests through the public proxy, not only directly on the service port. A harmless browser-origin request can establish routing and CSRF acceptance without using a real session.
 
 Credential forms must submit POST safely before or without client hydration; a client-only preventDefault handler is not an adequate safeguard.
 

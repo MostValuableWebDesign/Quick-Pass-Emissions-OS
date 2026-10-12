@@ -29,6 +29,22 @@ export default async function Vendors({
         title="Service & support"
       />
       <DemoNotice demo={data.demo} />
+      {data.management && (
+        <div className="directory-add-toolbar">
+          <details className="directory-add-details">
+            <summary className="button button-primary dealership-add-toggle vendor-add-toggle">
+              Add vendor
+            </summary>
+            <div className="directory-add-form">
+              <p className="muted">
+                Vendor name and phone are required. New vendors remain unconfirmed until their
+                contact details are verified.
+              </p>
+              <VendorForm />
+            </div>
+          </details>
+        </div>
+      )}
       <form
         key={JSON.stringify([q.search ?? "", category ?? "", q.archived === "1"])}
         method="get"
@@ -64,22 +80,6 @@ export default async function Vendors({
           <Link href="/vendors">Clear</Link>
         </div>
       </form>
-      {data.management && (
-        <div className="directory-add-toolbar">
-          <details className="directory-add-details">
-            <summary className="button button-primary dealership-add-toggle vendor-add-toggle">
-              Add vendor
-            </summary>
-            <div className="directory-add-form">
-              <p className="muted">
-                Vendor name and phone are required. New vendors remain unconfirmed until their
-                contact details are verified.
-              </p>
-              <VendorForm />
-            </div>
-          </details>
-        </div>
-      )}
       {data.providers.length === 0 ? (
         <Empty
           title="No providers match"

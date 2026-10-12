@@ -69,6 +69,24 @@ export function googleConfigured() {
     return false;
   }
 }
+/** Readiness metadata only. Never return OAuth credentials or encryption-key material. */
+export function googleSetupStatus() {
+  let origin: URL | null = null;
+  try {
+    origin = canonicalOrigin();
+  } catch {
+    /* Missing or invalid configuration remains an explicit setup item. */
+  }
+  return {
+    oauthClientReady: Boolean(
+      process.env.GOOGLE_BUSINESS_CLIENT_ID?.trim() &&
+        process.env.GOOGLE_BUSINESS_CLIENT_SECRET?.trim(),
+    ),
+    encryptionKeyReady: /^[a-f0-9]{64}$/i.test(process.env.GOOGLE_BUSINESS_ENCRYPTION_KEY ?? ""),
+    canonicalAppUrlReady: !!origin,
+    canonicalAppUrlSecure: origin?.protocol === "https:",
+  };
+}
 export function authorizationUrl(state: string, challenge: string) {
   const c = googleConfig(),
     u = new URL("https://accounts.google.com/o/oauth2/v2/auth");

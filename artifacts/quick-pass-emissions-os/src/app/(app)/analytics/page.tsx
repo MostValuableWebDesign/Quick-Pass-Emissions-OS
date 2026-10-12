@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { analyticsOverview } from "@/modules/analytics/report";
 import { METRICS } from "@/modules/analytics/rules";
+import { googleSetupStatus } from "@/lib/google-business/client";
 import * as actions from "@/app/analytics-actions";
 export const metadata: Metadata = { title: "Analytics" };
 const money = (v: string | null) => {
@@ -53,6 +54,98 @@ export default async function AnalyticsPage({
   const { station, range, report } = data,
     location = station?.locations[0],
     owner = actor.role === "OWNER";
+  const setup = googleSetupStatus();
+  const connected = data.connection?.status === "CONNECTED";
+  const locationMapped = Boolean(location?.enabled);
+  const lastSuccessfulSync = report?.lastSuccessfulSync ?? null;
+  const nextSteps: string[] = [];
+  if (!setup.oauthClientReady)
+    nextSteps.push(
+      "Add the Google OAuth client ID and client secret in Replit Secrets. Keep their values private.",
+    );
+  if (!setup.encryptionKeyReady)
+    nextSteps.push(
+      "Set a stable 64-character hexadecimal GOOGLE_BUSINESS_ENCRYPTION_KEY in Replit Secrets. Keep it unchanged across releases.",
+    );
+  if (!setup.canonicalAppUrlReady || !setup.canonicalAppUrlSecure)
+    nextSteps.push(
+      "Set BETTER_AUTH_URL to the app’s canonical HTTPS origin, then register the exact callback shown in Google Business Profile for that environment.",
+    );
+  if (!data.configured)
+    nextSteps.push(
+      "In Google Cloud, confirm Business Profile API access, the required APIs, the OAuth consent setup and the profile owner’s permission. The app cannot verify these external settings.",
+    );
+  if (data.configured && !connected)
+    nextSteps.push(
+      "Connect Google using an account that manages the verified Quick Pass Business Profile.",
+    );
+  if (connected && !station) {
+    nextSteps.push(
+      owner
+        ? "Register the existing emissions station in Station mapping & manager access."
+        : "Ask the owner to register an Analytics station and grant your account access.",
+    );
+  } else if (station && !locationMapped) {
+    nextSteps.push(
+      connected
+        ? "Refresh authorized locations and map the correct Quick Pass listing to the emissions station."
+        : "After connecting Google, refresh authorized locations and map the correct Quick Pass listing.",
+    );
+  } else if (locationMapped && !lastSuccessfulSync) {
+    nextSteps.push(
+      "Choose a reporting range and select Sync now. If a sync is interrupted, resume that existing request.",
+    );
+  } else if (locationMapped) {
+    nextSteps.push(
+      "For fresh Google data, choose a reporting range and select Sync now; opening this page does not refresh Google.",
+    );
+  }
+  nextSteps.push(
+    "Before relying on production recovery, verify the separate jobs worker runs at least every five minutes. It advances already-requested pages, retries and cache cleanup; it never starts a new Google import.",
+  );
+  const setupStatusRows = [
+    {
+      item: "OAuth client credentials",
+      status: setup.oauthClientReady ? "Configured; values hidden" : "Missing or incomplete",
+    },
+    {
+      item: "Token encryption key",
+      status: setup.encryptionKeyReady ? "Valid format; value hidden" : "Missing or invalid",
+    },
+    {
+      item: "Canonical app URL",
+      status: setup.canonicalAppUrlSecure
+        ? "HTTPS configured"
+        : setup.canonicalAppUrlReady
+          ? "Local development URL; production needs its own HTTPS callback"
+          : "Missing or invalid",
+    },
+    {
+      item: "Google authorization",
+      status: connected
+        ? "Connected"
+        : data.connection?.status === "RECONNECT"
+          ? "Reconnect required"
+          : "Not connected",
+    },
+    {
+      item: "Analytics station and Google location",
+      status: !station
+        ? owner
+          ? "Station not registered"
+          : "No station access"
+        : locationMapped
+          ? "Location mapped"
+          : "Location not mapped",
+    },
+    {
+      item: "Last successful Google import",
+      status: lastSuccessfulSync ? formatDate(lastSuccessfulSync) : "None recorded",
+    },
+    { item: "Automatic Google collection", status: "Off · syncs are explicitly requested" },
+    { item: "Production jobs worker", status: "External schedule · verify in deployment settings" },
+    { item: "Replit compute usage", status: "Not measured by this app · check Replit Usage" },
+  ];
   const href = (page: number, start = range.start, end = range.end) =>
     `/analytics?${new URLSearchParams({ ...(station ? { station: station.id } : {}), start, end, page: String(page) })}`;
   const callback: Record<string, string> = {
@@ -74,6 +167,65 @@ export default async function AnalyticsPage({
           {callback[q.google]}
         </p>
       ) : null}
+      <section className="card">
+        <div className="card-heading">
+          <h2>Current setup and next steps</h2>
+          <span className="badge neutral">
+            {data.configured && connected && station && locationMapped && lastSuccessfulSync
+              ? "Ready for manual reporting"
+              : "Setup in progress"}
+          </span>
+        </div>
+        <div className="card-body">
+          <div
+            className="table-scroll"
+            role="region"
+            aria-label="Analytics setup status"
+            tabIndex={0}
+          >
+            <table>
+              <caption className="sr-only">Google Business Profile analytics setup status</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Setup item</th>
+                  <th scope="col">Current status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {setupStatusRows.map(({ item, status }) => (
+                  <tr key={item}>
+                    <th scope="row">{item}</th>
+                    <td>{status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <h3>What still needs to be done</h3>
+          {nextSteps.length ? (
+            <ol>
+              {nextSteps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          ) : (
+            <p>
+              The Google connection, station mapping and a successful import are in place. Refresh
+              data only when needed by selecting a range and choosing Sync now.
+            </p>
+          )}
+          <p className="muted">
+            This Analytics integration reads Google Business Profile data—not GA4 or Google Ads.
+            Google requests run on the app server only when you connect, refresh locations or
+            explicitly sync a report; page visits use saved results and do not collect new Google
+            data. The separate worker handles already-requested pages, retries and cache expiry; its
+            deployment status is not visible here and it does not start new collections. Replit CU
+            usage and external worker frequency are not measured here. This workload varies with the
+            selected report range and Google response pages, so this page does not show a speculative
+            cost estimate; check Replit Usage after real runs.
+          </p>
+        </div>
+      </section>
       <section className="card">
         <div className="card-heading">
           <h2>Google Business Profile</h2>

@@ -11,6 +11,7 @@ import {
   GoogleError,
   retryDelay,
   googleCallbackUrl,
+  googleSetupStatus,
 } from "../src/lib/google-business/client";
 import {
   bounds,
@@ -150,6 +151,23 @@ describe("Google credential and fixed-origin transport security", () => {
     expect(await revoke({ access_token: "access", refresh_token: "refresh", expires_at: 0 })).toBe(
       true,
     );
+  });
+
+  it("reports setup readiness without exposing OAuth or encryption values", () => {
+    config();
+    expect(googleSetupStatus()).toEqual({
+      oauthClientReady: true,
+      encryptionKeyReady: true,
+      canonicalAppUrlReady: true,
+      canonicalAppUrlSecure: false,
+    });
+    vi.stubEnv("BETTER_AUTH_URL", "https://app.example.test");
+    expect(googleSetupStatus().canonicalAppUrlSecure).toBe(true);
+    vi.stubEnv("GOOGLE_BUSINESS_ENCRYPTION_KEY", "invalid");
+    expect(googleSetupStatus().encryptionKeyReady).toBe(false);
+    const serialized = JSON.stringify(googleSetupStatus());
+    expect(serialized).not.toContain("fixture-client");
+    expect(serialized).not.toContain("fixture-secret");
   });
 
   it("encrypts with random nonces and authenticated record context", () => {

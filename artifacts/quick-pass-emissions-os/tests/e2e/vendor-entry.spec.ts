@@ -17,6 +17,7 @@ test("vendor filters, minimal entry and separate business navigation work", asyn
     await expect(navigation.locator(`a[href="${href}"]`)).toHaveCount(0);
 
   const filter = page.getByRole("search", { name: "Filter providers" });
+  await expect(page.getByText(/Who to contact when equipment, cameras, drains or wash systems/)).toHaveCount(0);
   await expect(filter.getByLabel("Include archived providers")).toHaveCount(0);
   await expect(page.getByText(/Phone links open your device's calling app/)).toHaveCount(0);
   await expect(page.getByText(/Email links require an installed email app/)).toHaveCount(0);
@@ -75,14 +76,16 @@ test("vendor filters, minimal entry and separate business navigation work", asyn
     page.getByRole("heading", { name: "Preferred provider by category", exact: true }),
   ).toHaveCount(0);
 
-  const addCard = page.locator("details.vendor-add-card");
+  const addDetails = page.locator("details.vendor-add-details");
   const list = page.locator(".vendor-directory-grid");
-  await expect(addCard.locator("summary")).toHaveText("Add vendor");
-  const addBox = await addCard.boundingBox();
+  await expect(addDetails.locator("summary")).toHaveText("Add vendor");
+  expect(await addDetails.getAttribute("class")).not.toContain("card");
+  const addBox = await addDetails.locator("summary").boundingBox();
   const listBox = await list.boundingBox();
   expect(addBox).not.toBeNull();
   expect(listBox).not.toBeNull();
-  expect(addBox!.y).toBeLessThan(listBox!.y);
+  expect(addBox!.x).toBeGreaterThan(listBox!.x);
+  expect(addBox!.x + addBox!.width).toBeGreaterThanOrEqual(listBox!.x + listBox!.width - 2);
 
   await page.locator(".vendor-add-toggle").click();
   const form = page.locator("form").filter({

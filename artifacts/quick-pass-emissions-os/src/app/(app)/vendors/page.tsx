@@ -27,7 +27,6 @@ export default async function Vendors({
     <>
       <PageHeader
         title="Service & support"
-        description="Who to contact when equipment, cameras, drains or wash systems need help. Calling, emailing or opening a link does not record anything; log contacts manually on a provider's page."
       />
       <DemoNotice demo={data.demo} />
       <form
@@ -66,18 +65,20 @@ export default async function Vendors({
         </div>
       </form>
       {data.management && (
-        <details className="card dealership-add-card vendor-add-card space-top">
-          <summary className="button button-primary dealership-add-toggle vendor-add-toggle">
-            Add vendor
-          </summary>
-          <div className="card-body">
-            <p className="muted">
-              Vendor name and phone are required. New vendors remain unconfirmed until their
-              contact details are verified.
-            </p>
-            <VendorForm />
-          </div>
-        </details>
+        <div className="vendor-directory-toolbar">
+          <details className="vendor-add-details">
+            <summary className="button button-primary dealership-add-toggle vendor-add-toggle">
+              Add vendor
+            </summary>
+            <div className="vendor-add-form">
+              <p className="muted">
+                Vendor name and phone are required. New vendors remain unconfirmed until their
+                contact details are verified.
+              </p>
+              <VendorForm />
+            </div>
+          </details>
+        </div>
       )}
       {data.providers.length === 0 ? (
         <Empty

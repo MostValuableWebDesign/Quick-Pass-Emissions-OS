@@ -11,7 +11,7 @@ export function PageHeader({
 }: {
   eyebrow?: string;
   title: string;
-  description: React.ReactNode;
+  description?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   return (
@@ -19,7 +19,9 @@ export function PageHeader({
       <div>
         <p className="eyebrow">{eyebrow}</p>
         <h1>{title}</h1>
-        <p className="muted">{description}</p>
+        {description != null && description !== "" ? (
+          <p className="muted">{description}</p>
+        ) : null}
       </div>
       <div className="heading-actions">{children}</div>
     </div>

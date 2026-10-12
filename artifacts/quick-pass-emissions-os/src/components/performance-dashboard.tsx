@@ -21,9 +21,11 @@ import type { DashboardPanelId } from "./performance-dashboard-layout";
 export function PerformanceDashboard({
   initial,
   initialLayout,
+  layoutAccountId,
 }: {
   initial: DashboardData;
   initialLayout: DashboardLayout | null;
+  layoutAccountId: string;
 }) {
   const [data, setData] = useState<DashboardData>(initial);
   const [visibleEmployeeRows, setVisibleEmployeeRows] = useState(initial.employees.length);
@@ -32,7 +34,7 @@ export function PerformanceDashboard({
   const busy = useRef(false);
   const { start, end, trendDays, employee } = initial.query;
   const q = useMemo(() => ({ start, end, trendDays, employee }), [start, end, trendDays, employee]);
-  const panelLayout = usePerformanceDashboardLayout(initialLayout);
+  const panelLayout = usePerformanceDashboardLayout(initialLayout, layoutAccountId);
 
   const load = useCallback(
     async (refresh: boolean) => {

@@ -18,9 +18,10 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
   ]);
   return (
     <PerformanceDashboard
-      key={`${query.start}:${query.end}:${query.trendDays}:${query.employee ?? ""}`}
+      key={`${user.id}:${query.start}:${query.end}:${query.trendDays}:${query.employee ?? ""}`}
       initial={initial}
       initialLayout={normalizeDashboardLayout(savedLayout?.layout)}
+      layoutAccountId={user.id}
     />
   );
 }

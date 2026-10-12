@@ -23,15 +23,19 @@ const titles: Record<DashboardPanelId, string> = {
   "commission-progress": "Commission progress",
 };
 
-function saveLocalLayout(layout: DashboardLayout) {
+function saveLocalLayout(key: string, layout: DashboardLayout) {
   try {
-    localStorage.setItem(DASHBOARD_LAYOUT_KEY, JSON.stringify(layout));
+    localStorage.setItem(key, JSON.stringify(layout));
   } catch {
     // Account saving remains authoritative when browser storage is unavailable.
   }
 }
 
-export function usePerformanceDashboardLayout(initialLayout: DashboardLayout | null) {
+export function usePerformanceDashboardLayout(
+  initialLayout: DashboardLayout | null,
+  accountId: string,
+) {
+  const storageKey = `${DASHBOARD_LAYOUT_KEY}:${accountId}`;
   const firstLayout = initialLayout ?? DEFAULT_DASHBOARD_LAYOUT;
   const [layout, setLayout] = useState<DashboardLayout>(() =>
     firstLayout.map((panel) => ({ ...panel })),
@@ -60,46 +64,51 @@ export function usePerformanceDashboardLayout(initialLayout: DashboardLayout | n
     (next: DashboardLayout) => {
       layoutRef.current = next;
       setLayout(next);
-      saveLocalLayout(next);
+      saveLocalLayout(storageKey, next);
       persist(next);
     },
-    [persist],
+    [persist, storageKey],
   );
 
   useEffect(() => {
     if (initialLayout) {
-      const saved = initialLayout.map((panel) => ({ ...panel }));
-      layoutRef.current = saved;
-      setLayout(saved);
-      saveLocalLayout(saved);
-      setSaveStatus("saved");
+      saveLocalLayout(storageKey, initialLayout);
       return;
     }
 
-    let raw: string | null = null;
-    try {
-      raw = localStorage.getItem(DASHBOARD_LAYOUT_KEY);
-    } catch {
-      return;
-    }
-    if (raw !== null) {
-      const localLayout = parseDashboardLayout(raw);
-      layoutRef.current = localLayout;
-      setLayout(localLayout);
-      persist(localLayout);
-    }
-  }, [initialLayout, persist]);
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      let raw: string | null = null;
+      try {
+        raw = localStorage.getItem(storageKey);
+        if (raw === null) {
+          raw = localStorage.getItem(DASHBOARD_LAYOUT_KEY);
+          if (raw !== null) {
+            localStorage.setItem(storageKey, raw);
+            localStorage.removeItem(DASHBOARD_LAYOUT_KEY);
+          }
+        }
+      } catch {
+        return;
+      }
+      if (raw !== null) applyLayout(parseDashboardLayout(raw));
+    });
+    return () => {
+      active = false;
+    };
+  }, [initialLayout, applyLayout, storageKey]);
 
   useEffect(() => {
     function syncLocalLayout(event: StorageEvent) {
-      if (event.key !== DASHBOARD_LAYOUT_KEY) return;
+      if (event.key !== storageKey) return;
       const next = parseDashboardLayout(event.newValue);
       layoutRef.current = next;
       setLayout(next);
     }
     window.addEventListener("storage", syncLocalLayout);
     return () => window.removeEventListener("storage", syncLocalLayout);
-  }, []);
+  }, [storageKey]);
 
   const retrySave = useCallback(() => persist(layoutRef.current), [persist]);
 

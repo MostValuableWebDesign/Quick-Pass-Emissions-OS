@@ -102,10 +102,10 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
 
   const browser = page.context().browser();
   if (!browser) throw new Error("A browser instance is required for account layout persistence.");
-  const otherDevice = await browser.newContext();
+  const otherDevice = await browser.newContext({ baseURL: new URL(page.url()).origin });
   await otherDevice.addCookies(await page.context().cookies());
   await otherDevice.addInitScript(() => {
-    localStorage.removeItem("quick-pass-performance-layout-v1");
+    localStorage.clear();
   });
   const otherDevicePage = await otherDevice.newPage();
   await otherDevicePage.goto("/performance");
@@ -157,6 +157,9 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   await expect(trend).toHaveCSS("grid-column-start", "span 6");
   await expect(employees).toHaveCSS("grid-column-start", "span 6");
   await expectSideBySide();
+  await expect(page.getByTestId("performance-layout-save-status")).toHaveText(
+    "Layout saved to your account",
+  );
   await page.reload();
   await expectSideBySide();
 
@@ -179,6 +182,9 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   await expect(employees).toHaveCSS("grid-column-start", "1");
   await page.setViewportSize({ width: 1280, height: 720 });
   await expectSideBySide();
+  await expect(page.getByTestId("performance-layout-save-status")).toHaveText(
+    "Layout saved to your account",
+  );
 
   // Cached VIN history: one repeat yesterday is free; another at day 31 is paid.
   // These are synthetic fixtures, not external portal calls or payroll writes.
@@ -202,15 +208,15 @@ test("busy hours and commission progress follow reports, employee filters and sa
   browser,
 }) => {
   await page.goto("/performance?start=2026-01-15&end=2026-01-15");
-  // An existing two-panel preference must survive adding the new panels.
-  await page.evaluate(() =>
-    localStorage.setItem(
-      "quick-pass-performance-layout-v1",
-      JSON.stringify([
-        { id: "employees", columns: 6, height: 360 },
-        { id: "trend", columns: 6, height: 360 },
-      ]),
-    ),
+  // Account-backed layouts include all four panels and preserve the chosen order.
+  await page.getByTestId("button-reset-panel-layout").click();
+  await page.getByRole("button", { name: "Move Employees panel up", exact: true }).click();
+  const employeeResize = page
+    .getByTestId("panel-employees")
+    .getByRole("button", { name: /Resize Employees panel/ });
+  for (let step = 0; step < 6; step++) await employeeResize.press("ArrowLeft");
+  await expect(page.getByTestId("performance-layout-save-status")).toHaveText(
+    "Layout saved to your account",
   );
   await page.reload();
   const grid = page.getByTestId("performance-panel-grid");
@@ -223,15 +229,11 @@ test("busy hours and commission progress follow reports, employee filters and sa
     .locator('tbody tr[data-testid^="row-employee-"]')
     .count();
   const migratedHeight = Math.max(
-    360,
+    420,
     migratedRows > 0 && migratedRows < 7 ? Math.min(720, 250 + migratedRows * 80) : 0,
   );
   await expect(migratedEmployees).toHaveCSS("height", `${migratedHeight}px`);
-  expect(
-    await page.evaluate(
-      () => JSON.parse(localStorage.getItem("quick-pass-performance-layout-v1")!)[0].height,
-    ),
-  ).toBe(360);
+  await expect(migratedEmployees).toHaveCSS("grid-column-start", "span 6");
   await expect(busy.getByTestId("text-busy-tests")).toHaveText("94");
   await expect(busy.getByTestId("text-busy-peak")).toHaveText("11 AM");
   await expect(
@@ -260,6 +262,9 @@ test("busy hours and commission progress follow reports, employee filters and sa
   await corner.press("ArrowDown");
   await expect(busy).toHaveCSS("grid-column-start", "span 7");
   await expect(busy).toHaveCSS("height", "460px");
+  await expect(page.getByTestId("performance-layout-save-status")).toHaveText(
+    "Layout saved to your account",
+  );
   await page.reload();
   await expect(grid.locator(".pd-widget").first()).toHaveAttribute(
     "data-panel-id",
@@ -310,6 +315,9 @@ test("busy hours and commission progress follow reports, employee filters and sa
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByTestId("button-reset-panel-layout").click();
+  await expect(page.getByTestId("performance-layout-save-status")).toHaveText(
+    "Layout saved to your account",
+  );
   await page.goto("/performance?start=2026-01-15&end=2026-01-15");
   if (process.env.E2E_INSIGHTS_CAPTURE_DIR) {
     await busy.screenshot({
@@ -325,6 +333,7 @@ test("busy hours and commission progress follow reports, employee filters and sa
   await expect(commission.getByRole("progressbar")).toHaveCount(0);
 
   const manager = await browser.newContext({
+    baseURL: new URL(page.url()).origin,
     storageState: path.join(process.env.E2E_PRIVATE_DIR!, "ADMIN.json"),
   });
   try {

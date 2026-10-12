@@ -6,7 +6,7 @@ import { range } from "./report";
 import { stationConfig, stationTransaction } from "./service";
 import { portalRangeDays } from "./portal-client";
 import { buildDashboard, dashboardDates, calendarDays } from "./dashboard-calculations";
-import type { DashboardQuery, PayPlan } from "./dashboard-types";
+import type { DashboardData, DashboardQuery, PayPlan } from "./dashboard-types";
 import { classifyDashboardRetests, hasVinEvidence, retestHistoryDates } from "./dashboard-retests";
 import { PACE_SETTINGS_ACTION, paceSettingsSchema } from "./pace-settings";
 
@@ -265,7 +265,11 @@ function contiguousChunks(dates: string[]) {
   return chunks.sort((a, b) => b.end.localeCompare(a.end));
 }
 
-export async function loadDashboard(actorId: string, input: unknown, refresh = false) {
+export async function loadDashboard(
+  actorId: string,
+  input: unknown,
+  refresh = false,
+): Promise<DashboardData> {
   const query = validateQuery(input);
   const initial = await readDashboard(actorId, query);
   // Continue a bounded partial backfill before re-fetching already cached days.

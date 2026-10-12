@@ -70,7 +70,10 @@ export async function readCertificatePortalStatus(): Promise<CertificatePortalSt
   };
 }
 
-export async function refreshCertificateBalance(actorId: string, force = false) {
+export async function refreshCertificateBalance(
+  actorId: string,
+  force = false,
+): Promise<CertificatePortalStatus & { sourceStatus: SourceRefreshStatus }> {
   const initial = await readCertificatePortalStatus();
   const now = Date.now();
   const fresh = initial.checkedAt && now - Date.parse(initial.checkedAt) < TTL;

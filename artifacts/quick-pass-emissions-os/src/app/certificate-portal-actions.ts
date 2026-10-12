@@ -45,7 +45,7 @@ export async function refreshCertificateBalanceAction(force = false) {
     const data = await readCertificatePortalStatus();
     return {
       ok: false,
-      sourceStatus: "failed",
+      sourceStatus: "failed" as const,
       message: "Unable to check certificate balance. Saved data is unchanged.",
       data,
     };

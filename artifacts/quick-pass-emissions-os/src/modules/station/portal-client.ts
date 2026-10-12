@@ -59,6 +59,7 @@ export class PortalSession {
     private transport: typeof fetch = fetch,
     allowCertificateReads = false,
     allowCertificateHistory = false,
+    private operationSignal?: AbortSignal,
   ) {
     this.allowedPaths = new Set(ALLOWED_PATHS);
     if (allowCertificateReads) {
@@ -75,6 +76,12 @@ export class PortalSession {
         throw new BusinessError("Station portal redirected to an unsupported location.");
       const remaining = this.deadline - Date.now();
       if (remaining <= 0) throw new BusinessError("Station portal lookup timed out. Try later.");
+      if (this.operationSignal?.aborted)
+        throw new BusinessError("Station test export timed out. Try later.");
+      const timeout = AbortSignal.timeout(Math.min(15_000, remaining));
+      const signal = this.operationSignal
+        ? AbortSignal.any([this.operationSignal, timeout])
+        : timeout;
       let response: Response;
       try {
         response = await this.transport(url, {
@@ -82,7 +89,7 @@ export class PortalSession {
           body: body?.toString(),
           redirect: "manual",
           cache: "no-store",
-          signal: AbortSignal.timeout(Math.min(15_000, remaining)),
+          signal,
           headers: {
             ...(body
               ? {
@@ -123,9 +130,15 @@ export class PortalSession {
       if (!reader) throw new BusinessError("Station portal returned no report.");
       const chunks: Uint8Array[] = [];
       let bytes = 0;
+      const cancel = () => {
+        void reader.cancel().catch(() => {});
+      };
+      signal.addEventListener("abort", cancel, { once: true });
       try {
+        signal.throwIfAborted();
         while (true) {
           const { done, value } = await reader.read();
+          signal.throwIfAborted();
           if (done) break;
           bytes += value.byteLength;
           if (bytes > LIMIT) {
@@ -137,6 +150,8 @@ export class PortalSession {
       } catch (error) {
         if (error instanceof BusinessError) throw error;
         throw new BusinessError("Station report could not be read completely. Try again.");
+      } finally {
+        signal.removeEventListener("abort", cancel);
       }
       const html = Buffer.concat(chunks).toString("utf8");
       if (/captcha|recaptcha|one.time.password|multi.factor/i.test(html))
@@ -321,8 +336,11 @@ export async function portalRangeDays(
         aggregate[key]++;
       }
       day.testTimes!.push({
-        inspector: row.inspector, minute: reportMinute(row.sourceDate),
-        vinHash: row.vehicleHash, recordKey: row.fingerprint, outcome: key,
+        inspector: row.inspector,
+        minute: reportMinute(row.sourceDate),
+        vinHash: row.vehicleHash,
+        recordKey: row.fingerprint,
+        outcome: key,
       });
     }
     // Missing dates are not invented zeros. Explicit empty-day responses are verified separately.

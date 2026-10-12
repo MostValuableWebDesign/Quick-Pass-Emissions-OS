@@ -192,7 +192,7 @@ export default async function Dashboard({
             data-low={
               certificateStatus?.balance !== null &&
               certificateStatus?.balance !== undefined &&
-              certificateStatus.balance < certificateStatus.threshold
+              certificateStatus.balance <= certificateStatus.threshold
             }
           >
             <div className="stat-top">
@@ -217,7 +217,7 @@ export default async function Dashboard({
             )}
             {certificateStatus?.balance !== null &&
               certificateStatus?.balance !== undefined &&
-              certificateStatus.balance < certificateStatus.threshold && (
+              certificateStatus.balance <= certificateStatus.threshold && (
                 <small className="dashboard-certificate-low">
                   Low · reorder threshold {certificateStatus.threshold}
                 </small>

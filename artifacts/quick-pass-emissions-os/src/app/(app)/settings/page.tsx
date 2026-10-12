@@ -6,6 +6,7 @@ import { ActionForm, Field } from "@/components/action-form";
 import { removeClosure, saveClosure, saveSettings } from "@/app/actions";
 import { saveCertificateAlertThresholdAction } from "@/app/certificate-portal-actions";
 import { readCertificatePortalStatus } from "@/modules/certificates/portal";
+import { DEFAULT_CERTIFICATE_THRESHOLD } from "@/modules/certificates/portal-types";
 import { StationSettingsPanel } from "@/components/station-settings-panel";
 export default async function Settings() {
   const actor = await manager();
@@ -106,14 +107,14 @@ export default async function Settings() {
             <section className="card card-body">
               <h2>Low certificate alert</h2>
               <p className="muted">
-                Show a banner across the app when the provider portal balance falls below this
+                Show a banner across the app when the provider portal balance is at or below this
                 number.
               </p>
               <ActionForm
                 action={saveCertificateAlertThresholdAction}
                 submit="Save alert threshold"
               >
-                <Field label="Alert when portal balance is below">
+                <Field label="Alert at or below portal balance">
                   <input
                     name="threshold"
                     type="number"
@@ -121,7 +122,7 @@ export default async function Settings() {
                     max="1000000"
                     step="1"
                     required
-                    defaultValue={certStatus?.threshold ?? 30}
+                    defaultValue={certStatus?.threshold ?? DEFAULT_CERTIFICATE_THRESHOLD}
                   />
                 </Field>
               </ActionForm>

@@ -6,13 +6,14 @@ import { fetchCertificateBalance } from "./portal-source";
 import {
   CERTIFICATE_ANALYZER,
   CERTIFICATE_STATION,
-  DEFAULT_CERTIFICATE_THRESHOLD,
+  resolveCertificateAlertThreshold,
   type CertificatePortalStatus,
 } from "./portal-types";
 
 export const CERTIFICATE_PORTAL_SCOPE = digest(`${CERTIFICATE_STATION}:${CERTIFICATE_ANALYZER}`);
 export const CERTIFICATE_BALANCE_ACTION = "CERTIFICATE_PORTAL_BALANCE";
-export const CERTIFICATE_THRESHOLD_ACTION = "CERTIFICATE_ALERT_THRESHOLD";
+export const CERTIFICATE_THRESHOLD_ACTION = "CERTIFICATE_ALERT_THRESHOLD_V2";
+export const LEGACY_CERTIFICATE_THRESHOLD_ACTION = "CERTIFICATE_ALERT_THRESHOLD";
 const START = "CERTIFICATE_PORTAL_LOOKUP_STARTED";
 const FAIL = "CERTIFICATE_PORTAL_LOOKUP_FAILED";
 const TTL = 5 * 60_000;
@@ -29,7 +30,7 @@ const balanceSchema = z.object({
 
 /** Cache only: never performs a portal login just to render the server layout. */
 export async function readCertificatePortalStatus(): Promise<CertificatePortalStatus> {
-  const [snapshot, setting, failure] = await Promise.all([
+  const [snapshot, setting, legacySetting, failure] = await Promise.all([
     db.auditLog.findFirst({
       where: { entityId: CERTIFICATE_PORTAL_SCOPE, action: CERTIFICATE_BALANCE_ACTION },
       orderBy: { createdAt: "desc" },
@@ -39,19 +40,29 @@ export async function readCertificatePortalStatus(): Promise<CertificatePortalSt
       orderBy: { createdAt: "desc" },
     }),
     db.auditLog.findFirst({
+      where: { entityId: CERTIFICATE_PORTAL_SCOPE, action: LEGACY_CERTIFICATE_THRESHOLD_ACTION },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.auditLog.findFirst({
       where: { entityId: CERTIFICATE_PORTAL_SCOPE, action: FAIL },
       orderBy: { createdAt: "desc" },
     }),
   ]);
   const parsed = balanceSchema.safeParse(snapshot?.details);
   const config = z.object({ threshold: certificateThresholdSchema }).safeParse(setting?.details);
+  const legacyConfig = z.object({ threshold: certificateThresholdSchema }).safeParse(
+    legacySetting?.details,
+  );
   const failed = failure && (!snapshot || failure.createdAt > snapshot.createdAt);
   return {
     station: CERTIFICATE_STATION,
     analyzer: CERTIFICATE_ANALYZER,
     balance: parsed.success ? parsed.data.balance : null,
     checkedAt: parsed.success ? parsed.data.checkedAt : null,
-    threshold: config.success ? config.data.threshold : DEFAULT_CERTIFICATE_THRESHOLD,
+    threshold: resolveCertificateAlertThreshold(
+      config.success ? config.data.threshold : null,
+      legacyConfig.success ? legacyConfig.data.threshold : null,
+    ),
     ...(failed
       ? { error: "The last portal check failed. Any saved balance may be out of date." }
       : {}),

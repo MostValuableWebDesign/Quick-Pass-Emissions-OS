@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import type { CertificatePortalStatus } from "@/modules/certificates/portal-types";
+import { certificatesLow } from "@/modules/certificates/portal-types";
 import { refreshCertificateBalanceAction } from "@/app/certificate-portal-actions";
 
 export function asOf(iso: string | null) {
@@ -57,7 +58,8 @@ export function CertificatePortalBanner({
   }, [path, manager, router]);
 
   if (!status) return null;
-  if (status.error && (status.balance === null || status.balance >= status.threshold)) {
+  const low = certificatesLow(status.balance, status.threshold);
+  if (status.error && !low) {
     return (
       <div
         className="cert-banner"
@@ -82,7 +84,7 @@ export function CertificatePortalBanner({
       </div>
     );
   }
-  if (status.balance === null || status.balance >= status.threshold) return null;
+  if (!low) return null;
   const stale = !!status.error;
   return (
     <div className="cert-banner" role="alert" data-testid="banner-low-certificates">

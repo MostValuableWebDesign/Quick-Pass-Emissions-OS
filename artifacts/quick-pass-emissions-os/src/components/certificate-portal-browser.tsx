@@ -4,7 +4,11 @@ import { useRouter } from "next/navigation";
 import { ExternalLink, RefreshCcw } from "lucide-react";
 import type { CertificatePortalStatus } from "@/modules/certificates/portal-types";
 import { refreshCertificateBalanceAction } from "@/app/certificate-portal-actions";
-import { CERTIFICATE_ORDER_URL } from "@/modules/certificates/portal-types";
+import {
+  CERTIFICATE_ORDER_URL,
+  DEFAULT_CERTIFICATE_THRESHOLD,
+  certificatesLow,
+} from "@/modules/certificates/portal-types";
 import { asOf } from "./certificate-portal-banner";
 
 export function CertificatePortalBrowser({
@@ -40,7 +44,7 @@ export function CertificatePortalBrowser({
     }
   }
 
-  const low = status?.balance != null && status.balance < status.threshold;
+  const low = status ? certificatesLow(status.balance, status.threshold) : false;
   return (
     <section
       className="card card-body portal-card"
@@ -67,7 +71,8 @@ export function CertificatePortalBrowser({
           <span>Portal balance</span>
           <strong>{status?.balance ?? "Unknown"}</strong>
           <small>
-            As of {asOf(status?.checkedAt ?? null)} · alert below {status?.threshold ?? 30}
+            As of {asOf(status?.checkedAt ?? null)} · alert at or below{" "}
+            {status?.threshold ?? DEFAULT_CERTIFICATE_THRESHOLD}
           </small>
           {status?.error && <small className="error-text">Last check failed: {status.error}</small>}
           {canRefresh && (

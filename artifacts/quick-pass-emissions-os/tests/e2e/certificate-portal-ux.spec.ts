@@ -6,6 +6,7 @@ import {
   CERTIFICATE_BALANCE_ACTION,
   CERTIFICATE_PORTAL_SCOPE,
   CERTIFICATE_THRESHOLD_ACTION,
+  LEGACY_CERTIFICATE_THRESHOLD_ACTION,
 } from "../../src/modules/certificates/portal";
 import {
   CERTIFICATE_ANALYZER,
@@ -25,6 +26,7 @@ async function resetPortalSnapshot() {
         in: [
           CERTIFICATE_BALANCE_ACTION,
           CERTIFICATE_THRESHOLD_ACTION,
+          LEGACY_CERTIFICATE_THRESHOLD_ACTION,
           "CERTIFICATE_PORTAL_LOOKUP_STARTED",
           "CERTIFICATE_PORTAL_LOOKUP_FAILED",
         ],
@@ -46,10 +48,24 @@ async function resetPortalSnapshot() {
       },
       {
         entityId: CERTIFICATE_PORTAL_SCOPE,
-        action: CERTIFICATE_THRESHOLD_ACTION,
+        action: LEGACY_CERTIFICATE_THRESHOLD_ACTION,
         details: { threshold: 30 },
       },
     ],
+  });
+}
+
+async function setPortalBalance(balance: number) {
+  await db.auditLog.updateMany({
+    where: { entityId: CERTIFICATE_PORTAL_SCOPE, action: CERTIFICATE_BALANCE_ACTION },
+    data: {
+      details: {
+        balance,
+        checkedAt: new Date().toISOString(),
+        station: CERTIFICATE_STATION,
+        analyzer: CERTIFICATE_ANALYZER,
+      },
+    },
   });
 }
 
@@ -91,7 +107,7 @@ test.describe("owner certificate portal and alert settings", () => {
       0,
     );
     await expect(page.getByTestId("certificate-metric-stock")).toContainText("29");
-    await expect(page.getByTestId("certificate-metric-reorder")).toContainText("30");
+    await expect(page.getByTestId("certificate-metric-reorder")).toContainText("50");
     await expect(page.getByTestId("certificate-metric-usage")).not.toContainText(
       "Not enough orders",
     );
@@ -121,7 +137,7 @@ test.describe("owner certificate portal and alert settings", () => {
     await page.screenshot({ path: path.join(screenshotDir, "owner-portal.png"), fullPage: true });
   });
 
-  test("low banner threshold persistence, strict comparison and invalid values", async ({
+test("low banner threshold persistence, inclusive comparison and invalid values", async ({
     page,
   }) => {
     await page.goto("/dashboard");
@@ -129,6 +145,25 @@ test.describe("owner certificate portal and alert settings", () => {
     await page.goto("/settings");
     const input = page.locator('input[name="threshold"]');
     const save = page.getByRole("button", { name: "Save alert threshold" });
+    await expect(input).toHaveValue("50");
+
+    await setPortalBalance(50);
+    await page.goto("/dashboard");
+    await expect(page.getByTestId("banner-low-certificates")).toContainText(
+      "50 left on the portal",
+    );
+    await expect(page.locator(".dashboard-certificate-panel")).toHaveAttribute("data-low", "true");
+
+    await setPortalBalance(51);
+    await page.goto("/dashboard");
+    await expect(page.getByTestId("banner-low-certificates")).toHaveCount(0);
+    await expect(page.locator(".dashboard-certificate-panel")).toHaveAttribute(
+      "data-low",
+      "false",
+    );
+
+    await setPortalBalance(29);
+    await page.goto("/settings");
 
     await input.fill("10");
     await save.click();
@@ -147,10 +182,10 @@ test.describe("owner certificate portal and alert settings", () => {
     await page.goto("/settings");
     await input.fill("29");
     await save.click();
-    await expect(page.getByTestId("banner-low-certificates")).toHaveCount(0);
+    await expect(page.getByTestId("banner-low-certificates")).toBeVisible();
     await page.reload();
     await expect(input).toHaveValue("29");
-    await expect(page.getByTestId("banner-low-certificates")).toHaveCount(0);
+    await expect(page.getByTestId("banner-low-certificates")).toBeVisible();
 
     for (const invalid of ["29.5", "-1"]) {
       await input.fill(invalid);
@@ -160,7 +195,7 @@ test.describe("owner certificate portal and alert settings", () => {
     }
     await page.reload();
     await expect(input).toHaveValue("29");
-    await expect(page.getByTestId("banner-low-certificates")).toHaveCount(0);
+    await expect(page.getByTestId("banner-low-certificates")).toBeVisible();
   });
 
   test("failed refresh retains the last known low balance and warning", async ({ page }) => {
@@ -189,28 +224,26 @@ test.describe("owner certificate portal and alert settings", () => {
 test.describe("certificate portal role access", () => {
   test.describe("bookkeeper", () => {
     test.use({ storageState: path.join(directory, "BOOKKEEPER.json") });
-    test("can see the portal but cannot refresh or manage alert settings", async ({ page }) => {
+    test("retired bookkeeper sign-ins cannot access certificate settings", async ({ page }) => {
       await page.goto("/certificates");
-      await expect(page.getByTestId("link-open-portal")).toBeVisible();
-      await expect(page.getByTitle("Georgia dashboard certificate purchasing portal")).toHaveCount(
-        0,
-      );
-      await expect(page.getByTestId("status-portal-balance")).toContainText("29");
+      await expect(page).toHaveURL(/\/login$/);
+      await expect(page.getByTestId("link-open-portal")).toHaveCount(0);
+      await expect(page.getByTestId("status-portal-balance")).toHaveCount(0);
       await expect(page.getByTestId("button-refresh-balance")).toHaveCount(0);
       await page.goto("/settings");
-      await expect(page.getByLabel("Alert when portal balance is below")).toHaveCount(0);
+      await expect(page).toHaveURL(/\/login$/);
+      await expect(page.getByLabel("Alert at or below portal balance")).toHaveCount(0);
     });
   });
 
   test.describe("employee", () => {
     test.use({ storageState: path.join(directory, "EMPLOYEE.json") });
-    test("sees low balance without an inaccessible purchase link", async ({ page }) => {
+    test("retired employee sign-ins cannot access certificate balances", async ({ page }) => {
       await page.goto("/dashboard");
-      await expect(page.getByTestId("banner-low-certificates")).toContainText(
-        "29 left on the portal",
-      );
-      await expect(page.getByTestId("banner-low-certificates").getByRole("link")).toHaveCount(0);
+      await expect(page).toHaveURL(/\/login$/);
+      await expect(page.getByTestId("banner-low-certificates")).toHaveCount(0);
       await page.goto("/certificates");
+      await expect(page).toHaveURL(/\/login$/);
       await expect(page.getByTestId("status-portal-balance")).toHaveCount(0);
     });
   });

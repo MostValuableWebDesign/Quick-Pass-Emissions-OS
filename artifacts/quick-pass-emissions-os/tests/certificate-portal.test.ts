@@ -7,6 +7,8 @@ import {
 } from "../src/modules/certificates/portal-source";
 import {
   certificatesLow,
+  DEFAULT_CERTIFICATE_THRESHOLD,
+  resolveCertificateAlertThreshold,
   CERTIFICATE_STATION,
   CERTIFICATE_ANALYZER,
 } from "../src/modules/certificates/portal-types";
@@ -92,12 +94,18 @@ describe("certificate portal read-only access", () => {
     expect(request.mock.calls[4]).toEqual([UNUSED_CERTIFICATES_PATH, '{"analyzer":"111411"}']);
     expect(dispose).toHaveBeenCalledOnce();
   });
-  it("alerts strictly below the configurable threshold, never for an unknown balance", () => {
+  it("alerts at or below the configurable threshold, never for an unknown balance", () => {
+    expect(DEFAULT_CERTIFICATE_THRESHOLD).toBe(50);
+    expect(certificatesLow(50, 50)).toBe(true);
+    expect(certificatesLow(51, 50)).toBe(false);
     expect(certificatesLow(29, 30)).toBe(true);
-    expect(certificatesLow(30, 30)).toBe(false);
+    expect(certificatesLow(30, 30)).toBe(true);
     expect(certificatesLow(null, 30)).toBe(false);
-    expect(certificatesLow(0, 0)).toBe(false);
+    expect(certificatesLow(0, 0)).toBe(true);
     expect(certificatesLow(39, 40)).toBe(true);
+    expect(resolveCertificateAlertThreshold(null, 30)).toBe(50);
+    expect(resolveCertificateAlertThreshold(null, 40)).toBe(40);
+    expect(resolveCertificateAlertThreshold(30, 30)).toBe(30);
     expect(certificateThresholdSchema.parse("40")).toBe(40);
     expect(certificateThresholdSchema.safeParse("1.5").success).toBe(false);
     expect(certificateThresholdSchema.safeParse("-1").success).toBe(false);

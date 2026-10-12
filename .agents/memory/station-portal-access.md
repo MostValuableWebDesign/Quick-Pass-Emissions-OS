@@ -21,6 +21,12 @@ Certificate purchasing is deliberately user-controlled: “I must control the en
 
 **How to apply:** Treat any future automated certificate purchase proposal as a new authorization decision, not an extension of manual station access or report-import permission.
 
+Certificate low-stock alerts default to 50 and must trigger at 50 or below, with the threshold still configurable.
+
+**Why:** The user changed the previous 30-certificate alert requirement to “when 50 or below notify and alert.”
+
+**How to apply:** Keep the inclusive boundary consistent across certificate banners and dashboard warnings, without authorizing automatic purchases.
+
 The user wants manual purchasing within the app without app-imposed requests or second-person approval before using the provider. Optional reviewed bookkeeping is separate from that manual portal session.
 
 **Why:** The user said there is too much validation around purchasing and that it should be manually controlled.

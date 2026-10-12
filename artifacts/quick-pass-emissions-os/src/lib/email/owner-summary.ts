@@ -1,9 +1,6 @@
 import { z } from "zod";
 
-/** Server configuration only. Never return this object to a page or client component. */
-export function ownerEmailConfig() {
-  const key = process.env.RESEND_API_KEY?.trim();
-  const from = z.email().safeParse(process.env.OWNER_SUMMARY_FROM_EMAIL?.trim());
+function publicAppUrl() {
   let appUrl: string | null = null;
   try {
     const url = new URL(process.env.OWNER_SUMMARY_APP_URL ?? "");
@@ -19,6 +16,24 @@ export function ownerEmailConfig() {
   } catch {
     /* Unconfigured. */
   }
+  return appUrl;
+}
+
+/** Owner-only readiness metadata. Values of credentials and email addresses never leave the server. */
+export function ownerEmailSetupStatus() {
+  return {
+    providerKeySet: Boolean(process.env.RESEND_API_KEY?.trim()),
+    senderAddressFormatValid: z.email().safeParse(process.env.OWNER_SUMMARY_FROM_EMAIL?.trim())
+      .success,
+    publicHttpsUrlSet: Boolean(publicAppUrl()),
+  };
+}
+
+/** Server configuration only. Never return this object to a page or client component. */
+export function ownerEmailConfig() {
+  const key = process.env.RESEND_API_KEY?.trim();
+  const from = z.email().safeParse(process.env.OWNER_SUMMARY_FROM_EMAIL?.trim());
+  const appUrl = publicAppUrl();
   return key && from.success && appUrl ? { key, from: from.data, appUrl } : null;
 }
 

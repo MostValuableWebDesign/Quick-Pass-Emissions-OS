@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ownerEmailConfig, sendOwnerEmail } from "../src/lib/email/owner-summary";
+import {
+  ownerEmailConfig,
+  ownerEmailSetupStatus,
+  sendOwnerEmail,
+} from "../src/lib/email/owner-summary";
+import {
+  estimatedOwnerEmailScheduleCost,
+  ownerEmailCadenceExamples,
+} from "../src/modules/automation/owner-email-costs";
 import {
   escapeEmail,
   renderOwnerEmail,
@@ -91,6 +99,28 @@ describe("Daily owner email transport and content", () => {
     }
     vi.stubEnv("OWNER_SUMMARY_APP_URL", "https://app.example.test");
     expect(ownerEmailConfig()?.appUrl).toBe("https://app.example.test");
+  });
+  it("shows safe setup status without exposing secrets or sender addresses", () => {
+    vi.stubEnv("RESEND_API_KEY", "private-fixture-key");
+    vi.stubEnv("OWNER_SUMMARY_FROM_EMAIL", "private-fixture@example.test");
+    vi.stubEnv("OWNER_SUMMARY_APP_URL", "");
+    const status = ownerEmailSetupStatus();
+    expect(status).toEqual({
+      providerKeySet: true,
+      senderAddressFormatValid: true,
+      publicHttpsUrlSet: false,
+    });
+    expect(JSON.stringify(status)).not.toContain("private-fixture");
+  });
+  it("calculates Replit's illustrative monthly schedule totals", () => {
+    expect(ownerEmailCadenceExamples.map(({ runsPer30Days }) => runsPer30Days)).toEqual([
+      8640, 2880, 720, 30,
+    ]);
+    expect(
+      ownerEmailCadenceExamples.map(({ runsPer30Days }) =>
+        estimatedOwnerEmailScheduleCost(runsPer30Days),
+      ),
+    ).toEqual([1383.4, 461.8, 116.2, 5.8]);
   });
   it("sends frozen content with a stable provider key and treats acceptance separately", async () => {
     const fetch = vi.fn().mockImplementation(async () => Response.json({ id: "provider-id" }));

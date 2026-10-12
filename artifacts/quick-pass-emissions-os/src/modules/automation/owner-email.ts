@@ -3,7 +3,12 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { addDays, businessDate, dueInstant } from "@/lib/time";
-import { EmailSendError, ownerEmailConfig, sendOwnerEmail } from "@/lib/email/owner-summary";
+import {
+  EmailSendError,
+  ownerEmailConfig,
+  ownerEmailSetupStatus,
+  sendOwnerEmail,
+} from "@/lib/email/owner-summary";
 import { audit, requireRule } from "../phase2";
 import { dashboardSnapshot } from "../dashboard/service";
 import { automation, automationLocks } from "./transaction";
@@ -85,6 +90,7 @@ export async function saveOwnerEmail(actorId: string, raw: unknown, now = new Da
 
 export async function ownerEmailSettings(actorId: string, page = 1, now = new Date()) {
   return automation(actorId, ["OWNER"], async (tx) => {
+    const emailSetup = ownerEmailSetupStatus();
     const setting = await tx.ownerEmailSetting.findUnique({ where: { id: "daily" } });
     const owners = await tx.user.findMany({
       where: { active: true, role: "OWNER" },
@@ -115,6 +121,7 @@ export async function ownerEmailSettings(actorId: string, page = 1, now = new Da
       setting,
       owners,
       configured: !!ownerEmailConfig(),
+      emailSetup,
       deliveries,
       page: currentPage,
       pages,

@@ -6,11 +6,15 @@ The owner-requested report becomes due at **6:30 PM America/New_York** every cal
 
 1. Set up a Resend account and verify its sending domain. Store `RESEND_API_KEY` as a Replit Secret. Set the shared environment variables `OWNER_SUMMARY_FROM_EMAIL` (the verified sender address) and `OWNER_SUMMARY_APP_URL` (the published app's HTTPS origin only, without credentials, path, query or fragment). Keep the existing persistent `DATABASE_URL` and storage identity. The provider key never appears in browser bundles or responses.
 2. Apply the additive migration through the existing guarded migration/startup procedure. Do not reset, seed or replace the business database.
-3. Provision a Replit Scheduled Deployment every five minutes in `America/New_York` with the command `pnpm --filter @workspace/quick-pass-emissions-os run owner-email-job`. This one-shot worker processes owner email only; it does not run door-access, analytics or other business automations. Configure it to use the published app's production environment and persistent database. Monitor failed runs and owner email history. Opening the app or building it does not run email jobs.
+3. The production scheduler is not configured and remains on hold. If automatic delivery is resumed, create a separate Replit Scheduled Deployment with `pnpm --filter @workspace/quick-pass-emissions-os run owner-email-job`, using the published app's production environment and persistent database. This one-shot worker processes owner email only; it does not run door-access, analytics or other business automations. Choose its frequency deliberately: the app does not inspect external schedule settings.
 4. As an owner, open **Automation → Configure daily owner email**, preview the report, select active owner recipients and enable delivery. New configuration starts today, so enabling after 6:30 makes today's report due on the next trigger. Saving an already-active configuration preserves its catch-up cursor.
 5. Confirm the first provider acceptance in Email history and actual receipt at the intended inbox. A configured API key does not prove domain verification, scheduler execution or inbox delivery.
 
-No live provider key or verified sender was present during implementation. A production scheduler was not provisioned. Deployment, actual sends and inbox receipt require the above setup; local mocked acceptance is not delivery evidence.
+No test or real message has been sent, and inbox receipt has not been verified. The published app URL and production scheduler are not configured. The page reports whether an email address is syntactically valid; Resend domain verification must be checked in Resend. Local mocked acceptance is not delivery evidence.
+
+## Scheduled job cost reference
+
+Replit's current [deployment pricing](https://docs.replit.com/billing/deployment-pricing) lists a $1 monthly base fee per Scheduled Deployment plus $3.20 per million compute units (CUs). At the documentation's illustrative 50,000 CUs per run—not a measurement of this job—monthly totals for 30 days are approximately $1,383.40 every five minutes, $461.80 every 15 minutes, $116.20 hourly, or $5.80 once daily. Actual use must be measured from Replit's Usage dashboard after the first scheduled runs. No cadence is selected and no Scheduled Deployment is currently running.
 
 ## Report contents
 

@@ -31,6 +31,22 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   await page.reload();
   await page.getByRole("button", { name: "Pace settings", exact: true }).click();
   await expect(paceDialog.getByLabel("Long-gap threshold (minutes)")).toHaveValue("6");
+  // A second device changes the station setting while this dialog is open.
+  const secondPage = await page.context().newPage();
+  await secondPage.goto("/performance");
+  await secondPage.getByRole("button", { name: "Pace settings", exact: true }).click();
+  const secondDialog = secondPage.getByRole("dialog", { name: "Pace settings" });
+  await secondDialog.getByLabel("Long-gap threshold (minutes)").fill("9");
+  await secondDialog.getByRole("button", { name: "Save pace settings", exact: true }).click();
+  await expect(secondDialog).not.toBeVisible();
+  await paceDialog.getByLabel("Long-gap threshold (minutes)").fill("30");
+  await paceDialog.getByRole("button", { name: "Save pace settings", exact: true }).click();
+  await expect(paceDialog.getByRole("alert")).toContainText("changed in another session");
+  await paceDialog.getByRole("button", { name: "Close pace settings" }).click();
+  await secondPage.close();
+  await page.reload();
+  await page.getByRole("button", { name: "Pace settings", exact: true }).click();
+  await expect(paceDialog.getByLabel("Long-gap threshold (minutes)")).toHaveValue("9");
   // Remove the limit for the remaining panel/sorting workflow.
   await paceDialog.getByLabel("Long-gap threshold (minutes)").fill("");
   await paceDialog.getByRole("button", { name: "Save pace settings", exact: true }).click();

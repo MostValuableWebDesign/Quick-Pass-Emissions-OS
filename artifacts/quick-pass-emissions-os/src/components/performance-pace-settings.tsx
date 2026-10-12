@@ -20,10 +20,12 @@ export function PerformancePaceSettings({
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [threshold, setThreshold] = useState("");
+  const [revision, setRevision] = useState(settings.revision);
   const [error, setError] = useState<string | null>(null);
   const [saving, startTransition] = useTransition();
   const open = () => {
     setThreshold(settings.longGapMinutes?.toString() ?? "");
+    setRevision(settings.revision);
     setError(null);
     dialog.current?.showModal();
   };
@@ -51,7 +53,7 @@ export function PerformancePaceSettings({
             startTransition(async () => {
               try {
                 const result = await savePerformancePaceSettingsAction(
-                  { ...settings, longGapMinutes: value },
+                  { revision, longGapMinutes: value },
                   query,
                 );
                 if (!result.ok || !result.data)

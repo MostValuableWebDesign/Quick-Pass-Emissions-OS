@@ -18,6 +18,39 @@ export function isDashboardPanelId(value: unknown): value is DashboardPanelId {
   return DEFAULT_DASHBOARD_LAYOUT.some((panel) => panel.id === value);
 }
 
+export function normalizeDashboardLayout(value: unknown): DashboardLayout | null {
+  if (!Array.isArray(value) || value.length !== DEFAULT_DASHBOARD_LAYOUT.length) return null;
+  const seen = new Set<DashboardPanelId>();
+  const layout: DashboardLayout = [];
+
+  for (const item of value) {
+    if (!item || typeof item !== "object") return null;
+    const panel = item as Record<string, unknown>;
+    if (
+      !isDashboardPanelId(panel.id) ||
+      seen.has(panel.id) ||
+      !Number.isInteger(panel.columns) ||
+      typeof panel.columns !== "number" ||
+      panel.columns < 4 ||
+      panel.columns > 12 ||
+      !Number.isInteger(panel.height) ||
+      typeof panel.height !== "number" ||
+      panel.height < 240 ||
+      panel.height > 720
+    )
+      return null;
+
+    seen.add(panel.id);
+    layout.push({
+      id: panel.id,
+      columns: panel.columns,
+      height: panel.height,
+    });
+  }
+
+  return seen.size === DEFAULT_DASHBOARD_LAYOUT.length ? layout : null;
+}
+
 export function employeePanelDisplayHeight(savedHeight: number, visibleRows: number) {
   const minimum = visibleRows > 0 && visibleRows < 7 ? Math.min(720, 250 + visibleRows * 80) : 0;
   return Math.max(savedHeight, minimum);

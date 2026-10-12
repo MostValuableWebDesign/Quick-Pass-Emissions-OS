@@ -24,6 +24,9 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   });
 
   await page.getByTestId("button-reset-panel-layout").click();
+  await expect(page.getByTestId("performance-layout-save-status")).toHaveText(
+    "Layout saved to your account",
+  );
   const trend = page.getByTestId("panel-trend");
   const employees = page.getByTestId("panel-employees");
   await expect(
@@ -86,6 +89,9 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
     visibleRows > 0 && visibleRows < 7 ? Math.min(720, 250 + visibleRows * 80) : 300,
   );
   await expect(employees).toHaveCSS("height", `${visibleHeight}px`);
+  await expect(page.getByTestId("performance-layout-save-status")).toHaveText(
+    "Layout saved to your account",
+  );
 
   await page.reload();
   await expect(
@@ -94,7 +100,31 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   await expect(page.getByTestId("panel-employees")).toHaveCSS("grid-column-start", "span 10");
   await expect(page.getByTestId("panel-employees")).toHaveCSS("height", `${visibleHeight}px`);
 
+  const browser = page.context().browser();
+  if (!browser) throw new Error("A browser instance is required for account layout persistence.");
+  const otherDevice = await browser.newContext();
+  await otherDevice.addCookies(await page.context().cookies());
+  await otherDevice.addInitScript(() => {
+    localStorage.removeItem("quick-pass-performance-layout-v1");
+  });
+  const otherDevicePage = await otherDevice.newPage();
+  await otherDevicePage.goto("/performance");
+  await expect(otherDevicePage.getByTestId("performance-layout-save-status")).toHaveText(
+    "Layout saved to your account",
+  );
+  await expect(
+    otherDevicePage.getByTestId("performance-panel-grid").locator(".pd-widget").first(),
+  ).toHaveAttribute("data-testid", "panel-employees");
+  await expect(otherDevicePage.getByTestId("panel-employees")).toHaveCSS(
+    "grid-column-start",
+    "span 10",
+  );
+  await otherDevice.close();
+
   await page.getByTestId("button-reset-panel-layout").click();
+  await expect(page.getByTestId("performance-layout-save-status")).toHaveText(
+    "Layout saved to your account",
+  );
   await expect(
     page.getByTestId("performance-panel-grid").locator(".pd-widget").first(),
   ).toHaveAttribute("data-testid", "panel-trend");

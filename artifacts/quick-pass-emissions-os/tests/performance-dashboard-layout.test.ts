@@ -2,12 +2,31 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_DASHBOARD_LAYOUT,
   employeePanelDisplayHeight,
+  normalizeDashboardLayout,
   parseDashboardLayout,
   reorderDashboardPanel,
   resizeDashboardPanel,
 } from "../src/components/performance-dashboard-layout";
 
 describe("customizable performance panels", () => {
+  it("accepts only complete, valid account layouts", () => {
+    expect(normalizeDashboardLayout(DEFAULT_DASHBOARD_LAYOUT)).toEqual(DEFAULT_DASHBOARD_LAYOUT);
+    expect(normalizeDashboardLayout(DEFAULT_DASHBOARD_LAYOUT.slice(0, 3))).toBeNull();
+    expect(
+      normalizeDashboardLayout([
+        ...DEFAULT_DASHBOARD_LAYOUT,
+        DEFAULT_DASHBOARD_LAYOUT[0],
+      ]),
+    ).toBeNull();
+    expect(
+      normalizeDashboardLayout(
+        DEFAULT_DASHBOARD_LAYOUT.map((panel, index) =>
+          index === 0 ? { ...panel, columns: 13 } : panel,
+        ),
+      ),
+    ).toBeNull();
+  });
+
   it("expands the Employees panel to show up to six visible rows", () => {
     expect(employeePanelDisplayHeight(240, 1)).toBe(330);
     expect(employeePanelDisplayHeight(240, 4)).toBe(570);

@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { GripVertical, MoveDown, MoveUp } from "lucide-react";
+import { savePerformancePanelLayoutAction } from "@/app/performance-layout-actions";
 import { PanelResizeHandle } from "./performance-panel-resize-handle";
 import {
   DASHBOARD_LAYOUT_KEY,
@@ -22,74 +23,102 @@ const titles: Record<DashboardPanelId, string> = {
   "commission-progress": "Commission progress",
 };
 
-const CHANGE_EVENT = "quick-pass:performance-panel-layout";
-let cachedRaw: string | null = null;
-let cachedLayout = DEFAULT_DASHBOARD_LAYOUT;
-let hasSnapshot = false;
-let storageAvailable = true;
-
-function getLayoutSnapshot() {
-  let raw: string | null = null;
+function saveLocalLayout(layout: DashboardLayout) {
   try {
-    raw = localStorage.getItem(DASHBOARD_LAYOUT_KEY);
+    localStorage.setItem(DASHBOARD_LAYOUT_KEY, JSON.stringify(layout));
   } catch {
-    storageAvailable = false;
-    if (!hasSnapshot) {
-      cachedLayout = DEFAULT_DASHBOARD_LAYOUT;
-      hasSnapshot = true;
-    }
-    return cachedLayout;
+    // Account saving remains authoritative when browser storage is unavailable.
   }
-  if (!storageAvailable && raw === null) return cachedLayout;
-  if (!hasSnapshot || raw !== cachedRaw) {
-    cachedRaw = raw;
-    cachedLayout = parseDashboardLayout(raw);
-    hasSnapshot = true;
-  }
-  return cachedLayout;
 }
 
-function subscribeLayout(callback: () => void) {
-  window.addEventListener("storage", callback);
-  window.addEventListener(CHANGE_EVENT, callback);
-  return () => {
-    window.removeEventListener("storage", callback);
-    window.removeEventListener(CHANGE_EVENT, callback);
-  };
-}
-
-function saveLayout(next: DashboardLayout) {
-  cachedLayout = next;
-  cachedRaw = JSON.stringify(next);
-  hasSnapshot = true;
-  try {
-    localStorage.setItem(DASHBOARD_LAYOUT_KEY, cachedRaw);
-  } catch {
-    storageAvailable = false;
-  }
-  window.dispatchEvent(new Event(CHANGE_EVENT));
-}
-
-export function usePerformanceDashboardLayout() {
-  const layout = useSyncExternalStore(
-    subscribeLayout,
-    getLayoutSnapshot,
-    () => DEFAULT_DASHBOARD_LAYOUT,
+export function usePerformanceDashboardLayout(initialLayout: DashboardLayout | null) {
+  const firstLayout = initialLayout ?? DEFAULT_DASHBOARD_LAYOUT;
+  const [layout, setLayout] = useState<DashboardLayout>(() =>
+    firstLayout.map((panel) => ({ ...panel })),
   );
+  const layoutRef = useRef(layout);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">(
+    initialLayout ? "saved" : "idle",
+  );
+  const saveVersion = useRef(0);
+  const saveQueue = useRef(Promise.resolve());
+
+  const persist = useCallback((next: DashboardLayout) => {
+    const version = ++saveVersion.current;
+    setSaveStatus("saving");
+    saveQueue.current = saveQueue.current.then(async () => {
+      try {
+        const result = await savePerformancePanelLayoutAction(next);
+        if (version === saveVersion.current) setSaveStatus(result.ok ? "saved" : "error");
+      } catch {
+        if (version === saveVersion.current) setSaveStatus("error");
+      }
+    });
+  }, []);
+
+  const applyLayout = useCallback(
+    (next: DashboardLayout) => {
+      layoutRef.current = next;
+      setLayout(next);
+      saveLocalLayout(next);
+      persist(next);
+    },
+    [persist],
+  );
+
+  useEffect(() => {
+    if (initialLayout) {
+      const saved = initialLayout.map((panel) => ({ ...panel }));
+      layoutRef.current = saved;
+      setLayout(saved);
+      saveLocalLayout(saved);
+      setSaveStatus("saved");
+      return;
+    }
+
+    let raw: string | null = null;
+    try {
+      raw = localStorage.getItem(DASHBOARD_LAYOUT_KEY);
+    } catch {
+      return;
+    }
+    if (raw !== null) {
+      const localLayout = parseDashboardLayout(raw);
+      layoutRef.current = localLayout;
+      setLayout(localLayout);
+      persist(localLayout);
+    }
+  }, [initialLayout, persist]);
+
+  useEffect(() => {
+    function syncLocalLayout(event: StorageEvent) {
+      if (event.key !== DASHBOARD_LAYOUT_KEY) return;
+      const next = parseDashboardLayout(event.newValue);
+      layoutRef.current = next;
+      setLayout(next);
+    }
+    window.addEventListener("storage", syncLocalLayout);
+    return () => window.removeEventListener("storage", syncLocalLayout);
+  }, []);
+
+  const retrySave = useCallback(() => persist(layoutRef.current), [persist]);
 
   return {
     layout,
+    saveStatus,
+    retrySave,
     move(id: DashboardPanelId, toIndex: number) {
-      const next = reorderDashboardPanel(getLayoutSnapshot(), id, toIndex);
-      if (next !== getLayoutSnapshot()) saveLayout(next);
+      const current = layoutRef.current;
+      const next = reorderDashboardPanel(current, id, toIndex);
+      if (next !== current) applyLayout(next);
     },
     resize(id: DashboardPanelId, columns: number, height: number) {
-      const current = getLayoutSnapshot();
+      const current = layoutRef.current;
       const next = resizeDashboardPanel(current, id, columns, height);
-      if (next !== current) saveLayout(next);
+      if (next !== current) applyLayout(next);
     },
     reset() {
-      saveLayout(DEFAULT_DASHBOARD_LAYOUT.map((panel) => ({ ...panel })));
+      applyLayout(DEFAULT_DASHBOARD_LAYOUT.map((panel) => ({ ...panel })));
     },
   };
 }

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RefreshCw, RotateCcw } from "lucide-react";
 import type { DashboardData, DashboardState } from "@/modules/station/dashboard-types";
 import { getPerformanceDashboardAction } from "@/modules/station/dashboard-actions";
+import type { DashboardLayout } from "./performance-dashboard-layout";
 import { PerformanceBusyHours } from "./performance-dashboard-busy-hours";
 import { PerformanceCommissionProgress } from "./performance-dashboard-commission-progress";
 import { PerformanceTrend } from "./performance-dashboard-trend";
@@ -17,7 +18,13 @@ import {
 } from "./performance-dashboard-panels";
 import type { DashboardPanelId } from "./performance-dashboard-layout";
 
-export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
+export function PerformanceDashboard({
+  initial,
+  initialLayout,
+}: {
+  initial: DashboardData;
+  initialLayout: DashboardLayout | null;
+}) {
   const [data, setData] = useState<DashboardData>(initial);
   const [visibleEmployeeRows, setVisibleEmployeeRows] = useState(initial.employees.length);
   const [loading, setLoading] = useState(false);
@@ -25,7 +32,7 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
   const busy = useRef(false);
   const { start, end, trendDays, employee } = initial.query;
   const q = useMemo(() => ({ start, end, trendDays, employee }), [start, end, trendDays, employee]);
-  const panelLayout = usePerformanceDashboardLayout();
+  const panelLayout = usePerformanceDashboardLayout(initialLayout);
 
   const load = useCallback(
     async (refresh: boolean) => {
@@ -223,6 +230,30 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
       </div>
 
       <div className="pd-panel-layout-toolbar">
+        <div
+          className="pd-panel-layout-status"
+          role="status"
+          aria-live="polite"
+          data-testid="performance-layout-save-status"
+        >
+          {panelLayout.saveStatus === "saving"
+            ? "Saving layout to your account…"
+            : panelLayout.saveStatus === "saved"
+              ? "Layout saved to your account"
+              : panelLayout.saveStatus === "error"
+                ? "Could not sync the layout to your account."
+                : "Layout changes save to your account automatically"}
+        </div>
+        {panelLayout.saveStatus === "error" && (
+          <button
+            type="button"
+            className="button button-outline button-sm"
+            onClick={panelLayout.retrySave}
+            data-testid="button-retry-panel-layout-save"
+          >
+            Retry save
+          </button>
+        )}
         <button
           type="button"
           className="button button-outline button-sm"

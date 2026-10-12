@@ -36,6 +36,15 @@ Completion synchronization can create a non-UTC ancestor that the exact-commit G
 **Why:** The app connector remained authorized, but a newly recreated ancestor no longer fit the bridge's unsigned-UTC transport restriction while native Git authentication was still broken.
 
 **How to apply:** Preserve published ancestry normally and use a working native transport when available. Otherwise declare the exact publication blocker and distinguish the previously published implementation from subsequent local fixes; never call an older successful push full synchronization of the final source.
+
+## Exact GitHub App transport
+
+GitHub's REST create-commit endpoint removes one final message newline. For exact unsigned-UTC transport, append one extra newline to the raw local commit message.
+
+**Why:** The transferred tree and metadata matched, but the API-created commit was missing the local message's final newline and therefore had a different hash.
+
+**How to apply:** Preserve the raw local author, committer, timestamps, parents and tree. Compare both tree and commit hashes before updating the branch with `force: false`. If either differs, leave the branch unchanged. Fetch afterward and confirm local and remote tips match.
+
 ## Paused merge state
 
 Re-check both `HEAD` and `MERGE_HEAD` before finalizing manually resolved conflicts. A checkpoint alone is not proof that incoming changes were merged.

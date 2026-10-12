@@ -8,6 +8,7 @@ import type {
   DashboardEmployee,
   DashboardQuery,
   PayPlan,
+  PaceSettings,
   PayProfile,
   PortalDay,
 } from "./dashboard-types";
@@ -96,6 +97,7 @@ export function buildDashboard(
   today: string,
   snapshots: PortalDay[],
   payPlan: PayPlan,
+  paceSettings: PaceSettings = { revision: 0, longGapMinutes: null },
 ): DashboardData {
   const byDate = new Map(snapshots.map((d) => [d.date, d]));
   const selectedDates = calendarDays(query.start, query.end);
@@ -140,7 +142,11 @@ export function buildDashboard(
       commissionCents,
       payCents: nullableSum([baseCents, commissionCents]),
       approximate: profile.approximate || daily.some((d) => d.estimatedHours),
-      inspectionCadence: inspectionCadence(selectedSnapshots, profile.inspector),
+      inspectionCadence: inspectionCadence(
+        selectedSnapshots,
+        profile.inspector,
+        paceSettings.longGapMinutes,
+      ),
     };
   });
   for (const inspector of allInspectors) {
@@ -165,7 +171,11 @@ export function buildDashboard(
         : null,
       payCents: null,
       approximate: true,
-      inspectionCadence: inspectionCadence(selectedSnapshots, inspector),
+      inspectionCadence: inspectionCadence(
+        selectedSnapshots,
+        inspector,
+        paceSettings.longGapMinutes,
+      ),
     });
   }
   const employeeOptions = rows.map(({ id, name }) => ({ id, name }));
@@ -240,6 +250,7 @@ export function buildDashboard(
       inspectionCadence: inspectionCadence(
         selectedSnapshots,
         query.employee ? (selectedInspector ?? null) : undefined,
+        paceSettings.longGapMinutes,
       ),
       cars: complete && (!query.employee || selected[0]?.cars !== null) ? totals.total : null,
       freeRetests: selectedDates.reduce((sum, date) => {
@@ -284,6 +295,7 @@ export function buildDashboard(
     employeeOptions,
     inspectors: allInspectors,
     payPlan,
+    paceSettings,
     missingDates: needed.filter((d) => !byDate.has(d)),
     staleDates: [],
     timingMissingDates: selectedSnapshots

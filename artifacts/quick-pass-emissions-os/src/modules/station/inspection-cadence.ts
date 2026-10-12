@@ -10,33 +10,73 @@ export function reportMinute(sourceDate: string): number | null {
   return ((hour % 12) + (match[3] === "PM" ? 12 : 0)) * 60 + minute;
 }
 
-/** Sum daily first-to-last testing windows, then divide by cars, not gaps or daily averages. */
-export function inspectionCadence(days: PortalDay[], inspector?: string | null): InspectionCadence {
-  let minutes = 0;
-  let cars = 0;
+/** Pair only adjacent tests for the same inspector/date; pool retained gaps for the median. */
+export function inspectionCadence(
+  days: PortalDay[],
+  inspector?: string | null,
+  longGapMinutes: number | null = null,
+): InspectionCadence {
+  const gaps: number[] = [];
+  let excludedLongGaps = 0;
+  let excludedOvernightGaps = 0;
   let coveredDays = 0;
-  for (const day of days) {
-    if (day.retestComplete === false) continue;
+  let timedTests = 0;
+  const priorDates = new Map<string, string>();
+  for (const day of [...days].sort((a, b) => a.date.localeCompare(b.date))) {
     if (inspector === null) continue;
-    if (!day.testTimes) {
+    // VIN coverage affects billing, not whether a physical test took time.
+    const tests = day.paceTestTimes ?? day.testTimes;
+    if (!tests) {
       if (day.verifiedEmpty) coveredDays++;
       continue;
     }
-    // An employee uses their own window. The station uses one window for all staff,
-    // so overlapping employee windows never double-count station elapsed time.
-    const times = day.testTimes
-      .filter((test) => inspector === undefined || test.inspector === inspector)
-      .map((test) => test.minute);
-    // Unknown timestamps can hide the first/last test; omit that day's estimate.
-    if (times.some((time) => time === null)) continue;
-    coveredDays++;
-    if (times.length < 2) continue;
-    const known = times as number[];
-    const elapsed = Math.max(...known) - Math.min(...known);
-    // A single clock minute does not establish a zero-minute test duration.
-    if (elapsed <= 0) continue;
-    minutes += elapsed;
-    cars += times.length;
+    const selected = tests.filter(
+      (test) => inspector === undefined || test.inspector === inspector,
+    );
+    const expected =
+      inspector === undefined
+        ? (day.rawTotal ?? day.total)
+        : (day.inspectors.find((person) => person.inspector === inspector)?.rawTotal ??
+          day.inspectors.find((person) => person.inspector === inspector)?.total ??
+          0);
+    const valid = (minute: number | null): minute is number =>
+      minute !== null && Number.isInteger(minute) && minute >= 0 && minute < 1440;
+    if (selected.length === expected && selected.every((test) => valid(test.minute))) coveredDays++;
+    const employees = new Set(selected.map((test) => test.inspector));
+    for (const employee of employees) {
+      const rows = selected.filter((test) => test.inspector === employee);
+      const employeeCount = day.inspectors.find((person) => person.inspector === employee);
+      // An unknown timestamp breaks adjacency; omit this employee/day rather than bridge it.
+      if (
+        rows.length !== (employeeCount?.rawTotal ?? employeeCount?.total ?? 0) ||
+        rows.some((test) => !valid(test.minute))
+      )
+        continue;
+      const times = rows.map((test) => test.minute as number).sort((a, b) => a - b);
+      timedTests += times.length;
+      const prior = priorDates.get(employee);
+      if (prior && prior !== day.date) excludedOvernightGaps++;
+      priorDates.set(employee, day.date);
+      for (let i = 1; i < times.length; i++) {
+        const gap = times[i] - times[i - 1];
+        if (longGapMinutes !== null && gap > longGapMinutes) excludedLongGaps++;
+        else gaps.push(gap);
+      }
+    }
   }
-  return { averageMinutes: cars ? minutes / cars : null, cars, coveredDays };
+  gaps.sort((a, b) => a - b);
+  const middle = Math.floor(gaps.length / 2);
+  const medianMinutes = !gaps.length
+    ? null
+    : gaps.length % 2
+      ? gaps[middle]
+      : (gaps[middle - 1] + gaps[middle]) / 2;
+  return {
+    medianMinutes,
+    includedGaps: gaps.length,
+    excludedLongGaps,
+    excludedOvernightGaps,
+    coveredDays,
+    timedTests,
+  };
 }

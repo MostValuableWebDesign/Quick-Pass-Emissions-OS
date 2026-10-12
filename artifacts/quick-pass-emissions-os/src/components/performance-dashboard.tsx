@@ -10,6 +10,8 @@ import { PerformanceBusyHours } from "./performance-dashboard-busy-hours";
 import { PerformanceCommissionProgress } from "./performance-dashboard-commission-progress";
 import { PerformanceTrend } from "./performance-dashboard-trend";
 import { EmployeeTable } from "./performance-dashboard-employees";
+import { PerformancePaceSettings } from "./performance-pace-settings";
+import { PerformancePaceEvidence } from "./performance-pace-evidence";
 import { PerformanceCalendar } from "./performance-calendar";
 import { instant, longDate, num, usd, inspectionTime } from "./performance-dashboard-format";
 import {
@@ -109,6 +111,13 @@ export function PerformanceDashboard({
           </div>
         </div>
         <div className="pd-actions">
+          <PerformancePaceSettings
+            settings={data.paceSettings}
+            query={q}
+            onSaved={(result) => {
+              if (result.data) setData(result.data);
+            }}
+          />
           <button
             type="button"
             className="button dashboard-refresh-button"
@@ -198,15 +207,21 @@ export function PerformanceDashboard({
           </div>
           <div
             className="pd-kpi"
-            title="Daily elapsed time from first to last test divided by cars in those windows. Uses the station window for all staff, or the selected employee's window. Includes daytime pauses; not measured start-to-finish duration."
+            title="Median consecutive-test gap, paired separately for each employee and day. Free retests included; not measured inspection duration."
           >
-            <span className="lab">Avg. time per car (est.)</span>
+            <span className="lab">Typical time between tests</span>
             <strong data-testid="text-inspection-interval">
-              {inspectionTime(s.inspectionCadence.averageMinutes)}
+              {inspectionTime(s.inspectionCadence.medianMinutes)}
             </strong>
+            <PerformancePaceEvidence pace={s.inspectionCadence} />
             <small>
-              {s.inspectionCadence.cars} cars in timed windows · {s.inspectionCadence.coveredDays}/
-              {s.expectedDays} days · includes pauses
+              {s.inspectionCadence.coveredDays}/{s.expectedDays} days fully timed · free retests
+              included
+            </small>
+            <small>
+              {data.paceSettings.longGapMinutes === null
+                ? "No long-gap limit configured"
+                : `Excluded long gap: over ${data.paceSettings.longGapMinutes} min`}
             </small>
           </div>
           <div className="pd-kpi">

@@ -137,4 +137,56 @@ describe("read-only station portal export totals", () => {
     await expect(portalSearch(day, { ...config, password: "" }, session)).rejects.toThrow();
     expect(transport).not.toHaveBeenCalled();
   });
+  it("does not begin another request after the shared operation deadline", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const transport = vi.fn();
+    const session = new PortalSession(transport as typeof fetch, false, false, controller.signal);
+    await expect(session.request("/Login.aspx")).rejects.toThrow("timed out");
+    expect(transport).not.toHaveBeenCalled();
+  });
+  it("propagates operation cancellation to a pending fetch without retrying", async () => {
+    const controller = new AbortController();
+    const transport = vi.fn(
+      (_url: unknown, options: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          options.signal!.addEventListener("abort", () => reject(new Error("aborted")), {
+            once: true,
+          });
+        }),
+    );
+    const session = new PortalSession(transport as typeof fetch, false, false, controller.signal);
+    const pending = session.request("/Login.aspx");
+    const rejection = expect(pending).rejects.toThrow("timed out");
+    controller.abort();
+    await rejection;
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+  it("cancels an unfinished response body at the operation deadline", async () => {
+    const controller = new AbortController();
+    let opened!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      opened = resolve;
+    });
+    const cancel = vi.fn();
+    const transport = vi.fn(
+      async () =>
+        new Response(
+          new ReadableStream({
+            pull() {
+              opened();
+            },
+            cancel,
+          }),
+        ),
+    );
+    const session = new PortalSession(transport as typeof fetch, false, false, controller.signal);
+    const pending = session.request("/Login.aspx");
+    const rejection = expect(pending).rejects.toThrow("read completely");
+    await ready;
+    controller.abort();
+    await rejection;
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
 });

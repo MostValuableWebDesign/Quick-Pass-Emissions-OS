@@ -3,12 +3,15 @@ import { dateString } from "@/lib/validation";
 import { addDays, businessDate } from "@/lib/time";
 import { audit, requireRule, BusinessError } from "../phase2";
 import { range } from "./report";
-import { stationConfig, stationTransaction } from "./service";
-import { portalRangeDays } from "./portal-client";
+import { stationTransaction } from "./service";
+import { portalRangeDays, PortalSession } from "./portal-client";
 import { buildDashboard, dashboardDates, calendarDays } from "./dashboard-calculations";
 import type { DashboardQuery, PayPlan } from "./dashboard-types";
 import { classifyDashboardRetests, hasVinEvidence, retestHistoryDates } from "./dashboard-retests";
 import { PACE_SETTINGS_ACTION, paceSettingsSchema } from "./pace-settings";
+
+import { withStationTestExport, requireActiveTestExport } from "./test-export-gate";
+import { testExportBatches, TEST_EXPORT_MAX_REQUESTS } from "./test-export-batches";
 
 const SNAPSHOT = "STATION_PERFORMANCE_DAY_CACHED";
 const PLAN = "STATION_PERFORMANCE_PAY_PLAN";
@@ -254,17 +257,6 @@ export async function saveDashboardPaceSettings(actorId: string, input: unknown,
   return readDashboard(actorId, validated);
 }
 
-function contiguousChunks(dates: string[]) {
-  const chunks: { start: string; end: string }[] = [];
-  for (const date of [...new Set(dates)].sort()) {
-    const last = chunks.at(-1);
-    if (last && date === addDays(last.end, 1) && date <= addDays(last.start, 13)) last.end = date;
-    else chunks.push({ start: date, end: date });
-  }
-  // Current-day freshness should not wait behind a large history backfill.
-  return chunks.sort((a, b) => b.end.localeCompare(a.end));
-}
-
 export async function loadDashboard(actorId: string, input: unknown, refresh = false) {
   const query = validateQuery(input);
   const initial = await readDashboard(actorId, query);
@@ -279,87 +271,59 @@ export async function loadDashboard(actorId: string, input: unknown, refresh = f
       ? dashboardDates(query, initial.today)
       : [...missingSources, ...initial.staleDates];
   if (!needed.length) return initial;
-  const config = stationConfig();
-  const allowed = await stationTransaction(actorId, async (tx, hash) => {
-    const recent = await tx.auditLog.findFirst({
-      where: {
-        entityId: hash,
-        action: { in: ["STATION_PERFORMANCE_LOOKUP_STARTED", "STATION_PORTAL_LOOKUP_STARTED"] },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-    if (recent && recent.createdAt.getTime() > Date.now() - 15_000) return false;
-    const failure = await tx.auditLog.findFirst({
-      where: {
-        entityId: hash,
-        action: "STATION_PERFORMANCE_LOOKUP_FAILED",
-        details: { path: ["query"], equals: `${query.start}:${query.end}:${query.trendDays}` },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-    if (!refresh && failure && failure.createdAt.getTime() > Date.now() - TTL) return false;
-    await audit(tx, actorId, "STATION_PERFORMANCE_LOOKUP_STARTED", hash, {
-      start: query.start,
-      end: query.end,
-      days: needed.length,
-    });
-    return true;
-  });
-  if (!allowed)
-    return {
-      ...initial,
-      error: "Portal requests are cooling down. Saved data is still available.",
-    };
-  const credentials = {
-    station: config.station,
-    username: process.env.GA_DASHBOARD_USERNAME ?? "",
-    password: process.env.GA_DASHBOARD_PASSWORD ?? "",
-  };
-  let requests = 0;
-  const deadline = Date.now() + 90_000;
   let sourceError: string | undefined;
-  const store = async (days: unknown[]) => {
-    const valid = days.map((d) => dashboardDaySchema.parse(d));
-    await stationTransaction(actorId, async (tx, hash) => {
-      requireRule(hash === config.hash, "Station configuration changed. Refresh to try again.");
-      for (const day of valid) await audit(tx, actorId, SNAPSHOT, hash, day);
-    });
-    return valid;
-  };
   try {
-    for (const chunk of contiguousChunks(needed)) {
-      if (requests >= 20 || Date.now() >= deadline) {
-        sourceError = "History is partially loaded. Refresh to continue.";
-        break;
-      }
-      requests++;
-      const days = await portalRangeDays(chunk.start, chunk.end, credentials);
-      await store(days);
-      const absent = calendarDays(chunk.start, chunk.end).filter(
-        (date) => !days.some((d) => d.date === date),
-      );
-      for (const date of absent) {
-        if (requests >= 20 || Date.now() >= deadline) {
-          sourceError = "History is partially loaded. Refresh to continue.";
+    await withStationTestExport(actorId, "PERFORMANCE", async (run) => {
+      const credentials = {
+        station: run.station,
+        username: process.env.GA_DASHBOARD_USERNAME ?? "",
+        password: process.env.GA_DASHBOARD_PASSWORD ?? "",
+      };
+      let requests = 0;
+      const fetchAndStore = async (start: string, end: string) => {
+        await stationTransaction(actorId, (tx, hash) => requireActiveTestExport(tx, hash, run));
+        requests++;
+        const days = await portalRangeDays(
+          start,
+          end,
+          credentials,
+          new PortalSession(fetch, false, false, run.signal),
+        );
+        const valid = days.map((day) => dashboardDaySchema.parse(day));
+        await stationTransaction(actorId, async (tx, hash) => {
+          await requireActiveTestExport(tx, hash, run);
+          for (const day of valid) await audit(tx, actorId, SNAPSHOT, hash, day);
+        });
+        return valid;
+      };
+      const partial = () => {
+        sourceError = "History is partially loaded. Continue after the station cooldown.";
+      };
+      for (const chunk of testExportBatches(needed, initial.today)) {
+        if (requests >= TEST_EXPORT_MAX_REQUESTS || run.signal.aborted) {
+          partial();
           break;
         }
-        requests++;
-        await store(await portalRangeDays(date, date, credentials));
+        const days = await fetchAndStore(chunk.start, chunk.end);
+        const absent = calendarDays(chunk.start, chunk.end).filter(
+          (date) => !days.some((day) => day.date === date),
+        );
+        // An absent range date still needs an explicit single-day response; it is never assumed zero.
+        for (const date of absent) {
+          if (requests >= TEST_EXPORT_MAX_REQUESTS || run.signal.aborted) {
+            partial();
+            break;
+          }
+          await fetchAndStore(date, date);
+        }
       }
-    }
+    });
   } catch (error) {
     sourceError =
       error instanceof BusinessError
         ? error.message
         : "Unable to retrieve station data. Saved values are unchanged.";
   }
-  if (sourceError)
-    await stationTransaction(actorId, async (tx, hash) => {
-      await audit(tx, actorId, "STATION_PERFORMANCE_LOOKUP_FAILED", hash, {
-        query: `${query.start}:${query.end}:${query.trendDays}`,
-        message: sourceError!,
-      });
-    });
   const result = await readDashboard(actorId, query);
   return { ...result, ...(sourceError ? { error: sourceError } : {}) };
 }

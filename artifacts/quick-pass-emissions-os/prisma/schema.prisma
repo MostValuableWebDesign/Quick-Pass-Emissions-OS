@@ -1140,3 +1140,12 @@ model AutomationDelivery {
   deliveredAt DateTime @default(now())
   failure String?
 }
+
+// Shared by every server/account requesting a station's test export.
+model StationTestExportState {
+  stationHash String @id
+  activeToken String?
+  activeUntil DateTime?
+  cooldownUntil DateTime
+  updatedAt DateTime @updatedAt
+}

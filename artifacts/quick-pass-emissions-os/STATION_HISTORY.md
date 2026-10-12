@@ -14,7 +14,24 @@ Missing/empty reports are not presented as verified zero days.
 Only aggregate date, outcome counts and retrieval time are retained in owner audit
 history; the saved snapshot is shown again for that date after reload. Portal
 cookies and original exports stay in memory and are discarded. Credentials remain
-server-side in the existing GA Secrets. Requests have a 15-second per-station throttle.
+server-side in the existing GA Secrets.
+
+Daily-count and Performance test exports now share a persistent per-station reservation,
+including across owners, browser tabs and app processes. One lookup run may be active at a
+time. After it completes, all entry points (including manual refresh and different dates)
+observe a 60-second cooldown; a failed run sets a shared five-minute cooldown. The server
+returns a wait message while retaining saved data.
+
+Historical Performance requests cover at most three days each and use at most three
+requests per run, including single-day checks needed to establish an explicit empty date.
+Today's request is isolated and prioritized. Successful batches are cached before proceeding;
+missing history resumes on a later owner-triggered load after cooldown. No absent date is
+invented as zero and there is no unattended retry/polling.
+
+All test-export network requests share a 45-second operation deadline. The reservation
+expires after two minutes if a process disappears; token checks prevent an expired run
+from storing results or releasing a newer reservation. Network work runs outside database
+locks. Migration `202610120002_station_test_export_gate` adds only coordination state.
 
 There is **no API, scheduled scraper, automated purchase, automatic record import,
 payroll reconciliation or approval**. Counts include failed/aborted report rows,

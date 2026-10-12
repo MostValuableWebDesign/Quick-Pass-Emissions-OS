@@ -12,17 +12,19 @@ export function VendorForm({ vendor: v }: { vendor?: Vendor }) {
         <Field label="Phone number">
           <input type="tel" name="phone" maxLength={50} required />
         </Field>
-        <TextField
-          name="contact"
-          label="Contact person / department (optional)"
-          required={false}
-        />
+        <TextField name="contact" label="Contact person / department (optional)" required={false} />
         <Field label="Email (optional)">
           <input type="email" name="email" maxLength={254} />
         </Field>
-        <TextField name="services" label="Services provided (optional)" required={false} area />
+        <TextField
+          name="services"
+          label="Services provided (optional)"
+          required={false}
+          area
+          wide
+        />
         <TextField name="reference" label="Reference (optional)" required={false} />
-        <TextField name="notes" label="Notes (optional)" required={false} area />
+        <TextField name="notes" label="Notes (optional)" required={false} area wide />
       </ActionForm>
     );
   }

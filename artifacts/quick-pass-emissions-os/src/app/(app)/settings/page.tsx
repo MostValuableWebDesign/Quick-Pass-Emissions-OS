@@ -1,41 +1,25 @@
 import { manager } from "@/lib/access";
 import { db } from "@/lib/db";
-import { formatDate } from "@/lib/time";
 import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { removeClosure, saveClosure, saveSettings } from "@/app/actions";
 import { saveCertificateAlertThresholdAction } from "@/app/certificate-portal-actions";
 import { readCertificatePortalStatus } from "@/modules/certificates/portal";
 import { DEFAULT_CERTIFICATE_THRESHOLD } from "@/modules/certificates/portal-types";
-import Link from "next/link";
-import { AUDIT_PAGE_SIZE, getAuditPagination } from "@/lib/audit-pagination";
 
-export default async function Settings({
-  searchParams,
-}: {
-  searchParams: Promise<{ auditPage?: string | string[] }>;
-}) {
+export default async function Settings() {
   const actor = await manager();
-  const { auditPage: requestedAuditPage } = await searchParams;
   const certStatus =
     actor.role === "OWNER" ? await readCertificatePortalStatus().catch(() => null) : null;
-  const [settings, closures, auditCount] = await Promise.all([
+  const [settings, closures] = await Promise.all([
     db.businessSetting.findUnique({ where: { id: "business" } }),
     db.closure.findMany({ orderBy: { date: "asc" } }),
-    db.auditLog.count(),
   ]);
-  const auditPage = getAuditPagination(auditCount, requestedAuditPage);
-  const audit = await db.auditLog.findMany({
-    orderBy: { createdAt: "desc" },
-    skip: auditPage.skip,
-    take: AUDIT_PAGE_SIZE,
-    include: { actor: { select: { name: true } } },
-  });
   return (
     <>
       <PageHeader
         title="Business settings"
-        description="Manage operating days, certificate alerts, and audit history."
+        description="Manage operating days, planned closures, and certificate alerts."
       />
       <section className="settings-group">
         <div className="settings-group-heading">
@@ -140,82 +124,6 @@ export default async function Settings({
           </div>
         </section>
       )}
-      <section className="settings-group">
-        <section className="card">
-          <div className="card-heading">
-            <h2>Audit history</h2>
-          </div>
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>When · Eastern</th>
-                  <th>Who</th>
-                  <th>Action</th>
-                  <th>Record / details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {audit.map((a) => (
-                  <tr key={a.id}>
-                    <td className="nowrap">{formatDate(a.createdAt)}</td>
-                    <td>{a.actor?.name ?? "System"}</td>
-                    <td>{a.action.toLowerCase().replaceAll("_", " ")}</td>
-                    <td>
-                      <details>
-                        <summary>View record</summary>
-                        <code className="audit-details">
-                          {a.entityId}
-                          <br />
-                          {JSON.stringify(a.details)}
-                        </code>
-                      </details>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <nav className="pagination audit-pagination" aria-label="Audit history pages">
-            <span className="muted">
-              Showing {auditPage.rangeStart}–{auditPage.rangeEnd} of {auditCount}
-            </span>
-            <div className="audit-pagination-controls">
-              {auditPage.page > 1 ? (
-                <Link
-                  className="button button-outline"
-                  href={
-                    auditPage.page === 2 ? "/settings" : `/settings?auditPage=${auditPage.page - 1}`
-                  }
-                  rel="prev"
-                >
-                  Previous
-                </Link>
-              ) : (
-                <span className="button button-outline" aria-disabled="true">
-                  Previous
-                </span>
-              )}
-              <span className="muted" aria-current="page">
-                Page {auditPage.page} of {auditPage.pageCount}
-              </span>
-              {auditPage.page < auditPage.pageCount ? (
-                <Link
-                  className="button button-outline"
-                  href={`/settings?auditPage=${auditPage.page + 1}`}
-                  rel="next"
-                >
-                  Next
-                </Link>
-              ) : (
-                <span className="button button-outline" aria-disabled="true">
-                  Next
-                </span>
-              )}
-            </div>
-          </nav>
-        </section>
-      </section>
     </>
   );
 }

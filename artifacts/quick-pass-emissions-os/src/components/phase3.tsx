@@ -21,15 +21,17 @@ export function TextField({
   value = "",
   required = true,
   area = false,
+  wide = false,
 }: {
   label: string;
   name: string;
   value?: string;
   required?: boolean;
   area?: boolean;
+  wide?: boolean;
 }) {
   return (
-    <Field label={label}>
+    <Field label={label} wide={wide}>
       {area ? (
         <textarea name={name} defaultValue={value} maxLength={2000} required={required} />
       ) : (

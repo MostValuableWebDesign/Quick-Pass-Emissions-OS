@@ -42,6 +42,18 @@ test("management can add, remove and restore staff without losing the record", a
   const row = page.getByRole("row").filter({ has: page.getByRole("link", { name, exact: true }) });
   await expect(row).toContainText("Emissions Inspector");
   await expect(row).toContainText("555-0100");
+  await row.getByRole("button", { name: "Remove from active staff", exact: true }).click();
+  await expect(row).toHaveCount(0);
+  await page.goto("/employees?status=inactive");
+  const removedRow = page
+    .getByRole("row")
+    .filter({ has: page.getByRole("link", { name, exact: true }) });
+  await removedRow.getByRole("button", { name: "Restore employee", exact: true }).click();
+  await expect(removedRow).toHaveCount(0);
+  await page.goto("/employees");
+  await expect(
+    page.getByRole("row").filter({ has: page.getByRole("link", { name, exact: true }) }),
+  ).toBeVisible();
   await page.reload();
   await page.getByRole("link", { name, exact: true }).click();
   await expect(page).toHaveURL(/\/employees\/[^/?]+(?:\?.*)?$/);

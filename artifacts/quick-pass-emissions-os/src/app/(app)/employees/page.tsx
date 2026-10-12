@@ -1,19 +1,20 @@
 import Link from "next/link";
 import { RecordLink } from "@/components/record-link";
 import { manager } from "@/lib/access";
+import { canManageRole } from "@/lib/policy";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/shared";
 import { ActionForm } from "@/components/action-form";
 import { DirectoryAddDialog } from "@/components/directory-add-dialog";
 import { EmployeeFields } from "@/components/employee-fields";
-import { saveEmployee } from "@/app/actions";
+import { saveEmployee, setEmployeeActive } from "@/app/actions";
 import { formatContactAddress } from "@/lib/contact-address";
 export default async function Employees({
   searchParams,
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  await manager();
+  const actor = await manager();
   const employees = await db.employee.findMany({
     include: { user: true },
     orderBy: { user: { name: "asc" } },
@@ -66,6 +67,7 @@ export default async function Employees({
                 <th>Phone</th>
                 <th>Address</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -83,6 +85,20 @@ export default async function Employees({
                     <span className={`badge ${e.user.active ? "green" : "neutral"}`}>
                       {e.user.active ? "Active" : "Removed"}
                     </span>
+                  </td>
+                  <td>
+                    {e.userId !== actor.id && canManageRole(actor.role, e.user.role) ? (
+                      <ActionForm
+                        action={setEmployeeActive}
+                        submit={e.user.active ? "Remove from active staff" : "Restore employee"}
+                        className="inline-form"
+                      >
+                        <input type="hidden" name="id" value={e.id} />
+                        <input type="hidden" name="active" value={String(!e.user.active)} />
+                      </ActionForm>
+                    ) : (
+                      "—"
+                    )}
                   </td>
                 </tr>
               ))}

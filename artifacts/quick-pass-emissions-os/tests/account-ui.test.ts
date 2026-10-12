@@ -29,6 +29,15 @@ describe("account navigation and controls", () => {
     expect(header).not.toContain("user-label");
   });
 
+  it("removes the secondary workspace identity pane from the sidebar", () => {
+    const props = { role: "OWNER", children: "Dashboard" };
+    const html = renderToStaticMarkup(createElement(Shell, props));
+    const sidebar = html.slice(html.indexOf("<aside"), html.indexOf("</aside>"));
+    expect(sidebar).not.toContain("Quick Pass Emissions");
+    expect(sidebar).not.toContain("Tag renewal");
+    expect(sidebar).not.toContain("workspace-dot");
+  });
+
   it("renders Settings as a button and groups its destinations by purpose", () => {
     const props = { role: "OWNER", children: "Dashboard" };
     const html = renderToStaticMarkup(createElement(Shell, props));

@@ -195,28 +195,6 @@ svg {
   place-items: center;
   color: var(--nav-text);
 }
-.workspace {
-  border: 1px solid var(--nav-line);
-  border-radius: 8px;
-  padding: 14px 11px;
-  margin-top: 34px;
-  font-size: 11px;
-  color: var(--nav-text);
-}
-.workspace small {
-  display: block;
-  font-size: 9px;
-  margin-top: 6px;
-  color: var(--nav-muted);
-}
-.workspace-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  background: var(--nav-accent);
-  border-radius: 100%;
-  margin-right: 8px;
-}
 .nav-caption {
   font-size: 10px;
   letter-spacing: 1.3px;

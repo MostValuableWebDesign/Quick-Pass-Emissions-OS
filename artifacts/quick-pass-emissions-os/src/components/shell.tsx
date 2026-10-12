@@ -221,10 +221,6 @@ export function Shell({
               Quick Pass<small>EMISSIONS</small>
             </span>
           </Link>
-          <div className="workspace nav-label">
-            <span className="workspace-dot" />
-            Quick Pass Emissions<small>Emissions · Tag renewal · Carwash</small>
-          </div>
           <nav aria-label="Main navigation" className="primary-nav">
             {sections.map((section) => (
               <div className="nav-group" data-nav-section={section.id} key={section.id}>

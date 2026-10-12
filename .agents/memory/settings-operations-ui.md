@@ -26,3 +26,9 @@ The user removed the Issued By mappings, Outcome rules & prices, Operations sche
 **Why:** The user explicitly requested those visible panels be removed.
 
 **How to apply:** Do not restore these panels without asking. Removing their UI does not authorize deleting persisted configuration or the calculations that use it.
+
+Add-dealership, add-employee, and add-vendor forms should open in popup panes, with the right-aligned add buttons remaining above their directories.
+
+**Why:** The user wants to add records without opening a form that pushes the existing panels down.
+
+**How to apply:** Preserve the directory’s position while the form is open, and keep its existing fields, save behavior, and validation inside the popup.

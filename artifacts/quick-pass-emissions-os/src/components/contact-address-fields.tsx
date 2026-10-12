@@ -20,7 +20,6 @@ export function ContactAddressFields({
         string
       >,
   );
-  const [selected, setSelected] = useState(value.addressSource === "GEOAPIFY_SELECTED");
   const [proof, setProof] = useState("");
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
@@ -70,20 +69,14 @@ export function ContactAddressFields({
     };
   }, [query]);
   function choose(item: AddressSuggestion) {
-    // Unit details belong to the user, not the geocoder's locality display line.
-    const unit = query
-      .match(/(?:\b(?:apt\.?|apartment|suite|ste\.?|unit)\s+|#\s*)[^,]+/i)?.[0]
-      ?.trim();
     setAddress((previous) => ({
       ...previous,
       ...item.address,
-      addressLine2: previous.addressLine2 || unit || "",
     }));
-    setSelected(true);
     setProof(item.proof);
     cancel();
     setQuery("");
-    setMessage("Street selected. Review the address and apartment or suite before saving.");
+    setMessage("Street selected. Review the address before saving.");
   }
   return (
     <fieldset className="contact-address-fields wide">
@@ -110,7 +103,6 @@ export function ContactAddressFields({
               const next = event.target.value;
               setAddress((previous) => ({ ...previous, streetAddress: next }));
               setProof("");
-              setSelected(false);
               setQuery(next.length <= 200 ? next : "");
               setMessage(
                 next.trim().length >= 3 && next.length <= 200
@@ -182,25 +174,19 @@ export function ContactAddressFields({
             .
           </small>
         </div>
-        <p className="address-source wide" aria-live="polite">
-          {selected
-            ? "Provider selected · Geoapify street address. Apartment/suite entered manually. Delivery not validated."
-            : "Manually entered · Address not validated."}
-        </p>
         <input type="hidden" name="addressProof" value={proof} />
+        <input type="hidden" name="addressLine2" value={address.addressLine2} />
         {addressKeys
-          .filter((key) => key !== "streetAddress")
+          .filter((key) => key !== "streetAddress" && key !== "addressLine2")
           .map((key) => {
             const labels = {
               streetAddress: "Street address",
-              addressLine2: "Apartment, suite or unit (optional)",
               city: "City",
               state: "State",
               postalCode: "ZIP / postal code",
             };
             const autocomplete = {
               streetAddress: "address-line1",
-              addressLine2: "address-line2",
               city: "address-level2",
               state: "address-level1",
               postalCode: "postal-code",
@@ -209,19 +195,16 @@ export function ContactAddressFields({
               name: key,
               autoComplete: autocomplete[key],
               value: address[key],
-              maxLength: key === "addressLine2" ? 160 : key === "postalCode" ? 20 : 100,
+              maxLength: key === "postalCode" ? 20 : 100,
               onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
                 setAddress((previous) => ({ ...previous, [key]: event.target.value }));
-                if (key !== "addressLine2") {
-                  cancel();
-                  setQuery("");
-                  setProof("");
-                  setSelected(false);
-                }
+                cancel();
+                setQuery("");
+                setProof("");
               },
             };
             return (
-              <Field key={key} label={labels[key]} wide={key === "addressLine2"}>
+              <Field key={key} label={labels[key]}>
                 <input {...props} />
               </Field>
             );

@@ -39,8 +39,8 @@ for (const kind of ["employee", "dealership", "vendor"] as const) {
     let fields = form(page, create);
     await fields.locator('[name="name"]').fill(name);
     await fields.locator('[name="phone"]').fill("555-0100");
-    if (kind === "employee") await fields.locator('[name="jobRole"]').fill("Inspector");
-    await fields.getByLabel("Apartment, suite or unit (optional)").fill("Suite 12B");
+    if (kind === "employee") await fields.locator('[name="jobRole"]').selectOption("Inspector");
+    await expect(fields.getByText("Apartment, suite or unit (optional)")).toHaveCount(0);
     const search = fields.getByRole("combobox", { name: "Street address", exact: true });
     await expect(fields.getByLabel("Find an address", { exact: true })).toHaveCount(0);
     await search.fill("100 Fixture");
@@ -54,10 +54,9 @@ for (const kind of ["employee", "dealership", "vendor"] as const) {
     await search.press("ArrowDown");
     await expect(search).toHaveAttribute("aria-activedescendant", /option-0$/);
     await search.press("Enter");
-    await expect(fields.locator(".address-source")).toContainText("Provider selected");
-    async function check(f: Locator, street = "100 Fixture Street", unit = "Suite 12B") {
+    async function check(f: Locator, street = "100 Fixture Street") {
       await expect(f.locator('[name="streetAddress"]')).toHaveValue(street);
-      await expect(f.locator('[name="addressLine2"]')).toHaveValue(unit);
+      await expect(f.locator('[name="addressLine2"]')).toHaveAttribute("type", "hidden");
       await expect(f.locator('[name="city"]')).toHaveValue("Atlanta");
       await expect(f.locator('[name="state"]')).toHaveValue("GA");
       await expect(f.locator('[name="postalCode"]')).toHaveValue("30303");
@@ -78,42 +77,29 @@ for (const kind of ["employee", "dealership", "vendor"] as const) {
     }
     fields = await openEditor();
     await check(fields);
-    await expect(fields.locator(".address-source")).toContainText("Provider selected");
-    // Units included in search text survive selection too, including pointer selection.
-    await fields.locator('[name="addressLine2"]').fill("");
-    await fields.getByRole("combobox").fill("100 Fixture Street Apt 4C");
+    await expect(fields.locator(".address-source")).toHaveCount(0);
+    await expect(fields.locator('[name="addressLine2"]')).toHaveValue("");
+    // Pointer selection remains available without exposing provider/provenance copy.
+    await fields.getByRole("combobox").fill("100 Fixture Street");
     await expect(fields.getByRole("option")).toHaveCount(1);
-    if (kind === "vendor") await fields.getByRole("option").click();
-    else {
-      await fields.getByRole("combobox").press("ArrowUp");
-      await fields.getByRole("combobox").press("Enter");
-    }
-    await check(fields, "100 Fixture Street", "Apt 4C");
+    await fields.getByRole("option").click();
+    await check(fields);
     await save(fields, edit);
     await page.reload();
     fields = await openEditor();
-    await check(fields, "100 Fixture Street", "Apt 4C");
-    // Unit-only updates retain selected street provenance without claiming unit validation.
-    await fields.locator('[name="addressLine2"]').fill("Apartment 4C");
-    await save(fields, edit);
-    await page.reload();
-    fields = await openEditor();
-    await check(fields, "100 Fixture Street", "Apartment 4C");
-    await expect(fields.locator(".address-source")).toContainText("Provider selected");
+    await check(fields);
     // Provider failure does not block manual corrections or saving/reopening.
     await page.unroute("**/api/addresses");
     await fields.getByLabel("Street address", { exact: true }).fill("Unavailable address");
-    await expect(fields.locator(".address-source")).toContainText("Manually entered");
+    await expect(fields.locator(".address-source")).toHaveCount(0);
     await expect(
       fields.getByText("Address lookup unavailable. You can enter and save the address manually."),
     ).toBeVisible();
     await fields.locator('[name="streetAddress"]').fill("102 Manual Street");
-    await expect(fields.locator(".address-source")).toContainText("Manually entered");
     await save(fields, edit);
     await page.reload();
     fields = await openEditor();
-    await check(fields, "102 Manual Street", "Apartment 4C");
-    await expect(fields.locator(".address-source")).toContainText("Manually entered");
+    await check(fields, "102 Manual Street");
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,

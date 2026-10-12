@@ -46,13 +46,13 @@ test("management can add, remove and restore staff without losing the record", a
   const name = `Staff fixture ${key}`;
   await form.locator('[name="name"]').fill(name);
   await form.locator('[name="phone"]').fill("555-0100");
-  await form.locator('[name="jobRole"]').fill("Emissions Inspector");
+  await form.locator('[name="jobRole"]').selectOption("Inspector");
   await form.locator('[name="streetAddress"]').fill("100 Test Street");
   await expect(form.locator('[name="email"]')).toHaveCount(0);
   await form.getByRole("button", { name: "Create employee", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   const row = page.getByRole("row").filter({ has: page.getByRole("link", { name, exact: true }) });
-  await expect(row).toContainText("Emissions Inspector");
+  await expect(row).toContainText("Inspector");
   await expect(row).toContainText("555-0100");
   const removeFromList = row.getByRole("button", { name: "Remove from active staff", exact: true });
   await confirmAction(page, removeFromList, false);
@@ -72,7 +72,7 @@ test("management can add, remove and restore staff without losing the record", a
   await page.reload();
   await page.getByRole("link", { name, exact: true }).click();
   await expect(page).toHaveURL(/\/employees\/[^/?]+(?:\?.*)?$/);
-  await expect(page.locator('[name="jobRole"]')).toHaveValue("Emissions Inspector");
+  await expect(page.locator('[name="jobRole"]')).toHaveValue("Inspector");
   await expect(page.locator('[name="phone"]')).toHaveValue("555-0100");
   await expect(page.locator('[name="streetAddress"]')).toHaveValue("100 Test Street");
   await confirmAction(
@@ -94,7 +94,7 @@ test("management can add, remove and restore staff without losing the record", a
     page.getByRole("button", { name: "Remove from active staff", exact: true }),
   ).toBeVisible();
   await page.reload();
-  await expect(page.locator('[name="jobRole"]')).toHaveValue("Emissions Inspector");
+  await expect(page.locator('[name="jobRole"]')).toHaveValue("Inspector");
   await employeeTrigger.hover();
   await employeePages.getByRole("link", { name: "Employee directory", exact: true }).click();
   await expect(page).toHaveURL(/\/employees$/);

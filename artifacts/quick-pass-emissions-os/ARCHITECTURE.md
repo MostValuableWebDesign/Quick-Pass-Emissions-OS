@@ -18,7 +18,7 @@ Managers can administer employee-role accounts. Only owners may grant or change 
 
 Employee task list queries filter by employee ID; task detail and mutations independently enforce ownership. Schedules are similarly scoped. Bookkeepers have payroll/inventory preparation access but no Phase 1 task management or Phase 2 approvals. The manager directory is inaccessible to employees. Employee queries deliberately select only needed names rather than private notes. Payroll and inventory services re-read current roles and active status inside each protected transaction; employees cannot read or mutate Phase 2 data.
 
-Invitations have 256-bit random tokens, hashed storage, atomic single-use consumption and 48-hour expiry. Raw tokens are returned only to the authorized inviter, never recorded in audit details. Invite links place the token in the URL fragment, then remove it from the visible URL on page load; server access logs do not receive the fragment. No automatic email transport is configured. Lost access is recovered through the documented operator procedure.
+Invitations have 256-bit random tokens, hashed storage, atomic single-use consumption and 48-hour expiry. Raw tokens are returned only to the authorized inviter, never recorded in audit details. Invite links place the token in the URL fragment, then remove it from the visible URL on page load; server access logs do not receive the fragment. Invitations still have no automatic email transport; daily owner summaries use the separately configured transport below. Lost access is recovered through the documented operator procedure.
 
 ## Data and consistency
 
@@ -90,3 +90,7 @@ persist those fields/source/provider ID and retain manually entered units. Clien
 are ignored; no postal validation is claimed. Vendors have an independent versioned address edit
 so primary-contact verification remains separate. See docs/ADDRESS_LOOKUP.md and additive
 migration 202610120004_contact_address_lookup. Saved data never depends on a provider being online.
+
+## Daily owner email
+
+`OwnerEmailSetting`, `OwnerEmailReport` and `OwnerSummaryEmail` persist configuration, dated snapshots and the email outbox in PostgreSQL. The independent automation worker calls the shared dashboard transaction reader, freezes HTML/plaintext and recipients before sending, and serializes generation/claims with existing advisory locks. A unique owner/date key prevents duplicate reports to the same owner. The bounded Resend transport uses a stable delivery idempotency key; automatic retries stop after 23 hours and require provider review afterward. Provider acceptance is recorded separately from inbox delivery. Personnel and automation locks remain held during the eight-second bounded send so deactivation, demotion and configuration revocation cannot race the final recipient check. No provider calls run on reads, previews or builds. Existing daily/weekly in-app summaries remain independent. See OWNER_DAILY_EMAIL.md.

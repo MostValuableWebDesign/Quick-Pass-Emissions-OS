@@ -61,7 +61,7 @@ npm run bootstrap
 npm run dev
 ```
 
-Open [localhost:3000](http://localhost:3000). Configure operating days in **Settings & audit**, create staff records, create recurring responsibilities, and record shifts. Staff records have no login. Owners may grant Owner or Manager access and issue a private invitation from that profile. Share invitation links privately; the application does not send email. Invitation tokens are stored as hashes and expire after 48 hours.
+Open [localhost:3000](http://localhost:3000). Configure operating days in **Settings & audit**, create staff records, create recurring responsibilities, and record shifts. Staff records have no login. Owners may grant Owner or Manager access and issue a private invitation from that profile. Share invitation links privately; invitations are not emailed automatically. Invitation tokens are stored as hashes and expire after 48 hours.
 
 Normal production commands:
 
@@ -102,7 +102,7 @@ Read [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md) and [PHASE4.md](PHASE4.md) f
 
 ## Phase 5 automation
 
-Phase 5 adds **Owner exceptions**, **Automation**, **Summary archive**, **Reminders** and **Operational reports**. Read [PHASE5.md](PHASE5.md) before configuring schedules, recipients or forecasts. The independent CLI/POST worker persists duplicate-safe historical summaries and in-app deliveries; opening a page never schedules work. External sending remains disabled. See VERIFICATION.md for publication status and the repository README for the authorized GitHub App fast-forward fallback when native Git authentication fails. Production deployment and actual persistent scheduler provisioning are separate.
+Phase 5 adds **Owner exceptions**, **Automation**, **Summary archive**, **Reminders** and **Operational reports**. Read [PHASE5.md](PHASE5.md) before configuring schedules, recipients or forecasts. The independent CLI/POST worker persists duplicate-safe historical summaries and in-app deliveries; opening a page never schedules work. Reminder email/SMS remains disabled; daily owner email is separately configured as described below. See VERIFICATION.md for publication status and the repository README for the authorized GitHub App fast-forward fallback when native Git authentication fails. Production deployment and actual persistent scheduler provisioning are separate.
 
 ## Local demonstration data
 
@@ -148,11 +148,11 @@ E2E_DIRECT=1 npm run test:e2e
 
 In Replit, omit `E2E_DIRECT=1` to use the configured preview port; that port must be free. `DATABASE_URL` supplies the connection to the PostgreSQL server, and the runners generate their own database name, signing secret and private sessions. `DEMO_PASSWORD` and a pre-seeded app are unnecessary. `E2E_CHROMIUM_PATH` optionally selects an installed browser.
 
-The default browser command requires all 24 checks across navigation, personnel/invitations, tasks, payroll, certificates, maintenance, chemicals, rentals, dealer billing, finance, Phase 5 automation and Performance panels (28 with station history enabled). Phase 5 covers configuration, summary delivery and immutability, reminders, CSV reports, failed-job retry and role restrictions. A missing workflow file, skipped test, failure or retry fails the completion guard. Targeted security/theme/login/support/import/certificate/station modes remain available and report only their selected coverage. Browser traces, screenshots and video are disabled; temporary sessions and reports are private and removed on completion.
+The default browser command requires all 29 checks across navigation, personnel/invitations, tasks, payroll, certificates, maintenance, chemicals, rentals, dealer billing, finance, Phase 5 automation and Performance panels (32 with station history enabled). Phase 5 covers configuration, summary delivery and immutability, reminders, CSV reports, failed-job retry and role restrictions. A missing workflow file, skipped test, failure or retry fails the completion guard. Targeted security/theme/login/support/import/certificate/station modes remain available and report only their selected coverage. Browser traces, screenshots and video are disabled; temporary sessions and reports are private and removed on completion.
 
 ## Scheduling
 
-Configure an external persistent scheduler to execute `npm run jobs` every 15 minutes, or POST to `/api/jobs` with `Authorization: Bearer <CRON_SECRET>`. Use a random token of at least 32 characters. Jobs must have the same DATABASE_URL and business deployment configuration. The browser is not the scheduler. The manual **Run operations check** button is for setup/recovery.
+Configure an external persistent scheduler to execute `npm run jobs` every five minutes, or POST to `/api/jobs` with `Authorization: Bearer <CRON_SECRET>`. Use a random token of at least 32 characters. Jobs must have the same DATABASE_URL and business deployment configuration. The browser is not the scheduler. The manual **Run operations check** button is for setup/recovery.
 
 New task templates attempt immediate generation. A failed generation keeps the template and tells the manager to retry; it does not falsely report that the task was lost. Due dates and overdue dashboard counts are computed against current server time. Notification generation occurs on the next successful job. Inspect job history and monitor failures externally.
 
@@ -169,3 +169,7 @@ Read [BUSINESS_RULES.md](BUSINESS_RULES.md) before configuring recurrence or cha
 - [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md): remaining phases.
 - [AGENTS.md](AGENTS.md): future coding-agent instructions.
 - [docs/OPERATIONS.md](docs/OPERATIONS.md): backup, recovery, maintenance and security notes.
+
+## Daily owner email
+
+Owner-only **Automation → Configure daily owner email** provides recipient selection, a live report preview, saved reports and email history with 15 rows per page. The owner-requested schedule is **6:30 PM America/New_York**, every day, for the **current day**. Delivery starts paused; configure the server email provider and persistent scheduler, then enable it explicitly. Reports separate estimated revenue, billing, receipts and incomplete payroll. Read [OWNER_DAILY_EMAIL.md](OWNER_DAILY_EMAIL.md) for activation and recovery.

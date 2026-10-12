@@ -29,3 +29,5 @@ All unknown financial, licensing, vendor, bank and regulatory information remain
 15. Confirm maintenance review responsibility and repair-cost source, the process for follow-up corrections to closed work, and the external scheduler/operator for preventative jobs. Configure `btree_gist` permissions with the database host before migration 004.
 
 16. Confirm per-dealer authorized net terms/default service rates/tax basis points (including explicit zero), unique invoice numbering, completed-service and receipt evidence, independent reviewers, historical opening A/R documentation, treatment of charges/credits and the accounting import mapping. The current tax model is one percentage on the whole subtotal; unsupported cases stay in accounting. Confirm procedures that prevent other finance entries duplicating existing receipts under different references.
+
+Daily owner email timing is confirmed: 6:30 PM Eastern for the current day. Activation still needs a verified sending domain/address, Resend API key, public HTTPS application origin, selected active owners and an independently provisioned/monitored five-minute scheduler.

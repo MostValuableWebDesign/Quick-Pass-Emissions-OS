@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireRole } from "@/lib/require-role";
 import { automationSettings } from "@/modules/automation/service";
 import { reminderKinds } from "@/modules/automation/rules";
@@ -15,6 +16,16 @@ export default async function Automation() {
         title="Automation configuration"
         description="Summary schedules, reminder policies, forecast windows, and durable job history."
       />
+      <section className="card card-body">
+        <h2>Daily owner email</h2>
+        <p>
+          Current-day results at 6:30 PM Eastern. Select recipients, preview the report and review
+          email history.
+        </p>
+        <Link className="button" href="/automation/daily-email">
+          Configure daily owner email
+        </Link>
+      </section>
       <ExternalDisabled />
       <section className="card card-body" aria-labelledby="semantics">
         <h2 id="semantics">How scheduling works</h2>

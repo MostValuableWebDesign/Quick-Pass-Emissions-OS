@@ -1,3 +1,33 @@
+# Daily owner email — October 12, 2026
+
+Pulled shared main through `bebea19` before implementation. The owner confirmed **6:30 PM Eastern
+for the current day**. Added owner-only recipient configuration, live preview, saved dated reports,
+HTML/plaintext email, PostgreSQL outbox/retry state and 15-row delivery history. The independent
+jobs runner uses the existing protected business snapshot calculations and current owner checks.
+Additive migration: `202610120005_owner_email`; no business database reset or migration was run.
+
+- **597 unit/database tests passed in 71 files, none skipped**, using the owned isolated runner.
+  New coverage verifies current-day timing and DST, owner-only configuration/reads/recipients,
+  concurrent triggers, persistent frozen reports, timeout/permanent-error retry, stale claims,
+  recipient removal/pause/deactivation/demotion/address changes, a real queued personnel-lock
+  transaction, bounded backlog retention, 15-row pagination and provider idempotency reuse.
+  Upgrade sentinels retained approved payroll, invoices and signed reversals.
+- **Two focused owner email browser workflows passed, none skipped**, with
+  `E2E_OWNER_EMAIL_ONLY=1`: owner preview/recipient save/reopen and manager denial of settings and
+  saved reports. Native management login and unrelated-origin rejection passed preflight. The
+  default browser manifest now requires 29 checks; the broader suite was not rerun.
+- Typecheck, ESLint, changed-file Prettier, Prisma formatting, whitespace checks and the production
+  build passed. The build used an unreachable database URL; 63 trace manifests contained no
+  private verification/environment references. Repository-wide formatting still reports 46
+  untouched files; it is not an all-clean formatting result.
+- Email credentials were absent. Sending remains paused until a verified Resend sender, API key,
+  HTTPS app origin and selected owner recipients are configured. Provider sends were mocked in
+  isolated tests; no real email, inbox receipt, deployment or persistent scheduler was verified.
+  Provider acceptance is distinct from delivery. Independent five-minute trigger setup and
+  recovery instructions are in [OWNER_DAILY_EMAIL.md](OWNER_DAILY_EMAIL.md).
+- The business database and secrets were not used for fixtures or build queries. Runner-owned
+  databases, browser sessions and browser build caches were removed after verification.
+
 # Inline street-address suggestions — October 12, 2026
 
 Pulled shared main through `3f6c723`. Removed the separate Find an address input. Typing directly

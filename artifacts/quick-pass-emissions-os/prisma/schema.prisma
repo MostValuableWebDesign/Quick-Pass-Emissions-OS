@@ -46,6 +46,8 @@ enum Frequency {
 }
 
 model User {
+  ownerSummaryEmails     OwnerSummaryEmail[]
+  ownerEmailSettings     OwnerEmailSetting[]     @relation("EmailSettingOwner")
   supportContactHistory  SupportContactHistory[]
   businessImports        BusinessImport[]
   automationDeliveries   AutomationDelivery[]
@@ -1286,4 +1288,53 @@ model StationTestExportState {
   activeUntil   DateTime?
   cooldownUntil DateTime
   updatedAt     DateTime  @updatedAt
+}
+
+// Configuration and delivery state live in the persistent business database.
+model OwnerEmailSetting {
+  id         String   @id @default("daily")
+  active     Boolean  @default(false)
+  revision   Int      @default(1)
+  time       String   @default("18:30")
+  recipients String[]
+  nextDate   String
+  updatedBy  String
+  owner      User     @relation("EmailSettingOwner", fields: [updatedBy], references: [id], onDelete: Restrict)
+  updatedAt  DateTime @updatedAt
+}
+
+model OwnerEmailReport {
+  id          String              @id @default(cuid())
+  date        String              @unique
+  generatedAt DateTime
+  payload     Json
+  emails      OwnerSummaryEmail[]
+}
+
+model OwnerSummaryEmail {
+  id             String           @id @default(cuid())
+  reportId       String
+  report         OwnerEmailReport @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  reportDate     String
+  revision       Int
+  status         String           @default("PENDING")
+  attempts       Int              @default(0)
+  nextAttemptAt  DateTime
+  firstAttemptAt DateTime?
+  leaseToken     String?
+  leaseUntil     DateTime?
+  toEmail        String
+  fromEmail      String
+  subject        String
+  html           String
+  text           String
+  providerId     String?
+  acceptedAt     DateTime?
+  failure        String?
+  createdAt      DateTime         @default(now())
+
+  @@unique([userId, reportDate])
+  @@index([status, nextAttemptAt])
 }

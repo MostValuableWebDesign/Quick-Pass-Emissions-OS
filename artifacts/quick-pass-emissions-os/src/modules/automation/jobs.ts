@@ -1,3 +1,4 @@
+import { runOwnerEmails } from "./owner-email";
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -222,5 +223,5 @@ export async function runAutomation(now = new Date()) {
     if (await processAutomation(job, now)) completed++;
     else failed++;
   }
-  return { completed, failed };
+  return { completed, failed, ownerEmail: await runOwnerEmails(now) };
 }

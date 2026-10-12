@@ -8,6 +8,9 @@ export function isolatedDatabaseEnvironment(env, url) {
     EXPECTED_DATABASE_ID: "",
     DATA_BACKUP_DIR: "",
     RESTORE_DATABASE_URL: "",
+    RESEND_API_KEY: "",
+    OWNER_SUMMARY_FROM_EMAIL: "",
+    OWNER_SUMMARY_APP_URL: "",
   };
 }
 

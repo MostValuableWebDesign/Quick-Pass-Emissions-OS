@@ -39,8 +39,9 @@ export function Boundary({ children }: { children: React.ReactNode }) {
 export function ExternalDisabled() {
   return (
     <div className="notice warning">
-      External email and SMS delivery are disabled. Reminders and summaries are delivered in-app
-      only, to current active internal users.
+      Reminder email and SMS delivery are disabled. The reminder policies and daily/weekly summary
+      schedules below deliver in-app only, to current active internal users. Daily owner email has
+      its own configuration above.
     </div>
   );
 }

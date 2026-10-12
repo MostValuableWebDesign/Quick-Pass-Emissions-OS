@@ -33,7 +33,7 @@ describe("Browser isolation gates", () => {
         "phase5.spec.ts",
       ]),
     );
-    expect(Object.values(suite).reduce((sum, n) => sum + n, 0)).toBe(27);
+    expect(Object.values(suite).reduce((sum, n) => sum + n, 0)).toBe(29);
     const suites = Object.entries(suite).map(([file, count]) => ({
       file,
       specs: Array.from({ length: count }, () => ({ tests: [{}] })),
@@ -62,6 +62,9 @@ describe("Browser isolation gates", () => {
       EXPECTED_DATABASE_ID: "business-id",
       DATA_BACKUP_DIR: "/private/business-backups",
       RESTORE_DATABASE_URL: "postgresql://localhost/recovery",
+      RESEND_API_KEY: "must-not-send",
+      OWNER_SUMMARY_FROM_EMAIL: "private@example.test",
+      OWNER_SUMMARY_APP_URL: "https://private.example.test",
     };
     const isolated = isolatedDatabaseEnvironment(business, url);
     expect(isolated).toMatchObject({
@@ -70,6 +73,9 @@ describe("Browser isolation gates", () => {
       EXPECTED_DATABASE_ID: "",
       DATA_BACKUP_DIR: "",
       RESTORE_DATABASE_URL: "",
+      RESEND_API_KEY: "",
+      OWNER_SUMMARY_FROM_EMAIL: "",
+      OWNER_SUMMARY_APP_URL: "",
     });
     expect(business.EXPECTED_DATABASE_ID).toBe("business-id");
     expect(() => isolatedDatabaseEnvironment(business, business.DATABASE_URL)).toThrow();

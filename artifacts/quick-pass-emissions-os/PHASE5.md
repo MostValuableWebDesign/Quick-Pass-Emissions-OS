@@ -72,7 +72,7 @@ CSV responses are private/no-store, fresh-role-protected and audited. Text formu
 
 ## Durable independent execution
 
-Continue the existing `pnpm --filter @workspace/quick-pass-emissions-os run jobs` CLI or authenticated POST `/api/jobs`. No page load, GET, browser timer or in-memory interval runs automation. Operators must provision a real persistent trigger every 15 minutes with the deployment database/configuration and monitor it externally. **A real scheduler was not provisioned or verified by this delivery.**
+Continue the existing `pnpm --filter @workspace/quick-pass-emissions-os run jobs` CLI or authenticated POST `/api/jobs`. No page load, GET, browser timer or in-memory interval runs automation. Operators must provision a real persistent trigger every five minutes with the deployment database/configuration and monitor it externally. **A real scheduler was not provisioned or verified by this delivery.**
 
 Summary cursors examine at most 31 local dates per schedule/trigger; skipped weekly/closed dates advance the cursor, remaining backlog persists. Workers process at most 32 queued occurrences per trigger. There is no silent discard of older missed dates; repeat triggers continue catching up. Open-days-only schedules require confirmed operating days and skip recorded closures instead of moving them. All-days summaries include financial dates on closures/weekends.
 
@@ -88,8 +88,12 @@ Combined lock order: generator `7183501` → personnel/role edits `7183502` → 
 
 Migration 006 adds only Phase 5 tables, checks, indexes and delivery relations. Migrations 001–005 retain exact reviewed Phase 4 bytes. Isolated verification applies Phase 4 first, creates approved payroll/invoice/signed-reversal sentinels, upgrades to Phase 5, verifies the retained objects and repeats migration with none pending. Business databases are never truncated; generated fixture databases are distinct `_test` names and cleaned up.
 
-External email/SMS, orders, wage payments, collections, customer/dealership messages, bank feeds/reconciliation, complete-books/profit claims, richer training records, chemical conversions, financial lifecycle/proration changes and production deployment/migrations remain outside this delivery. Trusted database operators can modify records directly; cryptographic immutability is not claimed. Existing accessible-label and legacy approval-regression task drafts are separate work.
+Except for separately configured daily owner email (OWNER_DAILY_EMAIL.md), external email/SMS, orders, wage payments, collections, customer/dealership messages, bank feeds/reconciliation, complete-books/profit claims, richer training records, chemical conversions, financial lifecycle/proration changes and production deployment/migrations remain outside this delivery. Trusted database operators can modify records directly; cryptographic immutability is not claimed. Existing accessible-label and legacy approval-regression task drafts are separate work.
 
 Before live use confirm schedules/closure choices, responsibility windows, recipients/escalations, certification records, inventory opening/count quality, coverage/lead/threshold settings, exact CSV mapping, backups and failure-monitoring responsibility. Read REPLIT_SETUP.md, docs/OPERATIONS.md and VERIFICATION.md.
 
 Depletion dates beyond the supported four-digit calendar years are unavailable, while numeric days remaining are retained. Extreme valid balances and low recorded usage do not prevent overview or summary generation.
+
+## Owner daily email extension
+
+The owner requested a current-day email at 6:30 PM Eastern. This has its own owner-only settings, recipient selection, durable outbox, report snapshots, preview and 15-row delivery history. It does not turn on reminder email or alter the existing in-app schedule semantics. See OWNER_DAILY_EMAIL.md for provider/scheduler setup and verification limits.

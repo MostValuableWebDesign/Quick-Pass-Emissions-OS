@@ -39,8 +39,7 @@ const dashboardUpdatedAtFormat = new Intl.DateTimeFormat("en-US", {
 function DashboardLastUpdated({ at }: { at: Date }) {
   return (
     <p className="dashboard-panel-updated">
-      Last updated{" "}
-      <time dateTime={at.toISOString()}>{dashboardUpdatedAtFormat.format(at)}</time>
+      Last updated <time dateTime={at.toISOString()}>{dashboardUpdatedAtFormat.format(at)}</time>
     </p>
   );
 }
@@ -81,15 +80,15 @@ export default async function Dashboard({
   const dashboardUpdatedAt = new Date();
   return (
     <div className="business-dashboard">
-      <PageHeader
-        title="Dashboard"
-        description={<DashboardClock businessDay={data.today} initialTime={now.toISOString()} />}
-      >
-        <DashboardRefresh
-          today={data.today}
-          canRefreshPerformance={user.role === "OWNER"}
-          canRefreshCertificates={approvalRoles.includes(data.role)}
-        />
+      <PageHeader title="Dashboard">
+        <div className="dashboard-heading-tools">
+          <DashboardClock businessDay={data.today} initialTime={now.toISOString()} />
+          <DashboardRefresh
+            today={data.today}
+            canRefreshPerformance={user.role === "OWNER"}
+            canRefreshCertificates={approvalRoles.includes(data.role)}
+          />
+        </div>
       </PageHeader>
       {data.demo && (
         <div className="notice">
@@ -118,7 +117,10 @@ export default async function Dashboard({
           <article className="stat">
             <div className="stat-top">
               <h3>Tests performed today</h3>
-              <span className="dashboard-metric-icon dashboard-metric-icon--tests" aria-hidden="true">
+              <span
+                className="dashboard-metric-icon dashboard-metric-icon--tests"
+                aria-hidden="true"
+              >
                 <Gauge size={19} />
               </span>
             </div>
@@ -136,7 +138,10 @@ export default async function Dashboard({
           <article className="stat">
             <div className="stat-top">
               <h3>Revenue today</h3>
-              <span className="dashboard-metric-icon dashboard-metric-icon--revenue" aria-hidden="true">
+              <span
+                className="dashboard-metric-icon dashboard-metric-icon--revenue"
+                aria-hidden="true"
+              >
                 <DollarSign size={19} />
               </span>
             </div>
@@ -156,7 +161,11 @@ export default async function Dashboard({
                 <DollarSign className="dashboard-pay-dollar" size={14} />
               </span>
             </div>
-            <strong>{performanceSummary?.payCents == null ? "Incomplete" : money(performanceSummary.payCents)}</strong>
+            <strong>
+              {performanceSummary?.payCents == null
+                ? "Incomplete"
+                : money(performanceSummary.payCents)}
+            </strong>
             <dl className="snapshot-breakdown">
               <div>
                 <dt>Estimated base pay</dt>

@@ -1,22 +1,26 @@
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
+
 // Created once by a migration, retained across releases and database backups.
 model DataStore {
-  id String @id @default("business")
-  instanceId String @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt DateTime @default(now())
+  id         String   @id @default("business")
+  instanceId String   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt  DateTime @default(now())
 }
+
 enum Role {
   OWNER
   ADMIN
   EMPLOYEE
   BOOKKEEPER
 }
+
 enum TaskStatus {
   PENDING
   IN_PROGRESS
@@ -24,12 +28,14 @@ enum TaskStatus {
   BLOCKED
   CANCELLED
 }
+
 enum Priority {
   LOW
   NORMAL
   HIGH
   CRITICAL
 }
+
 enum Frequency {
   ONCE
   DAILY
@@ -38,256 +44,286 @@ enum Frequency {
   QUARTERLY
   ANNUAL
 }
+
 model User {
-  supportContactHistory SupportContactHistory[]
-  businessImports BusinessImport[]
-  automationDeliveries AutomationDelivery[]
-  maintenanceReports MaintenanceTicket[] @relation("TicketReporter")
-  id String @id @default(cuid())
-  name String
-  email String @unique
-  emailVerified Boolean @default(false)
-  image String?
-  phone String @default("")
-  role Role @default(EMPLOYEE)
-  active Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  sessions Session[]
-  accounts Account[]
-  employee Employee?
-  auditLogs AuditLog[]
-  notifications Notification[]
-  reminderEvents ReminderEvent[]
+  supportContactHistory  SupportContactHistory[]
+  businessImports        BusinessImport[]
+  automationDeliveries   AutomationDelivery[]
+  maintenanceReports     MaintenanceTicket[]     @relation("TicketReporter")
+  id                     String                  @id @default(cuid())
+  name                   String
+  email                  String                  @unique
+  emailVerified          Boolean                 @default(false)
+  image                  String?
+  phone                  String                  @default("")
+  role                   Role                    @default(EMPLOYEE)
+  active                 Boolean                 @default(true)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  sessions               Session[]
+  accounts               Account[]
+  employee               Employee?
+  auditLogs              AuditLog[]
+  notifications          Notification[]
+  reminderEvents         ReminderEvent[]
   performancePanelLayout PerformancePanelLayout?
 }
+
 model PerformancePanelLayout {
-  userId String @id
-  layout Json
+  userId    String   @id
+  layout    Json
   updatedAt DateTime @updatedAt
-  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
 model Session {
-  id String @id
+  id        String   @id
   expiresAt DateTime
-  token String @unique
+  token     String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   ipAddress String?
   userAgent String?
-  userId String
-  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }
+
 model Account {
-  id String @id
-  accountId String
-  providerId String
-  userId String
-  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
-  accessToken String?
-  refreshToken String?
-  idToken String?
-  accessTokenExpiresAt DateTime?
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
-  scope String?
-  password String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@unique([providerId,accountId])
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
   @@index([userId])
 }
+
 model Verification {
-  id String @id
+  id         String   @id
   identifier String
-  value String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
   @@index([identifier])
 }
+
 model RateLimit {
-  id String @id @default(cuid())
-  key String @unique
-  count Int
+  id          String @id @default(cuid())
+  key         String @unique
+  count       Int
   lastRequest BigInt
 }
+
 model Employee {
-  responsibleBays CarwashBay[] @relation("BayResponsible")
-  maintenancePlans MaintenancePlan[] @relation("PlanAssignee")
-  maintenanceTickets MaintenanceTicket[] @relation("TicketAssignee")
-  id String @id @default(cuid())
-  userId String @unique
-  user User @relation(fields:[userId],references:[id])
-  phone String @default("")
-  jobRole String @default("")
-  streetAddress String @default("")
-  addressLine2 String @default("")
-  city String @default("")
-  state String @default("")
-  postalCode String @default("")
-  startDate String?
-  duties String @default("")
-  workAreas String @default("")
-  managerNotes String @default("")
+  responsibleBays      CarwashBay[]        @relation("BayResponsible")
+  maintenancePlans     MaintenancePlan[]   @relation("PlanAssignee")
+  maintenanceTickets   MaintenanceTicket[] @relation("TicketAssignee")
+  id                   String              @id @default(cuid())
+  userId               String              @unique
+  user                 User                @relation(fields: [userId], references: [id])
+  phone                String              @default("")
+  jobRole              String              @default("")
+  streetAddress        String              @default("")
+  addressLine2         String              @default("")
+  city                 String              @default("")
+  state                String              @default("")
+  postalCode           String              @default("")
+  startDate            String?
+  duties               String              @default("")
+  workAreas            String              @default("")
+  managerNotes         String              @default("")
   certificationExpires String?
-  demo Boolean @default(false)
-  shifts EmployeeSchedule[]
-  templates TaskTemplate[]
-  tasks TaskInstance[]
-  invites Invite[]
-  payArrangements PayArrangement[]
-  commissionPolicies CommissionPolicy[]
-  emissions DailyEmission[]
-  payrollInputs PayrollInput[]
-  payrollLines PayrollLine[]
+  demo                 Boolean             @default(false)
+  shifts               EmployeeSchedule[]
+  templates            TaskTemplate[]
+  tasks                TaskInstance[]
+  invites              Invite[]
+  payArrangements      PayArrangement[]
+  commissionPolicies   CommissionPolicy[]
+  emissions            DailyEmission[]
+  payrollInputs        PayrollInput[]
+  payrollLines         PayrollLine[]
 }
+
 model Invite {
-  id String @id @default(cuid())
-  tokenHash String @unique
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
   employeeId String
-  employee Employee @relation(fields:[employeeId],references:[id])
-  expiresAt DateTime
-  usedAt DateTime?
-  createdAt DateTime @default(now())
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
 }
+
 model EmployeeSchedule {
-  id String @id @default(cuid())
+  id         String   @id @default(cuid())
   employeeId String
-  employee Employee @relation(fields:[employeeId],references:[id])
-  date String
-  startTime String
-  endTime String
-  duties String
-  @@unique([employeeId,date])
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  date       String
+  startTime  String
+  endTime    String
+  duties     String
+
+  @@unique([employeeId, date])
   @@index([date])
 }
+
 model BusinessSetting {
-  id String @id @default("business")
-  operatingDays Int[] @default([])
-  configured Boolean @default(false)
-  updatedAt DateTime @updatedAt
+  id             String   @id @default("business")
+  operatingDays  Int[]    @default([])
+  operatingHours Json     @default("{}")
+  configured     Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
 }
+
 model Closure {
-  date String @id
+  date   String @id
   reason String
 }
+
 model TaskTemplate {
-  id String @id @default(cuid())
-  title String
-  description String @default("")
-  frequency Frequency
-  startDate String
-  endDate String?
-  weekdays Int[] @default([])
-  dueTime String
-  priority Priority @default(NORMAL)
-  employeeId String
-  employee Employee @relation(fields:[employeeId],references:[id])
-  reviewRequired Boolean @default(false)
-  escalationHours Int @default(0)
-  active Boolean @default(true)
-  demo Boolean @default(false)
-  createdAt DateTime @default(now())
-  instances TaskInstance[]
+  id              String         @id @default(cuid())
+  title           String
+  description     String         @default("")
+  frequency       Frequency
+  startDate       String
+  endDate         String?
+  weekdays        Int[]          @default([])
+  dueTime         String
+  priority        Priority       @default(NORMAL)
+  employeeId      String
+  employee        Employee       @relation(fields: [employeeId], references: [id])
+  reviewRequired  Boolean        @default(false)
+  escalationHours Int            @default(0)
+  active          Boolean        @default(true)
+  demo            Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  instances       TaskInstance[]
 }
+
 model TaskInstance {
-  id String @id @default(cuid())
-  templateId String
-  template TaskTemplate @relation(fields:[templateId],references:[id])
-  occurrenceDate String
-  title String
-  description String
-  dueAt DateTime
-  employeeId String
-  employee Employee @relation(fields:[employeeId],references:[id])
-  priority Priority
-  reviewRequired Boolean
+  id              String         @id @default(cuid())
+  templateId      String
+  template        TaskTemplate   @relation(fields: [templateId], references: [id])
+  occurrenceDate  String
+  title           String
+  description     String
+  dueAt           DateTime
+  employeeId      String
+  employee        Employee       @relation(fields: [employeeId], references: [id])
+  priority        Priority
+  reviewRequired  Boolean
   escalationHours Int
-  status TaskStatus @default(PENDING)
-  completedAt DateTime?
-  reviewedAt DateTime?
-  reviewedBy String?
-  version Int @default(0)
-  events TaskEvent[]
-  notifications Notification[]
-  @@unique([templateId,occurrenceDate])
-  @@index([employeeId,dueAt])
-  @@index([status,dueAt])
+  status          TaskStatus     @default(PENDING)
+  completedAt     DateTime?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  version         Int            @default(0)
+  events          TaskEvent[]
+  notifications   Notification[]
+
+  @@unique([templateId, occurrenceDate])
+  @@index([employeeId, dueAt])
+  @@index([status, dueAt])
 }
+
 model TaskEvent {
-  id String @id @default(cuid())
-  taskId String
-  task TaskInstance @relation(fields:[taskId],references:[id])
-  actorId String
+  id        String       @id @default(cuid())
+  taskId    String
+  task      TaskInstance @relation(fields: [taskId], references: [id])
+  actorId   String
   actorName String
-  action String
-  note String @default("")
-  createdAt DateTime @default(now())
-  @@index([taskId,createdAt])
+  action    String
+  note      String       @default("")
+  createdAt DateTime     @default(now())
+
+  @@index([taskId, createdAt])
 }
+
 model Notification {
   maintenanceId String?
-  maintenance MaintenanceTicket? @relation(fields:[maintenanceId],references:[id])
+  maintenance   MaintenanceTicket? @relation(fields: [maintenanceId], references: [id])
+  id            String             @id @default(cuid())
+  key           String             @unique
+  userId        String
+  user          User               @relation(fields: [userId], references: [id])
+  taskId        String?
+  task          TaskInstance?      @relation(fields: [taskId], references: [id])
+  title         String
+  readAt        DateTime?
+  resolvedAt    DateTime?
+  createdAt     DateTime           @default(now())
+
   @@index([maintenanceId])
-  id String @id @default(cuid())
-  key String @unique
-  userId String
-  user User @relation(fields:[userId],references:[id])
-  taskId String?
-  task TaskInstance? @relation(fields:[taskId],references:[id])
-  title String
-  readAt DateTime?
-  resolvedAt DateTime?
-  createdAt DateTime @default(now())
-  @@index([userId,resolvedAt])
+  @@index([userId, resolvedAt])
 }
+
 model ReminderEvent {
-  id String @id @default(cuid())
-  userId String
-  user User @relation(fields:[userId],references:[id],onDelete:Restrict)
-  title String
-  description String @default("")
-  location String @default("")
-  startsAt DateTime
-  alertAt DateTime
-  alertMinutes Int @default(15)
-  readAt DateTime?
-  completedAt DateTime?
-  cancelledAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@index([userId,alertAt,readAt])
-  @@index([userId,startsAt,completedAt,cancelledAt])
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  title        String
+  description  String    @default("")
+  location     String    @default("")
+  startsAt     DateTime
+  alertAt      DateTime
+  alertMinutes Int       @default(15)
+  readAt       DateTime?
+  completedAt  DateTime?
+  cancelledAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([userId, alertAt, readAt])
+  @@index([userId, startsAt, completedAt, cancelledAt])
 }
+
 model AuditLog {
-  id String @id @default(cuid())
-  actorId String?
-  actor User? @relation(fields:[actorId],references:[id])
-  action String
-  entityId String
-  details Json
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id])
+  action    String
+  entityId  String
+  details   Json
   createdAt DateTime @default(now())
+
   @@index([createdAt])
 }
+
 model JobRun {
-  id String @id @default(cuid())
-  startedAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  startedAt   DateTime  @default(now())
   completedAt DateTime?
-  status String @default("RUNNING")
-  generated Int @default(0)
-  message String?
+  status      String    @default("RUNNING")
+  generated   Int       @default(0)
+  message     String?
 }
+
 model BusinessImport {
-  id String @id
+  id                String   @id
   sourceFingerprint String
-  sourceName String
-  actorId String
-  actor User @relation(fields:[actorId],references:[id])
-  storeId String @db.Uuid
-  createdAt DateTime @default(now())
-  items Json
-  counts Json
+  sourceName        String
+  actorId           String
+  actor             User     @relation(fields: [actorId], references: [id])
+  storeId           String   @db.Uuid
+  createdAt         DateTime @default(now())
+  items             Json
+  counts            Json
+
   @@index([createdAt])
 }
 
@@ -297,16 +333,19 @@ enum PayKind {
   DAILY
   WEEKLY
 }
+
 enum PayrollStatus {
   OPEN
   APPROVED
   CANCELLED
 }
+
 enum DraftStatus {
   DRAFT
   RETURNED
   APPROVED
 }
+
 enum MovementKind {
   OPENING
   USAGE
@@ -314,6 +353,7 @@ enum MovementKind {
   RECONCILE
   RECEIPT
 }
+
 enum PurchaseStatus {
   REQUESTED
   APPROVED
@@ -321,160 +361,180 @@ enum PurchaseStatus {
   RECEIVED
   CANCELLED
 }
+
 model PayArrangement {
-  id String @id @default(cuid())
-  employeeId String
-  employee Employee @relation(fields:[employeeId],references:[id])
-  effectiveDate String
-  kind PayKind
-  amountCents Int
-  scheduledDaysPerWeek Int?
+  id                     String   @id @default(cuid())
+  employeeId             String
+  employee               Employee @relation(fields: [employeeId], references: [id])
+  effectiveDate          String
+  kind                   PayKind
+  amountCents            Int
+  scheduledDaysPerWeek   Int?
   scheduledMinutesPerDay Int?
-  reason String
-  createdBy String
-  createdAt DateTime @default(now())
-  @@unique([employeeId,effectiveDate])
+  reason                 String
+  createdBy              String
+  createdAt              DateTime @default(now())
+
+  @@unique([employeeId, effectiveDate])
 }
+
 model CommissionPolicy {
-  id String @id @default(cuid())
-  employeeId String
-  employee Employee @relation(fields:[employeeId],references:[id])
-  effectiveDate String
-  eligible Boolean
-  threshold Int
-  rateCents Int
-  volumeThreshold Int?
+  id                  String   @id @default(cuid())
+  employeeId          String
+  employee            Employee @relation(fields: [employeeId], references: [id])
+  effectiveDate       String
+  eligible            Boolean
+  threshold           Int
+  rateCents           Int
+  volumeThreshold     Int?
   volumeIncreaseCents Int?
-  attribution String
-  reason String
-  createdBy String
-  createdAt DateTime @default(now())
-  @@unique([employeeId,effectiveDate])
+  attribution         String
+  reason              String
+  createdBy           String
+  createdAt           DateTime @default(now())
+
+  @@unique([employeeId, effectiveDate])
 }
+
 model DailyEmission {
-  id String @id @default(cuid())
+  id         String    @id @default(cuid())
   employeeId String
-  employee Employee @relation(fields:[employeeId],references:[id])
-  date String
-  count Int
-  sourceRef String @unique
-  reason String
-  version Int @default(0)
-  createdBy String
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  date       String
+  count      Int
+  sourceRef  String    @unique
+  reason     String
+  version    Int       @default(0)
+  createdBy  String
   approvedBy String?
   approvedAt DateTime?
-  createdAt DateTime @default(now())
-  @@unique([employeeId,date])
+  createdAt  DateTime  @default(now())
+
+  @@unique([employeeId, date])
   @@index([date])
 }
+
 model PayrollPeriod {
-  id String @id @default(cuid())
-  startDate String
-  endDate String
-  label String
-  status PayrollStatus @default(OPEN)
+  id              String         @id @default(cuid())
+  startDate       String
+  endDate         String
+  label           String
+  status          PayrollStatus  @default(OPEN)
   cancelledReason String?
-  createdBy String
-  createdAt DateTime @default(now())
-  inputs PayrollInput[]
-  drafts PayrollDraft[]
-  @@index([startDate,endDate])
+  createdBy       String
+  createdAt       DateTime       @default(now())
+  inputs          PayrollInput[]
+  drafts          PayrollDraft[]
+
+  @@index([startDate, endDate])
 }
+
 model PayrollInput {
-  id String @id @default(cuid())
-  periodId String
-  period PayrollPeriod @relation(fields:[periodId],references:[id])
-  employeeId String
-  employee Employee @relation(fields:[employeeId],references:[id])
-  minutes Int
-  paidDays Int?
+  id                String        @id @default(cuid())
+  periodId          String
+  period            PayrollPeriod @relation(fields: [periodId], references: [id])
+  employeeId        String
+  employee          Employee      @relation(fields: [employeeId], references: [id])
+  minutes           Int
+  paidDays          Int?
   emissionsComplete Boolean
-  reason String
-  version Int @default(0)
-  createdBy String
-  approvedBy String?
-  approvedAt DateTime?
-  @@unique([periodId,employeeId])
+  reason            String
+  version           Int           @default(0)
+  createdBy         String
+  approvedBy        String?
+  approvedAt        DateTime?
+
+  @@unique([periodId, employeeId])
 }
+
 model PayrollDraft {
-  id String @id @default(cuid())
-  periodId String
-  period PayrollPeriod @relation(fields:[periodId],references:[id])
-  revision Int
-  status DraftStatus @default(DRAFT)
-  preparedBy String
-  reviewedBy String?
-  reviewedAt DateTime?
+  id           String        @id @default(cuid())
+  periodId     String
+  period       PayrollPeriod @relation(fields: [periodId], references: [id])
+  revision     Int
+  status       DraftStatus   @default(DRAFT)
+  preparedBy   String
+  reviewedBy   String?
+  reviewedAt   DateTime?
   reviewReason String?
-  totalCents Int
-  createdAt DateTime @default(now())
-  lines PayrollLine[]
-  @@unique([periodId,revision])
+  totalCents   Int
+  createdAt    DateTime      @default(now())
+  lines        PayrollLine[]
+
+  @@unique([periodId, revision])
 }
+
 model PayrollLine {
-  id String @id @default(cuid())
-  draftId String
-  draft PayrollDraft @relation(fields:[draftId],references:[id])
-  employeeId String
-  employee Employee @relation(fields:[employeeId],references:[id])
-  employeeName String
-  baseCents Int
+  id              String       @id @default(cuid())
+  draftId         String
+  draft           PayrollDraft @relation(fields: [draftId], references: [id])
+  employeeId      String
+  employee        Employee     @relation(fields: [employeeId], references: [id])
+  employeeName    String
+  baseCents       Int
   commissionCents Int
-  totalCents Int
-  snapshot Json
-  @@unique([draftId,employeeId])
+  totalCents      Int
+  snapshot        Json
+
+  @@unique([draftId, employeeId])
 }
+
 model CertificateSetting {
-  id String @id @default("certificates")
+  id           String   @id @default("certificates")
   minimumOrder Int
-   reorderPoint Int?
-   leadDays Int?
-   windowDays Int?
-  updatedAt DateTime @updatedAt
+  reorderPoint Int?
+  leadDays     Int?
+  windowDays   Int?
+  updatedAt    DateTime @updatedAt
 }
+
 model CertificateStock {
-  id String @id @default("certificates")
-  balance Int
-  version Int @default(0)
-  openingDate String
+  id             String   @id @default("certificates")
+  balance        Int
+  version        Int      @default(0)
+  openingDate    String
   reconciledDate String
-  updatedAt DateTime @updatedAt
+  updatedAt      DateTime @updatedAt
 }
+
 model CertificateMovement {
-  id String @id @default(cuid())
-  kind MovementKind
-  delta Int
+  id           String               @id @default(cuid())
+  kind         MovementKind
+  delta        Int
   balanceAfter Int
-  date String
-  reference String @unique
-  reason String
-  createdBy String
-  purchaseId String?
-  purchase CertificatePurchase? @relation(fields:[purchaseId],references:[id])
-  createdAt DateTime @default(now())
-  @@index([date,kind])
+  date         String
+  reference    String               @unique
+  reason       String
+  createdBy    String
+  purchaseId   String?
+  purchase     CertificatePurchase? @relation(fields: [purchaseId], references: [id])
+  createdAt    DateTime             @default(now())
+
+  @@index([date, kind])
 }
+
 model CertificatePurchase {
-  id String @id @default(cuid())
-  quantity Int
-  minimumOrder Int
-  status PurchaseStatus @default(REQUESTED)
-  requestedBy String
-  approvedBy String?
-  approvedAt DateTime?
-  confirmation String?
+  id               String                @id @default(cuid())
+  quantity         Int
+  minimumOrder     Int
+  status           PurchaseStatus        @default(REQUESTED)
+  requestedBy      String
+  approvedBy       String?
+  approvedAt       DateTime?
+  confirmation     String?
   paymentReference String?
-  received Int @default(0)
-  reason String
-  reviewReason String?
-  createdAt DateTime @default(now())
-  movements CertificateMovement[]
+  received         Int                   @default(0)
+  reason           String
+  reviewReason     String?
+  createdAt        DateTime              @default(now())
+  movements        CertificateMovement[]
 }
 
 enum BayType {
   SELF_SERVICE
   DETAILING
 }
+
 enum BayStatus {
   UNKNOWN
   OPERATIONAL
@@ -482,6 +542,7 @@ enum BayStatus {
   OUT_OF_SERVICE
   UNDER_REPAIR
 }
+
 enum MaintenanceStatus {
   OPEN
   IN_PROGRESS
@@ -490,6 +551,7 @@ enum MaintenanceStatus {
   COMPLETED
   CANCELLED
 }
+
 enum EquipmentCategory {
   ANALYZER
   KIOSK
@@ -502,11 +564,13 @@ enum EquipmentCategory {
   PROPERTY
   OTHER
 }
+
 enum ChemicalUnit {
   ML
   GRAM
   ITEM
 }
+
 enum ChemicalMovementKind {
   OPENING
   RECONCILE
@@ -514,629 +578,692 @@ enum ChemicalMovementKind {
   USAGE
   DISPOSAL
 }
+
 enum RentalStatus {
   ACTIVE
   ENDED
   CANCELLED
 }
+
 model CarwashBay {
   supportAssociations SupportAssociation[]
-  id String @id @default(cuid())
-  slot Int @unique
-  identifier String @unique
-  type BayType
-  status BayStatus @default(UNKNOWN)
-  notes String @default("")
-  responsibleId String?
-  responsible Employee? @relation("BayResponsible",fields:[responsibleId],references:[id])
-  version Int @default(0)
-  equipment Equipment[]
-  tickets MaintenanceTicket[]
-  plans MaintenancePlan[]
-  downtime DowntimeEvent[]
-  rentals BayRentalAgreement[]
+  id                  String               @id @default(cuid())
+  slot                Int                  @unique
+  identifier          String               @unique
+  type                BayType
+  status              BayStatus            @default(UNKNOWN)
+  notes               String               @default("")
+  responsibleId       String?
+  responsible         Employee?            @relation("BayResponsible", fields: [responsibleId], references: [id])
+  version             Int                  @default(0)
+  equipment           Equipment[]
+  tickets             MaintenanceTicket[]
+  plans               MaintenancePlan[]
+  downtime            DowntimeEvent[]
+  rentals             BayRentalAgreement[]
 }
+
 model Vendor {
-  categories String[] @default([])
-  extension String @default("")
-  alternateContact String @default("")
-  alternatePhone String @default("")
-  alternateExtension String @default("")
-  alternateEmail String @default("")
-  website String @default("")
-  supportUrl String @default("")
-  hours String @default("")
-  emergencyDetails String @default("")
-  emergencyPhone String @default("")
-  operationalInstructions String @default("")
-  supportedServices String @default("")
-  sourceReference String @default("")
-  lastConfirmedDate String?
-  accountReference String @default("")
-  preferences SupportPreference[]
-  supportAssociations SupportAssociation[]
-  contactHistory SupportContactHistory[]
-  id String @id @default(cuid())
-  name String
-  contact String
-  phone String
-  email String
-  services String
-  reference String
-   verifiedDate String?
-  notes String @default("")
-  active Boolean @default(true)
-  version Int @default(0)
-  equipment Equipment[]
-  tickets MaintenanceTicket[]
-  chemicals ChemicalItem[]
+  categories              String[]                @default([])
+  extension               String                  @default("")
+  alternateContact        String                  @default("")
+  alternatePhone          String                  @default("")
+  alternateExtension      String                  @default("")
+  alternateEmail          String                  @default("")
+  website                 String                  @default("")
+  supportUrl              String                  @default("")
+  hours                   String                  @default("")
+  emergencyDetails        String                  @default("")
+  emergencyPhone          String                  @default("")
+  operationalInstructions String                  @default("")
+  supportedServices       String                  @default("")
+  sourceReference         String                  @default("")
+  lastConfirmedDate       String?
+  accountReference        String                  @default("")
+  preferences             SupportPreference[]
+  supportAssociations     SupportAssociation[]
+  contactHistory          SupportContactHistory[]
+  id                      String                  @id @default(cuid())
+  name                    String
+  contact                 String
+  phone                   String
+  email                   String
+  services                String
+  reference               String
+  verifiedDate            String?
+  notes                   String                  @default("")
+  active                  Boolean                 @default(true)
+  version                 Int                     @default(0)
+  equipment               Equipment[]
+  tickets                 MaintenanceTicket[]
+  chemicals               ChemicalItem[]
 }
+
 model SupportPreference {
-  category String @id
+  category String  @id
   vendorId String?
-  vendor Vendor? @relation(fields:[vendorId],references:[id],onDelete:Restrict)
-  version Int @default(0)
+  vendor   Vendor? @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  version  Int     @default(0)
 }
+
 model SupportAssociation {
-  id String @id @default(cuid())
-  vendorId String
-  vendor Vendor @relation(fields:[vendorId],references:[id],onDelete:Restrict)
+  id          String      @id @default(cuid())
+  vendorId    String
+  vendor      Vendor      @relation(fields: [vendorId], references: [id], onDelete: Restrict)
   equipmentId String?
-  equipment Equipment? @relation(fields:[equipmentId],references:[id],onDelete:Restrict)
-  bayId String?
-  bay CarwashBay? @relation(fields:[bayId],references:[id],onDelete:Restrict)
-  @@unique([vendorId,equipmentId])
-  @@unique([vendorId,bayId])
+  equipment   Equipment?  @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
+  bayId       String?
+  bay         CarwashBay? @relation(fields: [bayId], references: [id], onDelete: Restrict)
+
+  @@unique([vendorId, equipmentId])
+  @@unique([vendorId, bayId])
 }
+
 model SupportContactHistory {
-  id String @id @default(cuid())
-  vendorId String
-  vendor Vendor @relation(fields:[vendorId],references:[id],onDelete:Restrict)
-  actorId String
-  actor User @relation(fields:[actorId],references:[id],onDelete:Restrict)
-  actorName String
-  contactedAt DateTime
-  method String
-  equipmentId String?
-  equipment Equipment? @relation(fields:[equipmentId],references:[id],onDelete:Restrict)
-  ticketId String?
-  ticket MaintenanceTicket? @relation(fields:[ticketId],references:[id],onDelete:Restrict)
-  outcome String @default("")
-  reference String @default("")
+  id           String             @id @default(cuid())
+  vendorId     String
+  vendor       Vendor             @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  actorId      String
+  actor        User               @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  actorName    String
+  contactedAt  DateTime
+  method       String
+  equipmentId  String?
+  equipment    Equipment?         @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
+  ticketId     String?
+  ticket       MaintenanceTicket? @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  outcome      String             @default("")
+  reference    String             @default("")
   followUpDate String?
-  createdAt DateTime @default(now())
-  @@index([vendorId,createdAt])
+  createdAt    DateTime           @default(now())
+
+  @@index([vendorId, createdAt])
 }
+
 model Equipment {
   supportAssociations SupportAssociation[]
-  contactHistory SupportContactHistory[]
-  id String @id @default(cuid())
-  code String @unique
-  name String
-  category EquipmentCategory
-  bayId String?
-  bay CarwashBay? @relation(fields:[bayId],references:[id])
-  vendorId String?
-  vendor Vendor? @relation(fields:[vendorId],references:[id])
-  model String @default("")
-  serial String @default("")
-  notes String @default("")
-  active Boolean @default(true)
-  version Int @default(0)
-  tickets MaintenanceTicket[]
-  plans MaintenancePlan[]
-  downtime DowntimeEvent[]
+  contactHistory      SupportContactHistory[]
+  id                  String                  @id @default(cuid())
+  code                String                  @unique
+  name                String
+  category            EquipmentCategory
+  bayId               String?
+  bay                 CarwashBay?             @relation(fields: [bayId], references: [id])
+  vendorId            String?
+  vendor              Vendor?                 @relation(fields: [vendorId], references: [id])
+  model               String                  @default("")
+  serial              String                  @default("")
+  notes               String                  @default("")
+  active              Boolean                 @default(true)
+  version             Int                     @default(0)
+  tickets             MaintenanceTicket[]
+  plans               MaintenancePlan[]
+  downtime            DowntimeEvent[]
 }
+
 model DowntimeEvent {
-  id String @id @default(cuid())
-  bayId String?
-  bay CarwashBay? @relation(fields:[bayId],references:[id])
+  id          String      @id @default(cuid())
+  bayId       String?
+  bay         CarwashBay? @relation(fields: [bayId], references: [id])
   equipmentId String?
-  equipment Equipment? @relation(fields:[equipmentId],references:[id])
-  startedAt DateTime
-  endedAt DateTime?
-  reason String
-  resolution String?
-  createdBy String
-  closedBy String?
+  equipment   Equipment?  @relation(fields: [equipmentId], references: [id])
+  startedAt   DateTime
+  endedAt     DateTime?
+  reason      String
+  resolution  String?
+  createdBy   String
+  closedBy    String?
+
   @@index([startedAt])
 }
+
 model MaintenancePlan {
-  id String @id @default(cuid())
-  bayId String?
-  bay CarwashBay? @relation(fields:[bayId],references:[id])
-  equipmentId String?
-  equipment Equipment? @relation(fields:[equipmentId],references:[id])
-  title String
+  id           String              @id @default(cuid())
+  bayId        String?
+  bay          CarwashBay?         @relation(fields: [bayId], references: [id])
+  equipmentId  String?
+  equipment    Equipment?          @relation(fields: [equipmentId], references: [id])
+  title        String
   instructions String
-  employeeId String
-  employee Employee @relation("PlanAssignee",fields:[employeeId],references:[id])
+  employeeId   String
+  employee     Employee            @relation("PlanAssignee", fields: [employeeId], references: [id])
   intervalDays Int
-  nextDueDate String
-  dueTime String
-  priority Priority
-  active Boolean @default(true)
-  version Int @default(0)
-  createdBy String
-  tickets MaintenanceTicket[]
+  nextDueDate  String
+  dueTime      String
+  priority     Priority
+  active       Boolean             @default(true)
+  version      Int                 @default(0)
+  createdBy    String
+  tickets      MaintenanceTicket[]
 }
+
 model MaintenanceTicket {
-  contactHistory SupportContactHistory[]
-  id String @id @default(cuid())
-  bayId String?
-  bay CarwashBay? @relation(fields:[bayId],references:[id])
-  equipmentId String?
-  equipment Equipment? @relation(fields:[equipmentId],references:[id])
-  planId String?
-  plan MaintenancePlan? @relation(fields:[planId],references:[id])
-  occurrenceDate String?
-  title String
-  description String
-  priority Priority
-  status MaintenanceStatus @default(OPEN)
-  assignedId String?
-  assigned Employee? @relation("TicketAssignee",fields:[assignedId],references:[id])
-  vendorId String?
-  vendor Vendor? @relation(fields:[vendorId],references:[id])
-  targetDate String
-  dueAt DateTime
-  workPerformed String @default("")
+  contactHistory  SupportContactHistory[]
+  id              String                  @id @default(cuid())
+  bayId           String?
+  bay             CarwashBay?             @relation(fields: [bayId], references: [id])
+  equipmentId     String?
+  equipment       Equipment?              @relation(fields: [equipmentId], references: [id])
+  planId          String?
+  plan            MaintenancePlan?        @relation(fields: [planId], references: [id])
+  occurrenceDate  String?
+  title           String
+  description     String
+  priority        Priority
+  status          MaintenanceStatus       @default(OPEN)
+  assignedId      String?
+  assigned        Employee?               @relation("TicketAssignee", fields: [assignedId], references: [id])
+  vendorId        String?
+  vendor          Vendor?                 @relation(fields: [vendorId], references: [id])
+  targetDate      String
+  dueAt           DateTime
+  workPerformed   String                  @default("")
   repairCostCents Int?
-  reportedBy String
-  reporter User @relation("TicketReporter",fields:[reportedBy],references:[id])
-  completedAt DateTime?
-  reviewedBy String?
-  version Int @default(0)
-  createdAt DateTime @default(now())
-  events MaintenanceEvent[]
-  notifications Notification[]
-  @@unique([planId,occurrenceDate])
-  @@index([status,dueAt])
+  reportedBy      String
+  reporter        User                    @relation("TicketReporter", fields: [reportedBy], references: [id])
+  completedAt     DateTime?
+  reviewedBy      String?
+  version         Int                     @default(0)
+  createdAt       DateTime                @default(now())
+  events          MaintenanceEvent[]
+  notifications   Notification[]
+
+  @@unique([planId, occurrenceDate])
+  @@index([status, dueAt])
   @@index([assignedId])
 }
+
 model MaintenanceEvent {
-  id String @id @default(cuid())
-  ticketId String
-  ticket MaintenanceTicket @relation(fields:[ticketId],references:[id])
-  actorId String
-  action String
-  details Json
-  createdAt DateTime @default(now())
-  @@index([ticketId,createdAt])
+  id        String            @id @default(cuid())
+  ticketId  String
+  ticket    MaintenanceTicket @relation(fields: [ticketId], references: [id])
+  actorId   String
+  action    String
+  details   Json
+  createdAt DateTime          @default(now())
+
+  @@index([ticketId, createdAt])
 }
+
 model ChemicalItem {
-  id String @id @default(cuid())
-  name String
-   unit ChemicalUnit?
-   reorderPoint Int?
-  vendorId String?
-  vendor Vendor? @relation(fields:[vendorId],references:[id])
-  notes String @default("")
-  active Boolean @default(true)
-  balance Int?
+  id               String             @id @default(cuid())
+  name             String
+  unit             ChemicalUnit?
+  reorderPoint     Int?
+  vendorId         String?
+  vendor           Vendor?            @relation(fields: [vendorId], references: [id])
+  notes            String             @default("")
+  active           Boolean            @default(true)
+  balance          Int?
   lastMovementDate String?
-  version Int @default(0)
-  movements ChemicalMovement[]
+  version          Int                @default(0)
+  movements        ChemicalMovement[]
 }
+
 model ChemicalMovement {
-  id String @id @default(cuid())
-  itemId String
-  item ChemicalItem @relation(fields:[itemId],references:[id])
-  kind ChemicalMovementKind
-  delta Int
+  id           String               @id @default(cuid())
+  itemId       String
+  item         ChemicalItem         @relation(fields: [itemId], references: [id])
+  kind         ChemicalMovementKind
+  delta        Int
   balanceAfter Int
-  date String
-  reference String @unique
-  reason String
-  createdBy String
-  createdAt DateTime @default(now())
-  @@index([itemId,createdAt])
+  date         String
+  reference    String               @unique
+  reason       String
+  createdBy    String
+  createdAt    DateTime             @default(now())
+
+  @@index([itemId, createdAt])
 }
+
 model BayRentalAgreement {
-  id String @id @default(cuid())
-  bayId String
-  bay CarwashBay @relation(fields:[bayId],references:[id])
-  tenant String
-  contact String
-  reference String @unique
-  startDate String
-  endDate String?
-  monthlyCents Int
-  dueDay Int
+  id               String         @id @default(cuid())
+  bayId            String
+  bay              CarwashBay     @relation(fields: [bayId], references: [id])
+  tenant           String
+  contact          String
+  reference        String         @unique
+  startDate        String
+  endDate          String?
+  monthlyCents     Int
+  dueDay           Int
   responsibilities String
-  status RentalStatus @default(ACTIVE)
-  authorizedBy String
-  version Int @default(0)
-  createdAt DateTime @default(now())
-  charges RentalCharge[]
-  @@index([bayId,startDate])
+  status           RentalStatus   @default(ACTIVE)
+  authorizedBy     String
+  version          Int            @default(0)
+  createdAt        DateTime       @default(now())
+  charges          RentalCharge[]
+
+  @@index([bayId, startDate])
 }
+
 model RentalCharge {
-  id String @id @default(cuid())
+  id          String             @id @default(cuid())
   agreementId String
-  agreement BayRentalAgreement @relation(fields:[agreementId],references:[id])
-  month String
-  dueDate String
+  agreement   BayRentalAgreement @relation(fields: [agreementId], references: [id])
+  month       String
+  dueDate     String
   amountCents Int
-  snapshot Json
-  voidedAt DateTime?
-  voidReason String?
-  createdBy String
-  createdAt DateTime @default(now())
-  payments RentalPayment[]
-  @@unique([agreementId,month])
+  snapshot    Json
+  voidedAt    DateTime?
+  voidReason  String?
+  createdBy   String
+  createdAt   DateTime           @default(now())
+  payments    RentalPayment[]
+
+  @@unique([agreementId, month])
 }
+
 model RentalPayment {
-  id String @id @default(cuid())
-  chargeId String
-  charge RentalCharge @relation(fields:[chargeId],references:[id])
+  id          String         @id @default(cuid())
+  chargeId    String
+  charge      RentalCharge   @relation(fields: [chargeId], references: [id])
   amountCents Int
-  date String
-  reference String @unique
-  reason String
-  createdBy String
-  reversesId String? @unique
-  reverses RentalPayment? @relation("PaymentReversal",fields:[reversesId],references:[id])
-  reversal RentalPayment? @relation("PaymentReversal")
-  createdAt DateTime @default(now())
+  date        String
+  reference   String         @unique
+  reason      String
+  createdBy   String
+  reversesId  String?        @unique
+  reverses    RentalPayment? @relation("PaymentReversal", fields: [reversesId], references: [id])
+  reversal    RentalPayment? @relation("PaymentReversal")
+  createdAt   DateTime       @default(now())
 }
+
 enum InvoiceState {
   DRAFT
   APPROVED
   SENT
   VOIDED
 }
+
 enum FinanceDirection {
   REVENUE
   EXPENSE
 }
+
 enum FinanceBasis {
   MANUAL
   ESTIMATE
 }
+
 model Dealership {
-  id String @id @default(cuid())
-  code String @unique
-  name String
-  billingAddress String
-  phone String @default("")
-  email String @default("")
-  streetAddress String @default("")
-  addressLine2 String @default("")
-  city String @default("")
-  state String @default("")
-  postalCode String @default("")
-  notes String @default("")
-  active Boolean @default(true)
-  termsDays Int?
-  defaultRateCents Int?
-  taxBps Int?
-  termsReference String?
+  id                String          @id @default(cuid())
+  code              String          @unique
+  name              String
+  billingAddress    String
+  phone             String          @default("")
+  email             String          @default("")
+  streetAddress     String          @default("")
+  addressLine2      String          @default("")
+  city              String          @default("")
+  state             String          @default("")
+  postalCode        String          @default("")
+  notes             String          @default("")
+  active            Boolean         @default(true)
+  termsDays         Int?
+  defaultRateCents  Int?
+  taxBps            Int?
+  termsReference    String?
   termsAuthorizedBy String?
   termsAuthorizedAt DateTime?
-  version Int @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  contacts DealerContact[]
-  services DealerService[]
-  invoices DealerInvoice[]
+  version           Int             @default(0)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  contacts          DealerContact[]
+  services          DealerService[]
+  invoices          DealerInvoice[]
 }
+
 model DealerContact {
-  id String @id @default(cuid())
+  id           String     @id @default(cuid())
   dealershipId String
-  dealership Dealership @relation(fields:[dealershipId], references:[id], onDelete:Cascade)
-  name String
-  email String
-  phone String
-  purpose String
-  source String
-  active Boolean @default(true)
-  version Int @default(0)
-  createdAt DateTime @default(now())
+  dealership   Dealership @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
+  name         String
+  email        String
+  phone        String
+  purpose      String
+  source       String
+  active       Boolean    @default(true)
+  version      Int        @default(0)
+  createdAt    DateTime   @default(now())
 }
+
 model DealerService {
-  id String @id @default(cuid())
+  id           String              @id @default(cuid())
   dealershipId String
-  dealership Dealership @relation(fields:[dealershipId], references:[id], onDelete:Restrict)
-  date String
-  description String
-  quantity Int
-  unitCents Int
-  reference String @unique
-  evidence String
-  createdBy String
-  createdAt DateTime @default(now())
-  invoiceId String?
-  invoice DealerInvoice? @relation("AllocatedServices", fields:[invoiceId], references:[id], onDelete:Restrict)
-  voidDate String?
-  voidReason String?
-  lines DealerInvoiceLine[]
+  dealership   Dealership          @relation(fields: [dealershipId], references: [id], onDelete: Restrict)
+  date         String
+  description  String
+  quantity     Int
+  unitCents    Int
+  reference    String              @unique
+  evidence     String
+  createdBy    String
+  createdAt    DateTime            @default(now())
+  invoiceId    String?
+  invoice      DealerInvoice?      @relation("AllocatedServices", fields: [invoiceId], references: [id], onDelete: Restrict)
+  voidDate     String?
+  voidReason   String?
+  lines        DealerInvoiceLine[]
+
   @@index([dealershipId, date])
 }
+
 model DealerInvoice {
-  id String @id @default(cuid())
-  number String @unique
-  dealershipId String
-  dealership Dealership @relation(fields:[dealershipId], references:[id], onDelete:Restrict)
-  issueDate String
-  dueDate String
-  state InvoiceState @default(DRAFT)
-  subtotalCents Int
-  taxBps Int
-  taxCents Int
-  totalCents Int
-  snapshot Json
-  notes String
-  createdBy String
-  approvedBy String?
-  approvedAt DateTime?
-  sentDate String?
+  id                String              @id @default(cuid())
+  number            String              @unique
+  dealershipId      String
+  dealership        Dealership          @relation(fields: [dealershipId], references: [id], onDelete: Restrict)
+  issueDate         String
+  dueDate           String
+  state             InvoiceState        @default(DRAFT)
+  subtotalCents     Int
+  taxBps            Int
+  taxCents          Int
+  totalCents        Int
+  snapshot          Json
+  notes             String
+  createdBy         String
+  approvedBy        String?
+  approvedAt        DateTime?
+  sentDate          String?
   deliveryReference String?
-  voidDate String?
-  voidReason String?
-  version Int @default(0)
-  createdAt DateTime @default(now())
-  lines DealerInvoiceLine[]
-  services DealerService[] @relation("AllocatedServices")
-  payments DealerPayment[]
+  voidDate          String?
+  voidReason        String?
+  version           Int                 @default(0)
+  createdAt         DateTime            @default(now())
+  lines             DealerInvoiceLine[]
+  services          DealerService[]     @relation("AllocatedServices")
+  payments          DealerPayment[]
+
   @@index([dealershipId, issueDate])
 }
+
 model DealerInvoiceLine {
-  id String @id @default(cuid())
-  invoiceId String
-  invoice DealerInvoice @relation(fields:[invoiceId], references:[id], onDelete:Restrict)
-  serviceId String
-  service DealerService @relation(fields:[serviceId], references:[id], onDelete:Restrict)
-  date String
+  id          String        @id @default(cuid())
+  invoiceId   String
+  invoice     DealerInvoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  serviceId   String
+  service     DealerService @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  date        String
   description String
-  quantity Int
-  unitCents Int
+  quantity    Int
+  unitCents   Int
   amountCents Int
+
   @@unique([invoiceId, serviceId])
 }
+
 model DealerPayment {
-  id String @id @default(cuid())
-  invoiceId String
-  invoice DealerInvoice @relation(fields:[invoiceId], references:[id], onDelete:Restrict)
+  id          String         @id @default(cuid())
+  invoiceId   String
+  invoice     DealerInvoice  @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
   amountCents Int
-  date String
-  reference String @unique
-  evidence String
-  createdBy String
-  reversesId String? @unique
-  reverses DealerPayment? @relation("DealerPaymentReversal", fields:[reversesId], references:[id], onDelete:Restrict)
-  reversal DealerPayment? @relation("DealerPaymentReversal")
-  createdAt DateTime @default(now())
+  date        String
+  reference   String         @unique
+  evidence    String
+  createdBy   String
+  reversesId  String?        @unique
+  reverses    DealerPayment? @relation("DealerPaymentReversal", fields: [reversesId], references: [id], onDelete: Restrict)
+  reversal    DealerPayment? @relation("DealerPaymentReversal")
+  createdAt   DateTime       @default(now())
+
   @@index([date])
 }
+
 model FinanceEntry {
-  id String @id @default(cuid())
-  direction FinanceDirection
-  basis FinanceBasis
-  category String
+  id          String           @id @default(cuid())
+  direction   FinanceDirection
+  basis       FinanceBasis
+  category    String
   amountCents Int
-  date String
-  reference String @unique
+  date        String
+  reference   String           @unique
   description String
-  evidence String
-  createdBy String
-  verifiedBy String?
-  verifiedAt DateTime?
-  voidDate String?
-  voidReason String?
-  version Int @default(0)
-  createdAt DateTime @default(now())
+  evidence    String
+  createdBy   String
+  verifiedBy  String?
+  verifiedAt  DateTime?
+  voidDate    String?
+  voidReason  String?
+  version     Int              @default(0)
+  createdAt   DateTime         @default(now())
+
   @@index([date])
 }
 
 // Station history: manual report evidence, never a live portal completeness claim.
 model StationImport {
-  id String @id @default(cuid())
+  id          String            @id @default(cuid())
   stationHash String
-  digest String
-  startDate String
-  endDate String
-  status String
-  rows Int @default(0)
-  inserted Int @default(0)
-  duplicates Int @default(0)
-  elapsedMs Int @default(0)
-  coverage String @default("PARTIAL")
-  reason String
-  error String?
-  createdBy String
-  createdAt DateTime @default(now())
-  reviewedAt DateTime?
-  revisions StationRevision[]
-  @@index([stationHash,startDate,endDate])
+  digest      String
+  startDate   String
+  endDate     String
+  status      String
+  rows        Int               @default(0)
+  inserted    Int               @default(0)
+  duplicates  Int               @default(0)
+  elapsedMs   Int               @default(0)
+  coverage    String            @default("PARTIAL")
+  reason      String
+  error       String?
+  createdBy   String
+  createdAt   DateTime          @default(now())
+  reviewedAt  DateTime?
+  revisions   StationRevision[]
+
+  @@index([stationHash, startDate, endDate])
 }
+
 model StationRecord {
-  id String @id @default(cuid())
-  stationHash String
-  state String @default("PENDING")
-  version Int @default(1)
+  id                String            @id @default(cuid())
+  stationHash       String
+  state             String            @default("PENDING")
+  version           Int               @default(1)
   currentRevisionId String?
-  employeeId String?
-  mappingId String?
-  disposition String @default("UNRESOLVED")
-  eligible Boolean?
-  dealerServiceId String?
-  financeEntryId String?
-  reason String @default("")
-  revisions StationRevision[]
-  @@index([stationHash,state])
+  employeeId        String?
+  mappingId         String?
+  disposition       String            @default("UNRESOLVED")
+  eligible          Boolean?
+  dealerServiceId   String?
+  financeEntryId    String?
+  reason            String            @default("")
+  revisions         StationRevision[]
+
+  @@index([stationHash, state])
 }
+
 model StationRevision {
-  id String @id @default(cuid())
-  stationHash String
-  fingerprint String
-  recordId String
-  record StationRecord @relation(fields:[recordId],references:[id],onDelete:Restrict)
-  importId String
-  import StationImport @relation(fields:[importId],references:[id],onDelete:Restrict)
-  sourceDate String
-  businessDate String
-  inspector String
-  outcome String
-  certificate String
+  id            String        @id @default(cuid())
+  stationHash   String
+  fingerprint   String
+  recordId      String
+  record        StationRecord @relation(fields: [recordId], references: [id], onDelete: Restrict)
+  importId      String
+  import        StationImport @relation(fields: [importId], references: [id], onDelete: Restrict)
+  sourceDate    String
+  businessDate  String
+  inspector     String
+  outcome       String
+  certificate   String
   vehicleSuffix String
-  vehicleHash String
-  observedAt DateTime @default(now())
-  @@unique([stationHash,fingerprint])
+  vehicleHash   String
+  observedAt    DateTime      @default(now())
+
+  @@unique([stationHash, fingerprint])
   @@index([businessDate])
 }
+
 model StationMapping {
-  id String @id @default(cuid())
-  stationHash String
-  inspector String
+  id            String   @id @default(cuid())
+  stationHash   String
+  inspector     String
   effectiveDate String
-  employeeId String
-  reason String
-  createdBy String
-  createdAt DateTime @default(now())
-  @@unique([stationHash,inspector,effectiveDate])
+  employeeId    String
+  reason        String
+  createdBy     String
+  createdAt     DateTime @default(now())
+
+  @@unique([stationHash, inspector, effectiveDate])
 }
+
 model StationRule {
-  id String @id @default(cuid())
-  stationHash String
-  outcome String
+  id            String   @id @default(cuid())
+  stationHash   String
+  outcome       String
   effectiveDate String
-  eligible Boolean
-  priceCents Int
-  reason String
-  createdBy String
-  createdAt DateTime @default(now())
-  @@unique([stationHash,outcome,effectiveDate])
+  eligible      Boolean
+  priceCents    Int
+  reason        String
+  createdBy     String
+  createdAt     DateTime @default(now())
+
+  @@unique([stationHash, outcome, effectiveDate])
 }
+
 model StationSetting {
-  id String @id @default(cuid())
-  stationHash String
-  revision Int
-  effectiveDate String
-  weekStart Int
-  hours Json
-  observationDays Int
-  minimumDays Int
-  sourceTimezoneConfirmed Boolean @default(false)
-  reason String
-  createdBy String
-  createdAt DateTime @default(now())
-  @@unique([stationHash,revision])
-  @@unique([stationHash,effectiveDate])
+  id                      String   @id @default(cuid())
+  stationHash             String
+  revision                Int
+  effectiveDate           String
+  weekStart               Int
+  hours                   Json
+  observationDays         Int
+  minimumDays             Int
+  sourceTimezoneConfirmed Boolean  @default(false)
+  reason                  String
+  createdBy               String
+  createdAt               DateTime @default(now())
+
+  @@unique([stationHash, revision])
+  @@unique([stationHash, effectiveDate])
 }
+
 model StationReconciliation {
-  id String @id @default(cuid())
-  stationHash String
-  employeeId String
-  date String
+  id              String   @id @default(cuid())
+  stationHash     String
+  employeeId      String
+  date            String
   dailyEmissionId String
-  countVersion Int
-  evidenceHash String
-  evidence Json
-  reason String
-  createdBy String
-  createdAt DateTime @default(now())
-  @@index([stationHash,employeeId,date])
+  countVersion    Int
+  evidenceHash    String
+  evidence        Json
+  reason          String
+  createdBy       String
+  createdAt       DateTime @default(now())
+
+  @@index([stationHash, employeeId, date])
 }
 
 // Phase 5 configurations retain every revision. No external channel exists.
 model SummarySchedule {
-  id String @id @default(cuid())
-  key String
-  revision Int
-  active Boolean @default(true)
-  frequency String
-  weekday Int?
-  time String
+  id           String   @id @default(cuid())
+  key          String
+  revision     Int
+  active       Boolean  @default(true)
+  frequency    String
+  weekday      Int?
+  time         String
   openDaysOnly Boolean
-  nextDate String
-  createdBy String
-  createdAt DateTime @default(now())
-  @@unique([key,revision])
+  nextDate     String
+  createdBy    String
+  createdAt    DateTime @default(now())
+
+  @@unique([key, revision])
 }
+
 model ReminderPolicy {
-  id String @id @default(cuid())
-  kind String
-  revision Int
-  active Boolean
-  advanceDays Int
-  escalationDays Int
-  recipients String[]
+  id                   String   @id @default(cuid())
+  kind                 String
+  revision             Int
+  active               Boolean
+  advanceDays          Int
+  escalationDays       Int
+  recipients           String[]
   escalationRecipients String[]
-  createdBy String
-  createdAt DateTime @default(now())
-  @@unique([kind,revision])
+  createdBy            String
+  createdAt            DateTime @default(now())
+
+  @@unique([kind, revision])
 }
+
 model ForecastPolicy {
-  id String @id @default(cuid())
-  key String
-  revision Int
-  windowDays Int
+  id          String   @id @default(cuid())
+  key         String
+  revision    Int
+  windowDays  Int
   minimumDays Int
-  leadDays Int
-  threshold Int
-  createdBy String
-  createdAt DateTime @default(now())
-  @@unique([key,revision])
+  leadDays    Int
+  threshold   Int
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  @@unique([key, revision])
 }
+
 model AutomationJob {
-  id String @id @default(cuid())
-  key String @unique
-  kind String
-  scheduleId String?
+  id             String        @id @default(cuid())
+  key            String        @unique
+  kind           String
+  scheduleId     String?
   occurrenceDate String?
-  dueAt DateTime
-  status String @default("PENDING")
-  attempts Int @default(0)
-  nextAttemptAt DateTime
-  leaseUntil DateTime?
-  leaseToken String?
-  completedAt DateTime?
-  failure String?
-  createdAt DateTime @default(now())
-  summary SavedSummary?
-  @@index([status,nextAttemptAt])
+  dueAt          DateTime
+  status         String        @default("PENDING")
+  attempts       Int           @default(0)
+  nextAttemptAt  DateTime
+  leaseUntil     DateTime?
+  leaseToken     String?
+  completedAt    DateTime?
+  failure        String?
+  createdAt      DateTime      @default(now())
+  summary        SavedSummary?
+
+  @@index([status, nextAttemptAt])
 }
+
 model SavedSummary {
-  id String @id @default(cuid())
-  jobId String @unique
-  job AutomationJob @relation(fields:[jobId],references:[id],onDelete:Restrict)
-  scheduleId String
+  id          String               @id @default(cuid())
+  jobId       String               @unique
+  job         AutomationJob        @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  scheduleId  String
   generatedAt DateTime
   periodStart String
-  periodEnd String
-  payload Json
-  deliveries AutomationDelivery[]
+  periodEnd   String
+  payload     Json
+  deliveries  AutomationDelivery[]
 }
+
 model ActionReminder {
-  id String @id @default(cuid())
-  key String @unique
-  kind String
-  sourceId String
-  fingerprint String
-  stage String
-  policyId String
-  userId String
-  title String
-  href String
-  dueDate String
+  id             String               @id @default(cuid())
+  key            String               @unique
+  kind           String
+  sourceId       String
+  fingerprint    String
+  stage          String
+  policyId       String
+  userId         String
+  title          String
+  href           String
+  dueDate        String
   acknowledgedAt DateTime?
-  resolvedAt DateTime?
-  resolution String?
-  createdAt DateTime @default(now())
-  deliveries AutomationDelivery[]
-  @@index([userId,resolvedAt])
+  resolvedAt     DateTime?
+  resolution     String?
+  createdAt      DateTime             @default(now())
+  deliveries     AutomationDelivery[]
+
+  @@index([userId, resolvedAt])
 }
+
 model AutomationDelivery {
-  id String @id @default(cuid())
-  key String @unique
-  userId String
-  user User @relation(fields:[userId],references:[id],onDelete:Restrict)
-  summaryId String?
-  summary SavedSummary? @relation(fields:[summaryId],references:[id],onDelete:Restrict)
-  reminderId String?
-  reminder ActionReminder? @relation(fields:[reminderId],references:[id],onDelete:Restrict)
-  status String @default("DELIVERED")
-  deliveredAt DateTime @default(now())
-  failure String?
+  id          String          @id @default(cuid())
+  key         String          @unique
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  summaryId   String?
+  summary     SavedSummary?   @relation(fields: [summaryId], references: [id], onDelete: Restrict)
+  reminderId  String?
+  reminder    ActionReminder? @relation(fields: [reminderId], references: [id], onDelete: Restrict)
+  status      String          @default("DELIVERED")
+  deliveredAt DateTime        @default(now())
+  failure     String?
 }

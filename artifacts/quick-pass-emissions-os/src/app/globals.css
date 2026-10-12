@@ -257,7 +257,9 @@ svg {
   height: 38px;
   border-radius: 50%;
   color: var(--muted);
-  transition: color 160ms ease, background-color 160ms ease;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
 }
 .account-menu-link:hover {
   color: var(--text);
@@ -520,7 +522,9 @@ svg {
   border: 1px solid var(--line);
   border-radius: 10px;
   text-decoration: none;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .notification-bell-link:hover {
   background: var(--bg);
@@ -1207,6 +1211,43 @@ td small {
 .contact-address-fields .form-grid {
   margin-top: 10px;
 }
+.operating-hours {
+  min-width: 0;
+}
+.operating-hours-list {
+  display: grid;
+}
+.operating-hours-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) repeat(2, minmax(115px, 160px));
+  align-items: end;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.operating-hours-day {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.operating-hours-day input[type="checkbox"] {
+  flex: 0 0 auto;
+}
+.operating-hours-time {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.operating-hours-time input {
+  min-width: 0;
+}
 .field {
   display: flex;
   flex-direction: column;
@@ -1831,6 +1872,14 @@ summary {
   .form-grid {
     grid-template-columns: minmax(0, 1fr);
   }
+  .operating-hours-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+  }
+  .operating-hours-day {
+    grid-column: 1 / -1;
+    min-height: 32px;
+  }
   .form-footer .button {
     min-height: 44px;
   }
@@ -2388,6 +2437,46 @@ details > summary {
 }
 .business-dashboard .page-heading {
   margin-bottom: 0;
+  align-items: center;
+}
+.business-dashboard .page-heading > div:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.business-dashboard .heading-actions {
+  flex: 0 1 auto;
+  min-width: 0;
+  width: auto;
+}
+.dashboard-heading-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  min-width: 0;
+  max-width: 100%;
+}
+.dashboard-heading-tools .dashboard-live-clock {
+  justify-content: flex-end;
+  text-align: right;
+}
+@media (max-width: 900px) {
+  .business-dashboard .page-heading {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .dashboard-heading-tools {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .dashboard-heading-tools .dashboard-live-clock {
+    font-size: 14px;
+  }
+  .business-dashboard .heading-actions .dashboard-refresh-button.button {
+    width: auto;
+  }
 }
 .dashboard-section-title {
   font-size: 16px;

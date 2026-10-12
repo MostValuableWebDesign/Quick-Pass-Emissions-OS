@@ -27,7 +27,11 @@ vi.mock("@/components/record-link", () => ({
 }));
 vi.mock("@/components/dashboard-refresh", () => ({
   DashboardRefresh: () =>
-    createElement("button", { type: "button", "data-testid": "button-dashboard-refresh" }, "Refresh panels"),
+    createElement(
+      "button",
+      { type: "button", "data-testid": "button-dashboard-refresh" },
+      "Refresh panels",
+    ),
 }));
 type Data = Awaited<ReturnType<typeof businessDashboard>>;
 function fixture(): Data {
@@ -104,6 +108,12 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 describe("Business dashboard presentation", () => {
+  it("places the live date and time in the right-side dashboard heading tools", async () => {
+    const html = await render();
+    expect(html).toMatch(/class="dashboard-heading-tools">.*class="dashboard-live-clock"/s);
+    expect(html).not.toMatch(/<p class="muted"><span class="dashboard-live-clock"/);
+  });
+
   it("shows the snapshot, prominent unresolved attention and quick actions in that order with explicit financial labels", async () => {
     const html = await render();
     expect(html.indexOf("Today’s business snapshot")).toBeLessThan(html.indexOf("Needs attention"));
@@ -132,8 +142,12 @@ describe("Business dashboard presentation", () => {
     expect(html).not.toContain("Today’s responsibilities");
     expect(html).not.toContain("Recent activity");
     expect(html).not.toContain("same daily count as the Performance report.");
-    expect(html).not.toContain("Same counted tests and free-retest rules as the Performance report.");
-    expect(html).not.toContain("Performance pay-plan estimate; approved payroll is tracked separately");
+    expect(html).not.toContain(
+      "Same counted tests and free-retest rules as the Performance report.",
+    );
+    expect(html).not.toContain(
+      "Performance pay-plan estimate; approved payroll is tracked separately",
+    );
     expect(html).not.toContain("Portal balance");
     expect(html).toContain('data-testid="button-dashboard-refresh"');
   });

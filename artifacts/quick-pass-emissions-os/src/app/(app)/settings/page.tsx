@@ -6,6 +6,7 @@ import { removeClosure, saveClosure, saveSettings } from "@/app/actions";
 import { saveCertificateAlertThresholdAction } from "@/app/certificate-portal-actions";
 import { readCertificatePortalStatus } from "@/modules/certificates/portal";
 import { DEFAULT_CERTIFICATE_THRESHOLD } from "@/modules/certificates/portal-types";
+import { BUSINESS_DAYS, readBusinessHours } from "@/lib/business-hours";
 
 export default async function Settings() {
   const actor = await manager();
@@ -15,6 +16,7 @@ export default async function Settings() {
     db.businessSetting.findUnique({ where: { id: "business" } }),
     db.closure.findMany({ orderBy: { date: "asc" } }),
   ]);
+  const operatingHours = readBusinessHours(settings?.operatingHours);
   return (
     <>
       <PageHeader
@@ -32,28 +34,44 @@ export default async function Settings() {
           <section className="card card-body">
             <h2>Business operating days</h2>
             <ActionForm action={saveSettings}>
-              <fieldset className="wide">
-                <legend>Open days</legend>
-                <div className="checks">
-                  {[
-                    "Monday",
-                    "Tuesday",
-                    "Wednesday",
-                    "Thursday",
-                    "Friday",
-                    "Saturday",
-                    "Sunday",
-                  ].map((d, i) => (
-                    <label key={d}>
-                      <input
-                        type="checkbox"
-                        name="operatingDays"
-                        value={i + 1}
-                        defaultChecked={settings?.operatingDays.includes(i + 1)}
-                      />
-                      {d}
-                    </label>
-                  ))}
+              <fieldset className="wide operating-hours">
+                <legend>Open days and hours</legend>
+                <div className="operating-hours-list">
+                  {BUSINESS_DAYS.map((dayName, index) => {
+                    const day = index + 1;
+                    const hours = operatingHours[String(day)];
+                    return (
+                      <div className="operating-hours-row" key={dayName}>
+                        <label className="operating-hours-day">
+                          <input
+                            type="checkbox"
+                            name="operatingDays"
+                            value={day}
+                            defaultChecked={settings?.operatingDays.includes(day)}
+                          />
+                          <span>{dayName}</span>
+                        </label>
+                        <label className="operating-hours-time">
+                          <span>Opens</span>
+                          <input
+                            type="time"
+                            name={`openTime${day}`}
+                            aria-label={`${dayName} opening time`}
+                            defaultValue={hours?.open ?? ""}
+                          />
+                        </label>
+                        <label className="operating-hours-time">
+                          <span>Closes</span>
+                          <input
+                            type="time"
+                            name={`closeTime${day}`}
+                            aria-label={`${dayName} closing time`}
+                            defaultValue={hours?.close ?? ""}
+                          />
+                        </label>
+                      </div>
+                    );
+                  })}
                 </div>
               </fieldset>
             </ActionForm>
@@ -93,8 +111,8 @@ export default async function Settings() {
             <section className="card card-body">
               <h2>Low certificate alert</h2>
               <p className="muted">
-                A banner will display across the app when the provider portal balance is at or below this
-                number.
+                A banner will display across the app when the provider portal balance is at or below
+                this number.
               </p>
               <ActionForm
                 action={saveCertificateAlertThresholdAction}

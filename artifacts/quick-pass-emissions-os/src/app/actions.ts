@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { currentUser, manager } from "@/lib/access";
 import { canManageRole, isManager } from "@/lib/policy";
 import { contactEmployeeInput } from "@/lib/contact-address";
+import { businessHoursFromForm } from "@/lib/business-hours";
 import {
   dateString,
   days,
@@ -26,13 +27,16 @@ export type ActionState = { ok?: boolean; message?: string; invite?: string };
 export async function saveOwnAccount(_: ActionState, form: FormData) {
   return perform(async () => {
     const actor = await manager();
-    const data = z.object({
-      name: z.string().trim().min(1).max(160),
-      phone: z.string().trim().max(50),
-    }).parse(fields(form));
+    const data = z
+      .object({
+        name: z.string().trim().min(1).max(160),
+        phone: z.string().trim().max(50),
+      })
+      .parse(fields(form));
     await db.$transaction(async (tx) => {
       const current = await personnelActor(tx, actor.id);
-      if (current.role !== actor.role) throw new Error("Your access changed. Refresh and try again.");
+      if (current.role !== actor.role)
+        throw new Error("Your access changed. Refresh and try again.");
       const employee = await tx.employee.findUnique({
         where: { userId: actor.id },
         select: { id: true },
@@ -61,12 +65,19 @@ export async function createManagerAccount(_: ActionState, form: FormData) {
   return perform(async () => {
     const actor = await manager();
     if (actor.role !== "OWNER") throw new Error("Only an owner may add user accounts.");
-    const data = z.object({
-      name: z.string().trim().min(1).max(160),
-      email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),
-      phone: z.string().trim().max(50),
-      role: z.enum(["OWNER", "ADMIN"]),
-    }).parse(fields(form));
+    const data = z
+      .object({
+        name: z.string().trim().min(1).max(160),
+        email: z
+          .string()
+          .trim()
+          .email()
+          .max(254)
+          .transform((value) => value.toLowerCase()),
+        phone: z.string().trim().max(50),
+        role: z.enum(["OWNER", "ADMIN"]),
+      })
+      .parse(fields(form));
     const token = randomBytes(32).toString("hex");
     await db.$transaction(async (tx) => {
       const current = await personnelActor(tx, actor.id);
@@ -281,19 +292,23 @@ export async function setManagerAccountActive(_: ActionState, form: FormData) {
   return perform(async () => {
     const actor = await manager();
     if (actor.role !== "OWNER") throw new Error("Only an owner may change user account access.");
-    const data = z.object({
-      id: id,
-      active: z.enum(["true", "false"]).transform((value) => value === "true"),
-    }).parse(fields(form));
+    const data = z
+      .object({
+        id: id,
+        active: z.enum(["true", "false"]).transform((value) => value === "true"),
+      })
+      .parse(fields(form));
     await db.$transaction(async (tx) => {
       const current = await personnelActor(tx, actor.id);
-      if (current.role !== "OWNER") throw new Error("Only an owner may change user account access.");
+      if (current.role !== "OWNER")
+        throw new Error("Only an owner may change user account access.");
       const target = await tx.user.findUniqueOrThrow({
         where: { id: data.id },
         include: { employee: { select: { id: true } } },
       });
       if (target.id === actor.id) throw new Error("You cannot deactivate your own account.");
-      if (!isManager(target.role)) throw new Error("Only owner and manager accounts can be changed here.");
+      if (!isManager(target.role))
+        throw new Error("Only owner and manager accounts can be changed here.");
       await tx.user.update({ where: { id: target.id }, data: { active: data.active } });
       await tx.session.deleteMany({ where: { userId: target.id } });
       if (target.employee)
@@ -328,15 +343,19 @@ export async function issueManagerAccountInvite(_: ActionState, form: FormData) 
       if (!user.active || !isManager(user.role) || user.id === actor.id)
         throw new Error("You cannot invite this account.");
       if (await tx.account.count({ where: { userId, providerId: "credential" } }))
-        throw new Error("This account is already activated. Use the documented recovery procedure.");
-      const employee = user.employee ?? await tx.employee.create({
-        data: {
-          userId,
-          phone: user.phone,
-          jobRole: "",
-        },
-        select: { id: true },
-      });
+        throw new Error(
+          "This account is already activated. Use the documented recovery procedure.",
+        );
+      const employee =
+        user.employee ??
+        (await tx.employee.create({
+          data: {
+            userId,
+            phone: user.phone,
+            jobRole: "",
+          },
+          select: { id: true },
+        }));
       await tx.invite.updateMany({
         where: { employeeId: employee.id, usedAt: null },
         data: { usedAt: new Date() },
@@ -615,18 +634,19 @@ export async function saveSettings(_: ActionState, form: FormData) {
   return perform(async () => {
     const actor = await manager();
     const operatingDays = days.min(1).parse(form.getAll("operatingDays"));
+    const operatingHours = businessHoursFromForm(form);
     await db.$transaction(async (tx) => {
       await tx.businessSetting.upsert({
         where: { id: "business" },
-        create: { operatingDays, configured: true },
-        update: { operatingDays, configured: true },
+        create: { operatingDays, operatingHours, configured: true },
+        update: { operatingDays, operatingHours, configured: true },
       });
       await tx.auditLog.create({
         data: {
           actorId: actor.id,
           action: "BUSINESS_DAYS",
           entityId: "business",
-          details: { operatingDays },
+          details: { operatingDays, operatingHours },
         },
       });
     });

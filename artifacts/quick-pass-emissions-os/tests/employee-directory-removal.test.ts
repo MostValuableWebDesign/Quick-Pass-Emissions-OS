@@ -29,15 +29,17 @@ vi.mock("@/components/action-form", () => ({
   ActionForm: ({
     submit,
     className,
+    confirmOnSubmit,
     children,
   }: {
     submit: string;
     className?: string;
+    confirmOnSubmit?: string;
     children?: ReactNode;
   }) =>
     createElement(
       "form",
-      { className },
+      { className, "data-confirm": confirmOnSubmit },
       children,
       createElement("button", { type: "submit" }, submit),
     ),
@@ -91,6 +93,9 @@ describe("employee directory removal controls", () => {
     expect(html).toContain("Restore employee");
     expect(html).toContain('name="id" value="active-staff"');
     expect(html).toContain('name="active" value="false"');
+    expect(html).toContain(
+      'data-confirm="Remove Staff active-staff from active staff? Their employee record and payroll history will be kept, and they can be restored later."',
+    );
     expect(html).toContain('name="id" value="inactive-staff"');
     expect(html).toContain('name="active" value="true"');
     expect(html).not.toContain('name="id" value="owner-staff"');

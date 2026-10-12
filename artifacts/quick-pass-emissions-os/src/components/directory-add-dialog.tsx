@@ -1,18 +1,23 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
-import { useId, useRef, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
+import { DirectoryAddDialogContext } from "./directory-add-dialog-context";
 
 export function DirectoryAddDialog({ title, children }: { title: string; children: ReactNode }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const [formGeneration, setFormGeneration] = useState(0);
 
   return (
     <>
       <button
         type="button"
         className="button button-primary directory-add-trigger"
-        onClick={() => dialog.current?.showModal()}
+        onClick={() => {
+          setFormGeneration((generation) => generation + 1);
+          dialog.current?.showModal();
+        }}
       >
         <Plus size={16} aria-hidden="true" />
         {title}
@@ -36,7 +41,11 @@ export function DirectoryAddDialog({ title, children }: { title: string; childre
             <X size={19} aria-hidden="true" />
           </button>
         </div>
-        <div className="directory-add-dialog-body">{children}</div>
+        <DirectoryAddDialogContext.Provider value={() => dialog.current?.close()}>
+          <div className="directory-add-dialog-body" key={formGeneration}>
+            {children}
+          </div>
+        </DirectoryAddDialogContext.Provider>
       </dialog>
     </>
   );

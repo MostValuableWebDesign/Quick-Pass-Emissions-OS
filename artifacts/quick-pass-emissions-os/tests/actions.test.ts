@@ -102,10 +102,25 @@ suite("Server action authorization with PostgreSQL", () => {
     expect(result.ok).toBe(false);
     expect(await db.user.count()).toBe(3);
   });
-  it("allows manager creation of ordinary employees and writes audit", async () => {
+  it("blocks duplicate employee names even after the original employee is removed", async () => {
     session.userId = adminId;
-    expect((await actions.saveEmployee({}, form(employeeData))).ok).toBe(true);
+    const original = await actions.saveEmployee(
+      {},
+      form({ name: "Repeat Employee", phone: "555-0101", jobRole: "Inspector" }),
+    );
+    expect(original.ok).toBe(true);
     expect(await db.auditLog.count({ where: { action: "EMPLOYEE_CREATED" } })).toBe(1);
+    const employee = await db.employee.findFirstOrThrow({
+      where: { user: { name: "Repeat Employee" } },
+    });
+    await db.user.update({ where: { id: employee.userId }, data: { active: false } });
+    const duplicate = await actions.saveEmployee(
+      {},
+      form({ name: "  repeat   employee ", phone: "555-0102", jobRole: "Inspector" }),
+    );
+    expect(duplicate.ok).toBe(false);
+    expect(duplicate.message).toContain("Removed staff");
+    expect(await db.employee.count({ where: { user: { name: "Repeat Employee" } } })).toBe(1);
   });
   it("denies unauthenticated and deactivated users even with a session identity", async () => {
     session.userId = "";

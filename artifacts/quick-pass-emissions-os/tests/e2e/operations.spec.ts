@@ -92,7 +92,11 @@ test("owner can provision, schedule, assign, complete and audit work", async ({
   await expect(page.getByText("Manager reviewed", { exact: false })).toBeVisible();
   await page.goto("/employees");
   await page.getByRole("link", { name, exact: true }).click();
+  const prompt = page.waitForEvent("dialog");
   await page.getByRole("button", { name: "Remove from active staff", exact: true }).click();
+  const confirmation = await prompt;
+  expect(confirmation.type()).toBe("confirm");
+  await confirmation.accept();
   await expect(page.getByRole("status")).toHaveText("Saved successfully.");
 });
 test("manager mobile workspace contains team operations", async ({ page }) => {

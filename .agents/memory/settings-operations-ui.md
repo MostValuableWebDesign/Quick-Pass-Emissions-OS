@@ -29,6 +29,6 @@ The user removed the Issued By mappings, Outcome rules & prices, Operations sche
 
 Add-dealership, add-employee, and add-vendor forms should open in popup panes, with the right-aligned add buttons remaining above their directories.
 
-**Why:** The user wants to add records without opening a form that pushes the existing panels down.
+**Why:** The user wants to add records without opening a form that pushes the existing panels down, and wants the popup to close after a successful save.
 
-**How to apply:** Preserve the directory’s position while the form is open, and keep its existing fields, save behavior, and validation inside the popup.
+**How to apply:** Preserve the directory’s position while the form is open. Close the popup only after a successful save, and keep it open when validation or saving fails so the form can be corrected.

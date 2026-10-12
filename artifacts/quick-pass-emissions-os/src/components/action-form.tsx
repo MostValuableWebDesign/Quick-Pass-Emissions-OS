@@ -1,21 +1,26 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useContext } from "react";
 import type { ActionState } from "@/app/actions";
 import { Button } from "./ui/button";
+import { DirectoryAddDialogContext } from "./directory-add-dialog-context";
 export function ActionForm({
   action,
   children,
   submit = "Save changes",
   className = "form-grid",
+  confirmOnSubmit,
 }: {
   action: (state: ActionState, data: FormData) => Promise<ActionState>;
   children?: React.ReactNode;
   submit?: string;
   className?: string;
+  confirmOnSubmit?: string;
 }) {
+  const closeAddDialog = useContext(DirectoryAddDialogContext);
   const [state, formAction, pending] = useActionState(
     async (previous: ActionState, data: FormData) => {
       const result = await action(previous, data);
+      if (result.ok) closeAddDialog?.();
       // Resolve private invitation paths on the currently viewed site. The token stays
       // in the fragment, never in a server request path or query string.
       return result.invite
@@ -25,7 +30,17 @@ export function ActionForm({
     {},
   );
   return (
-    <form action={formAction} className={className}>
+    <form
+      action={formAction}
+      className={className}
+      onSubmit={
+        confirmOnSubmit
+          ? (event) => {
+              if (!window.confirm(confirmOnSubmit)) event.preventDefault();
+            }
+          : undefined
+      }
+    >
       {children}
       <div className="form-footer">
         <Button disabled={pending}>{pending ? "Saving…" : submit}</Button>

@@ -111,7 +111,7 @@ test("vendor filters, minimal entry and separate business navigation work", asyn
   await form.getByLabel("Vendor name").fill(name);
   await form.getByLabel("Phone number").fill("555-0100");
   await form.getByRole("button", { name: "Add vendor", exact: true }).click();
-  await expect(form.getByRole("status")).toHaveText("Saved successfully.");
+  await expect(dialog).not.toBeVisible();
 
   const vendorLink = page.getByRole("link", { name, exact: true });
   await expect(vendorLink).toBeVisible();

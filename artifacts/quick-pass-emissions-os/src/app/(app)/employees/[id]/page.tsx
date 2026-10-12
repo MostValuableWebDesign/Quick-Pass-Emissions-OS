@@ -33,18 +33,25 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
             <EmployeeFields employee={employee} />
           </ActionForm>
           <div className="account-actions">
-            {employee.userId !== actor.id && <ActionForm
-              action={setEmployeeActive}
-              submit={employee.user.active ? "Remove from active staff" : "Restore employee"}
-            >
-              <input type="hidden" name="id" value={employee.id} />
-              <input type="hidden" name="active" value={String(!employee.user.active)} />
-            </ActionForm>}
+            {employee.userId !== actor.id && (
+              <ActionForm
+                action={setEmployeeActive}
+                submit={employee.user.active ? "Remove from active staff" : "Restore employee"}
+                confirmOnSubmit={
+                  employee.user.active
+                    ? `Remove ${employee.user.name} from active staff? Their employee record and payroll history will be kept, and they can be restored later.`
+                    : undefined
+                }
+              >
+                <input type="hidden" name="id" value={employee.id} />
+                <input type="hidden" name="active" value={String(!employee.user.active)} />
+              </ActionForm>
+            )}
           </div>
           <p className="muted">
             Removing an employee makes their record inactive; it does not delete payroll, schedules
-            or operational history. Find them in Removed staff to restore them later.
-            Removing management access also revokes sessions and invitations.
+            or operational history. Find them in Removed staff to restore them later. Removing
+            management access also revokes sessions and invitations.
           </p>
         </section>
       ) : (

@@ -171,6 +171,21 @@ export async function saveEmployee(_: ActionState, form: FormData) {
     await db.$transaction(async (tx) => {
       const actor = await personnelActor(tx, identity.id);
       const { name, ...profile } = data;
+      const normalizedName = name.trim().replace(/\s+/g, " ").toLowerCase();
+      const existingEmployees = await tx.employee.findMany({
+        select: { id: true, user: { select: { name: true, active: true } } },
+      });
+      const duplicate = existingEmployees.find(
+        (employee) =>
+          employee.id !== employeeId &&
+          employee.user.name.trim().replace(/\s+/g, " ").toLowerCase() === normalizedName,
+      );
+      if (duplicate) {
+        const location = duplicate.user.active ? "Active staff" : "Removed staff";
+        throw new Error(
+          `Please check ${location}; an employee with this name already exists. Update that record or restore it instead of creating a duplicate.`,
+        );
+      }
       if (employeeId) {
         const old = await tx.employee.findUniqueOrThrow({
           where: { id: employeeId },

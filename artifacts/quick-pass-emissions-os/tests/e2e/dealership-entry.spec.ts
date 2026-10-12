@@ -37,6 +37,6 @@ test("management can add a dealership in a popup without shifting the directory"
   await form.getByLabel("Street address", { exact: true }).fill("100 Test Street");
   await form.getByRole("button", { name: "Add dealership", exact: true }).click();
 
-  await expect(form.getByRole("status")).toHaveText("Saved successfully.");
+  await expect(dialog).not.toBeVisible();
   await expect(page.getByRole("link", { name, exact: true })).toBeVisible();
 });

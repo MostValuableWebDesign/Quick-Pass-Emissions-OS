@@ -1,6 +1,16 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { login } from "./workflow-helpers";
+
+async function confirmAction(page: Page, button: Locator, accept: boolean) {
+  const prompt = page.waitForEvent("dialog");
+  await button.click();
+  const dialog = await prompt;
+  expect(dialog.type()).toBe("confirm");
+  expect(dialog.message()).toContain("payroll history will be kept");
+  if (accept) await dialog.accept();
+  else await dialog.dismiss();
+}
 
 test("management can add, remove and restore staff without losing the record", async ({ page }) => {
   await login(page, "owner@example.test");
@@ -38,11 +48,14 @@ test("management can add, remove and restore staff without losing the record", a
   await form.locator('[name="streetAddress"]').fill("100 Test Street");
   await expect(form.locator('[name="email"]')).toHaveCount(0);
   await form.getByRole("button", { name: "Create employee", exact: true }).click();
-  await expect(form.getByRole("status")).toHaveText("Saved successfully.");
+  await expect(dialog).not.toBeVisible();
   const row = page.getByRole("row").filter({ has: page.getByRole("link", { name, exact: true }) });
   await expect(row).toContainText("Emissions Inspector");
   await expect(row).toContainText("555-0100");
-  await row.getByRole("button", { name: "Remove from active staff", exact: true }).click();
+  const removeFromList = row.getByRole("button", { name: "Remove from active staff", exact: true });
+  await confirmAction(page, removeFromList, false);
+  await expect(row).toBeVisible();
+  await confirmAction(page, removeFromList, true);
   await expect(row).toHaveCount(0);
   await page.goto("/employees?status=inactive");
   const removedRow = page
@@ -60,7 +73,11 @@ test("management can add, remove and restore staff without losing the record", a
   await expect(page.locator('[name="jobRole"]')).toHaveValue("Emissions Inspector");
   await expect(page.locator('[name="phone"]')).toHaveValue("555-0100");
   await expect(page.locator('[name="streetAddress"]')).toHaveValue("100 Test Street");
-  await page.getByRole("button", { name: "Remove from active staff", exact: true }).click();
+  await confirmAction(
+    page,
+    page.getByRole("button", { name: "Remove from active staff", exact: true }),
+    true,
+  );
   await expect(page.getByRole("button", { name: "Restore employee", exact: true })).toBeVisible();
   await page.reload();
   await expect(page.locator('[name="phone"]')).toHaveValue("555-0100");

@@ -92,6 +92,11 @@ export default async function Employees({
                         action={setEmployeeActive}
                         submit={e.user.active ? "Remove from active staff" : "Restore employee"}
                         className="inline-form"
+                        confirmOnSubmit={
+                          e.user.active
+                            ? `Remove ${e.user.name} from active staff? Their employee record and payroll history will be kept, and they can be restored later.`
+                            : undefined
+                        }
                       >
                         <input type="hidden" name="id" value={e.id} />
                         <input type="hidden" name="active" value={String(!e.user.active)} />

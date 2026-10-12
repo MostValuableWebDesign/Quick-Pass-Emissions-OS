@@ -163,6 +163,11 @@ svg {
   display: flex;
   flex-direction: column;
   z-index: 30;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sidebar::-webkit-scrollbar {
+  display: none;
 }
 .sidebar > * {
   flex-shrink: 0;
@@ -1148,6 +1153,11 @@ td small {
   border-bottom: 1px solid var(--line);
   margin-bottom: 24px;
   overflow: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 .tabs a {
   padding: 12px 14px;

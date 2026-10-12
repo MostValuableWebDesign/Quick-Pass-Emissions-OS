@@ -2,12 +2,12 @@ import { manager } from "@/lib/access";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
-import { removeClosure, saveClosure, saveSettings } from "@/app/actions";
+import { removeClosure, saveClosure } from "@/app/actions";
 import { saveCertificateAlertThresholdAction } from "@/app/certificate-portal-actions";
 import { readCertificatePortalStatus } from "@/modules/certificates/portal";
 import { DEFAULT_CERTIFICATE_THRESHOLD } from "@/modules/certificates/portal-types";
-import { BUSINESS_DAYS, readBusinessHours } from "@/lib/business-hours";
-import { BusinessTimeSelect } from "@/components/business-time-select";
+import { readBusinessHours } from "@/lib/business-hours";
+import { BusinessHoursForm } from "@/components/business-hours-form";
 
 export default async function Settings() {
   const actor = await manager();
@@ -34,46 +34,10 @@ export default async function Settings() {
         <div className="two-columns settings-card-grid">
           <section className="card card-body">
             <h2>Business operating days</h2>
-            <ActionForm action={saveSettings} submit="Save business hours">
-              <fieldset className="wide operating-hours">
-                <legend>Open days and hours</legend>
-                <div className="operating-hours-list">
-                  {BUSINESS_DAYS.map((dayName, index) => {
-                    const day = index + 1;
-                    const hours = operatingHours[String(day)];
-                    return (
-                      <div className="operating-hours-row" key={dayName}>
-                        <label className="operating-hours-day">
-                          <input
-                            type="checkbox"
-                            name="operatingDays"
-                            value={day}
-                            defaultChecked={settings?.operatingDays.includes(day)}
-                          />
-                          <span>{dayName}</span>
-                        </label>
-                        <div className="operating-hours-time">
-                          <span>Opens</span>
-                          <BusinessTimeSelect
-                            name={`openTime${day}`}
-                            label={`${dayName} opening time`}
-                            value={hours?.open ?? ""}
-                          />
-                        </div>
-                        <div className="operating-hours-time">
-                          <span>Closes</span>
-                          <BusinessTimeSelect
-                            name={`closeTime${day}`}
-                            label={`${dayName} closing time`}
-                            value={hours?.close ?? ""}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            </ActionForm>
+            <BusinessHoursForm
+              operatingDays={settings?.operatingDays ?? []}
+              operatingHours={operatingHours}
+            />
           </section>
           <section className="card card-body">
             <h2>Holidays & business closures</h2>

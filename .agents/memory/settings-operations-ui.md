@@ -33,8 +33,8 @@ Add-dealership, add-employee, and add-vendor forms should open in popup panes, w
 
 **How to apply:** Preserve the directory’s position while the form is open. Close the popup only after a successful save, and keep it open when validation or saving fails so the form can be corrected.
 
-Business operating days must let the owner set opening and closing times independently for each day in Business settings.
+Business operating days must support setting one opening/closing pair for all selected open days, while retaining individual-day hours when needed. Saved hours and open-day selections must remain visible after saving.
 
-**Why:** The user repeatedly requested daily opening/closing hours and reported being unable to set a time.
+**Why:** The user repeatedly requested opening/closing hours, then reported the controls reset after saving and asked to set the hours as a whole.
 
-**How to apply:** Keep the time controls clearly editable and save the hours with the selected operating days. Preserve existing schedules; do not introduce assumed hours or move this configuration back to the retired Station settings page.
+**How to apply:** Keep whole-week setup simple, preserve per-day exceptions, and check the visible values immediately after saving as well as after reloading. Preserve existing schedules and closed days; do not introduce assumed hours or move this configuration back to the retired Station settings page.

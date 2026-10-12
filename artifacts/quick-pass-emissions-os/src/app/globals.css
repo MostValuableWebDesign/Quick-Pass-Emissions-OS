@@ -1397,6 +1397,27 @@ td small {
 .operating-hours {
   min-width: 0;
 }
+.business-hours-editor,
+.business-hours-editor-fields {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.business-hours-editor-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.business-open-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
+  gap: 4px 12px;
+}
+.business-shared-hours {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
 .operating-hours-list {
   display: grid;
   container-type: inline-size;
@@ -1455,6 +1476,9 @@ td small {
 }
 @container operating-hours (max-width: 410px) {
   .operating-hours-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .business-shared-hours {
     grid-template-columns: minmax(0, 1fr);
   }
 }

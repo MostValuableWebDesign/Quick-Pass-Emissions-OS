@@ -32,3 +32,9 @@ Add-dealership, add-employee, and add-vendor forms should open in popup panes, w
 **Why:** The user wants to add records without opening a form that pushes the existing panels down, and wants the popup to close after a successful save.
 
 **How to apply:** Preserve the directory’s position while the form is open. Close the popup only after a successful save, and keep it open when validation or saving fails so the form can be corrected.
+
+Business operating days must let the owner set opening and closing times independently for each day in Business settings.
+
+**Why:** The user repeatedly requested daily opening/closing hours and reported being unable to set a time.
+
+**How to apply:** Keep the time controls clearly editable and save the hours with the selected operating days. Preserve existing schedules; do not introduce assumed hours or move this configuration back to the retired Station settings page.

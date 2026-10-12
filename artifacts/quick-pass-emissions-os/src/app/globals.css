@@ -1399,10 +1399,12 @@ td small {
 }
 .operating-hours-list {
   display: grid;
+  container-type: inline-size;
+  container-name: operating-hours;
 }
 .operating-hours-row {
   display: grid;
-  grid-template-columns: minmax(110px, 1fr) repeat(2, minmax(115px, 160px));
+  grid-template-columns: minmax(90px, 1fr) repeat(2, minmax(180px, 210px));
   align-items: end;
   gap: 12px;
   padding: 10px 0;
@@ -1430,6 +1432,31 @@ td small {
 }
 .operating-hours-time input {
   min-width: 0;
+}
+.business-time-select {
+  display: grid;
+  grid-template-columns: minmax(52px, 1fr) 6px minmax(52px, 1fr) minmax(60px, 1fr);
+  align-items: center;
+  gap: 4px;
+}
+.business-time-select select {
+  min-width: 0;
+  padding: 10px 6px;
+  font-size: 12px;
+  color: var(--text);
+}
+@container operating-hours (max-width: 550px) {
+  .operating-hours-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .operating-hours-day {
+    grid-column: 1 / -1;
+  }
+}
+@container operating-hours (max-width: 410px) {
+  .operating-hours-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .field {
   display: flex;
@@ -2056,7 +2083,7 @@ summary {
     grid-template-columns: minmax(0, 1fr);
   }
   .operating-hours-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 8px 12px;
   }
   .operating-hours-day {

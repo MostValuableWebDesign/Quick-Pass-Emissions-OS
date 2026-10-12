@@ -7,6 +7,7 @@ import { saveCertificateAlertThresholdAction } from "@/app/certificate-portal-ac
 import { readCertificatePortalStatus } from "@/modules/certificates/portal";
 import { DEFAULT_CERTIFICATE_THRESHOLD } from "@/modules/certificates/portal-types";
 import { BUSINESS_DAYS, readBusinessHours } from "@/lib/business-hours";
+import { BusinessTimeSelect } from "@/components/business-time-select";
 
 export default async function Settings() {
   const actor = await manager();
@@ -33,7 +34,7 @@ export default async function Settings() {
         <div className="two-columns settings-card-grid">
           <section className="card card-body">
             <h2>Business operating days</h2>
-            <ActionForm action={saveSettings}>
+            <ActionForm action={saveSettings} submit="Save business hours">
               <fieldset className="wide operating-hours">
                 <legend>Open days and hours</legend>
                 <div className="operating-hours-list">
@@ -51,24 +52,22 @@ export default async function Settings() {
                           />
                           <span>{dayName}</span>
                         </label>
-                        <label className="operating-hours-time">
+                        <div className="operating-hours-time">
                           <span>Opens</span>
-                          <input
-                            type="time"
+                          <BusinessTimeSelect
                             name={`openTime${day}`}
-                            aria-label={`${dayName} opening time`}
-                            defaultValue={hours?.open ?? ""}
+                            label={`${dayName} opening time`}
+                            value={hours?.open ?? ""}
                           />
-                        </label>
-                        <label className="operating-hours-time">
+                        </div>
+                        <div className="operating-hours-time">
                           <span>Closes</span>
-                          <input
-                            type="time"
+                          <BusinessTimeSelect
                             name={`closeTime${day}`}
-                            aria-label={`${dayName} closing time`}
-                            defaultValue={hours?.close ?? ""}
+                            label={`${dayName} closing time`}
+                            value={hours?.close ?? ""}
                           />
-                        </label>
+                        </div>
                       </div>
                     );
                   })}

@@ -70,11 +70,19 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/performance", label: "Performance", icon: "chart", roles: OWNER_ONLY },
       { href: "/certificates", label: "Certificates", icon: "package", roles: FINANCE },
       {
-        href: "/dealerships",
+        href: "#dealerships-menu",
         label: "Dealerships",
         icon: "building",
         roles: FINANCE,
+        menuOnly: true,
         children: [
+          {
+            href: "/dealerships",
+            label: "Dealerships & contacts",
+            icon: "building",
+            roles: FINANCE,
+            category: "Directory",
+          },
           { href: "/invoices", label: "Invoices", icon: "receipt", roles: FINANCE, category: "Billing" },
           {
             href: "/invoices?view=payments",
@@ -106,12 +114,27 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Business",
     items: [
       {
-        href: "/employees",
+        href: "#employees-menu",
         label: "Employees",
         icon: "users",
         roles: MANAGERS,
+        menuOnly: true,
         children: [
-          { href: "/payroll", label: "Payroll & commissions", icon: "wallet", roles: FINANCE },
+          {
+            href: "/employees",
+            label: "Employee directory",
+            icon: "users",
+            roles: MANAGERS,
+            category: "Team",
+          },
+          {
+            href: "/payroll",
+            label: "Payroll & commissions",
+            icon: "wallet",
+            roles: FINANCE,
+            category: "Compensation",
+            parent: "/employees",
+          },
         ],
       },
       { href: "/vendors", label: "Service & Support", icon: "truck", roles: OPERATORS },
@@ -242,7 +265,7 @@ const navDefs: RouteDef[] = (() => {
       title: item.label,
       section,
       navHref: item.href,
-      parent,
+      parent: item.parent ?? parent,
       roles: item.roles,
     }));
 })();

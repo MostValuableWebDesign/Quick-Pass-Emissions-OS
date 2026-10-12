@@ -450,6 +450,8 @@ async function main() {
   console.log(
     process.env.E2E_PERFORMANCE_PANELS === "1"
       ? `Passed: 2 Performance panel workflows covering drag/resize/persistence, busy-hour evidence, daily commission progress, employee filters, range pagination and mobile layout${process.env.E2E_CERTIFICATE_UX === "1" ? ", plus 5 certificate portal checks" : ""}; no skips.`
+      : process.env.E2E_NAVIGATION_ONLY === "1"
+        ? "Passed: 2 owner and admin desktop/mobile navigation workflows, including non-navigating nested menu headings; no skips."
       : process.env.E2E_SECURITY_ONLY === "1"
         ? "Passed: 3 future Security camera checks covering owner/manager desktop/mobile navigation, light/dark layouts, pending setup and anonymous/legacy role rejection; no skips."
         : process.env.E2E_THEME_ONLY === "1"

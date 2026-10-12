@@ -48,6 +48,35 @@ for (const role of ["OWNER", "ADMIN"] as const) {
           fullPage: true,
         });
       }
+      const topLevelNavigation = page.getByRole("navigation", { name: "Main navigation" });
+      const destinationMenus = [
+        {
+          parent: "Dealerships",
+          parentHref: "#dealerships-menu",
+          child: "Dealerships & contacts",
+          childHref: "/dealerships",
+        },
+        {
+          parent: "Employees",
+          parentHref: "#employees-menu",
+          child: "Employee directory",
+          childHref: "/employees",
+        },
+      ];
+      const startingUrl = page.url();
+      for (const menu of destinationMenus) {
+        const root = topLevelNavigation.locator(`[data-nav-root="${menu.parentHref}"]`);
+        const trigger = root.getByRole("button", { name: menu.parent, exact: true });
+        await expect(trigger).toBeVisible();
+        await expect(root.locator(".nav-main-row > a")).toHaveCount(0);
+        await trigger.hover();
+        const sideMenu = page.getByRole("region", { name: `${menu.parent} pages` });
+        await expect(sideMenu.getByRole("link", { name: menu.child, exact: true })).toHaveAttribute(
+          "href",
+          menu.childHref,
+        );
+        await expect(page).toHaveURL(startingUrl);
+      }
       const navigation = await expandGroups(page);
       await expect(navigation).toBeVisible();
       const hrefs = await navigation
@@ -125,7 +154,9 @@ for (const role of ["OWNER", "ADMIN"] as const) {
       await expect(toggle).toBeFocused();
       await toggle.click();
       const mobileNavigation = await expandGroups(page);
-      const destination = role === "OWNER" ? "/payroll" : "/maintenance";
+      await expect(mobileNavigation.locator('a[href="/dealerships"]')).toBeVisible();
+      await expect(mobileNavigation.locator('a[href="/employees"]')).toBeVisible();
+      const destination = role === "OWNER" ? "/payroll" : "/vendors";
       await mobileNavigation.locator(`a[href="${destination}"]`).click();
       await expect(page).toHaveURL(new RegExp(`${destination}$`));
       await expect(page.locator("main h1")).toBeVisible();

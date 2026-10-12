@@ -6,6 +6,9 @@ if (!process.env.E2E_STORAGE_STATE || !process.env.E2E_PRIVATE_DIR || !process.e
   throw new Error("Run pnpm test:e2e; private authentication setup is required.");
 }
 export default defineConfig({
+  ...(process.env.E2E_NAVIGATION_ONLY === "1"
+    ? { grep: /same-tab desktop and mobile navigation preserves current authorization/ }
+    : {}),
   ...(process.env.E2E_DAY_ONLY === "1"
     ? { grep: /selecting a date loads that single-day station count/ }
     : {}),

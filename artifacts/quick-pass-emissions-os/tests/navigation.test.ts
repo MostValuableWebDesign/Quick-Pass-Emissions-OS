@@ -97,13 +97,22 @@ describe("role-filtered navigation", () => {
       .toBe("Account & security");
     expect(allNavItems("ADMIN").some((item) => item.href === "/settings/import")).toBe(false);
   });
-  it("nests invoices and the payments view beneath Dealerships", () => {
+  it("nests the dealership directory, invoices, and payments under a menu-only Dealerships heading", () => {
     const emissions = navForRole("OWNER").find((section) => section.id === "emissions")!;
     expect(emissions.items.map((item) => item.href)).not.toContain("/invoices");
-    const dealers = emissions.items.find((item) => item.href === "/dealerships")!;
-    expect(dealers.children?.map((item) => item.href)).toEqual(["/invoices", "/invoices?view=payments"]);
+    expect(emissions.items.map((item) => item.href)).not.toContain("/dealerships");
+    const dealers = emissions.items.find((item) => item.label === "Dealerships")!;
+    expect(dealers.menuOnly).toBe(true);
+    expect(dealers.children?.map((item) => item.href)).toEqual([
+      "/dealerships",
+      "/invoices",
+      "/invoices?view=payments",
+    ]);
+    expect(dealers.children?.[0].label).toBe("Dealerships & contacts");
+    expect(matchRoute(dealers.href)).toBeUndefined();
     expect(activeNavHref("/invoices", "OWNER", "view=payments&q=test")).toBe("/invoices?view=payments");
     expect(activeNavHref("/invoices", "OWNER")).toBe("/invoices");
+    expect(activeNavHref("/dealerships", "OWNER")).toBe("/dealerships");
     expect(safeReturnPath("/invoices?view=payments", "ADMIN")).toBe("/invoices?view=payments");
   });
   it("gives management a separate Security category and camera route", () => {
@@ -131,14 +140,17 @@ describe("role-filtered navigation", () => {
       const emissions = sections.find((s) => s.id === "emissions")!;
       const carwash = sections.find((s) => s.id === "carwash")!;
       const shared = sections.find((s) => s.id === "shared-business")!;
-      const employees = shared.items.find((item) => item.href === "/employees")!;
+      const employees = shared.items.find((item) => item.label === "Employees")!;
       expect(shared.label).toBe("Business");
       expect(emissions.items.map((i) => i.href)).toEqual(
-        expect.arrayContaining(["/certificates", "/dealerships"]),
+        expect.arrayContaining(["/certificates", "#dealerships-menu"]),
       );
       expect(carwash.items.map((i) => i.href)).toEqual(["/carwash", "/equipment"]);
-      expect(shared.items.map((i) => i.href)).toEqual(["/employees", "/vendors", "/finance"]);
-      expect(employees.children?.map((item) => item.href)).toEqual(["/payroll"]);
+      expect(shared.items.map((i) => i.href)).toEqual(["#employees-menu", "/vendors", "/finance"]);
+      expect(employees.menuOnly).toBe(true);
+      expect(employees.children?.map((item) => item.href)).toEqual(["/employees", "/payroll"]);
+      expect(employees.children?.[0].label).toBe("Employee directory");
+      expect(allNavItems(role).find((item) => item.href === "/employees")).toBeDefined();
       expect(allNavItems(role).find((item) => item.href === "/payroll")?.parent).toBe("/employees");
       for (const path of ["/maintenance", "/maintenance/plans", "/chemicals", "/rentals"]) {
         expect(hrefs(role)).not.toContain(path);
@@ -175,7 +187,7 @@ describe("route matching", () => {
     ]);
     expect(breadcrumbs("/payroll")).toEqual([
       { label: "Business" },
-      { label: "Employees", href: "/employees" },
+      { label: "Employee directory", href: "/employees" },
       { label: "Payroll & commissions" },
     ]);
   });

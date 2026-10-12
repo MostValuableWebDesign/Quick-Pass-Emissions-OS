@@ -24,6 +24,7 @@ describe("Browser isolation gates", () => {
         "login.spec.ts",
         "theme.spec.ts",
         "security.spec.ts",
+        "performance-panels.spec.ts",
         "operations.spec.ts",
         "phase2.spec.ts",
         "phase3.spec.ts",
@@ -31,7 +32,7 @@ describe("Browser isolation gates", () => {
         "phase5.spec.ts",
       ]),
     );
-    expect(Object.values(suite).reduce((sum, n) => sum + n, 0)).toBe(22);
+    expect(Object.values(suite).reduce((sum, n) => sum + n, 0)).toBe(24);
     const suites = Object.entries(suite).map(([file, count]) => ({
       file,
       specs: Array.from({ length: count }, () => ({ tests: [{}] })),

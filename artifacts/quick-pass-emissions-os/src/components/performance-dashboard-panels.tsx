@@ -5,6 +5,7 @@ import { GripVertical, MoveDown, MoveUp } from "lucide-react";
 import { PanelResizeHandle } from "./performance-panel-resize-handle";
 import {
   DASHBOARD_LAYOUT_KEY,
+  isDashboardPanelId,
   DEFAULT_DASHBOARD_LAYOUT,
   parseDashboardLayout,
   reorderDashboardPanel,
@@ -16,6 +17,8 @@ import {
 const titles: Record<DashboardPanelId, string> = {
   trend: "Trend",
   employees: "Employees",
+  "busy-hours": "Busy hours",
+  "commission-progress": "Commission progress",
 };
 
 const CHANGE_EVENT = "quick-pass:performance-panel-layout";
@@ -227,7 +230,7 @@ export function PerformanceDashboardPanels({
           onDrop={(event) => {
             event.preventDefault();
             const dragged = event.dataTransfer.getData("text/plain");
-            if (dragged === "trend" || dragged === "employees") onDrop(dragged, panel.id);
+            if (isDashboardPanelId(dragged)) onDrop(dragged, panel.id);
           }}
         >
           {renderPanel(panel.id, controls(panel.id))}

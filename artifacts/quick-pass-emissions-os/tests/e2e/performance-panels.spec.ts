@@ -151,8 +151,136 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   await expect(page.locator(".pd-today")).toContainText("1 free retests excluded");
   await page.reload();
   await expect(page.getByTestId("text-cars")).toHaveText("94");
-  await page.goto("/performance?start=2026-01-15&end=2026-01-15&employee=inspector%3AFixture%2520One");
+  await page.goto(
+    "/performance?start=2026-01-15&end=2026-01-15&employee=inspector%3AFixture%2520One",
+  );
   await expect(page.getByTestId("text-cars")).toHaveText("69");
   await expect(page.getByTestId("text-revenue")).toHaveText("$1,340");
   await expect(page.getByTestId("text-pay")).toHaveText("$274");
+});
+
+test("busy hours and commission progress follow reports, employee filters and saved panel controls", async ({
+  page,
+  browser,
+}) => {
+  await page.goto("/performance?start=2026-01-15&end=2026-01-15");
+  // An existing two-panel preference must survive adding the new panels.
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "quick-pass-performance-layout-v1",
+      JSON.stringify([
+        { id: "employees", columns: 6, height: 360 },
+        { id: "trend", columns: 6, height: 360 },
+      ]),
+    ),
+  );
+  await page.reload();
+  const grid = page.getByTestId("performance-panel-grid");
+  const busy = page.getByTestId("panel-busy-hours");
+  const commission = page.getByTestId("panel-commission-progress");
+  await expect(grid.locator(".pd-widget")).toHaveCount(4);
+  await expect(grid.locator(".pd-widget").first()).toHaveAttribute("data-panel-id", "employees");
+  await expect(page.getByTestId("panel-employees")).toHaveCSS("height", "360px");
+  await expect(busy.getByTestId("text-busy-tests")).toHaveText("94");
+  await expect(busy.getByTestId("text-busy-peak")).toHaveText("11 AM");
+  await expect(
+    busy.getByRole("list", { name: "Counted tests by report hour" }).locator("li"),
+  ).toHaveCount(24);
+  await expect(busy.getByText("11 AM: 20 tests", { exact: true })).toHaveCount(1);
+  await expect(commission.getByTestId("text-progress-commission")).toHaveText("$88.00");
+  await expect(commission.getByRole("progressbar")).toHaveAttribute(
+    "aria-valuetext",
+    "94 shop tests, 44 commission tests",
+  );
+  await expect(commission).toContainText("$44.00 / eligible worker");
+  await expect(commission).toContainText("not approved payroll");
+
+  // New IDs participate in the same pointer/keyboard layout system.
+  await commission
+    .getByRole("button", { name: "Drag to move Commission progress panel" })
+    .dragTo(page.getByTestId("panel-employees"));
+  await expect(grid.locator(".pd-widget").first()).toHaveAttribute(
+    "data-panel-id",
+    "commission-progress",
+  );
+  const corner = busy.getByRole("button", { name: /Resize Busy hours panel/ });
+  await corner.focus();
+  await corner.press("ArrowRight");
+  await corner.press("ArrowDown");
+  await expect(busy).toHaveCSS("grid-column-start", "span 7");
+  await expect(busy).toHaveCSS("height", "460px");
+  await page.reload();
+  await expect(grid.locator(".pd-widget").first()).toHaveAttribute(
+    "data-panel-id",
+    "commission-progress",
+  );
+  await expect(busy).toHaveCSS("height", "460px");
+
+  await page.goto(
+    "/performance?start=2026-01-15&end=2026-01-15&employee=inspector%3AFixture%2520One",
+  );
+  await expect(busy.getByTestId("text-busy-tests")).toHaveText("69");
+  await expect(commission.getByTestId("text-progress-commission")).toHaveText("$44.00");
+  await expect(commission.getByRole("progressbar")).toHaveAttribute(
+    "aria-valuetext",
+    "94 shop tests, 44 commission tests",
+  );
+  await expect(busy).toContainText("Selected employee");
+  await expect(commission).toContainText("Selected employee commission (est.)");
+
+  await page.goto("/performance?start=2025-12-30&end=2026-01-15");
+  await expect(commission.getByTestId("text-progress-commission")).toHaveText("$1,528.00");
+  await expect(commission.getByRole("progressbar")).toHaveCount(15);
+  await commission.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(commission.getByRole("progressbar")).toHaveCount(2);
+  await expect(commission).toContainText("Page 2 of 2");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(busy).toHaveCSS("grid-column-start", "1");
+  await expect(commission).toHaveCSS("grid-column-start", "1");
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+    .toBe(true);
+  await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+  await expect(
+    commission.getByRole("heading", { name: "Commission progress", exact: true }),
+  ).toBeVisible();
+  if (process.env.E2E_INSIGHTS_CAPTURE_DIR) {
+    await mkdir(process.env.E2E_INSIGHTS_CAPTURE_DIR, { recursive: true });
+    await commission.screenshot({
+      path: path.join(process.env.E2E_INSIGHTS_CAPTURE_DIR, "commission-phone.png"),
+    });
+    await busy.screenshot({
+      path: path.join(process.env.E2E_INSIGHTS_CAPTURE_DIR, "busy-phone.png"),
+    });
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.getByTestId("button-reset-panel-layout").click();
+  await page.goto("/performance?start=2026-01-15&end=2026-01-15");
+  if (process.env.E2E_INSIGHTS_CAPTURE_DIR) {
+    await busy.screenshot({
+      path: path.join(process.env.E2E_INSIGHTS_CAPTURE_DIR, "busy-desktop.png"),
+    });
+    await commission.screenshot({
+      path: path.join(process.env.E2E_INSIGHTS_CAPTURE_DIR, "commission-desktop.png"),
+    });
+  }
+  await page.goto("/performance?start=2020-01-01&end=2020-01-01");
+  await expect(busy).toContainText("No hourly data");
+  await expect(commission).toContainText("Count unavailable");
+  await expect(commission.getByRole("progressbar")).toHaveCount(0);
+
+  const manager = await browser.newContext({
+    storageState: path.join(process.env.E2E_PRIVATE_DIR!, "ADMIN.json"),
+  });
+  try {
+    const managerPage = await manager.newPage();
+    await managerPage.goto("/performance");
+    await expect(managerPage).toHaveURL(/\/dashboard$/);
+    await expect(
+      managerPage.getByRole("heading", { name: "Commission progress", exact: true }),
+    ).toHaveCount(0);
+  } finally {
+    await manager.close();
+  }
 });

@@ -18,8 +18,10 @@ export type PortalDay = Counts & {
   retestComplete?: boolean;
   /** Source-local minute precision; absent in legacy count-only caches. */
   testTimes?: {
-    inspector: string; minute: number | null;
-    vinHash?: string; recordKey?: string;
+    inspector: string;
+    minute: number | null;
+    vinHash?: string;
+    recordKey?: string;
     outcome?: "passed" | "failed" | "aborted" | "other";
   }[];
 };
@@ -68,6 +70,28 @@ export type DashboardEmployee = {
   approximate: boolean;
   inspectionCadence: InspectionCadence;
 };
+export type BusyHours = {
+  hours: { hour: number; count: number | null }[];
+  observedTests: number;
+  untimedTests: number;
+  timedDays: number;
+  expectedDays: number;
+  complete: boolean;
+  linked: boolean;
+  peakHours: number[];
+  peakCount: number | null;
+};
+export type CommissionProgress = {
+  threshold: number;
+  rateCents: number;
+  days: {
+    date: string;
+    stationCars: number | null;
+    commissionTests: number | null;
+    perEmployeeCents: number | null;
+    selectedCommissionCents: number | null;
+  }[];
+};
 export type DashboardData = {
   query: DashboardQuery;
   today: string;
@@ -94,6 +118,8 @@ export type DashboardData = {
     revenueCents: number | null;
     commissionCents: number | null;
   }[];
+  busyHours: BusyHours;
+  commissionProgress: CommissionProgress;
   employees: DashboardEmployee[];
   employeeOptions: { id: string; name: string }[];
   inspectors: string[];

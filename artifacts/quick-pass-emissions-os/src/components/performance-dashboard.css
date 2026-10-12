@@ -752,3 +752,130 @@
     animation: none !important;
   }
 }
+
+/* Evidence-based busy hours and daily shop commission progress. */
+.pd-panel-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 18px 20px;
+}
+.pd-panel-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 18px;
+}
+.pd-panel-metrics span,
+.pd-panel-metrics small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+.pd-panel-metrics strong {
+  display: block;
+  font-size: 22px;
+  line-height: 1.3;
+  margin-top: 5px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.pd-panel-note,
+.pd-panel-empty p {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.pd-panel-note {
+  margin-top: 16px;
+}
+.pd-panel-empty {
+  padding: 20px 0;
+}
+.pd-panel-empty p {
+  margin-top: 8px;
+}
+.pd-hour-chart {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+}
+.pd-hour-chart li {
+  min-width: 0;
+}
+.pd-hour-column {
+  display: flex;
+  align-items: flex-end;
+  height: 110px;
+  border-bottom: 1px solid var(--input-line);
+  background: var(--bg);
+  border-radius: 3px 3px 0 0;
+}
+.pd-hour-column > span {
+  width: 100%;
+  background: var(--chart-green);
+  border-radius: 3px 3px 0 0;
+}
+.pd-hour-chart small {
+  display: block;
+  margin-top: 6px;
+  font-size: 9px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.pd-commission-day {
+  border-top: 1px solid var(--line);
+  padding: 14px 0;
+}
+.pd-commission-label {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 12px;
+  font-size: 11px;
+}
+.pd-commission-track {
+  height: 8px;
+  margin: 10px 0;
+  background: var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.pd-commission-track > span {
+  display: block;
+  height: 100%;
+  background: var(--chart-green);
+}
+.pd-hour-column.unknown,
+.pd-commission-track.unknown {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--bg),
+    var(--bg) 4px,
+    var(--line) 4px,
+    var(--line) 7px
+  );
+}
+.pd-progress-pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  margin-bottom: 12px;
+}
+@media (max-width: 760px) {
+  .pd-panel-content {
+    padding: 16px;
+  }
+  .pd-panel-metrics {
+    gap: 12px;
+  }
+  .pd-panel-metrics strong {
+    font-size: 18px;
+  }
+}

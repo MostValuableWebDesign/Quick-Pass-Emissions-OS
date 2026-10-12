@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { RefreshCw, SlidersHorizontal } from "lucide-react";
 import type { DashboardData, DashboardState } from "@/modules/station/dashboard-types";
 import { getPerformanceDashboardAction } from "@/modules/station/dashboard-actions";
+import { PerformanceBusyHours } from "./performance-dashboard-busy-hours";
+import { PerformanceCommissionProgress } from "./performance-dashboard-commission-progress";
 import { PerformanceTrend } from "./performance-dashboard-trend";
 import { EmployeeTable } from "./performance-dashboard-employees";
 import { PerformanceCalendar } from "./performance-calendar";
@@ -263,6 +265,20 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
         renderPanel={(id, controls) =>
           id === "trend" ? (
             <PerformanceTrend series={data.series} filtered={filtered} panelActions={controls} />
+          ) : id === "busy-hours" ? (
+            <PerformanceBusyHours
+              data={data.busyHours}
+              filtered={filtered}
+              panelActions={controls}
+            />
+          ) : id === "commission-progress" ? (
+            <PerformanceCommissionProgress
+              key={`${q.start}:${q.end}:${q.employee ?? "station"}`}
+              data={data.commissionProgress}
+              selectedCommissionCents={s.commissionCents}
+              filtered={filtered}
+              panelActions={controls}
+            />
           ) : (
             <EmployeeTable
               employees={data.employees}

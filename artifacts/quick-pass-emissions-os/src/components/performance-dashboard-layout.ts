@@ -1,4 +1,4 @@
-export type DashboardPanelId = "trend" | "employees";
+export type DashboardPanelId = "trend" | "employees" | "busy-hours" | "commission-progress";
 export type DashboardPanel = {
   id: DashboardPanelId;
   columns: number;
@@ -10,7 +10,13 @@ export const DASHBOARD_LAYOUT_KEY = "quick-pass-performance-layout-v1";
 export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayout = [
   { id: "trend", columns: 12, height: 360 },
   { id: "employees", columns: 12, height: 420 },
+  { id: "busy-hours", columns: 6, height: 420 },
+  { id: "commission-progress", columns: 6, height: 420 },
 ];
+
+export function isDashboardPanelId(value: unknown): value is DashboardPanelId {
+  return DEFAULT_DASHBOARD_LAYOUT.some((panel) => panel.id === value);
+}
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, Math.round(value)));
@@ -22,12 +28,7 @@ export function parseDashboardLayout(raw: string | null): DashboardLayout {
     if (!Array.isArray(parsed)) return DEFAULT_DASHBOARD_LAYOUT.map((panel) => ({ ...panel }));
     const source = new Map<DashboardPanelId, Partial<DashboardPanel>>();
     for (const item of parsed) {
-      if (
-        item &&
-        typeof item === "object" &&
-        "id" in item &&
-        (item.id === "trend" || item.id === "employees")
-      ) {
+      if (item && typeof item === "object" && "id" in item && isDashboardPanelId(item.id)) {
         source.set(item.id, item);
       }
     }

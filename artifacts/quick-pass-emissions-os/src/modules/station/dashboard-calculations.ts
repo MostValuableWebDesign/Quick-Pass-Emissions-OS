@@ -1,5 +1,6 @@
 import { Temporal } from "@js-temporal/polyfill";
 import { addDays } from "@/lib/time";
+import { busyHours } from "./dashboard-busy-hours";
 import { inspectionCadence } from "./inspection-cadence";
 import type {
   Counts,
@@ -99,8 +100,9 @@ export function buildDashboard(
   const byDate = new Map(snapshots.map((d) => [d.date, d]));
   const selectedDates = calendarDays(query.start, query.end);
   const selectedSnapshots = snapshots.filter((d) => selectedDates.includes(d.date));
-  const selectedComplete = selectedDates.every((date) =>
-    byDate.has(date) && byDate.get(date)!.retestComplete !== false);
+  const selectedComplete = selectedDates.every(
+    (date) => byDate.has(date) && byDate.get(date)!.retestComplete !== false,
+  );
   const needed = dashboardDates(query, today);
   const allInspectors = [
     ...new Set(snapshots.flatMap((d) => d.inspectors.map((i) => i.inspector))),
@@ -154,10 +156,15 @@ export function buildDashboard(
       inspector,
       cars: selectedComplete ? days.reduce((n, d) => n + d.count.total, 0) : null,
       workingDays: selectedDates.every((date) => byDate.has(date)) ? days.length : null,
-      revenueCents: selectedComplete ? days.reduce((n, d) => n + (d.count.passed + d.count.failed) * TEST_PRICE_CENTS, 0) : null,
-      baseCents: null, commissionCents: selectedComplete ?
-        days.reduce((n, d) => n + commission(d.day.total), 0) : null,
-      payCents: null, approximate: true,
+      revenueCents: selectedComplete
+        ? days.reduce((n, d) => n + (d.count.passed + d.count.failed) * TEST_PRICE_CENTS, 0)
+        : null,
+      baseCents: null,
+      commissionCents: selectedComplete
+        ? days.reduce((n, d) => n + commission(d.day.total), 0)
+        : null,
+      payCents: null,
+      approximate: true,
       inspectionCadence: inspectionCadence(selectedSnapshots, inspector),
     });
   }
@@ -183,16 +190,23 @@ export function buildDashboard(
         (p) => p.id === e.id || (e.inspector !== null && p.inspector === e.inspector),
       );
       if (profile) return dayPay(profile, date, day, payPlan).commission;
-      return day && day.retestComplete !== false ?
-        day.inspectors.some((i) => i.inspector === e.inspector) ? commission(day.total) : 0 : null;
+      return day && day.retestComplete !== false
+        ? day.inspectors.some((i) => i.inspector === e.inspector)
+          ? commission(day.total)
+          : 0
+        : null;
     });
     return {
-      date, cars: counts?.total ?? null, stationCars: day && day.retestComplete !== false ? day.total : null,
+      date,
+      cars: counts?.total ?? null,
+      stationCars: day && day.retestComplete !== false ? day.total : null,
       revenueCents: counts ? (counts.passed + counts.failed) * TEST_PRICE_CENTS : null,
       commissionCents: day ? nullableSum(amounts) : null,
     };
   });
-  const coveredDays = selectedDates.filter((d) => byDate.has(d) && byDate.get(d)!.retestComplete !== false).length;
+  const coveredDays = selectedDates.filter(
+    (d) => byDate.has(d) && byDate.get(d)!.retestComplete !== false,
+  ).length;
   const complete = coveredDays === selectedDates.length;
   const totals = selectedDates.reduce((total, date) => {
     const day = byDate.get(date);
@@ -208,10 +222,20 @@ export function buildDashboard(
   const commissionCents = nullableSum(selected.map((e) => e.commissionCents));
   const current = byDate.get(today);
   return {
-    query, today, current: current && current.retestComplete !== false ? {
-      date: today, retrievedAt: current.retrievedAt, total: current.total,
-      passed: current.passed, failed: current.failed, aborted: current.aborted, other: current.other,
-    } : null,
+    query,
+    today,
+    current:
+      current && current.retestComplete !== false
+        ? {
+            date: today,
+            retrievedAt: current.retrievedAt,
+            total: current.total,
+            passed: current.passed,
+            failed: current.failed,
+            aborted: current.aborted,
+            other: current.other,
+          }
+        : null,
     summary: {
       inspectionCadence: inspectionCadence(
         selectedSnapshots,
@@ -220,18 +244,57 @@ export function buildDashboard(
       cars: complete && (!query.employee || selected[0]?.cars !== null) ? totals.total : null,
       freeRetests: selectedDates.reduce((sum, date) => {
         const day = byDate.get(date);
-        return sum + (day ? countFor(day)?.freeRetests ?? 0 : 0);
+        return sum + (day ? (countFor(day)?.freeRetests ?? 0) : 0);
       }, 0),
-      revenueCents: complete && (!query.employee || selected[0]?.revenueCents !== null) ?
-        (totals.passed + totals.failed) * TEST_PRICE_CENTS : null,
-      baseCents, commissionCents, payCents: nullableSum([baseCents, commissionCents]),
-      passed: totals.passed, failed: totals.failed, aborted: totals.aborted, other: totals.other,
-      coveredDays, expectedDays: selectedDates.length,
+      revenueCents:
+        complete && (!query.employee || selected[0]?.revenueCents !== null)
+          ? (totals.passed + totals.failed) * TEST_PRICE_CENTS
+          : null,
+      baseCents,
+      commissionCents,
+      payCents: nullableSum([baseCents, commissionCents]),
+      passed: totals.passed,
+      failed: totals.failed,
+      aborted: totals.aborted,
+      other: totals.other,
+      coveredDays,
+      expectedDays: selectedDates.length,
     },
-    series, employees: selected, employeeOptions, inspectors: allInspectors, payPlan,
-    missingDates: needed.filter((d) => !byDate.has(d)), staleDates: [],
-    timingMissingDates: selectedSnapshots.filter((d) => d.total > 0 && !d.testTimes).map((d) => d.date),
+    busyHours: busyHours(
+      selectedDates,
+      selectedSnapshots,
+      query.employee ? (selectedInspector ?? null) : undefined,
+    ),
+    commissionProgress: {
+      threshold: COMMISSION_THRESHOLD,
+      rateCents: COMMISSION_RATE_CENTS,
+      days: series
+        .filter((day) => day.date >= query.start && day.date <= query.end)
+        .map((day) => ({
+          date: day.date,
+          stationCars: day.stationCars,
+          commissionTests:
+            day.stationCars === null ? null : Math.max(day.stationCars - COMMISSION_THRESHOLD, 0),
+          perEmployeeCents: day.stationCars === null ? null : commission(day.stationCars),
+          selectedCommissionCents: day.commissionCents,
+        })),
+    },
+    series,
+    employees: selected,
+    employeeOptions,
+    inspectors: allInspectors,
+    payPlan,
+    missingDates: needed.filter((d) => !byDate.has(d)),
+    staleDates: [],
+    timingMissingDates: selectedSnapshots
+      .filter((d) => d.total > 0 && !d.testTimes)
+      .map((d) => d.date),
     retestMissingDates: [],
-    syncedAt: snapshots.length ? snapshots.map((d) => d.retrievedAt).sort().at(-1)! : null,
+    syncedAt: snapshots.length
+      ? snapshots
+          .map((d) => d.retrievedAt)
+          .sort()
+          .at(-1)!
+      : null,
   };
 }

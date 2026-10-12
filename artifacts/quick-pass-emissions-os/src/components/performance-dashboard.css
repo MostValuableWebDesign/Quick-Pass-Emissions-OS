@@ -458,11 +458,19 @@
 .pd-card-title {
   min-width: 0;
 }
+.pd-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+  margin-left: auto;
+}
 .pd-panel-tools {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  margin-top: 7px;
+  flex: 0 0 auto;
 }
 .pd-panel-tool {
   display: inline-flex;
@@ -818,7 +826,62 @@
   padding: 0;
 }
 .pd-hour-chart li {
+  position: relative;
   min-width: 0;
+  outline: none;
+}
+.pd-hour-chart li:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.pd-hour-tooltip {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  display: grid;
+  gap: 3px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 6px 20px #0d530e18;
+  font-size: 11px;
+  line-height: 1.25;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease,
+    visibility 0.12s;
+}
+.pd-hour-chart li:hover .pd-hour-tooltip,
+.pd-hour-chart li:focus-visible .pd-hour-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+.pd-hour-chart li:first-child .pd-hour-tooltip {
+  left: 0;
+  transform: translateY(4px);
+}
+.pd-hour-chart li:first-child:hover .pd-hour-tooltip,
+.pd-hour-chart li:first-child:focus-visible .pd-hour-tooltip {
+  transform: translateY(0);
+}
+.pd-hour-chart li:last-child .pd-hour-tooltip {
+  left: auto;
+  right: 0;
+  transform: translateY(4px);
+}
+.pd-hour-chart li:last-child:hover .pd-hour-tooltip,
+.pd-hour-chart li:last-child:focus-visible .pd-hour-tooltip {
+  transform: translateY(0);
 }
 .pd-hour-column {
   display: flex;

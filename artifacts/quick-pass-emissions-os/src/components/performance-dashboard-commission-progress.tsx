@@ -80,6 +80,8 @@ export function PerformanceCommissionProgress({
           <p>
             {usd(data.rateCents)} per counted shop test above {data.threshold} · resets each day
           </p>
+        </div>
+        <div className="pd-card-actions">
           {panelActions}
         </div>
       </div>
@@ -124,8 +126,7 @@ export function PerformanceCommissionProgress({
         ))}
         <p className="pd-panel-note">
           The daily threshold always uses the whole shop, including when an employee is selected.{" "}
-          Per-worker amounts assume commission eligibility and a working day. The selected estimate
-          follows Pay setup and work adjustments. Performance estimates only, not approved payroll.
+          Per-worker amounts assume commission eligibility and a working day.
         </p>
       </div>
     </section>

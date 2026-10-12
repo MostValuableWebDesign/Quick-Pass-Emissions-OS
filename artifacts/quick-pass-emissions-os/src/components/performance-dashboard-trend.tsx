@@ -44,20 +44,22 @@ export function PerformanceTrend({
             {rows.length} days{gaps ? ` · ${gaps} without data shown as gaps` : ""}
             {filtered && metric === "cars" ? " · line is station total" : ""}
           </p>
-          {panelActions}
         </div>
-        <div className="pd-seg" role="group" aria-label="Trend metric">
-          {(["cars", "revenue"] as Metric[]).map((m) => (
-            <button
-              key={m}
-              type="button"
-              aria-pressed={metric === m}
-              onClick={() => setMetric(m)}
-              data-testid={`button-trend-${m}`}
-            >
-              {m === "cars" ? "Cars tested" : "Revenue"}
-            </button>
-          ))}
+        <div className="pd-card-actions">
+          <div className="pd-seg" role="group" aria-label="Trend metric">
+            {(["cars", "revenue"] as Metric[]).map((m) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={metric === m}
+                onClick={() => setMetric(m)}
+                data-testid={`button-trend-${m}`}
+              >
+                {m === "cars" ? "Cars tested" : "Revenue"}
+              </button>
+            ))}
+          </div>
+          {panelActions}
         </div>
       </div>
       {has ? (

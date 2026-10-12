@@ -236,17 +236,34 @@ test("busy hours and commission progress follow reports, employee filters and sa
   await expect(migratedEmployees).toHaveCSS("grid-column-start", "span 6");
   await expect(busy.getByTestId("text-busy-tests")).toHaveText("94");
   await expect(busy.getByTestId("text-busy-peak")).toHaveText("11 AM");
-  await expect(
-    busy.getByRole("list", { name: "Counted tests by report hour" }).locator("li"),
-  ).toHaveCount(24);
-  await expect(busy.getByText("11 AM: 20 tests", { exact: true })).toHaveCount(1);
+  const hourlyBars = busy.getByRole("list", { name: "Counted cars by report hour" }).locator("li");
+  await expect(hourlyBars).toHaveCount(24);
+  const elevenAm = busy.getByTestId("hour-11");
+  await expect(elevenAm).toHaveAttribute("aria-label", /20 cars/);
+  await elevenAm.hover();
+  await expect(elevenAm.locator(".pd-hour-tooltip")).toContainText("20 cars");
+  await expect(elevenAm.locator(".pd-hour-tooltip")).toBeVisible();
+  for (const panelId of ["busy-hours", "commission-progress", "trend", "employees"]) {
+    const card = page.getByTestId(`panel-${panelId}`).locator(".pd-card");
+    const controls = card.locator(".pd-card-actions");
+    const cardBox = await card.boundingBox();
+    const controlsBox = await controls.boundingBox();
+    expect(
+      cardBox &&
+        controlsBox &&
+        controlsBox.x + controlsBox.width / 2 > cardBox.x + cardBox.width / 2,
+    ).toBe(true);
+  }
+  await expect(busy).not.toContainText("loaded days have complete timing");
+  await expect(commission).not.toContainText("The selected estimate follows Pay setup");
+  await expect(commission).not.toContainText("Performance estimates only, not approved payroll.");
   await expect(commission.getByTestId("text-progress-commission")).toHaveText("$88.00");
   await expect(commission.getByRole("progressbar")).toHaveAttribute(
     "aria-valuetext",
     "94 shop tests, 44 commission tests",
   );
   await expect(commission).toContainText("$44.00 / eligible worker");
-  await expect(commission).toContainText("not approved payroll");
+  await expect(commission).not.toContainText("not approved payroll");
 
   // New IDs participate in the same pointer/keyboard layout system.
   await commission

@@ -18,6 +18,8 @@ export function PerformanceBusyHours({
         <div className="pd-card-title">
           <h2>Busy hours</h2>
           <p>{filtered ? "Selected employee" : "Station"} · selected dates · report clock hours</p>
+        </div>
+        <div className="pd-card-actions">
           {panelActions}
         </div>
       </div>
@@ -50,17 +52,23 @@ export function PerformanceBusyHours({
                 )}
               </div>
             </div>
-            <ol className="pd-hour-chart" aria-label="Counted tests by report hour">
+            <ol className="pd-hour-chart" aria-label="Counted cars by report hour">
               {data.hours.map(({ hour, count }) => (
                 <li
                   key={hour}
-                  title={`${clockHour(hour)}: ${count === null ? "Unknown" : `${data.complete ? "" : "At least "}${count} tests`}`}
+                  tabIndex={0}
+                  data-testid={`hour-${hour}`}
+                  aria-label={`${clockHour(hour)}: ${
+                    count === null
+                      ? "Unknown number of cars"
+                      : `${data.complete ? "" : "At least "}${count} ${count === 1 ? "car" : "cars"}`
+                  }`}
                 >
-                  <span className="sr-only">
-                    {clockHour(hour)}:{" "}
+                  <span className="pd-hour-tooltip" role="tooltip" aria-hidden="true">
+                    <b>{clockHour(hour)}</b>
                     {count === null
-                      ? "Unknown"
-                      : `${data.complete ? "" : "At least "}${count} tests`}
+                      ? "Unknown cars"
+                      : `${data.complete ? "" : "At least "}${count} ${count === 1 ? "car" : "cars"}`}
                   </span>
                   <div
                     className={`pd-hour-column ${count === null ? "unknown" : ""}`}
@@ -80,12 +88,6 @@ export function PerformanceBusyHours({
             </ol>
           </>
         )}
-        <p className="pd-panel-note">
-          {data.timedDays}/{data.expectedDays} loaded days have complete timing.
-          {data.untimedTests > 0 && ` ${data.untimedTests} counted tests have no usable time.`}
-          {!data.complete && " Partial coverage; unobserved hours are unknown."} Free retests
-          excluded. Loaded reports only; not a forecast.
-        </p>
       </div>
     </section>
   );

@@ -84,17 +84,19 @@ export function EmployeeTable({
         <div className="pd-card-title">
           <h2>Employees</h2>
           <p>Estimated pay for the selected dates. Not payroll.</p>
+        </div>
+        <div className="pd-card-actions">
+          <input
+            className="pd-search"
+            type="search"
+            placeholder="Filter employees"
+            aria-label="Filter employees"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            data-testid="input-employee-filter"
+          />
           {panelActions}
         </div>
-        <input
-          className="pd-search"
-          type="search"
-          placeholder="Filter employees"
-          aria-label="Filter employees"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          data-testid="input-employee-filter"
-        />
       </div>
       {rows.length ? (
         <div className="table-scroll">

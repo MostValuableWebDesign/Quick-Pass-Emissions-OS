@@ -21,6 +21,12 @@ Resizing must use a visible corner grab handle, not a header toolbar button.
 
 **How to apply:** Keep the resize grip at the panel corner while retaining keyboard resizing and personal account persistence.
 
+Keep each panel's layout controls at the right side of its header, separate from the title and description.
+
+**Why:** The user wants the panel controls on the right for every Performance panel.
+
+**How to apply:** Align panel actions with other header controls on the right, and allow them to wrap cleanly on narrow cards.
+
 Panels whose combined widths fit must sit side by side, including narrower workspace and tablet previews.
 
 **Why:** The user explicitly requested panels alongside one another when resized to dimensions that fit. A broad mobile breakpoint was forcing stacked layouts in workspace previews.

@@ -100,7 +100,17 @@ export function EmployeeTable({
       </div>
       {rows.length ? (
         <div className="table-scroll">
-          <table className="pd-table pd-num">
+          <table className="pd-table pd-num pd-employee-table">
+            <colgroup>
+              <col style={{ width: "20%" }} />
+              <col style={{ width: "7.5%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "19%" }} />
+              <col style={{ width: "11%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "10.5%" }} />
+            </colgroup>
             <thead>
               <tr>
                 {COLS.map(([k, l, r]) => (
@@ -202,9 +212,7 @@ export function EmployeeTable({
                   title="Median of retained gaps, paired separately for each employee and day; not an average of employee medians."
                 >
                   {rows.length === employees.length && overallCadence ? (
-                    <>
-                      {inspectionTime(overallCadence.medianMinutes)}
-                    </>
+                    <>{inspectionTime(overallCadence.medianMinutes)}</>
                   ) : (
                     "—"
                   )}

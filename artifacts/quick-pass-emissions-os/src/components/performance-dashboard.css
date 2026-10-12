@@ -590,6 +590,19 @@
 .pd-table th.r {
   text-align: right;
 }
+.pd-employee-table {
+  min-width: 1000px;
+  table-layout: fixed;
+}
+.pd-employee-table th,
+.pd-employee-table td {
+  padding-right: 10px;
+  padding-left: 10px;
+  vertical-align: middle;
+}
+.pd-employee-table td small {
+  margin-top: 4px;
+}
 .pd-table td {
   padding: 13px 20px;
 }

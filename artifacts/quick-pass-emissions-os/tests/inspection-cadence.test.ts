@@ -185,6 +185,8 @@ describe("report-based typical time between tests", () => {
         overallCadence: data.summary.inspectionCadence,
       }),
     );
+    expect(html).toContain('class="pd-table pd-num pd-employee-table"');
+    expect(html).toContain("<colgroup>");
     expect(html).toContain("Typical time between tests");
     expect(html).toContain("5.0 min");
     expect(html).not.toMatch(/gaps used|excluded long gaps|overnight excluded/i);

@@ -141,11 +141,6 @@ export default async function Settings({
         </section>
       )}
       <section className="settings-group">
-        <div className="settings-group-heading">
-          <div>
-            <h2>Recent activity</h2>
-          </div>
-        </div>
         <section className="card">
           <div className="card-heading">
             <h2>Audit history</h2>

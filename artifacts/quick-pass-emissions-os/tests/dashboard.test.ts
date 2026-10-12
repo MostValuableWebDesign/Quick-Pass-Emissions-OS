@@ -89,6 +89,7 @@ function certificateFixture(balance: number | null = 28) {
     station: "GA102539",
     analyzer: "HT111411",
     balance,
+    startingBalance: balance === null ? null : 34,
     checkedAt: balance === null ? null : "2026-10-10T12:55:00.000Z",
     threshold: 30,
   };
@@ -139,6 +140,8 @@ describe("Business dashboard presentation", () => {
       "$60.00",
       "Certificates remaining",
       "28",
+      "Starting count · first check today",
+      "34",
       "Low · reorder threshold 30",
       "HT111411",
       "missing inputs",

@@ -21,13 +21,13 @@ export default async function Settings() {
     <>
       <PageHeader
         title="Business settings"
-        description="Manage operating days, planned closures, and certificate alerts."
+        description="Set opening and closing times for each operating day, record closures, and configure certificate alerts."
       />
       <section className="settings-group">
         <div className="settings-group-heading">
           <div>
             <h2>Business operations</h2>
-            <p className="muted">Operating days, planned closures, and business configuration.</p>
+            <p className="muted">Set open days and hours, and record planned closures.</p>
           </div>
         </div>
         <div className="two-columns settings-card-grid">

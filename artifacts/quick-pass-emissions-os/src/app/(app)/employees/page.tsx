@@ -4,6 +4,7 @@ import { manager } from "@/lib/access";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/shared";
 import { ActionForm } from "@/components/action-form";
+import { DirectoryAddDialog } from "@/components/directory-add-dialog";
 import { EmployeeFields } from "@/components/employee-fields";
 import { saveEmployee } from "@/app/actions";
 import { formatContactAddress } from "@/lib/contact-address";
@@ -24,10 +25,7 @@ export default async function Employees({
   );
   return (
     <>
-      <PageHeader
-        title="Employees"
-        description="Employee contacts, job roles, and active staff."
-      />
+      <PageHeader title="Employees" description="Employee contacts, job roles, and active staff." />
       <nav className="filter-tabs" aria-label="Employee status filters">
         {[
           ["active", "Active staff"],
@@ -46,16 +44,11 @@ export default async function Employees({
       </nav>
       {status !== "inactive" && (
         <div className="directory-add-toolbar">
-          <details className="directory-add-details">
-            <summary className="button button-primary dealership-add-toggle">
-              <span>Add employee</span>
-            </summary>
-            <div className="directory-add-form">
-              <ActionForm action={saveEmployee} submit="Create employee">
-                <EmployeeFields />
-              </ActionForm>
-            </div>
-          </details>
+          <DirectoryAddDialog title="Add employee">
+            <ActionForm action={saveEmployee} submit="Create employee">
+              <EmployeeFields />
+            </ActionForm>
+          </DirectoryAddDialog>
         </div>
       )}
       <section className="card space-top">

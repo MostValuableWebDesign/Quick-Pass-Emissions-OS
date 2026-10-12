@@ -837,25 +837,65 @@ main#main {
   justify-content: flex-end;
   margin-top: 20px;
 }
-.directory-add-details {
+.directory-add-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-width: none;
+  max-height: min(88vh, 900px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 28%);
+}
+.directory-add-dialog::backdrop {
+  background: rgb(9 20 15 / 58%);
+  backdrop-filter: blur(3px);
+}
+.directory-add-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.directory-add-dialog-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.directory-add-dialog-close {
   display: grid;
-  justify-items: end;
-  gap: 14px;
-  width: 100%;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
 }
-.directory-add-details[open] > .dealership-add-toggle::after {
-  content: "−";
+.directory-add-dialog-close:hover {
+  color: var(--text);
+  border-color: var(--muted);
 }
-.directory-add-form {
-  width: 100%;
-  padding-top: 8px;
+.directory-add-dialog-body {
+  max-height: calc(min(88vh, 900px) - 80px);
+  overflow: auto;
+  padding: 24px;
 }
-.directory-add-form .form-grid {
+.directory-add-dialog-body .form-grid {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   align-items: start;
 }
-.directory-add-form > p {
+.directory-add-dialog-body > p {
   margin: 0 0 18px;
+}
+.directory-add-dialog-body .form-footer {
+  grid-column: 1 / -1;
 }
 .card-heading {
   display: flex;
@@ -2545,6 +2585,21 @@ details > summary {
 .dashboard-certificate-panel[data-low="true"] > strong,
 .dashboard-certificate-low {
   color: var(--warning);
+}
+.dashboard-certificate-start {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 9px 0 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+}
+.dashboard-certificate-start strong {
+  color: var(--text);
+  font-size: 15px;
 }
 .dashboard-certificate-panel .dashboard-certificate-stale {
   color: var(--warning);

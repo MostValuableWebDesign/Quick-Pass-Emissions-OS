@@ -3,15 +3,21 @@ import { currentUser } from "@/lib/access";
 import { dealerOverview } from "@/modules/finance/service";
 import { PageHeader, Empty } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
+import { DirectoryAddDialog } from "@/components/directory-add-dialog";
 import { DemoNotice, RecordId } from "@/components/phase3";
 import { DealershipFields } from "@/components/dealership-fields";
 import { saveDealer } from "@/app/phase4-actions";
 import { Button } from "@/components/ui/button";
-export default async function Dealers({ searchParams }: { searchParams: Promise<{ q?: string; partners?: string }> }) {
+export default async function Dealers({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; partners?: string }>;
+}) {
   const actor = await currentUser(),
     params = await searchParams,
     q = params.q ?? "",
-    scope = params.partners === "all" ? "all" : params.partners === "archived" ? "archived" : "active",
+    scope =
+      params.partners === "all" ? "all" : params.partners === "archived" ? "archived" : "active",
     data = await dealerOverview(actor.id, q, scope);
   return (
     <>
@@ -21,17 +27,12 @@ export default async function Dealers({ searchParams }: { searchParams: Promise<
       />
       <DemoNotice demo={data.demo} />
       <div className="directory-add-toolbar">
-        <details className="directory-add-details">
-          <summary className="button button-primary dealership-add-toggle">
-            <span>Add dealership</span>
-          </summary>
-          <div className="directory-add-form">
-            <ActionForm action={saveDealer} submit="Add dealership">
-              <RecordId />
-              <DealershipFields />
-            </ActionForm>
-          </div>
-        </details>
+        <DirectoryAddDialog title="Add dealership">
+          <ActionForm action={saveDealer} submit="Add dealership">
+            <RecordId />
+            <DealershipFields />
+          </ActionForm>
+        </DirectoryAddDialog>
       </div>
       <section className="card space-top">
         <div className="card-heading">
@@ -74,13 +75,25 @@ export default async function Dealers({ searchParams }: { searchParams: Promise<
                   </td>
                   <td>{d.phone ? <a href={`tel:${d.phone}`}>{d.phone}</a> : "—"}</td>
                   <td>
-                    {d.email && <small><a href={`mailto:${d.email}`}>{d.email}</a></small>}
-                    {d.contacts.length ? d.contacts.map((c) => (
-                      <div key={c.id}>
-                        {c.name}
-                        {c.email && <small><a href={`mailto:${c.email}`}>{c.email}</a></small>}
-                      </div>
-                    )) : !d.email ? "None entered" : null}
+                    {d.email && (
+                      <small>
+                        <a href={`mailto:${d.email}`}>{d.email}</a>
+                      </small>
+                    )}
+                    {d.contacts.length
+                      ? d.contacts.map((c) => (
+                          <div key={c.id}>
+                            {c.name}
+                            {c.email && (
+                              <small>
+                                <a href={`mailto:${c.email}`}>{c.email}</a>
+                              </small>
+                            )}
+                          </div>
+                        ))
+                      : !d.email
+                        ? "None entered"
+                        : null}
                   </td>
                   <td>
                     {d.termsDays === null
@@ -89,7 +102,11 @@ export default async function Dealers({ searchParams }: { searchParams: Promise<
                   </td>
                   <td>{d.active ? "Active" : "Archived"}</td>
                   <td>
-                    {d.active && <RecordLink href={`/dealerships/${d.id}#create-invoice`}>Create invoice</RecordLink>}
+                    {d.active && (
+                      <RecordLink href={`/dealerships/${d.id}#create-invoice`}>
+                        Create invoice
+                      </RecordLink>
+                    )}
                   </td>
                 </tr>
               ))}

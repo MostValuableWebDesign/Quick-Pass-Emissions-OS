@@ -39,6 +39,12 @@ Provider sign-in should use a top-level browser tab; embedded viewing is optiona
 
 **How to apply:** Make direct provider navigation the primary sign-in path. Recheck the provider policy before claiming embedded login is supported; never rewrite its cookie policy or proxy the login/payment pages.
 
+The dashboard’s daily starting certificate count means the first successful provider balance check recorded for the business date, not a verified midnight balance.
+
+**Why:** The provider returns the current unused balance, not a historical opening balance; purchase history does not measure certificate consumption.
+
+**How to apply:** Capture the value once on the first successful authorized check for each America/New_York business date. Keep it unchanged as later checks update the current balance, and show it as unavailable until captured. Never infer it from order history or a prior date’s balance.
+
 Certificate balance discovery uses exact station/analyzer membership and a bounded read-only operation. Report-import sessions must continue rejecting purchasing redirects.
 
 **Why:** Broadening the report client's global URL allowlist for certificate reads weakened an existing safety boundary; a dedicated opt-in read context preserves it.

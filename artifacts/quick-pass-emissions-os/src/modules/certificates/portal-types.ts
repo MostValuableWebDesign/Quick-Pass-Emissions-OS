@@ -7,6 +7,7 @@ export const CERTIFICATE_HISTORY_PATH = "/Purchasing/TAReport.aspx";
 export const CERTIFICATE_HISTORY_URL = `https://gadashboard.com${CERTIFICATE_HISTORY_PATH}`;
 export type CertificatePortalStatus = {
   balance: number | null;
+  startingBalance: number | null;
   checkedAt: string | null;
   threshold: number;
   station: string;

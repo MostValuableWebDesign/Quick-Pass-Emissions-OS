@@ -7,6 +7,7 @@ import { PageHeader, Empty } from "@/components/shared";
 import { DemoNotice } from "@/components/phase3";
 import { ContactLine } from "@/components/support-contact";
 import { VendorForm } from "@/components/support-vendor-form";
+import { DirectoryAddDialog } from "@/components/directory-add-dialog";
 
 export default async function Vendors({
   searchParams,
@@ -25,24 +26,17 @@ export default async function Vendors({
   });
   return (
     <>
-      <PageHeader
-        title="Service & support"
-      />
+      <PageHeader title="Service & support" />
       <DemoNotice demo={data.demo} />
       {data.management && (
         <div className="directory-add-toolbar">
-          <details className="directory-add-details">
-            <summary className="button button-primary dealership-add-toggle vendor-add-toggle">
-              Add vendor
-            </summary>
-            <div className="directory-add-form">
-              <p className="muted">
-                Vendor name and phone are required. New vendors remain unconfirmed until their
-                contact details are verified.
-              </p>
-              <VendorForm />
-            </div>
-          </details>
+          <DirectoryAddDialog title="Add vendor">
+            <p className="muted">
+              Vendor name and phone are required. New vendors remain unconfirmed until their contact
+              details are verified.
+            </p>
+            <VendorForm />
+          </DirectoryAddDialog>
         </div>
       )}
       <form
@@ -81,10 +75,7 @@ export default async function Vendors({
         </div>
       </form>
       {data.providers.length === 0 ? (
-        <Empty
-          title="No providers match"
-          text="Try a different search or category."
-        />
+        <Empty title="No providers match" text="Try a different search or category." />
       ) : (
         <div className="vendor-directory-grid">
           {data.providers.map((p) => {

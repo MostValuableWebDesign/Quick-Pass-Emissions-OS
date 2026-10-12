@@ -216,6 +216,14 @@ export default async function Dashboard({
               </span>
             </div>
             <strong>{certificateStatus?.balance?.toLocaleString("en-US") ?? "Unavailable"}</strong>
+            <div className="dashboard-certificate-start">
+              <span title="The first successful portal count recorded for today's business date.">
+                Starting count · first check today
+              </span>
+              <strong>
+                {certificateStatus?.startingBalance?.toLocaleString("en-US") ?? "Not recorded"}
+              </strong>
+            </div>
             {certificateStatus && (
               <p>
                 Station {certificateStatus.station} · Analyzer {certificateStatus.analyzer}

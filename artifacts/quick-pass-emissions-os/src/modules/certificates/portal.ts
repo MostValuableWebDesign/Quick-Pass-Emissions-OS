@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { audit, phase2, approvalRoles, BusinessError } from "../phase2";
 import { digest } from "../station/report";
 import { fetchCertificateBalance } from "./portal-source";
+import { businessDate } from "@/lib/time";
 import type { SourceRefreshStatus } from "@/lib/source-refresh";
 import {
   CERTIFICATE_ANALYZER,
@@ -13,6 +14,7 @@ import {
 
 export const CERTIFICATE_PORTAL_SCOPE = digest(`${CERTIFICATE_STATION}:${CERTIFICATE_ANALYZER}`);
 export const CERTIFICATE_BALANCE_ACTION = "CERTIFICATE_PORTAL_BALANCE";
+export const CERTIFICATE_DAILY_START_ACTION = "CERTIFICATE_DAILY_STARTING_BALANCE";
 export const CERTIFICATE_THRESHOLD_ACTION = "CERTIFICATE_ALERT_THRESHOLD_V2";
 export const LEGACY_CERTIFICATE_THRESHOLD_ACTION = "CERTIFICATE_ALERT_THRESHOLD";
 const START = "CERTIFICATE_PORTAL_LOOKUP_STARTED";
@@ -28,10 +30,14 @@ const balanceSchema = z.object({
   station: z.literal(CERTIFICATE_STATION),
   analyzer: z.literal(CERTIFICATE_ANALYZER),
 });
+const dailyStartSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  balance: z.number().int().min(0).max(2_000_000_000),
+});
 
 /** Cache only: never performs a portal login just to render the server layout. */
 export async function readCertificatePortalStatus(): Promise<CertificatePortalStatus> {
-  const [snapshot, setting, legacySetting, failure] = await Promise.all([
+  const [snapshot, setting, legacySetting, failure, dailyStart] = await Promise.all([
     db.auditLog.findFirst({
       where: { entityId: CERTIFICATE_PORTAL_SCOPE, action: CERTIFICATE_BALANCE_ACTION },
       orderBy: { createdAt: "desc" },
@@ -48,8 +54,17 @@ export async function readCertificatePortalStatus(): Promise<CertificatePortalSt
       where: { entityId: CERTIFICATE_PORTAL_SCOPE, action: FAIL },
       orderBy: { createdAt: "desc" },
     }),
+    db.auditLog.findFirst({
+      where: {
+        entityId: CERTIFICATE_PORTAL_SCOPE,
+        action: CERTIFICATE_DAILY_START_ACTION,
+        details: { path: ["date"], equals: businessDate() },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
   const parsed = balanceSchema.safeParse(snapshot?.details);
+  const parsedDailyStart = dailyStartSchema.safeParse(dailyStart?.details);
   const config = z.object({ threshold: certificateThresholdSchema }).safeParse(setting?.details);
   const legacyConfig = z
     .object({ threshold: certificateThresholdSchema })
@@ -59,6 +74,7 @@ export async function readCertificatePortalStatus(): Promise<CertificatePortalSt
     station: CERTIFICATE_STATION,
     analyzer: CERTIFICATE_ANALYZER,
     balance: parsed.success ? parsed.data.balance : null,
+    startingBalance: parsedDailyStart.success ? parsedDailyStart.data.balance : null,
     checkedAt: parsed.success ? parsed.data.checkedAt : null,
     threshold: resolveCertificateAlertThreshold(
       config.success ? config.data.threshold : null,
@@ -114,13 +130,31 @@ export async function refreshCertificateBalance(
       username: process.env.GA_DASHBOARD_USERNAME ?? "",
       password: process.env.GA_DASHBOARD_PASSWORD ?? "",
     });
+    const checkedAt = new Date().toISOString();
+    const date = businessDate(new Date(checkedAt));
     await phase2(actorId, approvalRoles, async (tx) => {
+      const dailyStart = await tx.auditLog.findFirst({
+        where: {
+          entityId: CERTIFICATE_PORTAL_SCOPE,
+          action: CERTIFICATE_DAILY_START_ACTION,
+          details: { path: ["date"], equals: date },
+        },
+        orderBy: { createdAt: "asc" },
+      });
       await audit(tx, actorId, CERTIFICATE_BALANCE_ACTION, CERTIFICATE_PORTAL_SCOPE, {
         balance,
-        checkedAt: new Date().toISOString(),
+        checkedAt,
         station: CERTIFICATE_STATION,
         analyzer: CERTIFICATE_ANALYZER,
       });
+      if (!dailyStart)
+        await audit(tx, actorId, CERTIFICATE_DAILY_START_ACTION, CERTIFICATE_PORTAL_SCOPE, {
+          date,
+          balance,
+          checkedAt,
+          station: CERTIFICATE_STATION,
+          analyzer: CERTIFICATE_ANALYZER,
+        });
     });
   } catch (error) {
     sourceStatus = "failed";

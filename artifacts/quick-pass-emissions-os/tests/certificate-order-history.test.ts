@@ -49,6 +49,7 @@ const order = (date: string, quantity = 300, analyzer = CERTIFICATE_ANALYZER) =>
 });
 const portal = {
   balance: 100,
+  startingBalance: 82,
   threshold: 30,
   checkedAt: null,
   station: CERTIFICATE_STATION,

@@ -2,18 +2,17 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { login } from "./workflow-helpers";
 
-test("management can add a dealership from the right-aligned card-free control", async ({
+test("management can add a dealership in a popup without shifting the directory", async ({
   page,
 }) => {
   await login(page, "owner@example.test");
   await page.goto("/dealerships");
 
-  const addDetails = page.locator("details.directory-add-details");
-  const addSummary = addDetails.locator("summary");
-  await expect(addSummary).toHaveText("Add dealership");
-  expect(await addDetails.getAttribute("class")).not.toContain("card");
+  const addTrigger = page.getByRole("button", { name: "Add dealership", exact: true });
+  await expect(addTrigger).toBeVisible();
+  expect(await addTrigger.getAttribute("class")).not.toContain("card");
 
-  const addBox = await addSummary.boundingBox();
+  const addBox = await addTrigger.boundingBox();
   const directoryBox = await page
     .locator("section.card")
     .filter({ has: page.getByRole("heading", { name: "Active dealership partners" }) })
@@ -25,8 +24,10 @@ test("management can add a dealership from the right-aligned card-free control",
     directoryBox!.x + directoryBox!.width - 2,
   );
 
-  await addSummary.click();
-  const form = page.locator("form").filter({
+  await addTrigger.click();
+  const dialog = page.getByRole("dialog", { name: "Add dealership" });
+  await expect(dialog).toBeVisible();
+  const form = dialog.locator("form").filter({
     has: page.getByRole("button", { name: "Add dealership", exact: true }),
   });
   const name = `Layout dealer ${randomUUID()}`;

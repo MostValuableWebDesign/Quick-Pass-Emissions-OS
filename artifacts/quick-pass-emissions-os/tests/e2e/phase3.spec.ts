@@ -56,6 +56,8 @@ test("six bays, management-recorded issue and reviewed repair, preventative work
   await save(f, "Update bay");
   await expect(bay.locator(".badge").filter({ hasText: "out of service" })).toBeVisible();
   await page.goto("/vendors");
+  await page.getByRole("button", { name: "Add vendor", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Add vendor" })).toBeVisible();
   f = form(page, "Add vendor");
   await f.getByLabel("Vendor name").fill("E2E Verified Vendor");
   await f.getByLabel("Phone number").fill("555-fixture");

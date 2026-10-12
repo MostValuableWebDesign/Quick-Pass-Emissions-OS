@@ -5,15 +5,17 @@ import { login } from "./workflow-helpers";
 test("management can add, remove and restore staff without losing the record", async ({ page }) => {
   await login(page, "owner@example.test");
   await page.goto("/employees");
-  const addDetails = page.locator("details.directory-add-details");
-  await expect(addDetails.locator("summary")).toHaveText("Add employee");
-  expect(await addDetails.getAttribute("class")).not.toContain("card");
-  const addBox = await addDetails.locator("summary").boundingBox();
+  const addTrigger = page.getByRole("button", { name: "Add employee", exact: true });
+  await expect(addTrigger).toBeVisible();
+  expect(await addTrigger.getAttribute("class")).not.toContain("card");
+  const addBox = await addTrigger.boundingBox();
   const directoryBox = await page.locator("section.card").boundingBox();
   expect(addBox).not.toBeNull();
   expect(directoryBox).not.toBeNull();
   expect(addBox!.x).toBeGreaterThan(directoryBox!.x);
-  expect(addBox!.x + addBox!.width).toBeGreaterThanOrEqual(directoryBox!.x + directoryBox!.width - 2);
+  expect(addBox!.x + addBox!.width).toBeGreaterThanOrEqual(
+    directoryBox!.x + directoryBox!.width - 2,
+  );
   const navigation = page.getByRole("navigation", { name: "Main navigation" });
   const employeeRoot = navigation.locator('[data-nav-root="#employees-menu"]');
   const employeeTrigger = employeeRoot.getByRole("button", { name: "Employees", exact: true });
@@ -22,8 +24,10 @@ test("management can add, remove and restore staff without losing the record", a
   await expect(
     employeePages.getByRole("link", { name: "Employee directory", exact: true }),
   ).toBeVisible();
-  await addDetails.locator("summary").click();
-  const form = page.locator("form").filter({
+  await addTrigger.click();
+  const dialog = page.getByRole("dialog", { name: "Add employee" });
+  await expect(dialog).toBeVisible();
+  const form = dialog.locator("form").filter({
     has: page.getByRole("button", { name: "Create employee", exact: true }),
   });
   const key = randomUUID();
@@ -55,7 +59,9 @@ test("management can add, remove and restore staff without losing the record", a
   await page.getByRole("link", { name, exact: true }).click();
   await expect(page).toHaveURL(/\/employees\/[^/?]+(?:\?.*)?$/);
   await page.getByRole("button", { name: "Restore employee", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Remove from active staff", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Remove from active staff", exact: true }),
+  ).toBeVisible();
   await page.reload();
   await expect(page.locator('[name="jobRole"]')).toHaveValue("Emissions Inspector");
   await employeeTrigger.hover();

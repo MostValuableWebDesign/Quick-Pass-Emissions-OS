@@ -39,7 +39,9 @@ test("protected vendor save survives reload through preview", async ({ page }) =
   await navigation.locator('a[href="/vendors"]').click();
   await expect(page).toHaveURL(/\/vendors$/);
   checkpoint("form");
-  const form = page.locator("form").filter({
+  await page.getByRole("button", { name: "Add vendor", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Add vendor" });
+  const form = dialog.locator("form").filter({
     has: page.getByRole("button", { name: "Add vendor", exact: true }),
   });
   await expect(form).toHaveCount(1);

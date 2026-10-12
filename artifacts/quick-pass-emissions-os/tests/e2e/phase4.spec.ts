@@ -34,11 +34,11 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
   await login(page, "owner@example.test");
   await login(book, "preparer@example.test");
   await book.goto("/dealerships");
+  await book.getByRole("button", { name: "Add dealership", exact: true }).click();
+  await expect(book.getByRole("dialog", { name: "Add dealership" })).toBeVisible();
   let f = form(book, "Add dealership");
-  await f.getByLabel("Unique dealership code").fill("E2E-DEALER");
   await f.getByLabel("Dealership name").fill("E2E Dealership");
-  await f.getByLabel("Billing address / instructions").fill("Illustrative E2E billing desk");
-  await f.getByLabel("Change reason").fill("E2E fixture account");
+  await f.getByLabel("Street address", { exact: true }).fill("Illustrative E2E billing desk");
   await save(f, "Add dealership");
   await book.getByRole("link", { name: "E2E Dealership", exact: true }).click();
   await expect(book.getByRole("heading", { name: "E2E Dealership", exact: true })).toBeVisible();

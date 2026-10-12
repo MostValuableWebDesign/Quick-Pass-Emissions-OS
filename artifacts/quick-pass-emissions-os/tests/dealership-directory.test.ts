@@ -22,26 +22,37 @@ describe("dealership partner directory", () => {
     vi.clearAllMocks();
     mocks.overview.mockResolvedValue({
       demo: false,
-      dealers: [{
-        id: "fixture", name: "Fixture Motors", code: "INTERNAL-CODE", active: true,
-        phone: "555-0100", termsDays: 14,
-        contacts: [{ id: "billing", name: "Billing contact", email: "billing@example.test" }],
-      }],
+      dealers: [
+        {
+          id: "fixture",
+          name: "Fixture Motors",
+          code: "INTERNAL-CODE",
+          active: true,
+          phone: "555-0100",
+          termsDays: 14,
+          contacts: [{ id: "billing", name: "Billing contact", email: "billing@example.test" }],
+        },
+      ],
     });
   });
 
   it("provides the simplified form and active partners with invoice shortcuts", async () => {
     const html = renderToStaticMarkup(await Dealers({ searchParams: Promise.resolve({}) }));
     expect(mocks.overview).toHaveBeenCalledWith("owner", "", "active");
-    expect(html).toContain(
-      '<div class="directory-add-toolbar"><details class="directory-add-details">',
-    );
-    expect(html).toContain('<summary class="button button-primary dealership-add-toggle">');
-    expect(html).not.toContain('<details class="card dealership-add-card"');
+    expect(html).toContain('<div class="directory-add-toolbar"><button');
+    expect(html).toContain('class="button button-primary directory-add-trigger"');
+    expect(html).toContain('<dialog class="directory-add-dialog"');
+    expect(html).not.toContain("<details");
     expect(html).toContain('name="phone"');
     expect(html).toContain('type="tel"');
     expect(html).toContain("Billing address");
-    for (const removed of ["Unique dealership code", "Billing address / instructions", "Record status", "Change reason", "INTERNAL-CODE"])
+    for (const removed of [
+      "Unique dealership code",
+      "Billing address / instructions",
+      "Record status",
+      "Change reason",
+      "INTERNAL-CODE",
+    ])
       expect(html).not.toContain(removed);
     expect(html).toContain("Active dealership partners");
     expect(html).toContain('href="tel:555-0100"');

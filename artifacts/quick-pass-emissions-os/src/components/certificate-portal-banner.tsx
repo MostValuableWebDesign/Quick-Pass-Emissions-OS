@@ -48,7 +48,12 @@ export function CertificatePortalBanner({
         const next = res.data;
         statusRef.current = next;
         setStatus(next);
-        if (!prev || prev.balance !== next.balance || prev.threshold !== next.threshold)
+        if (
+          !prev ||
+          prev.balance !== next.balance ||
+          prev.startingBalance !== next.startingBalance ||
+          prev.threshold !== next.threshold
+        )
           router.refresh();
       })
       .catch(() => {})

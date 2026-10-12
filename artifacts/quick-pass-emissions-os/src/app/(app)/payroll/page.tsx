@@ -41,7 +41,7 @@ export default async function Payroll({
     <>
       <PageHeader
         title="Payroll & commissions"
-        description="Employee daily and weekly base pay, approved commissions, pay adjustments and transaction history."
+        description="Employee daily and weekly pay, recorded commissions and transaction history."
       >
         {paySetup && <PayrollPaySetup initial={paySetup} />}
       </PageHeader>
@@ -51,16 +51,12 @@ export default async function Payroll({
           business records.
         </div>
       )}
-      <p className="notice">
-        Approval requires a different manager or owner. This workspace prepares payroll records;
-        send approved exports to your established payroll processor.
-      </p>
       {!parsed.success && (
         <p className="notice warning">
           Choose a valid pay overview date and week start. Showing the current week.
         </p>
       )}
-      <PayrollSummary data={dashboard} owner={actor.role === "OWNER"} href={href} />
+      <PayrollSummary data={dashboard} href={href} />
       <PayrollHistory
         data={dashboard}
         names={Object.fromEntries(data.employees.map((employee) => [employee.id, employee.user.name]))}

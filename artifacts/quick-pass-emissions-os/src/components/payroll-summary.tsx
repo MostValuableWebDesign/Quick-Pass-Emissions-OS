@@ -1,18 +1,15 @@
 import { RecordLink } from "./record-link";
-import { ActionForm, Field } from "./action-form";
+import { Field } from "./action-form";
 import { PayrollPagination } from "./payroll-pagination";
-import { adjustCompensation } from "@/app/phase2-actions";
 import { formatMoney } from "@/modules/payroll/calculations";
 import type { payrollDashboard } from "@/modules/payroll/dashboard";
 type Dashboard = Awaited<ReturnType<typeof payrollDashboard>>;
 const money = (n: number | null) => (n === null ? "Unavailable" : formatMoney(n));
 export function PayrollSummary({
   data,
-  owner,
   href,
 }: {
   data: Dashboard;
-  owner: boolean;
   href: (key: string, page: number) => string;
 }) {
   return (
@@ -24,26 +21,13 @@ export function PayrollSummary({
         <Field label="Pay overview date">
           <input name="date" type="date" defaultValue={data.filter.date} required />
         </Field>
-        <Field label="Payroll display week starts">
-          <select name="weekStart" defaultValue={data.filter.weekStart}>
-            {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(
-              (day, i) => (
-                <option key={day} value={i + 1}>
-                  {day}
-                </option>
-              ),
-            )}
-          </select>
-        </Field>
+        <input name="weekStart" type="hidden" value={data.filter.weekStart} />
         <button className="button button-primary" type="submit">
           View pay week
         </button>
       </form>
       <p className="card-body muted">
-        Daily: {data.filter.date} · Week: {data.week.start} — {data.week.end}. Base amounts below
-        are configured rates/equivalents, not proof of hours worked or payment. Weekly commission is
-        the subtotal of approved daily records in this week; averages include approved zero days and
-        exclude missing or pending days. No records means unavailable.
+        Day: {data.filter.date} · Week: {data.week.start} — {data.week.end}
       </p>
       <PayrollPagination
         label="Employees"
@@ -56,11 +40,9 @@ export function PayrollSummary({
             <tr>
               <th>Employee</th>
               <th>Base pay · daily / weekly</th>
-              <th>Commission · daily / weekly</th>
-              <th>Average commission / approved day</th>
+              <th>Recorded commission · daily / weekly</th>
+              <th>Average daily recorded commission</th>
               <th>Commission rate</th>
-              <th>Latest approved payroll</th>
-              {owner && <th>Adjust pay</th>}
             </tr>
           </thead>
           <tbody>
@@ -74,151 +56,56 @@ export function PayrollSummary({
                   <strong>
                     {money(e.base.daily)} / {money(e.base.weekly)}
                   </strong>
-                  <small>
-                    {e.arrangement
-                      ? `${formatMoney(e.arrangement.amountCents)} · ${e.arrangement.kind.toLowerCase()} · from ${e.arrangement.effectiveDate}`
-                      : "Owner configuration required"}
-                  </small>
+                  {e.arrangement && (
+                    <small>
+                      {formatMoney(e.arrangement.amountCents)} · {e.arrangement.kind.toLowerCase()} ·
+                      from {e.arrangement.effectiveDate}
+                    </small>
+                  )}
                   {e.arrangement?.scheduledDaysPerWeek && (
                     <small>
-                      {e.arrangement.scheduledDaysPerWeek} configured days/week
+                      {e.arrangement.scheduledDaysPerWeek} days/week
                       {e.arrangement.scheduledMinutesPerDay
                         ? ` · ${e.arrangement.scheduledMinutesPerDay} minutes/day`
                         : ""}
                     </small>
                   )}
-                  {e.arrangement?.kind === "FIXED" && (
-                    <small>
-                      Fixed amount covers its entire payroll period; daily/weekly equivalents are
-                      unavailable.
-                    </small>
-                  )}
                 </td>
                 <td>
                   {money(e.commission.daily)} / {money(e.commission.weekly)}
-                  <small>
-                    {e.commission.approvedDays} approved day(s) · {e.commission.pendingDays}{" "}
-                    awaiting approval
-                  </small>
-                  {e.commission.missingPolicies > 0 && (
-                    <small>
-                      Missing/unsupported policy for {e.commission.missingPolicies} approved day(s)
-                    </small>
-                  )}
                 </td>
                 <td>
                   {money(e.commission.average)}
-                  <small>Across {e.commission.approvedDays} approved day(s) this week</small>
+                  {e.commission.average !== null && (
+                    <small>Across {e.commission.approvedDays} recorded days this week</small>
+                  )}
                 </td>
                 <td>
                   {e.policy ? (
                     e.policy.eligible ? (
                       <>
                         {formatMoney(e.policy.rateCents)} / test above {e.policy.threshold}
-                        <small>
-                          {e.policy.volumeThreshold !== null
-                            ? `Above ${e.policy.volumeThreshold} tests/day: add ${formatMoney(e.policy.volumeIncreaseCents!)} per further test`
-                            : "No volume boost configured"}
-                        </small>
+                        {e.policy.volumeThreshold !== null && (
+                          <small>
+                            Above {e.policy.volumeThreshold} tests/day: add{" "}
+                            {formatMoney(e.policy.volumeIncreaseCents!)} per further test
+                          </small>
+                        )}
                       </>
                     ) : (
                       "Not eligible"
                     )
                   ) : (
-                    "Owner configuration required"
+                    "Unavailable"
                   )}
                 </td>
-                <td>
-                  {e.approvedPayroll ? (
-                    <>
-                      <strong>{formatMoney(e.approvedPayroll.totalCents)} gross</strong>
-                      <small>
-                        Base {formatMoney(e.approvedPayroll.baseCents)} · Commission{" "}
-                        {formatMoney(e.approvedPayroll.commissionCents)}
-                      </small>
-                      <RecordLink href={`/payroll/${e.approvedPayroll.draft.period.id}`}>
-                        {e.approvedPayroll.draft.period.label}
-                      </RecordLink>
-                      <small>
-                        {e.approvedPayroll.draft.period.startDate} —{" "}
-                        {e.approvedPayroll.draft.period.endDate}
-                      </small>
-                    </>
-                  ) : (
-                    "No approved payroll"
-                  )}
-                </td>
-                {owner && (
-                  <td>
-                    <details>
-                      <summary>Adjust {e.name}</summary>
-                      {(
-                        [
-                          { target: "BASE", previous: e.arrangement },
-                          { target: "COMMISSION", previous: e.policy },
-                        ] as const
-                      ).map(
-                        ({ target, previous }) =>
-                          previous && (
-                            <ActionForm
-                              key={target}
-                              action={adjustCompensation}
-                              submit={`Apply ${target.toLowerCase()} percentage adjustment`}
-                            >
-                              <input name="employeeId" type="hidden" value={e.id} />
-                              <input name="expectedId" type="hidden" value={previous.id} />
-                              <input name="target" type="hidden" value={target} />
-                              <Field
-                                label={`${target === "BASE" ? "Base pay" : "Commission rate"} adjustment`}
-                              >
-                                <select name="direction">
-                                  <option value="INCREASE">Increase</option>
-                                  <option value="DECREASE">Decrease</option>
-                                </select>
-                              </Field>
-                              <Field label="Percentage · 10 means 10%">
-                                <input
-                                  name="percent"
-                                  type="number"
-                                  min="0.01"
-                                  max="10000"
-                                  step="0.01"
-                                  required
-                                />
-                              </Field>
-                              <Field label="Adjustment effective date">
-                                <input
-                                  name="effectiveDate"
-                                  type="date"
-                                  min={previous.effectiveDate}
-                                  required
-                                />
-                              </Field>
-                              <Field label="Adjustment reason">
-                                <textarea name="reason" maxLength={2000} required />
-                              </Field>
-                              {target === "COMMISSION" && (
-                                <p className="muted">
-                                  Changes the base per-test commission rate. The volume boost and
-                                  threshold stay as configured. Set exact rates and boosts below.
-                                </p>
-                              )}
-                            </ActionForm>
-                          ),
-                      )}
-                      {!e.arrangement && !e.policy && (
-                        <p>Authorize the first pay arrangement and commission policy below.</p>
-                      )}
-                    </details>
-                  </td>
-                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       {!data.employees.length && (
-        <p className="card-body muted">Create staff records to configure their pay.</p>
+        <p className="card-body muted">No employees to display.</p>
       )}
     </section>
   );

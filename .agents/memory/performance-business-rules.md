@@ -58,3 +58,9 @@ The owner Business Dashboard’s daily car count, estimated test revenue and emp
 **Why:** The user said Performance already reflects the right data and explicitly asked these dashboard figures to come from that same source.
 
 **How to apply:** Reuse the Performance day summary and preserve its access controls, coverage and staleness warnings.
+
+Employee pay overview is an informational employee view, without approval/configuration concepts or pay-adjustment controls.
+
+**Why:** The user asked to remove instances/concepts of approvals and configuration from that overview and “just present the information for employees.”
+
+**How to apply:** Keep pay setup and audit history separate; do not interpret this presentation change as authorization to change historical payroll or bypass financial controls.

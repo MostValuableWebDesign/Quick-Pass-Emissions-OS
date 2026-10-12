@@ -25,9 +25,11 @@ export default async function DailyEmail({
             : "Email setup required: provider key, verified sender and public HTTPS app URL. Delivery is unavailable until configured."}
         </p>
         <p className="muted">
-          An independent server scheduler must be configured for delivery. Opening the app does not
-          run scheduled email. Accepted means the provider accepted the message; it does not confirm
-          inbox delivery.
+          Configure a separate scheduled deployment to run{" "}
+          <code>pnpm --filter @workspace/quick-pass-emissions-os run owner-email-job</code> every 5
+          minutes in America/New_York. It processes owner email only; it does not run door access or
+          analytics jobs. Opening the app does not trigger email. Provider acceptance does not
+          confirm inbox delivery.
         </p>
         <OwnerEmailForm setting={s.setting} owners={s.owners} configured={s.configured} />
       </section>

@@ -26,3 +26,6 @@ channel = "stable-25_05"
 
 [userenv.development]
 BETTER_AUTH_URL = "https://5a9db794-2477-4577-a452-8c2361a636ab-00-1buw749qhck7v.janeway.replit.dev"
+
+[userenv.shared]
+OWNER_SUMMARY_FROM_EMAIL = "onboarding@resend.dev"

@@ -82,7 +82,7 @@ export default async function Automation() {
                   ? `Revision ${cur.revision}, ${cur.active ? "enabled" : "disabled"}.`
                   : "Not configured. Revision 0."}
                 {kind === "DEALER" || kind === "RENTAL"
-                  ? " Finance recipients only."
+                  ? " Authorized recipients only."
                   : " Bookkeepers cannot receive this."}
               </p>
               <PolicyForm kind={kind} current={cur} recipients={s.recipients} />

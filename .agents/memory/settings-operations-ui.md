@@ -15,11 +15,17 @@ Account & password belongs beneath Settings, and pay setup belongs in Payroll ra
 
 **How to apply:** Keep pay setup in Payroll. Retire the Performance setup screen without deleting saved data or station-import capabilities.
 
-Settings is a side-menu button: hover opens its flyout, while keyboard focus and mobile tap also expose its destinations. The Business settings page belongs in that menu. The separate Station data and Business configuration import/review pages are retired and redirect to Business settings. Keep saved station configuration and calculations, but do not restore its removed editing panel. Group Reminders & notifications, Account & security, and Automation under Settings. Dealership invoices and payments remain grouped in a side-menu flyout.
+Settings is a side-menu button: hover opens its flyout, while keyboard focus and mobile tap also expose its destinations. The Business settings page belongs in that menu. The separate Station data and Business configuration import/review pages are retired and redirect to Business settings. Keep saved station configuration and calculations, but do not restore its removed editing panel. Group Reminders & notifications and Account & security under Settings. Automation belongs in its own navigation category, not under Settings. Dealership invoices and payments remain grouped in a side-menu flyout.
 
-**Why:** The user wants Settings presented as a hover-triggered button and said the standalone Station data and Business configuration import/review pages are not needed.
+**Why:** The user wants Settings presented as a hover-triggered button and said the standalone Station data and Business configuration import/review pages are not needed. The user later requested Automation moved out of Settings into its own category.
 
 **How to apply:** Keep Business settings as a child link in its purpose-based category, and never navigate directly from the Settings trigger. Do not restore the retired pages, links, or Station settings editing panel; do not delete saved data or station calculations. Preserve Dealership flyouts, role restrictions, and accessible keyboard/mobile navigation.
+
+The standalone Operational finance and Finance reports screens and their visible links are retired.
+
+**Why:** The user said both areas are not needed and asked to remove all instances.
+
+**How to apply:** Do not restore their menus, pages, or financial-export panels. Preserve existing billing/payroll history and shared calculations; removing these screens does not authorize deleting business data.
 
 The user removed the Issued By mappings, Outcome rules & prices, Operations scheduler, Product roadmap, Data storage & recovery, and sidebar slogan panels as unnecessary.
 

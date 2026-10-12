@@ -14,6 +14,28 @@ import {
 const hrefs = (role: string) => allNavItems(role).map((item) => item.href);
 
 describe("role-filtered navigation", () => {
+  it("retires standalone finance screens and gives Automation its own owner-only section", () => {
+    for (const role of ["OWNER", "ADMIN"]) {
+      expect(hrefs(role)).not.toContain("/finance");
+      expect(hrefs(role)).not.toContain("/finance/reports");
+      expect(navForRole(role).some((section) => section.id === "reports")).toBe(false);
+      const settings = navForRole(role).find((section) => section.id === "settings")!;
+      expect(settings.items[0].children?.some((item) => item.href.startsWith("/automation"))).toBe(
+        false,
+      );
+    }
+    expect(matchRoute("/finance")).toBeUndefined();
+    expect(matchRoute("/finance/reports")).toBeUndefined();
+    const automation = navForRole("OWNER").find((section) => section.id === "automation")!;
+    expect(automation.label).toBe("Automation");
+    expect(automation.items.map((item) => item.href)).toEqual([
+      "/automation",
+      "/automation/daily-email",
+    ]);
+    expect(navForRole("ADMIN").some((section) => section.id === "automation")).toBe(false);
+    expect(matchRoute("/automation")?.section).toBe("Automation");
+    expect(matchRoute("/automation/daily-email")?.section).toBe("Automation");
+  });
   it.each(["EMPLOYEE", "BOOKKEEPER"])("%s has no application routes", (role) => {
     expect(navForRole(role)).toEqual([]);
     expect(safeReturnPath("/tasks", role)).toBeNull();
@@ -35,7 +57,7 @@ describe("role-filtered navigation", () => {
     expect(hrefs("ADMIN")).not.toContain("/automation");
     expect(hrefs("ADMIN")).toContain("/settings");
     expect(hrefs("OWNER")).toEqual(
-      expect.arrayContaining(["/automation", "/finance/reports", "/overview"]),
+      expect.arrayContaining(["/automation", "/automation/daily-email", "/overview"]),
     );
     expect(hrefs("OWNER")).not.toContain("/reports");
     expect(hrefs("OWNER")).not.toContain("/summaries");
@@ -62,7 +84,6 @@ describe("role-filtered navigation", () => {
       "/reminders",
       "/notifications",
       "/settings/account",
-      "/automation",
     ]);
     expect(settingsMenu.children?.[0].label).toBe("Business settings");
     expect(settingsMenu.children?.[0].category).toBe("Business operations");
@@ -155,7 +176,6 @@ describe("role-filtered navigation", () => {
       expect(shared.items.map((i) => i.href)).toEqual([
         "#employees-menu",
         "/vendors",
-        "/finance",
         "#marketing-menu",
       ]);
       expect(employees.menuOnly).toBe(true);
@@ -180,7 +200,7 @@ describe("route matching", () => {
     expect(matchRoute("/tasks/abc123")?.title).toBe("Task detail");
     expect(activeNavHref("/tasks/templates", "OWNER")).toBeUndefined();
     expect(activeNavHref("/tasks/abc", "OWNER")).toBeUndefined();
-    expect(activeNavHref("/finance/reports", "ADMIN")).toBe("/finance/reports");
+    expect(activeNavHref("/finance/reports", "ADMIN")).toBeUndefined();
     expect(activeNavHref("/maintenance/plans", "ADMIN")).toBeUndefined();
     expect(activeNavHref("/maintenance/t1", "ADMIN")).toBeUndefined();
     expect(matchRoute("/reminders/certification")).toBeUndefined();
@@ -209,9 +229,7 @@ describe("return context validation", () => {
     expect(safeReturnPath("/tasks?filter=overdue&page=2", "ADMIN")).toBe(
       "/tasks?filter=overdue&page=2",
     );
-    expect(safeReturnPath("/finance/reports?start=2025-01-01&end=2025-01-31", "ADMIN")).toBe(
-      "/finance/reports?start=2025-01-01&end=2025-01-31",
-    );
+    expect(safeReturnPath("/finance/reports?start=2025-01-01&end=2025-01-31", "ADMIN")).toBeNull();
   });
   it.each([
     "https://evil.example/tasks",
@@ -241,7 +259,7 @@ describe("return context validation", () => {
   it("withReturn encodes safe origins and drops unsafe ones", () => {
     expect(withReturn("/tasks/t1", "/dashboard", "ADMIN")).toBe("/tasks/t1?from=%2Fdashboard");
     expect(withReturn("/invoices/i1", "/finance/reports?start=2025-01-01", "OWNER")).toBe(
-      "/invoices/i1?from=%2Ffinance%2Freports%3Fstart%3D2025-01-01",
+      "/invoices/i1",
     );
     expect(withReturn("/tasks/t1", "//evil", "OWNER")).toBe("/tasks/t1");
   });

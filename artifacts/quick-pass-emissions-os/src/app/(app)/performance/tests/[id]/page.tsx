@@ -44,7 +44,11 @@ export default async function StationTest({ params }: { params: Promise<{ id: st
             <div className="card-body">
               <p>
                 <StateBadge state={record.state} />{" "}
-                <Badge>{record.disposition.toLowerCase()}</Badge>
+                <Badge>
+                  {record.disposition === "FINANCE"
+                    ? "other receipt"
+                    : record.disposition.toLowerCase()}
+                </Badge>
               </p>
               <dl className="form-grid" style={{ marginTop: 8 }}>
                 <div>

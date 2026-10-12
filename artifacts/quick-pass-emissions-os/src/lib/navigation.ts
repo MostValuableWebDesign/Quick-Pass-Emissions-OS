@@ -185,7 +185,12 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Automation",
     items: [
       { href: "/automation", label: "Automation settings", icon: "automation", roles: OWNER_ONLY },
-      { href: "/automation/daily-email", label: "Daily owner email", icon: "bell", roles: OWNER_ONLY },
+      {
+        href: "/automation/daily-email",
+        label: "Daily owner email",
+        icon: "bell",
+        roles: OWNER_ONLY,
+      },
     ],
   },
   {

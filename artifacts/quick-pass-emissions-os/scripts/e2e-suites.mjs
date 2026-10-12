@@ -1,4 +1,5 @@
 export function browserSuite(env) {
+  if (env.E2E_NAV_CLEANUP_ONLY === "1") return { "navigation-cleanup.spec.ts": 1 };
   if (env.E2E_BUSINESS_HOURS_ONLY === "1") return { "business-hours.spec.ts": 1 };
   if (env.E2E_GOOGLE_CONNECTED_ONLY === "1") return { "analytics-connected.spec.ts": 1 };
   if (env.E2E_ANALYTICS_ONLY === "1") return { "analytics.spec.ts": 2 };
@@ -32,6 +33,7 @@ export function browserSuite(env) {
 
     "marketing.spec.ts": 1,
     "business-hours.spec.ts": 1,
+    "navigation-cleanup.spec.ts": 1,
     "door-access.spec.ts": 3,
     "owner-email.spec.ts": 2,
     "addresses.spec.ts": 3,

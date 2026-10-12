@@ -348,7 +348,7 @@ test("record context survives refresh, browser history, and explicit return link
   expect(context.pages()).toHaveLength(1);
 });
 
-test("selected weeks and report dates survive navigation, refresh and Back/Forward", async ({
+test("selected weeks survive navigation and retired accounting routes return to the dashboard", async ({
   page,
   context,
 }) => {
@@ -362,20 +362,12 @@ test("selected weeks and report dates survive navigation, refresh and Back/Forwa
   await page.reload();
   await expect.poll(() => new URL(page.url()).searchParams.get("date")).toBe("2026-01-01");
   await page.goto("/finance?start=2026-01-01&end=2026-01-31");
-  await page.getByRole("link", { name: "Export records", exact: true }).click();
-  await expect.poll(() => new URL(page.url()).pathname).toBe("/finance/reports");
-  await expect.poll(() => new URL(page.url()).searchParams.get("start")).toBe("2026-01-01");
-  await expect.poll(() => new URL(page.url()).searchParams.get("end")).toBe("2026-01-31");
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/dashboard");
   await expect(
     page.getByRole("navigation", { name: "Main navigation" }).locator('[aria-current="page"]'),
   ).toHaveCount(1);
-  await page.reload();
-  await expect(page.locator('main input[name="start"]')).toHaveValue("2026-01-01");
-  await expect(page.locator('main input[name="end"]')).toHaveValue("2026-01-31");
-  await page.goBack();
-  await expect.poll(() => new URL(page.url()).pathname).toBe("/finance");
-  await page.goForward();
-  await expect.poll(() => new URL(page.url()).pathname).toBe("/finance/reports");
+  await page.goto("/finance/reports?start=2026-01-01&end=2026-01-31");
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/dashboard");
   expect(context.pages()).toHaveLength(1);
 });
 

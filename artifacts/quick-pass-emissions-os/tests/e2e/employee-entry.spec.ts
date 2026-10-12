@@ -3,13 +3,15 @@ import { randomUUID } from "node:crypto";
 import { login } from "./workflow-helpers";
 
 async function confirmAction(page: Page, button: Locator, accept: boolean) {
-  const prompt = page.waitForEvent("dialog");
   await button.click();
-  const dialog = await prompt;
-  expect(dialog.type()).toBe("confirm");
-  expect(dialog.message()).toContain("payroll history will be kept");
-  if (accept) await dialog.accept();
-  else await dialog.dismiss();
+  const dialog = page.getByRole("alertdialog", { name: "Confirm employee removal" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("payroll history will be kept");
+  await expect(dialog).not.toContainText("replit.dev");
+  await dialog
+    .getByRole("button", { name: accept ? "Remove from active staff" : "Keep employee" })
+    .click();
+  await expect(dialog).not.toBeVisible();
 }
 
 test("management can add, remove and restore staff without losing the record", async ({ page }) => {

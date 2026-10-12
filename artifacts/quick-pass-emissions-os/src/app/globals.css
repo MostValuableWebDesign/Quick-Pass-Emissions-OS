@@ -1487,6 +1487,30 @@ summary {
   padding: 20px 0;
   color: var(--text);
 }
+.audit-pagination {
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.audit-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.audit-pagination [aria-disabled="true"] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+@media (max-width: 560px) {
+  .audit-pagination {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .audit-pagination-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
 .login-page {
   display: grid;
   grid-template-columns: 1fr 1fr;

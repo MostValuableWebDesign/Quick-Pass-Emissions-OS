@@ -7,25 +7,35 @@ import { removeClosure, saveClosure, saveSettings } from "@/app/actions";
 import { saveCertificateAlertThresholdAction } from "@/app/certificate-portal-actions";
 import { readCertificatePortalStatus } from "@/modules/certificates/portal";
 import { DEFAULT_CERTIFICATE_THRESHOLD } from "@/modules/certificates/portal-types";
-import { StationSettingsPanel } from "@/components/station-settings-panel";
-export default async function Settings() {
+import Link from "next/link";
+import { AUDIT_PAGE_SIZE, getAuditPagination } from "@/lib/audit-pagination";
+
+export default async function Settings({
+  searchParams,
+}: {
+  searchParams: Promise<{ auditPage?: string | string[] }>;
+}) {
   const actor = await manager();
+  const { auditPage: requestedAuditPage } = await searchParams;
   const certStatus =
     actor.role === "OWNER" ? await readCertificatePortalStatus().catch(() => null) : null;
-  const [settings, closures, audit] = await Promise.all([
+  const [settings, closures, auditCount] = await Promise.all([
     db.businessSetting.findUnique({ where: { id: "business" } }),
     db.closure.findMany({ orderBy: { date: "asc" } }),
-    db.auditLog.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 50,
-      include: { actor: { select: { name: true } } },
-    }),
+    db.auditLog.count(),
   ]);
+  const auditPage = getAuditPagination(auditCount, requestedAuditPage);
+  const audit = await db.auditLog.findMany({
+    orderBy: { createdAt: "desc" },
+    skip: auditPage.skip,
+    take: AUDIT_PAGE_SIZE,
+    include: { actor: { select: { name: true } } },
+  });
   return (
     <>
       <PageHeader
         title="Business settings"
-        description="Manage operating days, station hours, certificate alerts, and recent activity."
+        description="Manage operating days, certificate alerts, and audit history."
       />
       <section className="settings-group">
         <div className="settings-group-heading">
@@ -100,10 +110,10 @@ export default async function Settings() {
           <div className="settings-group-heading">
             <div>
               <h2>Emissions & certificates</h2>
-              <p className="muted">Station reporting hours and low-certificate alerts.</p>
+              <p className="muted">Low-certificate alerts.</p>
             </div>
           </div>
-          <div className="two-columns settings-card-grid">
+          <div className="settings-card-grid">
             <section className="card card-body">
               <h2>Low certificate alert</h2>
               <p className="muted">
@@ -127,7 +137,6 @@ export default async function Settings() {
                 </Field>
               </ActionForm>
             </section>
-            <StationSettingsPanel actorId={actor.id} />
           </div>
         </section>
       )}
@@ -135,13 +144,11 @@ export default async function Settings() {
         <div className="settings-group-heading">
           <div>
             <h2>Recent activity</h2>
-            <p className="muted">Latest 50 changes made in this workspace.</p>
           </div>
         </div>
         <section className="card">
           <div className="card-heading">
             <h2>Audit history</h2>
-            <span className="muted">Latest 50 actions</span>
           </div>
           <div className="table-scroll">
             <table>
@@ -174,6 +181,44 @@ export default async function Settings() {
               </tbody>
             </table>
           </div>
+          <nav className="pagination audit-pagination" aria-label="Audit history pages">
+            <span className="muted">
+              Showing {auditPage.rangeStart}–{auditPage.rangeEnd} of {auditCount}
+            </span>
+            <div className="audit-pagination-controls">
+              {auditPage.page > 1 ? (
+                <Link
+                  className="button button-outline"
+                  href={
+                    auditPage.page === 2 ? "/settings" : `/settings?auditPage=${auditPage.page - 1}`
+                  }
+                  rel="prev"
+                >
+                  Previous
+                </Link>
+              ) : (
+                <span className="button button-outline" aria-disabled="true">
+                  Previous
+                </span>
+              )}
+              <span className="muted" aria-current="page">
+                Page {auditPage.page} of {auditPage.pageCount}
+              </span>
+              {auditPage.page < auditPage.pageCount ? (
+                <Link
+                  className="button button-outline"
+                  href={`/settings?auditPage=${auditPage.page + 1}`}
+                  rel="next"
+                >
+                  Next
+                </Link>
+              ) : (
+                <span className="button button-outline" aria-disabled="true">
+                  Next
+                </span>
+              )}
+            </div>
+          </nav>
         </section>
       </section>
     </>

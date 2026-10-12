@@ -7,7 +7,6 @@ import type {
   InspectionCadence,
   PayProfile,
 } from "@/modules/station/dashboard-types";
-import { PerformancePaceEvidence } from "./performance-pace-evidence";
 import { usd, num, inspectionTime } from "./performance-dashboard-format";
 
 type Key =
@@ -157,7 +156,6 @@ export function EmployeeTable({
                       title="Median consecutive-test gap for this employee, paired within each day. Includes free retests; not measured inspection duration."
                     >
                       {inspectionTime(e.inspectionCadence.medianMinutes)}
-                      <PerformancePaceEvidence pace={e.inspectionCadence} />
                     </td>
                     <td className="r">{usd(e.revenueCents)}</td>
                     <td className="r">
@@ -206,7 +204,6 @@ export function EmployeeTable({
                   {rows.length === employees.length && overallCadence ? (
                     <>
                       {inspectionTime(overallCadence.medianMinutes)}
-                      <PerformancePaceEvidence pace={overallCadence} />
                     </>
                   ) : (
                     "—"

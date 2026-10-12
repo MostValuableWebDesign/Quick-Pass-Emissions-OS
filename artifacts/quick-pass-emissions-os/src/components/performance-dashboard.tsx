@@ -10,8 +10,6 @@ import { PerformanceBusyHours } from "./performance-dashboard-busy-hours";
 import { PerformanceCommissionProgress } from "./performance-dashboard-commission-progress";
 import { PerformanceTrend } from "./performance-dashboard-trend";
 import { EmployeeTable } from "./performance-dashboard-employees";
-import { PerformancePaceSettings } from "./performance-pace-settings";
-import { PerformancePaceEvidence } from "./performance-pace-evidence";
 import { PerformanceCalendar } from "./performance-calendar";
 import { instant, longDate, num, usd, inspectionTime } from "./performance-dashboard-format";
 import {
@@ -111,13 +109,6 @@ export function PerformanceDashboard({
           </div>
         </div>
         <div className="pd-actions">
-          <PerformancePaceSettings
-            settings={data.paceSettings}
-            query={q}
-            onSaved={(result) => {
-              if (result.data) setData(result.data);
-            }}
-          />
           <button
             type="button"
             className="button dashboard-refresh-button"
@@ -213,7 +204,6 @@ export function PerformanceDashboard({
             <strong data-testid="text-inspection-interval">
               {inspectionTime(s.inspectionCadence.medianMinutes)}
             </strong>
-            <PerformancePaceEvidence pace={s.inspectionCadence} />
             {s.inspectionCadence.coveredDays < s.expectedDays && (
               <small>
                 Partial timing: {s.inspectionCadence.coveredDays}/{s.expectedDays} days fully timed

@@ -10,7 +10,7 @@
 - [Cold preview startup](cold-preview-startup.md) — framework “Ready” did not establish reachability after a workspace restart; Webpack restored the imported Next preview.
 - [Performance panel interactions](dashboard-panel-interactions.md) — layouts follow each account across devices, separate from business data; pointer and keyboard controls remain supported.
 - [Business-area separation](business-area-separation.md) — Emissions and Car Wash have different employees and duties; keep their navigation distinct.
-- [Settings and operations UI scope](settings-operations-ui.md) — Keep station configuration in Settings, separate from business days; do not restore the removed roadmap and operations panels.
+- [Settings and operations UI scope](settings-operations-ui.md) — Keep business days distinct from retained station data; do not restore retired panels.
 - [Login branding direction](login-branding.md) — dark forest-green left pane, pale-mint headline, light supporting copy, and unchanged right-side sign-in.
 - [Dashboard clock test context](dashboard-clock-tests.md) — Dashboard markup tests need a mocked App Router and fixed system time for repeatable live-clock output.
 - [Dealership billing](dealership-billing.md) — dealership partners need regular invoice emails; a saved delivery record is not proof of sending.

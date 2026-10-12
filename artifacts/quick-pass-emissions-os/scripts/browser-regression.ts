@@ -208,7 +208,9 @@ async function main() {
   );
   stage = "owned station fixture configuration";
   const station =
-    process.env.E2E_STATION_HISTORY === "1" || process.env.E2E_PERFORMANCE_ONLY === "1"
+    process.env.E2E_STATION_HISTORY === "1" ||
+    process.env.E2E_PERFORMANCE_ONLY === "1" ||
+    process.env.E2E_STATION_ONLY === "1"
       ? await stationBrowserFixture(db, user.id, temporary)
       : undefined;
   stage = "owned import continuation fixture";

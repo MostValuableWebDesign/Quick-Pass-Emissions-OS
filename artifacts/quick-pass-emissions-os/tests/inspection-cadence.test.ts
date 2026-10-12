@@ -159,7 +159,7 @@ describe("report-based typical time between tests", () => {
       ]).medianMinutes,
     ).toBeNull();
   });
-  it("uses only selected dates and filters, and presents the new median and evidence", () => {
+  it("uses only selected dates and filters, without gap-count details", () => {
     const unrelated = day(
       [
         { inspector: "A", minute: 100 },
@@ -187,7 +187,7 @@ describe("report-based typical time between tests", () => {
     );
     expect(html).toContain("Typical time between tests");
     expect(html).toContain("5.0 min");
-    expect(html).toContain("1 excluded long gap");
+    expect(html).not.toMatch(/gaps used|excluded long gaps|overnight excluded/i);
     expect(html).not.toContain("min/car");
     expect(html).toContain("button-sort-inspectionCadence");
   });

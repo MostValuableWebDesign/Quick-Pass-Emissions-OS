@@ -17,7 +17,7 @@ test("removed station and configuration pages redirect, while performance export
   const { station } = await fixture();
   const ownerContext = await browser.newContext({
     baseURL,
-    storageState: path.join(process.env.E2E_PRIVATE_DIR!, "OWNER.json"),
+    storageState: path.join(process.env.E2E_PRIVATE_DIR!, "session.json"),
   });
   try {
     const ownerPage = await ownerContext.newPage();
@@ -26,7 +26,11 @@ test("removed station and configuration pages redirect, while performance export
       await expect(ownerPage).toHaveURL(/\/settings$/);
       await expect(ownerPage.getByRole("heading", { name: "Business settings" })).toBeVisible();
     }
-    await expect(ownerPage.getByRole("heading", { name: "Station settings" })).toBeVisible();
+    await expect(ownerPage.getByRole("heading", { name: "Station settings" })).toHaveCount(0);
+    await expect(ownerPage.getByRole("heading", { name: "Low certificate alert" })).toBeVisible();
+    await expect(ownerPage.getByRole("navigation", { name: "Audit history pages" })).toBeVisible();
+    await expect(ownerPage.getByText("Latest 50 changes made in this workspace.")).toHaveCount(0);
+    expect(await ownerPage.locator("table tbody tr").count()).toBeLessThanOrEqual(15);
     await expect(
       ownerPage.getByRole("heading", { name: "Business configuration import & review" }),
     ).toHaveCount(0);

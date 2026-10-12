@@ -3,11 +3,11 @@ name: Settings and operations UI scope
 description: User-defined locations and removed panels for Quick Pass settings and navigation.
 ---
 
-Station reporting configuration belongs in the general Settings area and must remain visibly distinct from Business operating days.
+The Station settings editing panel is retired from the Settings page. Its saved configuration remains in use by Performance calculations.
 
-**Why:** The user asked to move Station settings out of Performance and avoid overlapping the separate Business operating days settings.
+**Why:** The user later requested removal of Station settings under Emissions & certificates, superseding the earlier request to display the panel in Settings.
 
-**How to apply:** Keep station performance hours and projection controls separate from business schedule flags, label their scope clearly, and preserve existing owner-only authorization.
+**How to apply:** Do not restore the editing panel without a new request. Preserve saved station settings, the calculations that depend on them, and the separate Business operating days configuration.
 
 Account & password belongs beneath Settings, and pay setup belongs in Payroll rather than Performance. Group Settings by related business operations, Emissions configuration, and activity.
 
@@ -15,11 +15,11 @@ Account & password belongs beneath Settings, and pay setup belongs in Payroll ra
 
 **How to apply:** Keep pay setup in Payroll. Retire the Performance setup screen without deleting saved data or station-import capabilities.
 
-Settings is a side-menu button: hover opens its flyout, while keyboard focus and mobile tap also expose its destinations. The Business settings page belongs in that menu. The separate Station data and Business configuration import/review pages are retired and redirect to Business settings; keep the Station settings panel and saved data. Group Reminders & notifications, Account & security, and Automation under Settings. Dealership invoices and payments remain grouped in a side-menu flyout.
+Settings is a side-menu button: hover opens its flyout, while keyboard focus and mobile tap also expose its destinations. The Business settings page belongs in that menu. The separate Station data and Business configuration import/review pages are retired and redirect to Business settings. Keep saved station configuration and calculations, but do not restore its removed editing panel. Group Reminders & notifications, Account & security, and Automation under Settings. Dealership invoices and payments remain grouped in a side-menu flyout.
 
 **Why:** The user wants Settings presented as a hover-triggered button and said the standalone Station data and Business configuration import/review pages are not needed.
 
-**How to apply:** Keep Business settings as a child link in its purpose-based category, and never navigate directly from the Settings trigger. Do not restore the retired pages or links, and do not delete saved data or station calculations. Preserve the Station settings panel, Dealership flyouts, role restrictions, and accessible keyboard/mobile navigation.
+**How to apply:** Keep Business settings as a child link in its purpose-based category, and never navigate directly from the Settings trigger. Do not restore the retired pages, links, or Station settings editing panel; do not delete saved data or station calculations. Preserve Dealership flyouts, role restrictions, and accessible keyboard/mobile navigation.
 
 The user removed the Issued By mappings, Outcome rules & prices, Operations scheduler, Product roadmap, Data storage & recovery, and sidebar slogan panels as unnecessary.
 

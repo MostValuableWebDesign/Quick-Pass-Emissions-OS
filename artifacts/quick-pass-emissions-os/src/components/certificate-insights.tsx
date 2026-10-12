@@ -130,12 +130,6 @@ export function CertificateInsights({
           </article>
         ))}
       </section>
-      <p className="muted">
-        Ordering frequency uses positive-quantity sale dates for {CERTIFICATE_ANALYZER}. Reorder and
-        depletion estimates use certificates purchased between order dates, not measured
-        consumption. Orders do not prove actual usage, voids, receipts or payment settlement. No
-        stock ledger entries are created.
-      </p>
       <section className="card card-body space-top" id="provider-order-history">
         <div className="portal-head">
           <div>

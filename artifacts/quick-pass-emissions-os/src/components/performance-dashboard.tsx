@@ -204,10 +204,6 @@ export function PerformanceDashboard({
             <strong data-testid="text-inspection-interval">
               {inspectionTime(s.inspectionCadence.averageMinutes)}
             </strong>
-            <small>
-              {s.inspectionCadence.cars} cars in timed windows · {s.inspectionCadence.coveredDays}/
-              {s.expectedDays} days · includes pauses
-            </small>
           </div>
           <div className="pd-kpi">
             <span className="lab">Staff pay (est.)</span>

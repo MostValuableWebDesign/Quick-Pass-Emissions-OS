@@ -156,10 +156,6 @@ export function EmployeeTable({
                       title="This employee's daily first-to-last testing time divided by their cars. Includes pauses; estimated, not measured inspection duration."
                     >
                       {inspectionTime(e.inspectionCadence.averageMinutes)}
-                      <small>
-                        {e.inspectionCadence.cars} cars in timed windows ·{" "}
-                        {e.inspectionCadence.coveredDays} days
-                      </small>
                     </td>
                     <td className="r">{usd(e.revenueCents)}</td>
                     <td className="r">
@@ -206,10 +202,7 @@ export function EmployeeTable({
                   title="Selected-period overall time per car, not a sum of overlapping employee testing windows."
                 >
                   {rows.length === employees.length && overallCadence ? (
-                    <>
-                      {inspectionTime(overallCadence.averageMinutes)}
-                      <small>{overallCadence.cars} cars in timed windows</small>
-                    </>
+                    inspectionTime(overallCadence.averageMinutes)
                   ) : (
                     "—"
                   )}

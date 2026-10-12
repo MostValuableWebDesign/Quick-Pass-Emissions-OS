@@ -278,7 +278,7 @@ export async function loadDashboard(actorId: string, input: unknown, refresh = f
     refresh && missingSources.length === 0
       ? dashboardDates(query, initial.today)
       : [...missingSources, ...initial.staleDates];
-  if (!needed.length) return initial;
+  if (!needed.length) return { ...initial, sourceStatus: "cached" };
   const config = stationConfig();
   const allowed = await stationTransaction(actorId, async (tx, hash) => {
     const recent = await tx.auditLog.findFirst({
@@ -309,6 +309,7 @@ export async function loadDashboard(actorId: string, input: unknown, refresh = f
     return {
       ...initial,
       error: "Portal requests are cooling down. Saved data is still available.",
+      sourceStatus: "blocked",
     };
   const credentials = {
     station: config.station,
@@ -316,6 +317,7 @@ export async function loadDashboard(actorId: string, input: unknown, refresh = f
     password: process.env.GA_DASHBOARD_PASSWORD ?? "",
   };
   let requests = 0;
+  let sourceSaved = false;
   const deadline = Date.now() + 90_000;
   let sourceError: string | undefined;
   const store = async (days: unknown[]) => {
@@ -335,6 +337,7 @@ export async function loadDashboard(actorId: string, input: unknown, refresh = f
       requests++;
       const days = await portalRangeDays(chunk.start, chunk.end, credentials);
       await store(days);
+      sourceSaved = true;
       const absent = calendarDays(chunk.start, chunk.end).filter(
         (date) => !days.some((d) => d.date === date),
       );
@@ -344,7 +347,9 @@ export async function loadDashboard(actorId: string, input: unknown, refresh = f
           break;
         }
         requests++;
-        await store(await portalRangeDays(date, date, credentials));
+        const day = await portalRangeDays(date, date, credentials);
+        await store(day);
+        sourceSaved = true;
       }
     }
   } catch (error) {
@@ -361,7 +366,11 @@ export async function loadDashboard(actorId: string, input: unknown, refresh = f
       });
     });
   const result = await readDashboard(actorId, query);
-  return { ...result, ...(sourceError ? { error: sourceError } : {}) };
+  return {
+    ...result,
+    ...(sourceError ? { error: sourceError } : {}),
+    sourceStatus: sourceError ? (sourceSaved ? "partial" : "failed") : "source",
+  };
 }
 
 export async function saveDashboardPayPlan(actorId: string, input: unknown, query: unknown) {

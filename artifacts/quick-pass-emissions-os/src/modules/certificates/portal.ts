@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { audit, phase2, approvalRoles, BusinessError } from "../phase2";
 import { digest } from "../station/report";
 import { fetchCertificateBalance } from "./portal-source";
+import type { SourceRefreshStatus } from "@/lib/source-refresh";
 import {
   CERTIFICATE_ANALYZER,
   CERTIFICATE_STATION,
@@ -50,9 +51,9 @@ export async function readCertificatePortalStatus(): Promise<CertificatePortalSt
   ]);
   const parsed = balanceSchema.safeParse(snapshot?.details);
   const config = z.object({ threshold: certificateThresholdSchema }).safeParse(setting?.details);
-  const legacyConfig = z.object({ threshold: certificateThresholdSchema }).safeParse(
-    legacySetting?.details,
-  );
+  const legacyConfig = z
+    .object({ threshold: certificateThresholdSchema })
+    .safeParse(legacySetting?.details);
   const failed = failure && (!snapshot || failure.createdAt > snapshot.createdAt);
   return {
     station: CERTIFICATE_STATION,
@@ -98,8 +99,13 @@ export async function refreshCertificateBalance(actorId: string, force = false) 
           ...initial,
           error:
             "A portal check is running or was just completed. Showing the saved balance; try again shortly.",
+          sourceStatus: "blocked" as const,
         }
-      : initial;
+      : {
+          ...initial,
+          sourceStatus: (fresh && !initial.error ? "cached" : "blocked") as SourceRefreshStatus,
+        };
+  let sourceStatus: SourceRefreshStatus = "source";
   try {
     const balance = await fetchCertificateBalance({
       username: process.env.GA_DASHBOARD_USERNAME ?? "",
@@ -114,6 +120,7 @@ export async function refreshCertificateBalance(actorId: string, force = false) 
       });
     });
   } catch (error) {
+    sourceStatus = "failed";
     await phase2(actorId, approvalRoles, async (tx) => {
       await audit(tx, actorId, FAIL, CERTIFICATE_PORTAL_SCOPE, {
         message:
@@ -121,7 +128,7 @@ export async function refreshCertificateBalance(actorId: string, force = false) 
       });
     });
   }
-  return readCertificatePortalStatus();
+  return { ...(await readCertificatePortalStatus()), sourceStatus };
 }
 
 export async function saveCertificateAlertThreshold(actorId: string, input: unknown) {

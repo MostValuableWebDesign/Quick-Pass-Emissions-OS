@@ -2632,6 +2632,26 @@ details > summary {
 .dashboard-refresh-status[data-error="true"] {
   color: var(--warning);
 }
+.dashboard-refresh-provenance {
+  display: grid;
+  gap: 3px;
+  max-width: 360px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: right;
+}
+.dashboard-refresh-provenance p {
+  margin: 0;
+}
+.dashboard-refresh-provenance [data-source-status="source"] {
+  color: var(--chart-green);
+}
+.dashboard-refresh-provenance [data-source-status="partial"],
+.dashboard-refresh-provenance [data-source-status="failed"],
+.dashboard-refresh-provenance [data-source-status="blocked"] {
+  color: var(--warning);
+}
 @keyframes dashboard-refresh-spin {
   to {
     transform: rotate(360deg);

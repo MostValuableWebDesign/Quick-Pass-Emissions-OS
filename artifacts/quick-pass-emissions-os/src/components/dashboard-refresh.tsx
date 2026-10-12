@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { refreshCertificateBalanceAction } from "@/app/certificate-portal-actions";
 import { getPerformanceDashboardAction } from "@/modules/station/dashboard-actions";
+import { sourceRefreshLabel, type SourceRefreshStatus } from "@/lib/source-refresh";
 
 export function DashboardRefresh({
   today,
@@ -18,27 +19,32 @@ export function DashboardRefresh({
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [navigationPending, startTransition] = useTransition();
-  const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
+  const [performanceSourceStatus, setPerformanceSourceStatus] =
+    useState<SourceRefreshStatus>("cached");
+  const [certificateSourceStatus, setCertificateSourceStatus] =
+    useState<SourceRefreshStatus>("cached");
   const inFlight = useRef(false);
   const lastAutoSyncAt = useRef(0);
   const busy = refreshing || navigationPending;
 
   const refreshPanels = useCallback(
-    async (force: boolean, announce = true) => {
+    async (force: boolean) => {
       if (inFlight.current) return;
       inFlight.current = true;
       setRefreshing(true);
-      if (announce) setMessage(null);
+      if (canRefreshPerformance) setPerformanceSourceStatus("checking");
+      if (canRefreshCertificates && force) setCertificateSourceStatus("checking");
 
-      const requests: Promise<boolean>[] = [];
+      const requests: Promise<void>[] = [];
       if (canRefreshPerformance) {
         requests.push(
-          getPerformanceDashboardAction(
-            { start: today, end: today, trendDays: 7 },
-            force,
-          )
-            .then((result) => result.ok === true)
-            .catch(() => false),
+          getPerformanceDashboardAction({ start: today, end: today, trendDays: 7 }, force)
+            .then((result) => {
+              setPerformanceSourceStatus(
+                result.data?.sourceStatus ?? (result.ok ? "cached" : "failed"),
+              );
+            })
+            .catch(() => setPerformanceSourceStatus("failed")),
         );
       }
       // The global certificate banner already performs a cache-aware check on page visits.
@@ -46,21 +52,13 @@ export function DashboardRefresh({
       if (canRefreshCertificates && force) {
         requests.push(
           refreshCertificateBalanceAction(force)
-            .then((result) => result.ok === true)
-            .catch(() => false),
+            .then((result) => setCertificateSourceStatus(result.sourceStatus ?? "failed"))
+            .catch(() => setCertificateSourceStatus("failed")),
         );
       }
 
       try {
-        const results = await Promise.all(requests);
-        const allSourcesUpdated = results.every(Boolean);
-        if (announce || !allSourcesUpdated)
-          setMessage(
-            allSourcesUpdated
-              ? { text: "Dashboard panels refreshed.", error: false }
-              : { text: "Some live data could not refresh. Showing saved values.", error: true },
-          );
-        else setMessage(null);
+        await Promise.all(requests);
       } finally {
         startTransition(() => router.refresh());
         inFlight.current = false;
@@ -77,7 +75,7 @@ export function DashboardRefresh({
       const now = Date.now();
       if (now - lastAutoSyncAt.current < 15_000) return;
       lastAutoSyncAt.current = now;
-      void refreshPanels(false, false);
+      void refreshPanels(false);
     };
     syncVisibleDashboard();
     document.addEventListener("visibilitychange", syncVisibleDashboard);
@@ -105,16 +103,16 @@ export function DashboardRefresh({
         />
         {busy ? "Refreshing…" : "Refresh panels"}
       </button>
-      {message && (
-        <span
-          className="dashboard-refresh-status"
-          data-error={message.error}
-          role="status"
-          aria-live="polite"
-        >
-          {message.text}
-        </span>
-      )}
+      <div className="dashboard-refresh-provenance" role="status" aria-live="polite">
+        <p data-source-status={performanceSourceStatus}>
+          <strong>Performance panels:</strong>{" "}
+          {sourceRefreshLabel(performanceSourceStatus, "Georgia I/M")}
+        </p>
+        <p data-source-status={certificateSourceStatus}>
+          <strong>Certificates remaining:</strong>{" "}
+          {sourceRefreshLabel(certificateSourceStatus, "Georgia Dashboard")}
+        </p>
+      </div>
     </div>
   );
 }

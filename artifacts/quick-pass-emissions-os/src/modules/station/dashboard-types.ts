@@ -36,6 +36,8 @@ export type InspectionCadence = {
   timedTests: number;
 };
 export type PaceSettings = { revision: number; longGapMinutes: number | null };
+import type { SourceRefreshStatus } from "@/lib/source-refresh";
+
 export type DashboardQuery = {
   start: string;
   end: string;
@@ -136,6 +138,7 @@ export type DashboardData = {
   timingMissingDates: string[];
   retestMissingDates: string[];
   syncedAt: string | null;
+  sourceStatus?: SourceRefreshStatus;
   error?: string;
 };
 export type DashboardState = {

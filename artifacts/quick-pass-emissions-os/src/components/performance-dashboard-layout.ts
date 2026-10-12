@@ -12,6 +12,11 @@ export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayout = [
   { id: "employees", columns: 12, height: 420 },
 ];
 
+export function employeePanelDisplayHeight(savedHeight: number, visibleRows: number) {
+  const minimum = visibleRows > 0 && visibleRows < 5 ? 200 + visibleRows * 80 : 0;
+  return Math.max(savedHeight, minimum);
+}
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, Math.round(value)));
 

@@ -17,6 +17,7 @@ import type { DashboardPanelId } from "./performance-dashboard-layout";
 
 export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
   const [data, setData] = useState<DashboardData>(initial);
+  const [visibleEmployeeRows, setVisibleEmployeeRows] = useState(initial.employees.length);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const busy = useRef(false);
@@ -231,6 +232,7 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
       </div>
       <PerformanceDashboardPanels
         layout={panelLayout.layout}
+        employeeRowCount={visibleEmployeeRows}
         onMove={panelLayout.move}
         onResize={panelLayout.resize}
         onDrop={(id: DashboardPanelId, target: DashboardPanelId) => {
@@ -246,6 +248,7 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
               profiles={data.payPlan.profiles}
               overallCadence={s.inspectionCadence}
               panelActions={controls}
+              onVisibleRowsChange={setVisibleEmployeeRows}
             />
           )
         }

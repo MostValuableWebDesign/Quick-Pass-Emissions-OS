@@ -77,14 +77,16 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   await page.mouse.move(x - columnPitch, y - 80, { steps: 10 });
   await page.mouse.up();
   await expect(employees).toHaveCSS("grid-column-start", "span 10");
-  await expect(employees).toHaveCSS("height", "300px");
+  const visibleRows = await employees.locator('tbody tr[data-testid^="row-employee-"]').count();
+  const visibleHeight = Math.max(300, visibleRows > 0 && visibleRows < 5 ? 200 + visibleRows * 80 : 300);
+  await expect(employees).toHaveCSS("height", `${visibleHeight}px`);
 
   await page.reload();
   await expect(
     page.getByTestId("performance-panel-grid").locator(".pd-widget").first(),
   ).toHaveAttribute("data-testid", "panel-employees");
   await expect(page.getByTestId("panel-employees")).toHaveCSS("grid-column-start", "span 10");
-  await expect(page.getByTestId("panel-employees")).toHaveCSS("height", "300px");
+  await expect(page.getByTestId("panel-employees")).toHaveCSS("height", `${visibleHeight}px`);
 
   await page.getByTestId("button-reset-panel-layout").click();
   await expect(

@@ -75,6 +75,10 @@ export default async function AnalyticsPage({
     nextSteps.push(
       "In Google Cloud, confirm Business Profile API access, the required APIs, the OAuth consent setup and the profile owner’s permission. The app cannot verify these external settings.",
     );
+  if (!lastSuccessfulSync)
+    nextSteps.push(
+      "Complete one successful Google report import to confirm the project is approved and the connected account can read this Business Profile.",
+    );
   if (data.configured && !connected)
     nextSteps.push(
       "Connect Google using an account that manages the verified Quick Pass Business Profile.",
@@ -142,9 +146,18 @@ export default async function AnalyticsPage({
       item: "Last successful Google import",
       status: lastSuccessfulSync ? formatDate(lastSuccessfulSync) : "None recorded",
     },
+    {
+      item: "Google API and profile access",
+      status: lastSuccessfulSync
+        ? `Previously confirmed by a successful import · ${formatDate(lastSuccessfulSync)}`
+        : "Not yet confirmed by a successful import",
+    },
     { item: "Automatic Google collection", status: "Off · syncs are explicitly requested" },
     { item: "Production jobs worker", status: "External schedule · verify in deployment settings" },
-    { item: "Replit compute usage", status: "Not measured by this app · check Replit Usage" },
+    {
+      item: "Replit compute usage",
+      status: "Not measured by this app · check Account usage",
+    },
   ];
   const href = (page: number, start = range.start, end = range.end) =>
     `/analytics?${new URLSearchParams({ ...(station ? { station: station.id } : {}), start, end, page: String(page) })}`;
@@ -221,8 +234,16 @@ export default async function AnalyticsPage({
             data. The separate worker handles already-requested pages, retries and cache expiry; its
             deployment status is not visible here and it does not start new collections. Replit CU
             usage and external worker frequency are not measured here. This workload varies with the
-            selected report range and Google response pages, so this page does not show a speculative
-            cost estimate; check Replit Usage after real runs.
+            selected report range and Google response pages, so this page does not show a
+            speculative cost estimate. After real runs, check Settings → Account →{" "}
+            <a
+              href="https://docs.replit.com/billing/managing-spend"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Account usage
+            </a>{" "}
+            for measured compute.
           </p>
         </div>
       </section>

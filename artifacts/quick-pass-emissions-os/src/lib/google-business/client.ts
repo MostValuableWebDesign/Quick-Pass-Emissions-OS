@@ -80,7 +80,7 @@ export function googleSetupStatus() {
   return {
     oauthClientReady: Boolean(
       process.env.GOOGLE_BUSINESS_CLIENT_ID?.trim() &&
-        process.env.GOOGLE_BUSINESS_CLIENT_SECRET?.trim(),
+      process.env.GOOGLE_BUSINESS_CLIENT_SECRET?.trim(),
     ),
     encryptionKeyReady: /^[a-f0-9]{64}$/i.test(process.env.GOOGLE_BUSINESS_ENCRYPTION_KEY ?? ""),
     canonicalAppUrlReady: !!origin,

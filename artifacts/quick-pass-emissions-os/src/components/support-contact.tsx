@@ -28,20 +28,24 @@ export function ContactLine({
   label,
   value,
   extension,
+  showLabel = true,
 }: {
   kind: "phone" | "email" | "url";
   label: string;
   value: string | null | undefined;
   extension?: string | null;
+  showLabel?: boolean;
 }) {
   if (!value) return null;
   const href =
     kind === "phone" ? phoneLink(value) : kind === "email" ? emailLink(value) : externalLink(value);
   return (
     <div className="stack" style={{ gap: "0.2rem", marginBottom: "0.6rem" }}>
-      <span className="eyebrow" style={{ margin: 0 }}>
-        {label}
-      </span>
+      {showLabel && (
+        <span className="eyebrow" style={{ margin: 0 }}>
+          {label}
+        </span>
+      )}
       <span style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
         {href ? (
           <a

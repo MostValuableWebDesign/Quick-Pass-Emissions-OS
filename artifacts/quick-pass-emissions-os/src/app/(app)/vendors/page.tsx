@@ -115,9 +115,15 @@ export default async function Vendors({
                   <p>{description || "No description recorded."}</p>
                 </div>
                 {p.phone ? (
-                  <ContactLine kind="phone" label="Phone" value={p.phone} extension={p.extension} />
+                  <ContactLine
+                    kind="phone"
+                    label="Phone"
+                    value={p.phone}
+                    extension={p.extension}
+                    showLabel={false}
+                  />
                 ) : (
-                  <p className="muted vendor-directory-missing">Phone not recorded</p>
+                  <p className="muted vendor-directory-missing">No number recorded</p>
                 )}
               </section>
             );

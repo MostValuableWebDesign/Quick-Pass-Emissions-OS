@@ -2652,6 +2652,29 @@ details > summary {
 .dashboard-refresh-provenance [data-source-status="blocked"] {
   color: var(--warning);
 }
+.source-refresh-indicator {
+  margin: 0;
+  max-width: 360px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.dashboard-refresh-wrap .source-refresh-indicator {
+  text-align: right;
+}
+.source-refresh-indicator[data-source-status="source"] {
+  color: var(--chart-green);
+}
+.source-refresh-indicator[data-source-status="partial"],
+.source-refresh-indicator[data-source-status="failed"],
+.source-refresh-indicator[data-source-status="blocked"] {
+  color: var(--warning);
+}
+.certificate-source-status {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0 16px;
+}
 @keyframes dashboard-refresh-spin {
   to {
     transform: rotate(360deg);

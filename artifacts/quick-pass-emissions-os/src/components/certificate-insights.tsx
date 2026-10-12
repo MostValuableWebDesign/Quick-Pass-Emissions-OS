@@ -6,6 +6,8 @@ import type { CertificateInsightsData } from "@/modules/certificates/order-histo
 import { refreshCertificateInsightsAction } from "@/app/certificate-portal-actions";
 import { CERTIFICATE_HISTORY_URL, CERTIFICATE_ANALYZER } from "@/modules/certificates/portal-types";
 import { asOf } from "./certificate-portal-banner";
+import type { SourceRefreshStatus } from "@/lib/source-refresh";
+import { SourceRefreshIndicator } from "./source-refresh-indicator";
 
 export function CertificateInsights({
   initial,
@@ -17,6 +19,8 @@ export function CertificateInsights({
   const [data, setData] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [ordersSourceStatus, setOrdersSourceStatus] = useState<SourceRefreshStatus>("cached");
+  const [balanceSourceStatus, setBalanceSourceStatus] = useState<SourceRefreshStatus>("cached");
   const mounted = useRef(false);
   const router = useRouter();
 
@@ -26,12 +30,18 @@ export function CertificateInsights({
   async function refresh(force: boolean) {
     setBusy(true);
     setMessage(null);
+    setOrdersSourceStatus("checking");
+    setBalanceSourceStatus("checking");
     try {
       const result = await refreshCertificateInsightsAction(force);
       if (result.data) setData(result.data);
+      setOrdersSourceStatus(result.sourceStatuses?.orders ?? "failed");
+      setBalanceSourceStatus(result.sourceStatuses?.balance ?? "failed");
       if (!result.ok) setMessage(result.message ?? "Unable to refresh. Saved data is unchanged.");
       router.refresh();
     } catch {
+      setOrdersSourceStatus("failed");
+      setBalanceSourceStatus("failed");
       setMessage("Unable to refresh. Saved data is unchanged.");
     } finally {
       setBusy(false);
@@ -70,11 +80,18 @@ export function CertificateInsights({
           </button>
         )}
       </div>
-      {busy && (
-        <p role="status" className="muted">
-          Loading the official station report and analyzer balance…
-        </p>
-      )}
+      <div className="certificate-source-status">
+        <SourceRefreshIndicator
+          label="Order history"
+          status={ordersSourceStatus}
+          source="Georgia Dashboard"
+        />
+        <SourceRefreshIndicator
+          label="Stock balance"
+          status={balanceSourceStatus}
+          source="Georgia Dashboard"
+        />
+      </div>
       {(message || data.error || data.portal.error) && (
         <p role="status" className="notice warning">
           {message || data.error || data.portal.error}

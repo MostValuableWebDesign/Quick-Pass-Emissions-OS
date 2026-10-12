@@ -17,6 +17,8 @@ import {
   usePerformanceDashboardLayout,
 } from "./performance-dashboard-panels";
 import type { DashboardPanelId } from "./performance-dashboard-layout";
+import type { SourceRefreshStatus } from "@/lib/source-refresh";
+import { SourceRefreshIndicator } from "./source-refresh-indicator";
 
 export function PerformanceDashboard({
   initial,
@@ -31,6 +33,7 @@ export function PerformanceDashboard({
   const [visibleEmployeeRows, setVisibleEmployeeRows] = useState(initial.employees.length);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [sourceStatus, setSourceStatus] = useState<SourceRefreshStatus>("cached");
   const busy = useRef(false);
   const { start, end, trendDays, employee } = initial.query;
   const q = useMemo(() => ({ start, end, trendDays, employee }), [start, end, trendDays, employee]);
@@ -41,15 +44,18 @@ export function PerformanceDashboard({
       if (busy.current) return;
       busy.current = true;
       setLoading(true);
+      setSourceStatus("checking");
       try {
         const res: DashboardState = await getPerformanceDashboardAction(q, refresh);
         if (res.data) setData(res.data);
+        setSourceStatus(res.data?.sourceStatus ?? (res.ok === false ? "failed" : "cached"));
         setMessage(
           res.ok === false || !res.data
             ? (res.message ?? "Could not reach the station portal.")
             : null,
         );
       } catch {
+        setSourceStatus("failed");
         setMessage("Could not reach the station portal. Showing last saved numbers.");
       } finally {
         busy.current = false;
@@ -109,20 +115,23 @@ export function PerformanceDashboard({
           </div>
         </div>
         <div className="pd-actions">
-          <button
-            type="button"
-            className="button dashboard-refresh-button"
-            onClick={() => load(true)}
-            disabled={loading}
-            data-testid="button-refresh"
-          >
-            <RefreshCw
-              size={15}
-              aria-hidden="true"
-              className={loading ? "dashboard-refresh-icon--busy" : undefined}
-            />{" "}
-            {loading ? "Refreshing…" : "Refresh panels"}
-          </button>
+          <div className="dashboard-refresh-wrap">
+            <button
+              type="button"
+              className="button dashboard-refresh-button"
+              onClick={() => load(true)}
+              disabled={loading}
+              data-testid="button-refresh"
+            >
+              <RefreshCw
+                size={15}
+                aria-hidden="true"
+                className={loading ? "dashboard-refresh-icon--busy" : undefined}
+              />{" "}
+              {loading ? "Refreshing…" : "Refresh panels"}
+            </button>
+            <SourceRefreshIndicator status={sourceStatus} source="Georgia I/M" />
+          </div>
         </div>
       </header>
 

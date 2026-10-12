@@ -9,6 +9,7 @@ import {
 } from "./portal";
 import { fetchCertificateOrderHistory } from "./order-history-source";
 import { certificateOrderInsights } from "./order-insights";
+import type { SourceRefreshStatus } from "@/lib/source-refresh";
 
 export const CERTIFICATE_HISTORY_ACTION = "CERTIFICATE_ORDER_HISTORY_CACHED";
 const FAILURE = "CERTIFICATE_ORDER_HISTORY_FAILED";
@@ -57,7 +58,7 @@ export async function readCertificateInsights() {
 export type CertificateInsightsData = Awaited<ReturnType<typeof readCertificateInsights>>;
 
 export async function refreshCertificateInsights(actorId: string, force: boolean) {
-  const allowed = await phase2(actorId, approvalRoles, async (tx) => {
+  let ordersStatus: SourceRefreshStatus = await phase2(actorId, approvalRoles, async (tx) => {
     const recent = await tx.auditLog.findFirst({
       where: {
         entityId: CERTIFICATE_PORTAL_SCOPE,
@@ -70,11 +71,11 @@ export async function refreshCertificateInsights(actorId: string, force: boolean
       Date.now() - recent.createdAt.getTime() <
         (recent.action === ATTEMPT ? 60000 : force ? 60000 : 3600000)
     )
-      return false;
+      return recent.action === CERTIFICATE_HISTORY_ACTION && !force ? "cached" : "blocked";
     await audit(tx, actorId, ATTEMPT, CERTIFICATE_PORTAL_SCOPE, { station: "GA102539" });
-    return true;
+    return "checking";
   });
-  if (allowed) {
+  if (ordersStatus === "checking") {
     try {
       const snapshot = await fetchCertificateOrderHistory({
         username: process.env.GA_DASHBOARD_USERNAME ?? "",
@@ -83,7 +84,9 @@ export async function refreshCertificateInsights(actorId: string, force: boolean
       await phase2(actorId, approvalRoles, (tx) =>
         audit(tx, actorId, CERTIFICATE_HISTORY_ACTION, CERTIFICATE_PORTAL_SCOPE, snapshot),
       );
+      ordersStatus = "source";
     } catch (error) {
+      ordersStatus = "failed";
       await phase2(actorId, approvalRoles, (tx) =>
         audit(tx, actorId, FAILURE, CERTIFICATE_PORTAL_SCOPE, {
           message:
@@ -94,6 +97,9 @@ export async function refreshCertificateInsights(actorId: string, force: boolean
       );
     }
   }
-  await refreshCertificateBalance(actorId, force);
-  return readCertificateInsights();
+  const balance = await refreshCertificateBalance(actorId, force);
+  return {
+    ...(await readCertificateInsights()),
+    sourceStatuses: { orders: ordersStatus, balance: balance.sourceStatus },
+  };
 }

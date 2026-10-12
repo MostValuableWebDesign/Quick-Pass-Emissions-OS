@@ -10,6 +10,8 @@ import {
   certificatesLow,
 } from "@/modules/certificates/portal-types";
 import { asOf } from "./certificate-portal-banner";
+import type { SourceRefreshStatus } from "@/lib/source-refresh";
+import { SourceRefreshIndicator } from "./source-refresh-indicator";
 
 export function CertificatePortalBrowser({
   initial,
@@ -22,6 +24,7 @@ export function CertificatePortalBrowser({
   const [status, setStatus] = useState(initial);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sourceStatus, setSourceStatus] = useState<SourceRefreshStatus>("cached");
 
   useEffect(() => {
     queueMicrotask(() => setStatus(initial));
@@ -30,14 +33,17 @@ export function CertificatePortalBrowser({
   async function refresh() {
     setBusy(true);
     setMsg(null);
+    setSourceStatus("checking");
     try {
       const res = await refreshCertificateBalanceAction(true);
+      setSourceStatus(res.sourceStatus ?? "failed");
       const changed =
         !status || status.balance !== res.data.balance || status.threshold !== res.data.threshold;
       setStatus(res.data);
-      setMsg(res.message ?? (res.ok ? "Portal balance updated." : "Balance check failed."));
+      setMsg(res.message ?? (res.ok ? null : "Balance check failed."));
       if (changed) router.refresh();
     } catch {
+      setSourceStatus("failed");
       setMsg("Balance check failed. Try again.");
     } finally {
       setBusy(false);
@@ -86,6 +92,7 @@ export function CertificatePortalBrowser({
               <RefreshCcw size={14} aria-hidden="true" /> {busy ? "Checking…" : "Refresh balance"}
             </button>
           )}
+          <SourceRefreshIndicator status={sourceStatus} source="Georgia Dashboard" />
           {msg && <small role="status">{msg}</small>}
         </div>
       </div>

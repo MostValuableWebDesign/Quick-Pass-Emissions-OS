@@ -22,7 +22,11 @@ export async function refreshCertificateInsightsAction(force = false) {
     const data = await refreshCertificateInsights(actor.id, z.boolean().parse(force));
     revalidatePath("/certificates");
     revalidatePath("/", "layout");
-    return { ok: !data.error && !data.portal.error, data };
+    return {
+      ok: !data.error && !data.portal.error,
+      sourceStatuses: data.sourceStatuses,
+      data,
+    };
   } catch {
     return {
       ok: false,

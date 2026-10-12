@@ -39,7 +39,22 @@ for (const kind of ["employee", "dealership", "vendor"] as const) {
     let fields = form(page, create);
     await fields.locator('[name="name"]').fill(name);
     await fields.locator('[name="phone"]').fill("555-0100");
+    const phone = fields.locator('[name="phone"]');
+    await phone.fill("555-fixture");
+    expect(await phone.evaluate((node) => (node as HTMLInputElement).checkValidity())).toBe(false);
+    await phone.fill("555-0100");
+    if (kind !== "employee") {
+      const email = fields.locator('[name="email"]');
+      await email.fill("not-an-email");
+      expect(await email.evaluate((node) => (node as HTMLInputElement).checkValidity())).toBe(
+        false,
+      );
+      await email.fill("");
+    }
     if (kind === "employee") await fields.locator('[name="jobRole"]').selectOption("Inspector");
+    const state = fields.locator('[name="state"]');
+    await expect(state).toHaveJSProperty("tagName", "SELECT");
+    await state.selectOption("GA");
     await expect(fields.getByText("Apartment, suite or unit (optional)")).toHaveCount(0);
     const search = fields.getByRole("combobox", { name: "Street address", exact: true });
     await expect(fields.getByLabel("Find an address", { exact: true })).toHaveCount(0);

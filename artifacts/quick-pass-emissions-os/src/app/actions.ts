@@ -154,7 +154,8 @@ async function perform(work: () => Promise<ActionState | void>): Promise<ActionS
       !error.message.includes("NEXT_") &&
       !error.message.includes("Unique constraint")
     ) {
-      const safe = /^(Please|This|Task|You |Only|Choose|Configure|Cannot|Invite|A task|Shift|Enter)/;
+      const safe =
+        /^(Please|This|Task|You |Only|Choose|Configure|Cannot|Invite|A task|Shift|Enter)/;
       if (safe.test(error.message)) return { ok: false, message: error.message };
     }
     return {

@@ -7,7 +7,13 @@ export function DealershipFields({ dealer }: { dealer?: Dealership }) {
   return (
     <>
       <Field label="Dealership name">
-        <input name="name" autoComplete="organization" required maxLength={160} defaultValue={dealer?.name} />
+        <input
+          name="name"
+          autoComplete="organization"
+          required
+          maxLength={160}
+          defaultValue={dealer?.name}
+        />
       </Field>
       <ContactPhoneField value={dealer?.phone} />
       <Field label="Email">
@@ -23,7 +29,11 @@ export function DealershipFields({ dealer }: { dealer?: Dealership }) {
       <ContactAddressFields
         label="Billing address"
         requiredStreet
-        value={dealer ? { ...dealer, streetAddress: dealer.streetAddress || dealer.billingAddress } : undefined}
+        value={
+          dealer
+            ? { ...dealer, streetAddress: dealer.streetAddress || dealer.billingAddress }
+            : undefined
+        }
       />
       <Field label="Additonal comments" wide>
         <textarea name="notes" rows={3} maxLength={4000} defaultValue={dealer?.notes} />

@@ -15,3 +15,4 @@
 - [Dashboard clock test context](dashboard-clock-tests.md) — Dashboard markup tests need a mocked App Router and fixed system time for repeatable live-clock output.
 - [Dealership billing](dealership-billing.md) — dealership partners need regular invoice emails; a saved delivery record is not proof of sending.
 - [Verification tooling](verification-tooling.md) — temporary Python PDF-review installs can scaffold an unrelated root app; clean up only their unused generated changes.
+- [HTML validation patterns](html-validation-patterns.md) — escape punctuation in HTML `pattern` character classes; modern browsers can ignore invalid patterns silently.

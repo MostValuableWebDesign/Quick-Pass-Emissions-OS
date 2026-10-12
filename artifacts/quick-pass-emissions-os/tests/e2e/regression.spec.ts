@@ -48,7 +48,7 @@ test("protected vendor save survives reload through preview", async ({ page }) =
   checkpoint("form-found");
   await form.locator('input[name="name"]').fill(name);
   checkpoint("name");
-  await form.locator('input[name="phone"]').fill("555-fixture");
+  await form.locator('input[name="phone"]').fill("555-555-0123");
   checkpoint("phone");
   await form.locator('textarea[name="services"]').fill("Regression-only service");
   checkpoint("services");

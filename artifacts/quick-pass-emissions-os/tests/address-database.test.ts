@@ -254,7 +254,7 @@ function form(data: Record<string, string>) {
       dealers.saveDealer(staff, { id: "", version: 0, name: "Denied", ...address }),
     ).rejects.toThrow("permission");
     await expect(
-      vendors.addUnverifiedVendor(staff, { name: "Denied", phone: "555", ...address }),
+      vendors.addUnverifiedVendor(staff, { name: "Denied", phone: "555-555-0100", ...address }),
     ).rejects.toThrow("permission");
     await db.user.update({ where: { id: manager }, data: { active: false } });
     session.userId = manager;
@@ -267,7 +267,7 @@ function form(data: Record<string, string>) {
       ).ok,
     ).toBe(false);
     await expect(
-      vendors.addUnverifiedVendor(manager, { name: "Denied", phone: "555", ...address }),
+      vendors.addUnverifiedVendor(manager, { name: "Denied", phone: "555-555-0100", ...address }),
     ).rejects.toThrow("permission");
   });
 });

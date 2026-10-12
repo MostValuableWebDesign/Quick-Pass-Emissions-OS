@@ -18,7 +18,8 @@ vi.mock("@/modules/phase4", () => ({
   financeRoles: ["OWNER", "ADMIN"],
   reviewers: ["OWNER", "ADMIN"],
   BusinessError: class extends Error {},
-  phase4: async (_actor: string, _roles: string[], work: (tx: unknown) => unknown) => work(mocks.tx),
+  phase4: async (_actor: string, _roles: string[], work: (tx: unknown) => unknown) =>
+    work(mocks.tx),
   requireRule: (allowed: unknown, message: string) => {
     if (!allowed) throw new Error(message);
   },
@@ -27,7 +28,12 @@ vi.mock("@/modules/phase4", () => ({
 import { dealerOverview, saveContact, saveDealer } from "@/modules/finance/service";
 
 const dealerId = "c1234567890123456789012345";
-const input = { id: "", version: 0, name: "Fixture Motors", billingAddress: "Fixture billing address" };
+const input = {
+  id: "",
+  version: 0,
+  name: "Fixture Motors",
+  billingAddress: "Fixture billing address",
+};
 
 describe("simplified dealership records", () => {
   beforeEach(() => {
@@ -47,14 +53,21 @@ describe("simplified dealership records", () => {
     expect(saved.phone).toBe("555-0100");
     expect(saved.active).toBe(true);
     expect(mocks.audit).toHaveBeenCalledWith(
-      mocks.tx, "owner", "DEALER_SAVED", dealerId,
+      mocks.tx,
+      "owner",
+      "DEALER_SAVED",
+      dealerId,
       expect.objectContaining({ reason: "Dealership details saved." }),
     );
   });
 
   it("preserves existing codes, phone numbers and archived partnerships when omitted on edit", async () => {
     mocks.tx.dealership.findUnique.mockResolvedValue({
-      id: dealerId, version: 0, code: "LEGACY-CODE", phone: "555-0101", active: false,
+      id: dealerId,
+      version: 0,
+      code: "LEGACY-CODE",
+      phone: "555-0101",
+      active: false,
     });
     await saveDealer("owner", { ...input, id: dealerId });
     expect(mocks.tx.dealership.update).toHaveBeenCalledWith({
@@ -65,7 +78,11 @@ describe("simplified dealership records", () => {
 
   it("allows an entered phone number to be cleared", async () => {
     mocks.tx.dealership.findUnique.mockResolvedValue({
-      id: dealerId, version: 0, code: "LEGACY-CODE", phone: "555-0101", active: true,
+      id: dealerId,
+      version: 0,
+      code: "LEGACY-CODE",
+      phone: "555-0101",
+      active: true,
     });
     await saveDealer("owner", { ...input, id: dealerId, phone: "" });
     expect(mocks.tx.dealership.update).toHaveBeenCalledWith(
@@ -73,15 +90,31 @@ describe("simplified dealership records", () => {
     );
   });
 
+  it("rejects malformed dealership phone numbers and email addresses", async () => {
+    await expect(saveDealer("owner", { ...input, phone: "555-fixture" })).rejects.toThrow(
+      "valid phone number",
+    );
+    await expect(saveDealer("owner", { ...input, email: "not-an-email" })).rejects.toThrow();
+    expect(mocks.tx.dealership.create).not.toHaveBeenCalled();
+  });
+
   it("keeps archived contacts archived when their details are edited", async () => {
     mocks.tx.dealership.count.mockResolvedValue(1);
     mocks.tx.dealerContact.findUnique.mockResolvedValue({
-      id: dealerId, version: 0, dealershipId: dealerId, active: false,
+      id: dealerId,
+      version: 0,
+      dealershipId: dealerId,
+      active: false,
     });
     await saveContact("owner", {
-      id: dealerId, version: 0, dealershipId: dealerId,
-      name: "Fixture billing contact", email: "billing@example.test", phone: "",
-      purpose: "Invoices", source: "Provided by dealership",
+      id: dealerId,
+      version: 0,
+      dealershipId: dealerId,
+      name: "Fixture billing contact",
+      email: "billing@example.test",
+      phone: "",
+      purpose: "Invoices",
+      source: "Provided by dealership",
     });
     expect(mocks.tx.dealerContact.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ active: false }) }),

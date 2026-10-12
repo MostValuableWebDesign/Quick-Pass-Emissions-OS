@@ -59,7 +59,7 @@ if (enabled) {
       version: 0,
       name: "Fixture vendor",
       contact: "Verified support",
-      phone: "555-fixture",
+      phone: "555-555-0123",
       email: "",
       services: "Maintenance",
       reference: "checked-source",
@@ -305,7 +305,7 @@ if (enabled) {
   it("adds minimal vendor contacts as active but unconfirmed and blocks their assignment", async () => {
     const input = {
       name: "Unconfirmed fixture vendor",
-      phone: "555-unconfirmed",
+      phone: "555-555-0124",
       active: false,
       verifiedDate: today,
     };

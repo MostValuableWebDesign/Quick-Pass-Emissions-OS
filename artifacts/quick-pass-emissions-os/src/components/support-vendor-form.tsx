@@ -14,12 +14,7 @@ export function VendorForm({ vendor: v }: { vendor?: Vendor }) {
         <ContactPhoneField label="Phone number" required />
         <TextField name="contact" label="Contact person / department (optional)" required={false} />
         <Field label="Email (optional)">
-          <input
-            type="email"
-            name="email"
-            maxLength={254}
-            title="Enter a valid email address."
-          />
+          <input type="email" name="email" maxLength={254} title="Enter a valid email address." />
         </Field>
         <TextField
           name="services"

@@ -9,10 +9,14 @@ import { contactEmployeeInput, formatContactAddress } from "@/lib/contact-addres
 describe("contact-focused forms", () => {
   it("renders dealership phone/email semantics, structured address fields and comments", () => {
     const html = renderToStaticMarkup(createElement(DealershipFields));
-    expect(html).toMatch(/<input(?=[^>]*name="phone")(?=[^>]*type="tel")[^>]*>/);
+    expect(html).toMatch(
+      /<input(?=[^>]*name="phone")(?=[^>]*type="tel")(?=[^>]*pattern="[^"]+")[^>]*>/,
+    );
     expect(html).toMatch(/<input(?=[^>]*name="email")(?=[^>]*type="email")[^>]*>/);
     for (const key of ["streetAddress", "addressLine2", "city", "state", "postalCode"])
       expect(html).toContain(`name="${key}"`);
+    expect(html).toMatch(/<select(?=[^>]*name="state")[^>]*>/);
+    expect(html).toContain('<option value="GA">Georgia</option>');
     expect(html).toContain("Billing address");
     expect(html).not.toContain("Find an address");
     expect(html).toMatch(/<input(?=[^>]*name="streetAddress")(?=[^>]*role="combobox")[^>]*>/);
@@ -24,7 +28,9 @@ describe("contact-focused forms", () => {
     const html = renderToStaticMarkup(createElement(EmployeeFields));
     for (const key of ["name", "phone", "jobRole", "streetAddress", "city", "state", "postalCode"])
       expect(html).toContain(`name="${key}"`);
-    expect(html).toMatch(/<input(?=[^>]*name="phone")(?=[^>]*type="tel")[^>]*>/);
+    expect(html).toMatch(
+      /<input(?=[^>]*name="phone")(?=[^>]*type="tel")(?=[^>]*pattern="[^"]+")[^>]*>/,
+    );
     for (const key of ["email", "role", "startDate", "duties", "workAreas", "managerNotes"])
       expect(html).not.toContain(`name="${key}"`);
   });
@@ -51,6 +57,13 @@ describe("contact-focused forms", () => {
     expect(contact).not.toHaveProperty("role");
     expect(contact).not.toHaveProperty("email");
     expect(contact).not.toHaveProperty("duties");
+    expect(
+      contactEmployeeInput.safeParse({
+        name: "Invalid Phone",
+        phone: "555-fixture",
+        jobRole: "Inspector",
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects malformed certification dates and formats billing addresses for invoices", () => {

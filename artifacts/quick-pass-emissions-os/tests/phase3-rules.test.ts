@@ -62,6 +62,12 @@ describe("Phase 3 calendar, money and validation", () => {
   it("allows only vendor name and phone to be required for an unverified vendor", () => {
     const minimal = { name: "New vendor", phone: "555-0100" };
     expect(unverifiedVendorInput.safeParse(minimal).success).toBe(true);
+    expect(unverifiedVendorInput.safeParse({ ...minimal, phone: "555-fixture" }).success).toBe(
+      false,
+    );
+    expect(unverifiedVendorInput.safeParse({ ...minimal, email: "not-an-email" }).success).toBe(
+      false,
+    );
     expect(unverifiedVendorInput.safeParse({ name: "", phone: "555-0100" }).success).toBe(false);
     expect(unverifiedVendorInput.safeParse({ name: "New vendor", phone: "" }).success).toBe(false);
     const forged = unverifiedVendorInput.parse({

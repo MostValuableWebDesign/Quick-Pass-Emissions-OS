@@ -148,7 +148,6 @@ export const NAV_SECTIONS: NavSection[] = [
         ],
       },
       { href: "/vendors", label: "Service & Support", icon: "truck", roles: OPERATORS },
-      { href: "/finance", label: "Operational finance", icon: "ledger", roles: FINANCE },
       {
         href: "#marketing-menu",
         label: "Marketing",
@@ -182,10 +181,11 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    id: "reports",
-    label: "Reports",
+    id: "automation",
+    label: "Automation",
     items: [
-      { href: "/finance/reports", label: "Finance reports", icon: "fileChart", roles: FINANCE },
+      { href: "/automation", label: "Automation settings", icon: "automation", roles: OWNER_ONLY },
+      { href: "/automation/daily-email", label: "Daily owner email", icon: "bell", roles: OWNER_ONLY },
     ],
   },
   {
@@ -226,13 +226,6 @@ export const NAV_SECTIONS: NavSection[] = [
             icon: "shield",
             roles: MANAGERS,
             category: "Account & security",
-          },
-          {
-            href: "/automation",
-            label: "Automation",
-            icon: "automation",
-            roles: OWNER_ONLY,
-            category: "Automation",
           },
         ],
       },

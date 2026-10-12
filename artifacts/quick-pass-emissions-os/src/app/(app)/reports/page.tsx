@@ -1,11 +1,9 @@
-import Link from "next/link";
 import { z } from "zod";
 import { requireRole } from "@/lib/require-role";
 import { businessDate } from "@/lib/time";
 import { getOperationalReport } from "@/modules/automation/reports";
 import { operationalDatasets, type OperationalDataset } from "@/modules/automation/reports";
 import { BusinessError } from "@/modules/phase2";
-import { datasets as financeDatasets } from "@/modules/finance/service";
 import { PageHeader } from "@/components/shared";
 import { Boundary, ErrorPanel, RowsTable, TotalsList, fmtInstant } from "@/components/phase5";
 import { Phase5Field as Field } from "@/components/phase5-field";
@@ -91,18 +89,6 @@ export default async function Reports({
           </section>
         </>
       )}
-      <section className="card card-body space-top">
-        <h2>Financial reports</h2>
-        <p className="muted">Financial date, reversal and aging exports are separate (Phase 4).</p>
-        <div className="module-links">
-          <Link href="/finance/reports">Finance reports and exports</Link>
-          {financeDatasets.map((d) => (
-            <a key={d} href={`/api/finance/export?dataset=${d}&start=${start}&end=${end}`}>
-              Finance CSV: {d.replaceAll("-", " ")}
-            </a>
-          ))}
-        </div>
-      </section>
     </>
   );
 }

@@ -97,11 +97,11 @@ export default async function StationTest({ params }: { params: Promise<{ id: st
                         })()
                       : null}
                     {record.financeEntryId ? (
-                      <Link className="text-link" href="/finance">
-                        Finance entry{" "}
+                      <span>
+                        Linked receipt record{" "}
                         {entries.find((x) => x.id === record.financeEntryId)?.reference ??
                           record.financeEntryId}
-                      </Link>
+                      </span>
                     ) : null}
                     {!record.dealerServiceId && !record.financeEntryId && "None linked"}
                   </dd>
@@ -146,7 +146,7 @@ export default async function StationTest({ params }: { params: Promise<{ id: st
                 <select name="disposition" defaultValue={record.disposition}>
                   <option value="RETAIL">Retail (price estimate)</option>
                   <option value="DEALER">Dealer (link service)</option>
-                  <option value="FINANCE">Finance (link entry)</option>
+                  <option value="FINANCE">Other receipt record</option>
                   <option value="EXCLUDED">Excluded</option>
                   <option value="UNRESOLVED">Unresolved</option>
                 </select>
@@ -172,7 +172,7 @@ export default async function StationTest({ params }: { params: Promise<{ id: st
                 </select>
               </label>
               <label className="field">
-                <span>Finance revenue entry (FINANCE only)</span>
+                <span>Receipt evidence record (revenue only)</span>
                 <select name="financeEntryId" defaultValue={record.financeEntryId ?? ""}>
                   <option value="">None</option>
                   {entries.map((e) => (

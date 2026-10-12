@@ -189,3 +189,7 @@ No replies are posted. Unavailable collections/refunds and incomplete days remai
 clearly labeled. Setup, source retention and independent sync instructions are in
 [GOOGLE_ANALYTICS.md](GOOGLE_ANALYTICS.md). Google authorization, real sync and
 production deployment must be verified separately.
+
+## Marketing
+
+**Business → Marketing** provides persistent campaigns, separate budget/spending records, optional customer-reported sources, validated single-service dealership promotions, receipt-based results, action reviews and private approved/draft materials. Google Business insights/reviews are explicitly unavailable until authorized data is connected. Nothing sends marketing messages, buys ads or publishes replies. See [MARKETING.md](MARKETING.md) for metric definitions, permissions, billing boundaries and local verification.

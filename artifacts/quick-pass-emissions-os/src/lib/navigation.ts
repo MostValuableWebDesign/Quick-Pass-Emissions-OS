@@ -149,6 +149,36 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       { href: "/vendors", label: "Service & Support", icon: "truck", roles: OPERATORS },
       { href: "/finance", label: "Operational finance", icon: "ledger", roles: FINANCE },
+      {
+        href: "#marketing-menu",
+        label: "Marketing",
+        icon: "chart",
+        roles: MANAGERS,
+        menuOnly: true,
+        children: [
+          {
+            href: "/marketing",
+            label: "Results & campaigns",
+            icon: "chart",
+            roles: MANAGERS,
+            category: "Marketing",
+          },
+          {
+            href: "/marketing/sources",
+            label: "Customer sources",
+            icon: "users",
+            roles: MANAGERS,
+            category: "Marketing",
+          },
+          {
+            href: "/marketing/analytics",
+            label: "Google Business",
+            icon: "fileChart",
+            roles: MANAGERS,
+            category: "Integrations",
+          },
+        ],
+      },
     ],
   },
   {
@@ -363,6 +393,7 @@ export const ROUTES: RouteDef[] = [
   detail("/invoices/:id", "Invoice", "/invoices", FINANCE),
   detail("/rentals/:id", "Rental agreement", "/rentals", FINANCE),
   detail("/summaries/:id", "Summary", "/summaries", OWNER_ONLY),
+  detail("/marketing/campaigns/:id", "Campaign", "/marketing", MANAGERS),
   detail("/performance/tests/:id", "Station test evidence", "/performance", OWNER_ONLY),
 ];
 

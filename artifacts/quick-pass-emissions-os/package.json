@@ -29,6 +29,7 @@
     "recover-account": "tsx scripts/database.ts check && tsx scripts/recover-account.ts"
   },
   "dependencies": {
+    "@google-cloud/storage": "8.4.0",
     "@js-temporal/polyfill": "0.5.1",
     "@prisma/client": "6.19.3",
     "@radix-ui/react-slot": "1.4.0",

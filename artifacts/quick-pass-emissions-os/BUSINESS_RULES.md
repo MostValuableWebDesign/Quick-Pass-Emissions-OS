@@ -1,5 +1,9 @@
 # Business rules and deliberate limits
 
+## Marketing boundaries
+
+Marketing source reporting is optional and missing/unknown responses remain explicit. Customer-reported campaign and tracked promo attribution stay separate, with one canonical inspection counted once. Paid status must be evidence-supported; VIN/30-day free retests and incomplete lookback do not become paid sales. Budget is separate from spending; collected revenue uses existing recorded receipts, not the $20 estimate. Promo application is owner-only, atomic with a single paid dealership service, and must leave a positive existing-workflow charge. Used terms remain frozen and cancelled/refunded uses still consume lifetime limits. No marketing sends, ad purchases, social publication or Google review publication occur. Google analytics/review features require authorized data. See [MARKETING.md](MARKETING.md).
+
 ## Business facts
 
 Quick Pass has emissions testing, a tag renewal kiosk and six carwash/detailing bays. Phases 1–4 manage responsibilities, payroll/inventory preparation, carwash maintenance rental records, dealership billing and operational finance; the app does not replace the state-certified analyzer, official emissions reporting, payroll processing or accounting records. Known employee names and historical compensation figures are context only. There is no live kiosk, analyzer, dealer, payroll or bank API integration.

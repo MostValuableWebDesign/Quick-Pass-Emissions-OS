@@ -3126,3 +3126,203 @@ textarea:focus-visible {
   font-size: 0.875rem;
   font-weight: 600;
 }
+/* Marketing module */
+.mk-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin: -8px 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+.mk-tabs a {
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.mk-tabs a:hover {
+  color: var(--text);
+}
+.mk-tabs a.active {
+  color: var(--text);
+  border-color: var(--primary);
+}
+.mk-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+.mk-filter .field {
+  flex: 1 1 150px;
+}
+.mk-filter-actions {
+  display: flex;
+  gap: 8px;
+}
+.mk-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.mk-metric {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+}
+.mk-metric span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.mk-metric strong {
+  display: block;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.8px;
+  margin: 8px 0 6px;
+  font-variant-numeric: tabular-nums;
+}
+.mk-metric small {
+  display: block;
+  font-size: 10.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.mk-hint {
+  font-size: 11px;
+  color: var(--muted);
+}
+.mk-hint.wide {
+  grid-column: 1/-1;
+}
+.mk-hint.warn {
+  color: var(--warning);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-line);
+  border-radius: 7px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.mk-fieldset {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.mk-fieldset legend {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 6px;
+}
+.mk-fieldset:disabled .mk-inner {
+  opacity: 0.5;
+}
+.mk-inner {
+  margin: 6px 0 8px;
+}
+.mk-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.mk-strike {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.mk-offer {
+  background: var(--soft);
+  border-left: 3px solid var(--primary);
+  padding: 10px 14px;
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 18px;
+  font-size: 13px;
+}
+.mk-rec {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.mk-rec:last-child {
+  border: 0;
+}
+.mk-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  padding: 18px;
+}
+.mk-action {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mk-action header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: start;
+}
+.mk-baseline {
+  background: var(--bg);
+  border-radius: 9px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mk-baseline span {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.mk-baseline strong {
+  display: block;
+  font-size: 18px;
+}
+.mk-baseline small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+.mk-copy {
+  font-size: 12px;
+  background: var(--bg);
+  padding: 10px;
+  border-radius: 8px;
+}
+.mk-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.mk-inline {
+  display: block;
+}
+.mk-inline .form-footer {
+  margin: 0;
+}
+.mk-boundary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 760px;
+}
+.mk-boundary ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+}
+.mk-boundary .badge {
+  align-self: flex-start;
+}

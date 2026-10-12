@@ -698,3 +698,17 @@ Analytics labels those unavailable and keeps unallocated dealership receipts/rev
 separate. Google raw content is cached for 29 days under its current API policy; business
 records, mapping, grants and owner-entered actions survive builds/restarts. There is no
 permanent Google archive, inferred conversion/ROI, automatic reply or fabricated insight.
+
+## 2026-10-12 — Analytics publication verification
+
+Merged the incoming marketing commit `5ffdb1b` while preserving both feature
+histories, schemas, migrations and browser suites (35 default checks).
+Post-merge TypeScript and ESLint passed. Focused analytics, marketing rules,
+navigation and browser safety tests: 71 passed. Full local Vitest run:
+456 passed, 232 skipped; skipped database tests are not verification.
+Production webpack build passed with an unreachable build-only database;
+it emitted expected missing local auth configuration warnings. The sandboxed
+Turbopack attempt was stopped after making no progress. No live Google
+authorization/sync, database/browser rerun, scheduler provisioning or deployment
+was performed during publication. Earlier implementation verification above
+remains a separate record.

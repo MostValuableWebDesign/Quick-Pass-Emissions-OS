@@ -16,3 +16,4 @@
 - [Dealership billing](dealership-billing.md) — dealership partners need regular invoice emails; a saved delivery record is not proof of sending.
 - [Verification tooling](verification-tooling.md) — temporary Python PDF-review installs can scaffold an unrelated root app; clean up only their unused generated changes.
 - [HTML validation patterns](html-validation-patterns.md) — escape punctuation in HTML `pattern` character classes; modern browsers can ignore invalid patterns silently.
+- [Marketing scope](marketing-scope.md) — evidence reporting and owner-controlled drafts do not authorize outbound marketing or parallel payment systems.

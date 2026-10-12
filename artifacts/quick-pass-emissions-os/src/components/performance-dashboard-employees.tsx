@@ -7,6 +7,7 @@ import type {
   InspectionCadence,
   PayProfile,
 } from "@/modules/station/dashboard-types";
+import { PerformancePaceEvidence } from "./performance-pace-evidence";
 import { usd, num, inspectionTime } from "./performance-dashboard-format";
 
 type Key =
@@ -22,7 +23,7 @@ const COLS: [Key, string, boolean][] = [
   ["name", "Employee", false],
   ["cars", "Cars", true],
   ["workingDays", "Days", true],
-  ["inspectionCadence", "Avg. time/car (est.)", true],
+  ["inspectionCadence", "Typical time between tests", true],
   ["revenueCents", "Revenue", true],
   ["baseCents", "Base", true],
   ["commissionCents", "Commission", true],
@@ -56,8 +57,8 @@ export function EmployeeTable({
         !t || e.name.toLowerCase().includes(t) || (e.inspector ?? "").toLowerCase().includes(t),
     );
     return [...list].sort((a, b) => {
-      const x = sort.key === "inspectionCadence" ? a.inspectionCadence.averageMinutes : a[sort.key];
-      const y = sort.key === "inspectionCadence" ? b.inspectionCadence.averageMinutes : b[sort.key];
+      const x = sort.key === "inspectionCadence" ? a.inspectionCadence.medianMinutes : a[sort.key];
+      const y = sort.key === "inspectionCadence" ? b.inspectionCadence.medianMinutes : b[sort.key];
       if (x === null && y === null) return 0;
       if (x === null) return 1;
       if (y === null) return -1;
@@ -153,9 +154,10 @@ export function EmployeeTable({
                     <td
                       className="r"
                       data-testid={`text-employee-interval-${e.id}`}
-                      title="This employee's daily first-to-last testing time divided by their cars. Includes pauses; estimated, not measured inspection duration."
+                      title="Median consecutive-test gap for this employee, paired within each day. Includes free retests; not measured inspection duration."
                     >
-                      {inspectionTime(e.inspectionCadence.averageMinutes)}
+                      {inspectionTime(e.inspectionCadence.medianMinutes)}
+                      <PerformancePaceEvidence pace={e.inspectionCadence} />
                     </td>
                     <td className="r">{usd(e.revenueCents)}</td>
                     <td className="r">
@@ -199,10 +201,13 @@ export function EmployeeTable({
                 <td />
                 <td
                   className="r"
-                  title="Selected-period overall time per car, not a sum of overlapping employee testing windows."
+                  title="Median of retained gaps, paired separately for each employee and day; not an average of employee medians."
                 >
                   {rows.length === employees.length && overallCadence ? (
-                    inspectionTime(overallCadence.averageMinutes)
+                    <>
+                      {inspectionTime(overallCadence.medianMinutes)}
+                      <PerformancePaceEvidence pace={overallCadence} />
+                    </>
                   ) : (
                     "—"
                   )}

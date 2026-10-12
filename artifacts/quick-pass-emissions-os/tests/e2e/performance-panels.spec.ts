@@ -5,12 +5,54 @@ import path from "node:path";
 test("signed-in owner can drag, resize, persist and reset performance panels", async ({ page }) => {
   await page.goto("/performance");
   await expect(page.getByRole("heading", { name: "Performance" })).toBeVisible();
-  await expect(page.getByTestId("text-inspection-interval")).toHaveText("3.6 min/car");
+  await expect(page.getByTestId("text-inspection-interval")).toHaveText("5.0 min");
   await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20One")).toContainText(
-    "4.9 min/car",
+    "5.0 min",
   );
   await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20Two")).toContainText(
-    "7.7 min/car",
+    "8.0 min",
+  );
+  await expect(page.getByText("Typical time between tests", { exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Pace settings", exact: true }).click();
+  const paceDialog = page.getByRole("dialog", { name: "Pace settings" });
+  await paceDialog.getByLabel("Long-gap threshold (minutes)").fill("6");
+  await paceDialog.getByRole("button", { name: "Save pace settings", exact: true }).click();
+  await expect(paceDialog).not.toBeVisible();
+  await expect(page.getByTestId("text-inspection-interval").locator("..")).toContainText(
+    "24 excluded long gaps",
+  );
+  await expect(page.getByTestId("text-inspection-interval").locator("..")).toHaveAttribute(
+    "title",
+    /free retests included/i,
+  );
+  await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20Two")).toContainText(
+    "No usable gaps",
+  );
+  await page.reload();
+  await page.getByRole("button", { name: "Pace settings", exact: true }).click();
+  await expect(paceDialog.getByLabel("Long-gap threshold (minutes)")).toHaveValue("6");
+  // A second device changes the station setting while this dialog is open.
+  const secondPage = await page.context().newPage();
+  await secondPage.goto("/performance");
+  await secondPage.getByRole("button", { name: "Pace settings", exact: true }).click();
+  const secondDialog = secondPage.getByRole("dialog", { name: "Pace settings" });
+  await secondDialog.getByLabel("Long-gap threshold (minutes)").fill("9");
+  await secondDialog.getByRole("button", { name: "Save pace settings", exact: true }).click();
+  await expect(secondDialog).not.toBeVisible();
+  await paceDialog.getByLabel("Long-gap threshold (minutes)").fill("30");
+  await paceDialog.getByRole("button", { name: "Save pace settings", exact: true }).click();
+  await expect(paceDialog.getByRole("alert")).toContainText("changed in another session");
+  await paceDialog.getByRole("button", { name: "Close pace settings" }).click();
+  await secondPage.close();
+  await page.reload();
+  await page.getByRole("button", { name: "Pace settings", exact: true }).click();
+  await expect(paceDialog.getByLabel("Long-gap threshold (minutes)")).toHaveValue("9");
+  // Remove the limit for the remaining panel/sorting workflow.
+  await paceDialog.getByLabel("Long-gap threshold (minutes)").fill("");
+  await paceDialog.getByRole("button", { name: "Save pace settings", exact: true }).click();
+  await expect(paceDialog).not.toBeVisible();
+  await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20Two")).toContainText(
+    "8.0 min",
   );
   await page.getByTestId("button-sort-inspectionCadence").click();
   await expect(page.locator(".pd-table tbody tr").first()).toContainText("Fixture Two");
@@ -235,6 +277,12 @@ test("busy hours and commission progress follow reports, employee filters and sa
   await expect(migratedEmployees).toHaveCSS("height", `${migratedHeight}px`);
   await expect(migratedEmployees).toHaveCSS("grid-column-start", "span 6");
   await expect(busy.getByTestId("text-busy-tests")).toHaveText("94");
+  // Pace includes all 95 physical tests (93 within-employee gaps), including the free retest.
+  await expect(page.getByTestId("text-inspection-interval")).toHaveText("5.0 min");
+  await expect(page.getByTestId("text-inspection-interval").locator("..")).toContainText(
+    "93 gaps used",
+  );
+
   await expect(busy.getByTestId("text-busy-peak")).toHaveText("11 AM");
   const hourlyBars = busy.getByRole("list", { name: "Counted cars by report hour" }).locator("li");
   await expect(hourlyBars).toHaveCount(24);

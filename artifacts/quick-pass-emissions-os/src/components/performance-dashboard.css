@@ -956,3 +956,11 @@
     font-size: 18px;
   }
 }
+
+.pd-pace-dialog {
+  max-width: 520px;
+}
+.pd-pace-dialog .pd-dialog-b {
+  display: grid;
+  gap: 14px;
+}

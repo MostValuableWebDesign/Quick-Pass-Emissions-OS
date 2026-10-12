@@ -24,12 +24,18 @@ export type PortalDay = Counts & {
     recordKey?: string;
     outcome?: "passed" | "failed" | "aborted" | "other";
   }[];
+  /** Derived on read: all physical inspections, including free retests, for pace only. */
+  paceTestTimes?: PortalDay["testTimes"];
 };
 export type InspectionCadence = {
-  averageMinutes: number | null;
-  cars: number;
+  medianMinutes: number | null;
+  includedGaps: number;
+  excludedLongGaps: number;
+  excludedOvernightGaps: number;
   coveredDays: number;
+  timedTests: number;
 };
+export type PaceSettings = { revision: number; longGapMinutes: number | null };
 export type DashboardQuery = {
   start: string;
   end: string;
@@ -124,6 +130,7 @@ export type DashboardData = {
   employeeOptions: { id: string; name: string }[];
   inspectors: string[];
   payPlan: PayPlan;
+  paceSettings: PaceSettings;
   missingDates: string[];
   staleDates: string[];
   timingMissingDates: string[];

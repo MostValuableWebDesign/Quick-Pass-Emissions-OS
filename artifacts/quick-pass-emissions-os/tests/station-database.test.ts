@@ -42,6 +42,40 @@ if (enabled) {
     employee = await user("EMPLOYEE");
     empId = (await db.employee.create({ data: { userId: employee } })).id;
   });
+  it("persists owner pace settings with audit revisions, rejects other roles and stale concurrent writes", async () => {
+    const pace = await import("../src/modules/station/dashboard-service");
+    const query = { start: date, end: date, trendDays: 7 as const };
+    const initial = await pace.readDashboard(owner, query);
+    expect(initial.paceSettings).toEqual({ revision: 0, longGapMinutes: null });
+    for (const actor of [manager, book, employee]) {
+      await expect(
+        pace.saveDashboardPaceSettings(actor, { revision: 0, longGapMinutes: 30 }, query),
+      ).rejects.toThrow("permission");
+    }
+    const writes = await Promise.allSettled([
+      pace.saveDashboardPaceSettings(owner, { revision: 0, longGapMinutes: 30 }, query),
+      pace.saveDashboardPaceSettings(owner, { revision: 0, longGapMinutes: 45 }, query),
+    ]);
+    expect(writes.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(writes.filter((result) => result.status === "rejected")).toHaveLength(1);
+    const saved = await pace.readDashboard(owner, query);
+    expect(saved.paceSettings.revision).toBe(1);
+    expect([30, 45]).toContain(saved.paceSettings.longGapMinutes);
+    expect(saved.payPlan).toEqual(initial.payPlan);
+    const cleared = await pace.saveDashboardPaceSettings(
+      owner,
+      { revision: 1, longGapMinutes: null },
+      query,
+    );
+    expect(cleared.paceSettings).toEqual({ revision: 2, longGapMinutes: null });
+    expect(
+      await db.auditLog.count({ where: { action: "STATION_PERFORMANCE_PACE_SETTINGS" } }),
+    ).toBe(2);
+    await db.user.update({ where: { id: owner }, data: { active: false } });
+    await expect(
+      pace.saveDashboardPaceSettings(owner, { revision: 2, longGapMinutes: 20 }, query),
+    ).rejects.toThrow("permission");
+  });
   async function setup() {
     await s.saveSettings(owner, {
       revision: 0,

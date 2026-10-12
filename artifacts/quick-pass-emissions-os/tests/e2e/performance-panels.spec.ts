@@ -21,7 +21,8 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   await expect(page.getByTestId("text-inspection-interval").locator("..")).toContainText(
     "24 excluded long gaps",
   );
-  await expect(page.getByTestId("text-inspection-interval").locator("..")).toContainText(
+  await expect(page.getByTestId("text-inspection-interval").locator("..")).toHaveAttribute(
+    "title",
     /free retests included/i,
   );
   await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20Two")).toContainText(

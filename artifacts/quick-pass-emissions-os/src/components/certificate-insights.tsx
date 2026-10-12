@@ -17,7 +17,6 @@ export function CertificateInsights({
   const [data, setData] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [analyzerOnly, setAnalyzerOnly] = useState(true);
   const mounted = useRef(false);
   const router = useRouter();
 
@@ -47,9 +46,7 @@ export function CertificateInsights({
   }, [canRefresh]);
 
   const metrics = data.metrics;
-  const records = analyzerOnly
-    ? data.orders.filter((o) => o.analyzer === CERTIFICATE_ANALYZER)
-    : data.orders;
+  const records = data.orders.filter((o) => o.analyzer === CERTIFICATE_ANALYZER);
   return (
     <section
       className="space-top"
@@ -59,9 +56,6 @@ export function CertificateInsights({
       <div className="portal-head">
         <div>
           <h2>Certificate stock & planning</h2>
-          <p className="muted">
-            GA102539 · {CERTIFICATE_ANALYZER} · Stock checked {asOf(data.portal.checkedAt)}
-          </p>
         </div>
         {canRefresh && (
           <button
@@ -136,12 +130,6 @@ export function CertificateInsights({
           </article>
         ))}
       </section>
-      <p className="muted">
-        Ordering frequency uses positive-quantity sale dates for {CERTIFICATE_ANALYZER}. Reorder and
-        depletion estimates use certificates purchased between order dates, not measured
-        consumption. Orders do not prove actual usage, voids, receipts or payment settlement. No
-        stock ledger entries are created.
-      </p>
       <section className="card card-body space-top" id="provider-order-history">
         <div className="portal-head">
           <div>
@@ -160,14 +148,6 @@ export function CertificateInsights({
             <ExternalLink size={15} aria-hidden="true" /> Open official order report
           </a>
         </div>
-        <label className="space-top">
-          <input
-            type="checkbox"
-            checked={analyzerOnly}
-            onChange={(event) => setAnalyzerOnly(event.target.checked)}
-          />{" "}
-          Show {CERTIFICATE_ANALYZER} only
-        </label>
         {!records.length ? (
           <p className="muted">
             {data.checkedAt

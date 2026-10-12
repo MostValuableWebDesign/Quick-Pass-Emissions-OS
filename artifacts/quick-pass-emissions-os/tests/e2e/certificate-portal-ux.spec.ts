@@ -115,9 +115,8 @@ test.describe("owner certificate portal and alert settings", () => {
       "Average cert ordering frequency",
     );
     await expect(page.getByTestId("provider-order-table").locator("tbody tr")).toHaveCount(10);
+    await expect(page.getByLabel("Show HT111411 only")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Next orders" })).toHaveCount(0);
-    await page.getByLabel("Show HT111411 only").uncheck();
-    await expect(page.getByTestId("provider-order-table").locator("tbody tr")).toHaveCount(10);
     await expect(page.getByTestId("banner-low-certificates")).toBeVisible();
     await expect(page.locator("details#records")).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Request a certificate purchase" })).toHaveCount(

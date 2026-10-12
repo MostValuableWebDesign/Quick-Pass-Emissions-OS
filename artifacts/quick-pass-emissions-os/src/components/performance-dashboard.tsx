@@ -214,15 +214,11 @@ export function PerformanceDashboard({
               {inspectionTime(s.inspectionCadence.medianMinutes)}
             </strong>
             <PerformancePaceEvidence pace={s.inspectionCadence} />
-            <small>
-              {s.inspectionCadence.coveredDays}/{s.expectedDays} days fully timed · free retests
-              included
-            </small>
-            <small>
-              {data.paceSettings.longGapMinutes === null
-                ? "No long-gap limit configured"
-                : `Excluded long gap: over ${data.paceSettings.longGapMinutes} min`}
-            </small>
+            {s.inspectionCadence.coveredDays < s.expectedDays && (
+              <small>
+                Partial timing: {s.inspectionCadence.coveredDays}/{s.expectedDays} days fully timed
+              </small>
+            )}
           </div>
           <div className="pd-kpi">
             <span className="lab">Staff pay (est.)</span>

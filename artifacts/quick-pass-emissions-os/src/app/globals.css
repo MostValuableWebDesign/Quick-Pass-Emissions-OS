@@ -2894,3 +2894,37 @@ textarea:focus-visible {
     transition: none;
   }
 }
+
+.address-search {
+  position: relative;
+  margin-block: 0.75rem;
+}
+.address-search > label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+.address-suggestions {
+  list-style: none;
+  margin: 0.25rem 0;
+  padding: 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface);
+}
+.address-suggestions [role="option"] {
+  padding: 0.65rem;
+  cursor: pointer;
+  border-radius: 0.3rem;
+  overflow-wrap: anywhere;
+}
+.address-suggestions [role="option"]:hover,
+.address-suggestions [aria-selected="true"] {
+  background: var(--soft);
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+.address-source {
+  font-size: 0.875rem;
+  font-weight: 600;
+}

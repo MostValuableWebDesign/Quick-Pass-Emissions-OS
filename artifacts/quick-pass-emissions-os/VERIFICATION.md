@@ -1,3 +1,37 @@
+# Shared contact address lookup — October 12, 2026
+
+Pulled shared main first through `7b36d3f`. Added one shared address search/structured-fields
+component for employee, dealership and vendor create/edit workflows, optional server-only
+Geoapify lookup, persistent source/provider metadata and additive migration
+`202610120004_contact_address_lookup`. Existing addresses remain manual. Provider selections
+identify streets/localities only; apartment/suite details remain manual and delivery validation
+is not claimed. Vendor address edits are independent of primary-contact verification.
+
+- **574 unit/database tests passed, none skipped, in 67 files** on a runner-owned disposable
+  PostgreSQL database. Address checks cover all three save paths, structured billing, legacy
+  billing preservation, signatures/forgery and changed-field downgrade, apartment/suite edits,
+  staff/deactivated-management rejection, vendor version conflicts and audit, provider failures,
+  query/origin guards and a real concurrent endpoint quota (30 allowed / five limited, then
+  window reset). Upgrade checks retained approved payroll, invoice and signed reversal snapshots.
+  Updated personnel test fixtures to include the current required job role and exercise owner
+  grants through the current management-account action, preserving the concurrency assertions.
+- **Three focused Playwright workflows passed, none skipped**, using
+  `E2E_ADDRESSES_ONLY=1`: employee/dealership/vendor create → save → reopen → edit → save → reopen,
+  keyboard Up/Down/Enter/Escape, pointer selection, existing suites and units entered in search,
+  provider/manual source persistence, unit-only edits, real unconfigured-provider fallback and
+  390px overflow checks. Native login and unrelated-origin rejection passed preflight. Suggestions
+  were synthetic/private fixtures; real server save actions verified signatures. Added these
+  workflows to the default manifest/completion guard (27 checks); the broader browser suite was
+  not rerun.
+- TypeScript, ESLint, changed-file Prettier, Prisma formatting, whitespace checks and the standard
+  production build passed. The build used an unreachable build-only database URL; 61 trace
+  manifests contained no private verification/environment references. Repository-wide formatting
+  still reports 53 untouched files.
+- No address-provider credentials were present. Live Geoapify lookup was not verified; set
+  `GEOAPIFY_API_KEY` in server secrets using [the setup guide](docs/ADDRESS_LOOKUP.md). Manual saving
+  works without it. Runner-owned databases, browser state and build caches were removed. No
+  business database migration, external account provisioning or deployment was performed.
+
 # Shared station test-export limits — October 12, 2026
 
 Synced shared main through `44e1736`. Performance history and daily-count exports now claim one persistent per-station reservation across accounts and processes. Manual refresh and different dates share a 60-second completion cooldown and five-minute failure cooldown. The claim transaction releases database locks before network work; source calls/writes re-check authorization, station, token and expiry. A shared 45-second request deadline covers redirects and response bodies, while abandoned reservations recover after two minutes. Only the owning token can finish/release a run. History requests cover at most three days and use at most three requests per run, including explicit empty-day checks, with today isolated first. Verified batches stay cached and later owner-triggered loads continue missing history after cooldown.

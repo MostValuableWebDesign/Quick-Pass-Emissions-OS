@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import { addressInputShape, formatContactAddress } from "@/lib/contact-address";
+import { savedContactAddress } from "@/lib/address-provenance";
+import { addressInputShape, addressKeys, formatContactAddress } from "@/lib/contact-address";
 import { uniqueReceiptReference } from "./references";
 import { id, dateString } from "@/lib/validation";
 import { businessDate, addDays } from "@/lib/time";
@@ -56,6 +57,7 @@ export async function saveDealer(actorId: string, input: unknown) {
     id: key,
     version: v,
     reason: why,
+    addressProof,
     ...data
   } = z
     .object({
@@ -65,7 +67,10 @@ export async function saveDealer(actorId: string, input: unknown) {
       name: label,
       billingAddress: reason.optional(),
       phone: z.string().trim().max(50).optional(),
-      email: z.union([z.email().max(254), z.literal("")]).transform((v) => v.toLowerCase()).optional(),
+      email: z
+        .union([z.email().max(254), z.literal("")])
+        .transform((v) => v.toLowerCase())
+        .optional(),
       ...addressInputShape,
       notes,
       active: z.boolean().optional(),
@@ -75,14 +80,32 @@ export async function saveDealer(actorId: string, input: unknown) {
   return phase4(actorId, financeRoles, async (tx) => {
     const before = key ? await tx.dealership.findUnique({ where: { id: key } }) : null;
     requireRule(!key || before?.version === v, "Dealership changed. Refresh and review it.");
+    const structured = addressKeys.some((key) => data[key] !== undefined);
+    const legacyChanged =
+      !structured &&
+      data.billingAddress !== undefined &&
+      data.billingAddress !== before?.billingAddress;
+    const address = savedContactAddress(
+      legacyChanged
+        ? {
+            streetAddress: data.billingAddress,
+            addressLine2: "",
+            city: "",
+            state: "",
+            postalCode: "",
+          }
+        : { ...data, addressProof },
+      legacyChanged ? null : before,
+    );
     const saved = {
       ...data,
+      ...address,
       code: data.code ?? before?.code ?? `DLR-${randomUUID()}`,
       phone: data.phone ?? before?.phone ?? "",
       email: data.email ?? before?.email ?? "",
-      billingAddress: data.streetAddress !== undefined
-        ? formatContactAddress(data)
-        : data.billingAddress ?? before?.billingAddress ?? "",
+      billingAddress: structured
+        ? formatContactAddress(address) || data.billingAddress || ""
+        : (data.billingAddress ?? before?.billingAddress ?? ""),
       active: data.active ?? before?.active ?? true,
     };
     requireRule(saved.billingAddress.trim().length > 0, "Enter a billing address.");
@@ -285,14 +308,25 @@ export async function createInvoice(actorId: string, input: unknown) {
           name: dealer.name,
           billingAddress: dealer.billingAddress,
           phone: dealer.phone,
-          contacts: [...dealer.contacts.map((c) => ({
-            name: c.name,
-            email: c.email,
-            phone: c.phone,
-            purpose: c.purpose,
-          })), ...(dealer.email && !dealer.contacts.some((c) => c.email.toLowerCase() === dealer.email.toLowerCase())
-            ? [{ name: dealer.name, email: dealer.email, phone: dealer.phone, purpose: "Billing" }]
-            : [])],
+          contacts: [
+            ...dealer.contacts.map((c) => ({
+              name: c.name,
+              email: c.email,
+              phone: c.phone,
+              purpose: c.purpose,
+            })),
+            ...(dealer.email &&
+            !dealer.contacts.some((c) => c.email.toLowerCase() === dealer.email.toLowerCase())
+              ? [
+                  {
+                    name: dealer.name,
+                    email: dealer.email,
+                    phone: dealer.phone,
+                    purpose: "Billing",
+                  },
+                ]
+              : []),
+          ],
           termsDays: dealer.termsDays,
           defaultRateCents: dealer.defaultRateCents,
           taxBps: dealer.taxBps,
@@ -538,24 +572,37 @@ export async function reviewEntry(actorId: string, input: unknown) {
     await audit(tx, actorId, `FINANCE_ENTRY_${data.decision}`, row.id, data);
   });
 }
-export async function dealerOverview(actorId: string, query = "", scope: "active" | "all" | "archived" = "active") {
+export async function dealerOverview(
+  actorId: string,
+  query = "",
+  scope: "active" | "all" | "archived" = "active",
+) {
   const search = z.string().max(160).parse(query);
   return phase4(actorId, financeRoles, async (tx) => ({
     dealers: await tx.dealership.findMany({
       where: {
         ...(scope === "all" ? {} : { active: scope === "active" }),
-        ...(search ? {
-            OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { phone: { contains: search, mode: "insensitive" } },
-              { email: { contains: search, mode: "insensitive" } },
-              { contacts: { some: { active: true, OR: [
+        ...(search
+          ? {
+              OR: [
                 { name: { contains: search, mode: "insensitive" } },
-                { email: { contains: search, mode: "insensitive" } },
                 { phone: { contains: search, mode: "insensitive" } },
-              ] } } },
-            ],
-          } : {}),
+                { email: { contains: search, mode: "insensitive" } },
+                {
+                  contacts: {
+                    some: {
+                      active: true,
+                      OR: [
+                        { name: { contains: search, mode: "insensitive" } },
+                        { email: { contains: search, mode: "insensitive" } },
+                        { phone: { contains: search, mode: "insensitive" } },
+                      ],
+                    },
+                  },
+                },
+              ],
+            }
+          : {}),
       },
       orderBy: { name: "asc" },
       take: 100,

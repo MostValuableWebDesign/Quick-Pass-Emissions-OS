@@ -1,3 +1,4 @@
+import { savedContactAddress } from "@/lib/address-provenance";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { id, dateString } from "../../lib/validation";
@@ -105,7 +106,7 @@ export async function saveVendor(actorId: string, input: unknown) {
   return phase3(actorId, managers, (tx) => saveVendorInTransaction(tx, actorId, data));
 }
 export async function addUnverifiedVendor(actorId: string, input: unknown) {
-  const data = v.unverifiedVendorInput.parse(input);
+  const { addressProof, ...data } = v.unverifiedVendorInput.parse(input);
   return phase3(actorId, managers, async (tx) => {
     const duplicate = await tx.vendor.findFirst({
       where: { name: { equals: data.name, mode: "insensitive" }, phone: data.phone },
@@ -113,7 +114,12 @@ export async function addUnverifiedVendor(actorId: string, input: unknown) {
     });
     requireRule(!duplicate, "A vendor with this name and phone is already listed.");
     const row = await tx.vendor.create({
-      data: { ...data, verifiedDate: null, active: true },
+      data: {
+        ...data,
+        ...savedContactAddress({ ...data, addressProof }),
+        verifiedDate: null,
+        active: true,
+      },
     });
     await audit(tx, actorId, "VENDOR_SAVED", row.id, {
       before: null,
@@ -528,4 +534,20 @@ export async function maintenanceSummary(actorId: string) {
           items.filter((i) => i.reorderPoint !== null && i.balance! <= i.reorderPoint).length,
       ),
   }));
+}
+
+// Address edits do not assert that a vendor's business contact has been verified.
+export async function saveVendorAddress(actorId: string, input: unknown) {
+  const { id, version, ...data } = v.vendorAddressInput.parse(input);
+  return phase3(actorId, managers, async (tx) => {
+    const before = await tx.vendor.findUnique({ where: { id } });
+    current(before, version);
+    const address = savedContactAddress(data, before);
+    const row = await tx.vendor.update({
+      where: { id },
+      data: { ...address, version: { increment: 1 } },
+    });
+    await audit(tx, actorId, "VENDOR_ADDRESS_UPDATED", id, { before, after: address });
+    return row;
+  });
 }

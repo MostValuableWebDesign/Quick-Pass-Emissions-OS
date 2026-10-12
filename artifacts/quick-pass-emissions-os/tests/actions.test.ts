@@ -35,6 +35,7 @@ suite("Server action authorization with PostgreSQL", () => {
   let employeeProfileId: string;
   const employeeData = {
     name: "Created employee",
+    jobRole: "Inspector",
     email: "created@example.test",
     role: "EMPLOYEE",
     phone: "",
@@ -98,7 +99,7 @@ suite("Server action authorization with PostgreSQL", () => {
   });
   it("denies manager attempts to grant owner access", async () => {
     session.userId = adminId;
-    const result = await actions.saveEmployee({}, form({ ...employeeData, role: "OWNER" }));
+    const result = await actions.createManagerAccount({}, form({ ...employeeData, role: "OWNER" }));
     expect(result.ok).toBe(false);
     expect(await db.user.count()).toBe(3);
   });
@@ -200,7 +201,7 @@ suite("Server action authorization with PostgreSQL", () => {
       session.userId = actor.id;
       const before = await db.auditLog.count();
       const result = await queuedChange(
-        () => actions.saveEmployee({}, form({ ...employeeData, email, role: "OWNER" })),
+        () => actions.createManagerAccount({}, form({ ...employeeData, email, role: "OWNER" })),
         (tx) =>
           tx.user.update({
             where: { id: actor.id },

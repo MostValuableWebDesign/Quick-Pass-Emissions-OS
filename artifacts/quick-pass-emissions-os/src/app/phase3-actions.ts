@@ -91,3 +91,7 @@ export async function reversePayment(_: ActionState, form: FormData) {
 export async function voidCharge(_: ActionState, form: FormData) {
   return perform((actor) => rentals.voidCharge(actor, fields(form)));
 }
+
+export async function saveVendorAddress(_: ActionState, form: FormData) {
+  return perform((actor) => maintenance.saveVendorAddress(actor, fields(form)));
+}

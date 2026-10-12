@@ -79,3 +79,14 @@ a fixed 15-item page size; financial calculations and approved exports use compl
 ## Shared station test-export coordination
 
 `StationTestExportState` stores one active reservation token/expiry and shared cooldown per station hash. `test-export-gate.ts` claims it under existing owner authorization and station transaction locks, then releases those locks before any network request. Performance history and daily counts use the same gate. Source calls and snapshot writes re-check authorization, configured station, token and expiry; only the owning token may finish the run. Cleanup is internal and still clears its own reservation after actor deactivation. Database time controls the two-minute lease and 60-second completion/five-minute failure cooldown; a shared AbortSignal bounds provider work to 45 seconds, including redirects and response bodies. History requests are sequential, limited to three days each and three requests per run including empty-day fallbacks. Cached domain data is independent of coordination state and remains available during cooldown.
+
+## Shared address lookup and provenance
+
+`ContactAddressFields` owns only interactive search/selection state. `/api/addresses` authenticates
+current management access, checks origin and input, and applies a PostgreSQL-backed lookup quota.
+`address-lookup.ts` maps Geoapify building results to structured US fields; `address-provenance.ts`
+signs and verifies base-address selections. Employee, dealership and vendor save transactions
+persist those fields/source/provider ID and retain manually entered units. Client source flags
+are ignored; no postal validation is claimed. Vendors have an independent versioned address edit
+so primary-contact verification remains separate. See docs/ADDRESS_LOOKUP.md and additive
+migration 202610120004_contact_address_lookup. Saved data never depends on a provider being online.

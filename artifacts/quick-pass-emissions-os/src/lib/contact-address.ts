@@ -2,6 +2,7 @@ import { z } from "zod";
 import { optionalDate } from "./validation";
 
 export const addressInputShape = {
+  addressProof: z.string().max(5000).optional(),
   streetAddress: z.string().trim().max(1000).optional(),
   addressLine2: z.string().trim().max(160).optional(),
   city: z.string().trim().max(100).optional(),
@@ -10,6 +11,8 @@ export const addressInputShape = {
 };
 
 export type ContactAddress = {
+  addressSource?: string;
+  addressProviderId?: string;
   streetAddress?: string;
   addressLine2?: string;
   city?: string;
@@ -18,10 +21,9 @@ export type ContactAddress = {
 };
 
 export function formatContactAddress(address: ContactAddress) {
-  const locality = [
-    address.city,
-    [address.state, address.postalCode].filter(Boolean).join(" "),
-  ].filter(Boolean).join(", ");
+  const locality = [address.city, [address.state, address.postalCode].filter(Boolean).join(" ")]
+    .filter(Boolean)
+    .join(", ");
   return [address.streetAddress, address.addressLine2, locality].filter(Boolean).join("\n");
 }
 
@@ -32,3 +34,18 @@ export const contactEmployeeInput = z.object({
   ...addressInputShape,
   certificationExpires: optionalDate.optional(),
 });
+
+export const addressKeys = [
+  "streetAddress",
+  "addressLine2",
+  "city",
+  "state",
+  "postalCode",
+] as const;
+export const baseAddressKeys = ["streetAddress", "city", "state", "postalCode"] as const;
+export type AddressSuggestion = {
+  id: string;
+  label: string;
+  address: Required<Pick<ContactAddress, "streetAddress" | "city" | "state" | "postalCode">>;
+  proof: string;
+};

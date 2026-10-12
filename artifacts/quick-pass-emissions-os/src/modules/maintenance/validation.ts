@@ -1,3 +1,4 @@
+import { addressInputShape } from "@/lib/contact-address";
 import { z } from "zod";
 import { dateString, timeString, id } from "../../lib/validation";
 export const reason = z.string().trim().min(1).max(2000);
@@ -63,6 +64,7 @@ export const vendorInput = vendorReferenceInput.refine(
   "Enter a contact verification date.",
 );
 export const unverifiedVendorInput = z.object({
+  ...addressInputShape,
   name: label,
   phone: z.string().trim().min(1, "Phone number is required.").max(50),
   contact: z.string().trim().max(160).default(""),
@@ -122,3 +124,5 @@ export const planInput = z
     reason,
   })
   .refine(oneTarget, "Choose either a bay or equipment item.");
+
+export const vendorAddressInput = z.object({ id, version, ...addressInputShape });

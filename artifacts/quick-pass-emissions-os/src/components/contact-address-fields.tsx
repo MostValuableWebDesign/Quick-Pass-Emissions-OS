@@ -1,7 +1,12 @@
 "use client";
 import { useEffect, useId, useRef, useState } from "react";
 import { Field } from "./action-form";
-import { addressKeys, type AddressSuggestion, type ContactAddress } from "@/lib/contact-address";
+import {
+  addressKeys,
+  type AddressSuggestion,
+  type ContactAddress,
+  usStates,
+} from "@/lib/contact-address";
 
 export function ContactAddressFields({
   value = {},
@@ -203,6 +208,30 @@ export function ContactAddressFields({
                 setProof("");
               },
             };
+            if (key === "state") {
+              return (
+                <Field key={key} label={labels[key]}>
+                  <select
+                    name={key}
+                    autoComplete={autocomplete[key]}
+                    value={address.state}
+                    onChange={(event) =>
+                      setAddress((previous) => ({ ...previous, state: event.target.value }))
+                    }
+                  >
+                    <option value="">Select a state</option>
+                    {usStates.map(([code, name]) => (
+                      <option key={code} value={code}>
+                        {name}
+                      </option>
+                    ))}
+                    {address.state && !usStates.some(([code]) => code === address.state) && (
+                      <option value={address.state}>{address.state}</option>
+                    )}
+                  </select>
+                </Field>
+              );
+            }
             return (
               <Field key={key} label={labels[key]}>
                 <input {...props} />

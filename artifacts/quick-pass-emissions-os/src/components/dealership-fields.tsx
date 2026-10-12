@@ -1,6 +1,7 @@
 import type { Dealership } from "@prisma/client";
 import { Field } from "./action-form";
 import { ContactAddressFields } from "./contact-address-fields";
+import { ContactPhoneField } from "./contact-phone-field";
 
 export function DealershipFields({ dealer }: { dealer?: Dealership }) {
   return (
@@ -8,11 +9,16 @@ export function DealershipFields({ dealer }: { dealer?: Dealership }) {
       <Field label="Dealership name">
         <input name="name" autoComplete="organization" required maxLength={160} defaultValue={dealer?.name} />
       </Field>
-      <Field label="Phone">
-        <input name="phone" type="tel" autoComplete="tel" maxLength={50} defaultValue={dealer?.phone} />
-      </Field>
+      <ContactPhoneField value={dealer?.phone} />
       <Field label="Email">
-        <input name="email" type="email" autoComplete="email" maxLength={254} defaultValue={dealer?.email} />
+        <input
+          name="email"
+          type="email"
+          autoComplete="email"
+          maxLength={254}
+          title="Enter a valid email address."
+          defaultValue={dealer?.email}
+        />
       </Field>
       <ContactAddressFields
         label="Billing address"

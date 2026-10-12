@@ -1,4 +1,8 @@
-import { addressInputShape } from "@/lib/contact-address";
+import {
+  addressInputShape,
+  contactPhoneInput,
+  requiredContactPhoneInput,
+} from "@/lib/contact-address";
 import { z } from "zod";
 import { dateString, timeString, id } from "../../lib/validation";
 export const reason = z.string().trim().min(1).max(2000);
@@ -46,7 +50,7 @@ export const vendorReferenceInput = z
     version,
     name: label,
     contact: z.string().trim().max(160),
-    phone: z.string().trim().max(50),
+    phone: contactPhoneInput,
     email: z.union([z.email().max(254), z.literal("")]),
     services: reason,
     reference: z.string().trim().max(160),
@@ -66,7 +70,7 @@ export const vendorInput = vendorReferenceInput.refine(
 export const unverifiedVendorInput = z.object({
   ...addressInputShape,
   name: label,
-  phone: z.string().trim().min(1, "Phone number is required.").max(50),
+  phone: requiredContactPhoneInput,
   contact: z.string().trim().max(160).default(""),
   email: z.union([z.email().max(254), z.literal("")]).default(""),
   services: z.string().trim().max(2000).default(""),

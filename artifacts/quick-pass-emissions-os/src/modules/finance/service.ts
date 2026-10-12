@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { savedContactAddress } from "@/lib/address-provenance";
-import { addressInputShape, addressKeys, formatContactAddress } from "@/lib/contact-address";
+import {
+  addressInputShape,
+  addressKeys,
+  contactPhoneInput,
+  formatContactAddress,
+} from "@/lib/contact-address";
 import { uniqueReceiptReference } from "./references";
 import { id, dateString } from "@/lib/validation";
 import { businessDate, addDays } from "@/lib/time";
@@ -66,7 +71,7 @@ export async function saveDealer(actorId: string, input: unknown) {
       code: label.optional(),
       name: label,
       billingAddress: reason.optional(),
-      phone: z.string().trim().max(50).optional(),
+      phone: contactPhoneInput.optional(),
       email: z
         .union([z.email().max(254), z.literal("")])
         .transform((v) => v.toLowerCase())
@@ -138,7 +143,7 @@ export async function saveContact(actorId: string, input: unknown) {
       dealershipId: id,
       name: label,
       email: z.union([z.email().max(254), z.literal("")]),
-      phone: z.string().trim().max(50),
+      phone: contactPhoneInput,
       purpose: label,
       source: reason,
       active: z.boolean().optional(),

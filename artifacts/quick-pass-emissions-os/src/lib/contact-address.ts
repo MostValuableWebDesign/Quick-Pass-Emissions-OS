@@ -1,5 +1,19 @@
 import { z } from "zod";
 import { optionalDate } from "./validation";
+import { isValidContactPhone } from "./contact-phone";
+
+export const contactPhoneInput = z
+  .string()
+  .trim()
+  .max(50)
+  .refine(isValidContactPhone, "Enter a valid phone number.");
+
+export const requiredContactPhoneInput = z
+  .string()
+  .trim()
+  .min(1, "Phone number is required.")
+  .max(50)
+  .refine(isValidContactPhone, "Enter a valid phone number.");
 
 export const addressInputShape = {
   addressProof: z.string().max(5000).optional(),
@@ -29,7 +43,7 @@ export function formatContactAddress(address: ContactAddress) {
 
 export const contactEmployeeInput = z.object({
   name: z.string().trim().min(1).max(160),
-  phone: z.string().trim().max(50),
+  phone: contactPhoneInput,
   jobRole: z.string().trim().min(1, "Enter the employee's role.").max(160),
   ...addressInputShape,
   certificationExpires: optionalDate.optional(),
@@ -43,6 +57,59 @@ export const addressKeys = [
   "postalCode",
 ] as const;
 export const baseAddressKeys = ["streetAddress", "city", "state", "postalCode"] as const;
+export const usStates = [
+  ["AL", "Alabama"],
+  ["AK", "Alaska"],
+  ["AZ", "Arizona"],
+  ["AR", "Arkansas"],
+  ["CA", "California"],
+  ["CO", "Colorado"],
+  ["CT", "Connecticut"],
+  ["DE", "Delaware"],
+  ["DC", "District of Columbia"],
+  ["FL", "Florida"],
+  ["GA", "Georgia"],
+  ["HI", "Hawaii"],
+  ["ID", "Idaho"],
+  ["IL", "Illinois"],
+  ["IN", "Indiana"],
+  ["IA", "Iowa"],
+  ["KS", "Kansas"],
+  ["KY", "Kentucky"],
+  ["LA", "Louisiana"],
+  ["ME", "Maine"],
+  ["MD", "Maryland"],
+  ["MA", "Massachusetts"],
+  ["MI", "Michigan"],
+  ["MN", "Minnesota"],
+  ["MS", "Mississippi"],
+  ["MO", "Missouri"],
+  ["MT", "Montana"],
+  ["NE", "Nebraska"],
+  ["NV", "Nevada"],
+  ["NH", "New Hampshire"],
+  ["NJ", "New Jersey"],
+  ["NM", "New Mexico"],
+  ["NY", "New York"],
+  ["NC", "North Carolina"],
+  ["ND", "North Dakota"],
+  ["OH", "Ohio"],
+  ["OK", "Oklahoma"],
+  ["OR", "Oregon"],
+  ["PA", "Pennsylvania"],
+  ["RI", "Rhode Island"],
+  ["SC", "South Carolina"],
+  ["SD", "South Dakota"],
+  ["TN", "Tennessee"],
+  ["TX", "Texas"],
+  ["UT", "Utah"],
+  ["VT", "Vermont"],
+  ["VA", "Virginia"],
+  ["WA", "Washington"],
+  ["WV", "West Virginia"],
+  ["WI", "Wisconsin"],
+  ["WY", "Wyoming"],
+] as const;
 export type AddressSuggestion = {
   id: string;
   label: string;

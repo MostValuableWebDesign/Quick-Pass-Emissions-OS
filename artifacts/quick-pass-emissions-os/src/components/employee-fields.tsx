@@ -1,6 +1,6 @@
 import type { Employee, User } from "@prisma/client";
-import { Field } from "./action-form";
 import { ContactAddressFields } from "./contact-address-fields";
+import { ContactPhoneField } from "./contact-phone-field";
 
 export function EmployeeFields({ employee }: { employee?: Employee & { user: User } }) {
   return (
@@ -14,15 +14,7 @@ export function EmployeeFields({ employee }: { employee?: Employee & { user: Use
           defaultValue={employee?.user.name}
         />
       </Field>
-      <Field label="Phone">
-        <input
-          name="phone"
-          type="tel"
-          autoComplete="tel"
-          maxLength={50}
-          defaultValue={employee?.phone}
-        />
-      </Field>
+      <ContactPhoneField value={employee?.phone} />
       <Field label="Role">
         <select name="jobRole" required defaultValue={employee?.jobRole || "Inspector"}>
           <option value="Owner">Owner</option>

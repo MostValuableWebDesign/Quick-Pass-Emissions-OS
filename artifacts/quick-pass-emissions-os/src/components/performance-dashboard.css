@@ -594,11 +594,19 @@
   min-width: 1000px;
   table-layout: fixed;
 }
-.pd-employee-table th,
-.pd-employee-table td {
+.pd-employee-table.pd-table th,
+.pd-employee-table.pd-table td {
   padding-right: 10px;
   padding-left: 10px;
   vertical-align: middle;
+}
+.pd-employee-table.pd-table th button {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+}
+.pd-employee-table.pd-table th.r button {
+  justify-content: flex-end;
 }
 .pd-employee-table td small {
   margin-top: 4px;

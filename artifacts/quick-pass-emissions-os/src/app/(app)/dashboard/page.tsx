@@ -83,11 +83,6 @@ export default async function Dashboard({
       <PageHeader title="Dashboard">
         <div className="dashboard-heading-tools">
           <DashboardClock businessDay={data.today} initialTime={now.toISOString()} />
-          <DashboardRefresh
-            today={data.today}
-            canRefreshPerformance={user.role === "OWNER"}
-            canRefreshCertificates={approvalRoles.includes(data.role)}
-          />
         </div>
       </PageHeader>
       {data.demo && (
@@ -110,9 +105,16 @@ export default async function Dashboard({
         </div>
       )}
       <section aria-labelledby="snapshot-heading">
-        <h2 id="snapshot-heading" className="dashboard-section-title">
-          Today’s business snapshot
-        </h2>
+        <div className="dashboard-section-heading">
+          <h2 id="snapshot-heading" className="dashboard-section-title">
+            Today’s business snapshot
+          </h2>
+          <DashboardRefresh
+            today={data.today}
+            canRefreshPerformance={user.role === "OWNER"}
+            canRefreshCertificates={approvalRoles.includes(data.role)}
+          />
+        </div>
         <div className="business-snapshot">
           <article className="stat">
             <div className="stat-top">

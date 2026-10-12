@@ -114,6 +114,13 @@ describe("Business dashboard presentation", () => {
     expect(html).not.toMatch(/<p class="muted"><span class="dashboard-live-clock"/);
   });
 
+  it("places the refresh control on the business snapshot heading row", async () => {
+    const html = await render();
+    expect(html).toMatch(
+      /class="dashboard-section-heading">.*Today’s business snapshot.*button-dashboard-refresh/s,
+    );
+  });
+
   it("shows the snapshot, prominent unresolved attention and quick actions in that order with explicit financial labels", async () => {
     const html = await render();
     expect(html.indexOf("Today’s business snapshot")).toBeLessThan(html.indexOf("Needs attention"));

@@ -28,7 +28,7 @@ for (const kind of ["employee", "dealership", "vendor"] as const) {
       path.join(process.env.E2E_PRIVATE_DIR!, "address-suggestions.json"),
       "utf8",
     );
-    await page.route("**/api/addresses", (r) =>
+    await page.route("**/api/addresses**", (r) =>
       r.fulfill({ status: 200, contentType: "application/json", body: fixture }),
     );
     await page.goto(route);
@@ -44,13 +44,13 @@ for (const kind of ["employee", "dealership", "vendor"] as const) {
     const search = fields.getByRole("combobox", { name: "Street address", exact: true });
     await expect(fields.getByLabel("Find an address", { exact: true })).toHaveCount(0);
     await search.fill("100 Fixture");
-    await expect(fields.getByRole("option")).toHaveCount(1);
+    await expect(fields.getByRole("listbox").getByRole("option")).toHaveCount(1);
     await search.press("Escape");
-    await expect(fields.getByRole("option")).toHaveCount(0);
+    await expect(fields.getByRole("listbox")).toHaveCount(0);
     await expect(addDialog).toBeVisible();
     await expect(search).toHaveValue("100 Fixture");
     await search.fill("100 Fixture Street");
-    await expect(fields.getByRole("option")).toHaveCount(1);
+    await expect(fields.getByRole("listbox").getByRole("option")).toHaveCount(1);
     await search.press("ArrowDown");
     await expect(search).toHaveAttribute("aria-activedescendant", /option-0$/);
     await search.press("Enter");
@@ -80,16 +80,18 @@ for (const kind of ["employee", "dealership", "vendor"] as const) {
     await expect(fields.locator(".address-source")).toHaveCount(0);
     await expect(fields.locator('[name="addressLine2"]')).toHaveValue("");
     // Pointer selection remains available without exposing provider/provenance copy.
-    await fields.getByRole("combobox").fill("100 Fixture Street");
-    await expect(fields.getByRole("option")).toHaveCount(1);
-    await fields.getByRole("option").click();
+    await fields
+      .getByRole("combobox", { name: "Street address", exact: true })
+      .fill("100 Fixture St");
+    await expect(fields.getByRole("listbox").getByRole("option")).toHaveCount(1);
+    await fields.getByRole("listbox").getByRole("option").click();
     await check(fields);
     await save(fields, edit);
     await page.reload();
     fields = await openEditor();
     await check(fields);
     // Provider failure does not block manual corrections or saving/reopening.
-    await page.unroute("**/api/addresses");
+    await page.unroute("**/api/addresses**");
     await fields.getByLabel("Street address", { exact: true }).fill("Unavailable address");
     await expect(fields.locator(".address-source")).toHaveCount(0);
     await expect(

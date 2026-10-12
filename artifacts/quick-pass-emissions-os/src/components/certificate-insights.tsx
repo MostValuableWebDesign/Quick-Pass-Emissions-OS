@@ -17,7 +17,6 @@ export function CertificateInsights({
   const [data, setData] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [analyzerOnly, setAnalyzerOnly] = useState(true);
   const mounted = useRef(false);
   const router = useRouter();
 
@@ -47,9 +46,7 @@ export function CertificateInsights({
   }, [canRefresh]);
 
   const metrics = data.metrics;
-  const records = analyzerOnly
-    ? data.orders.filter((o) => o.analyzer === CERTIFICATE_ANALYZER)
-    : data.orders;
+  const records = data.orders.filter((o) => o.analyzer === CERTIFICATE_ANALYZER);
   return (
     <section
       className="space-top"
@@ -59,9 +56,6 @@ export function CertificateInsights({
       <div className="portal-head">
         <div>
           <h2>Certificate stock & planning</h2>
-          <p className="muted">
-            GA102539 · {CERTIFICATE_ANALYZER} · Stock checked {asOf(data.portal.checkedAt)}
-          </p>
         </div>
         {canRefresh && (
           <button
@@ -160,14 +154,6 @@ export function CertificateInsights({
             <ExternalLink size={15} aria-hidden="true" /> Open official order report
           </a>
         </div>
-        <label className="space-top">
-          <input
-            type="checkbox"
-            checked={analyzerOnly}
-            onChange={(event) => setAnalyzerOnly(event.target.checked)}
-          />{" "}
-          Show {CERTIFICATE_ANALYZER} only
-        </label>
         {!records.length ? (
           <p className="muted">
             {data.checkedAt

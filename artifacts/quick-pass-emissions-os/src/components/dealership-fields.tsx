@@ -22,6 +22,7 @@ export function DealershipFields({ dealer }: { dealer?: Dealership }) {
           type="email"
           autoComplete="email"
           maxLength={254}
+          placeholder="name@dealership.com"
           title="Enter a valid email address."
           defaultValue={dealer?.email}
         />

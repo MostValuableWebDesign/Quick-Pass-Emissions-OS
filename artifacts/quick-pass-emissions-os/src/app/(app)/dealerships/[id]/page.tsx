@@ -9,6 +9,7 @@ import { ActionForm, Field } from "@/components/action-form";
 import { DemoNotice, RecordId, TextField, Reason, Money } from "@/components/phase3";
 import { DateField, AmountField } from "@/components/finance";
 import { DealershipFields } from "@/components/dealership-fields";
+import { ContactPhoneField } from "@/components/contact-phone-field";
 import * as actions from "@/app/phase4-actions";
 export default async function Dealer({ params }: { params: Promise<{ id: string }> }) {
   const actor = await currentUser(),
@@ -27,8 +28,16 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
       <section className="card card-body">
         <h2>Account & billing details</h2>
         <p className="preserve-lines">{d.billingAddress}</p>
-        {d.phone && <p><a href={`tel:${d.phone}`}>{d.phone}</a></p>}
-        {d.email && <p><a href={`mailto:${d.email}`}>{d.email}</a></p>}
+        {d.phone && (
+          <p>
+            <a href={`tel:${d.phone}`}>{d.phone}</a>
+          </p>
+        )}
+        {d.email && (
+          <p>
+            <a href={`mailto:${d.email}`}>{d.email}</a>
+          </p>
+        )}
         <p>{d.notes}</p>
         <details>
           <summary>Edit account</summary>
@@ -100,11 +109,16 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
               <input type="hidden" name="dealershipId" value={d.id} />
               <TextField name="name" label="Contact person" value={c?.name} />
               <Field label="Contact email">
-                <input name="email" type="email" autoComplete="email" maxLength={254} defaultValue={c?.email} />
+                <input
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  maxLength={254}
+                  placeholder="name@dealership.com"
+                  defaultValue={c?.email}
+                />
               </Field>
-              <Field label="Contact phone">
-                <input name="phone" type="tel" autoComplete="tel" maxLength={50} defaultValue={c?.phone} />
-              </Field>
+              <ContactPhoneField label="Contact phone" value={c?.phone} />
               <TextField name="purpose" label="Contact responsibility" value={c?.purpose} />
               <TextField
                 name="source"

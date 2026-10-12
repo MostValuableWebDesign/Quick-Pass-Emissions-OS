@@ -40,11 +40,16 @@ for (const kind of ["employee", "dealership", "vendor"] as const) {
     await fields.locator('[name="name"]').fill(name);
     await fields.locator('[name="phone"]').fill("555-0100");
     const phone = fields.locator('[name="phone"]');
+    await expect(phone).toHaveAttribute("placeholder", "(404) 555-0123");
     await phone.fill("555-fixture");
     expect(await phone.evaluate((node) => (node as HTMLInputElement).checkValidity())).toBe(false);
     await phone.fill("555-0100");
     if (kind !== "employee") {
       const email = fields.locator('[name="email"]');
+      await expect(email).toHaveAttribute(
+        "placeholder",
+        kind === "dealership" ? "name@dealership.com" : "name@vendor.com",
+      );
       await email.fill("not-an-email");
       expect(await email.evaluate((node) => (node as HTMLInputElement).checkValidity())).toBe(
         false,

@@ -42,8 +42,8 @@ export function ManagementAccounts({
         </summary>
         <div className="card-body">
           <p className="muted">
-            Add an owner or manager sign-in. The new user will receive no password in this app;
-            copy their private invitation link and share it directly. The link expires in 48 hours.
+            Add an owner or manager sign-in. The new user will receive no password in this app; copy
+            their private invitation link and share it directly. The link expires in 48 hours.
             Employees without sign-in are managed separately on the Employees page.
           </p>
           <ActionForm action={createManagerAccount} submit="Add user">
@@ -51,10 +51,23 @@ export function ManagementAccounts({
               <input name="name" autoComplete="name" required maxLength={160} />
             </Field>
             <Field label="Account email">
-              <input name="email" type="email" autoComplete="email" required maxLength={254} />
+              <input
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                maxLength={254}
+                placeholder="name@company.com"
+              />
             </Field>
             <Field label="Phone">
-              <input name="phone" type="tel" autoComplete="tel" maxLength={50} />
+              <input
+                name="phone"
+                type="tel"
+                autoComplete="tel"
+                maxLength={50}
+                placeholder="(404) 555-0123"
+              />
             </Field>
             <Field label="Sign-in role">
               <select name="role" defaultValue="ADMIN" required>
@@ -97,11 +110,17 @@ export function ManagementAccounts({
                         <strong>{account.user.name}</strong>
                         {own && <small className="account-self-label">Your account</small>}
                       </td>
-                      <td><a href={`mailto:${account.user.email}`}>{account.user.email}</a></td>
                       <td>
-                        {account.user.phone || account.user.employee?.phone
-                          ? <a href={`tel:${account.user.phone || account.user.employee?.phone}`}>{account.user.phone || account.user.employee?.phone}</a>
-                          : "—"}
+                        <a href={`mailto:${account.user.email}`}>{account.user.email}</a>
+                      </td>
+                      <td>
+                        {account.user.phone || account.user.employee?.phone ? (
+                          <a href={`tel:${account.user.phone || account.user.employee?.phone}`}>
+                            {account.user.phone || account.user.employee?.phone}
+                          </a>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td>{roleName(account.user.role)}</td>
                       <td>{account.user.active ? "Active" : "Inactive"}</td>
@@ -112,17 +131,29 @@ export function ManagementAccounts({
                           ) : account.user.active ? (
                             <>
                               {!account.user.accounts.length && (
-                                <ActionForm action={issueManagerAccountInvite} submit="Create invitation" className="inline-form">
+                                <ActionForm
+                                  action={issueManagerAccountInvite}
+                                  submit="Create invitation"
+                                  className="inline-form"
+                                >
                                   <input type="hidden" name="id" value={account.user.id} />
                                 </ActionForm>
                               )}
-                              <ActionForm action={setManagerAccountActive} submit="Deactivate" className="inline-form">
+                              <ActionForm
+                                action={setManagerAccountActive}
+                                submit="Deactivate"
+                                className="inline-form"
+                              >
                                 <input type="hidden" name="id" value={account.user.id} />
                                 <input type="hidden" name="active" value="false" />
                               </ActionForm>
                             </>
                           ) : (
-                            <ActionForm action={setManagerAccountActive} submit="Reactivate" className="inline-form">
+                            <ActionForm
+                              action={setManagerAccountActive}
+                              submit="Reactivate"
+                              className="inline-form"
+                            >
                               <input type="hidden" name="id" value={account.user.id} />
                               <input type="hidden" name="active" value="true" />
                             </ActionForm>

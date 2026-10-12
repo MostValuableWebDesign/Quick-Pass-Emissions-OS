@@ -18,6 +18,7 @@ export function ContactPhoneField({
         inputMode="tel"
         autoComplete="tel"
         maxLength={50}
+        placeholder="(404) 555-0123"
         pattern={CONTACT_PHONE_PATTERN}
         title={CONTACT_PHONE_TITLE}
         required={required}

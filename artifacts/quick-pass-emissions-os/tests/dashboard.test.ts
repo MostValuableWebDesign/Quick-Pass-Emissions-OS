@@ -1,16 +1,33 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Dashboard from "../src/app/(app)/dashboard/page";
 import type { businessDashboard } from "../src/modules/dashboard/service";
-const mocks = vi.hoisted(() => ({ dashboard: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  dashboard: vi.fn(),
+  performance: vi.fn(),
+  certificates: vi.fn(),
+}));
 vi.mock("@/modules/dashboard/service", () => ({ businessDashboard: mocks.dashboard }));
-vi.mock("@/lib/access", () => ({ currentUser: async () => ({ id: "fixture" }) }));
+vi.mock("@/modules/station/dashboard-service", () => ({ readDashboard: mocks.performance }));
+vi.mock("@/modules/certificates/portal", () => ({
+  readCertificatePortalStatus: mocks.certificates,
+}));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: () => undefined }),
+}));
+vi.mock("@/lib/access", () => ({
+  currentUser: async () => ({ id: "fixture", role: "OWNER" }),
+}));
 vi.mock("next/link", () => ({
   default: (props: React.ComponentProps<"a">) => createElement("a", props),
 }));
 vi.mock("@/components/record-link", () => ({
   RecordLink: (props: React.ComponentProps<"a">) => createElement("a", props),
+}));
+vi.mock("@/components/dashboard-refresh", () => ({
+  DashboardRefresh: () =>
+    createElement("button", { type: "button", "data-testid": "button-dashboard-refresh" }, "Refresh panels"),
 }));
 type Data = Awaited<ReturnType<typeof businessDashboard>>;
 function fixture(): Data {
@@ -50,13 +67,42 @@ function fixture(): Data {
     unknownInventory: 1,
   };
 }
+function performanceFixture() {
+  return {
+    summary: {
+      cars: 21,
+      freeRetests: 2,
+      revenueCents: 42_000,
+      payCents: 39_000,
+      baseCents: 33_000,
+      commissionCents: 6_000,
+    },
+    staleDates: [],
+  };
+}
+function certificateFixture(balance: number | null = 28) {
+  return {
+    station: "GA102539",
+    analyzer: "HT111411",
+    balance,
+    checkedAt: balance === null ? null : "2026-10-10T12:55:00.000Z",
+    threshold: 30,
+  };
+}
 async function render(data = fixture(), attentionPage = "1") {
   mocks.dashboard.mockResolvedValue(data);
   return renderToStaticMarkup(
     await Dashboard({ searchParams: Promise.resolve({ attentionPage }) }),
   );
 }
-beforeEach(() => mocks.dashboard.mockReset());
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-10-10T13:00:00.000Z"));
+  mocks.dashboard.mockReset();
+  mocks.performance.mockReset().mockResolvedValue(performanceFixture());
+  mocks.certificates.mockReset().mockResolvedValue(certificateFixture());
+});
+afterEach(() => vi.useRealTimers());
 describe("Business dashboard presentation", () => {
   it("shows the snapshot, prominent unresolved attention and quick actions in that order with explicit financial labels", async () => {
     const html = await render();
@@ -64,25 +110,48 @@ describe("Business dashboard presentation", () => {
     expect(html.indexOf("Needs attention")).toBeLessThan(html.indexOf("Quick actions"));
     for (const text of [
       "Tests performed today",
-      "Unavailable",
+      "21",
+      "Paid cars",
+      "Revenue today",
+      "$420.00",
+      "Employee gross pay so far",
+      "$390.00",
+      "Estimated base pay",
+      "$330.00",
+      "Estimated commission",
+      "$60.00",
+      "Certificates remaining",
+      "28",
+      "Low · reorder threshold 30",
+      "HT111411",
       "missing inputs",
-      "Incomplete",
-      "Base pay",
-      "Commissions",
-      "Received",
-      "Billed",
-      "Estimated",
-      "$1.23",
-      "$4.56",
-      "$7.89",
-      "do not add them together",
-      "approved daily base-pay inputs",
       "No unresolved attention items",
       "missing stock or planning setup",
     ])
       expect(html).toContain(text);
     expect(html).not.toContain("Today’s responsibilities");
     expect(html).not.toContain("Recent activity");
+    expect(html).not.toContain("same daily count as the Performance report.");
+    expect(html).not.toContain("Same counted tests and free-retest rules as the Performance report.");
+    expect(html).not.toContain("Performance pay-plan estimate; approved payroll is tracked separately");
+    expect(html).not.toContain("Portal balance");
+    expect(html).toContain('data-testid="button-dashboard-refresh"');
+  });
+  it("shows timestamps on dashboard panels but not quick actions", async () => {
+    const html = await render();
+    expect((html.match(/class="dashboard-panel-updated"/g) ?? []).length).toBe(4);
+    expect(html).toContain('dateTime="2026-10-10T13:00:00.000Z"');
+    expect(html).toContain("Last updated");
+    expect(html).toContain("EDT");
+    const quickActions = html.slice(html.indexOf("Quick actions"));
+    expect(quickActions).not.toContain("dashboard-panel-updated");
+    expect(quickActions).not.toContain("Last updated");
+    const needsAttention = html.slice(
+      html.indexOf('class="card business-attention"'),
+      html.indexOf('id="quick-actions-heading"'),
+    );
+    expect(needsAttention).not.toContain("dashboard-panel-updated");
+    expect(needsAttention).not.toContain("Last updated");
   });
   it("offers ordinary management shortcuts and preserves the owner-only Performance boundary", async () => {
     const data = fixture();
@@ -98,15 +167,14 @@ describe("Business dashboard presentation", () => {
   });
   it("explains missing reports and approved pay rather than inventing zero tests or gross pay", async () => {
     const data = fixture();
-    data.revenue.received = 0;
+    mocks.performance.mockResolvedValue(null);
+    mocks.certificates.mockResolvedValue(certificateFixture(null));
     const html = await render(data);
-    expect(html).toContain("No reviewed station import for today");
-    expect(html).toContain("No station import");
-    expect(html).toContain("No payment receipts recorded today");
-    expect(html).toContain("$0.00");
-    expect(html).toContain("Performance pay estimates are separate");
-    expect(html).toContain('href="/payroll">Review payroll inputs');
-    expect(html).toContain("Incomplete");
+    expect(html).toContain("Performance data is unavailable.");
+    expect(html).toContain("Certificates remaining");
+    expect(html).not.toContain("Checked ");
+    expect(html).not.toContain("No verified portal count yet.");
+    expect(html).not.toContain("$0.00");
   });
   it("paginates unresolved attention at 15 items and keeps the final item accessible", async () => {
     const data = fixture();

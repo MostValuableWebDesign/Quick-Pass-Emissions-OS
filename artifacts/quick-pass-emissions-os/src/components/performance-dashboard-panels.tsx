@@ -7,6 +7,7 @@ import {
   DASHBOARD_LAYOUT_KEY,
   isDashboardPanelId,
   DEFAULT_DASHBOARD_LAYOUT,
+  employeePanelDisplayHeight,
   parseDashboardLayout,
   reorderDashboardPanel,
   resizeDashboardPanel,
@@ -194,12 +195,14 @@ function PanelTools({
 
 export function PerformanceDashboardPanels({
   layout,
+  employeeRowCount,
   onMove,
   onResize,
   onDrop,
   renderPanel,
 }: {
   layout: DashboardLayout;
+  employeeRowCount: number;
   onMove: (id: DashboardPanelId, toIndex: number) => void;
   onResize: (id: DashboardPanelId, columns: number, height: number) => void;
   onDrop: (id: DashboardPanelId, target: DashboardPanelId) => void;
@@ -219,29 +222,39 @@ export function PerformanceDashboardPanels({
   };
   return (
     <div className="pd-grid" data-testid="performance-panel-grid">
-      {layout.map((panel) => (
-        <div
-          key={panel.id}
-          className="pd-widget"
-          data-panel-id={panel.id}
-          data-testid={`panel-${panel.id}`}
-          style={{ gridColumn: `span ${panel.columns}`, height: panel.height }}
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={(event) => {
-            event.preventDefault();
-            const dragged = event.dataTransfer.getData("text/plain");
-            if (isDashboardPanelId(dragged)) onDrop(dragged, panel.id);
-          }}
-        >
-          {renderPanel(panel.id, controls(panel.id))}
-          <PanelResizeHandle
-            label={titles[panel.id]}
-            columns={panel.columns}
-            height={panel.height}
-            onResize={(columns, height) => onResize(panel.id, columns, height)}
-          />
-        </div>
-      ))}
+      {layout.map((panel) =>
+        (() => {
+          const height =
+            panel.id === "employees"
+              ? employeePanelDisplayHeight(panel.height, employeeRowCount)
+              : panel.height;
+          return (
+            <div
+              key={panel.id}
+              className="pd-widget"
+              data-panel-id={panel.id}
+              data-testid={`panel-${panel.id}`}
+              style={{ gridColumn: `span ${panel.columns}`, height }}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                const dragged = event.dataTransfer.getData("text/plain");
+                if (isDashboardPanelId(dragged)) onDrop(dragged, panel.id);
+              }}
+            >
+              {renderPanel(panel.id, controls(panel.id))}
+              <PanelResizeHandle
+                label={titles[panel.id]}
+                columns={panel.columns}
+                height={height}
+                onResize={(columns, heightDelta) =>
+                  onResize(panel.id, columns, heightDelta + height - panel.height)
+                }
+              />
+            </div>
+          );
+        })(),
+      )}
     </div>
   );
 }

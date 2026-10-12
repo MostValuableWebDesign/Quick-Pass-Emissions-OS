@@ -435,6 +435,15 @@ export async function performance(actorId: string, input: unknown, now = new Dat
     };
   });
 }
+
+export async function loadStationSettings(actorId: string) {
+  return stationTransaction(actorId, async (tx, hash) =>
+    tx.stationSetting.findMany({
+      where: { stationHash: hash },
+      orderBy: { effectiveDate: "desc" },
+    }),
+  );
+}
 export async function exportPerformance(actorId: string, input: unknown) {
   // Reads and export audit independently recheck the current active owner.
   const p = await performance(actorId, input);

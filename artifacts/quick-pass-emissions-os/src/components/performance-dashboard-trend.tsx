@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import type { DashboardData } from "@/modules/station/dashboard-types";
-import { shortDate, usd } from "./performance-dashboard-format";
+import { excludeSundayTrendDays, shortDate, usd } from "./performance-dashboard-format";
 
 type Metric = "cars" | "revenue";
 
@@ -27,7 +27,8 @@ export function PerformanceTrend({
   panelActions?: ReactNode;
 }) {
   const [metric, setMetric] = useState<Metric>("cars");
-  const rows = series.map((s) => ({
+  const weekdays = excludeSundayTrendDays(series);
+  const rows = weekdays.map((s) => ({
     date: s.date,
     value: metric === "cars" ? s.cars : s.revenueCents === null ? null : s.revenueCents / 100,
     station: metric === "cars" && filtered ? s.stationCars : null,
@@ -40,7 +41,7 @@ export function PerformanceTrend({
         <div className="pd-card-title">
           <h2>Trend</h2>
           <p>
-            {series.length} days{gaps ? ` · ${gaps} without data shown as gaps` : ""}
+            {rows.length} days{gaps ? ` · ${gaps} without data shown as gaps` : ""}
             {filtered && metric === "cars" ? " · line is station total" : ""}
           </p>
           {panelActions}

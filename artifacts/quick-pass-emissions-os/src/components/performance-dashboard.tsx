@@ -2,9 +2,7 @@
 
 import "./performance-dashboard.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { RefreshCw, SlidersHorizontal } from "lucide-react";
+import { RefreshCw, RotateCcw } from "lucide-react";
 import type { DashboardData, DashboardState } from "@/modules/station/dashboard-types";
 import { getPerformanceDashboardAction } from "@/modules/station/dashboard-actions";
 import { PerformanceBusyHours } from "./performance-dashboard-busy-hours";
@@ -12,7 +10,6 @@ import { PerformanceCommissionProgress } from "./performance-dashboard-commissio
 import { PerformanceTrend } from "./performance-dashboard-trend";
 import { EmployeeTable } from "./performance-dashboard-employees";
 import { PerformanceCalendar } from "./performance-calendar";
-import { PayPlanDialog } from "./performance-dashboard-pay";
 import { instant, longDate, num, usd, inspectionTime } from "./performance-dashboard-format";
 import {
   PerformanceDashboardPanels,
@@ -21,8 +18,8 @@ import {
 import type { DashboardPanelId } from "./performance-dashboard-layout";
 
 export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
-  const router = useRouter();
   const [data, setData] = useState<DashboardData>(initial);
+  const [visibleEmployeeRows, setVisibleEmployeeRows] = useState(initial.employees.length);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const busy = useRef(false);
@@ -105,46 +102,17 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
         <div className="pd-actions">
           <button
             type="button"
-            className="button button-outline"
+            className="button dashboard-refresh-button"
             onClick={() => load(true)}
             disabled={loading}
             data-testid="button-refresh"
           >
-            <RefreshCw size={15} /> {loading ? "Refreshing" : "Refresh"}
-          </button>
-          <PayPlanDialog
-            key={JSON.stringify(data.payPlan)}
-            plan={data.payPlan}
-            inspectors={data.inspectors}
-            query={q}
-            today={data.today}
-            onSaved={(r) => {
-              if (!r.data) return;
-              if (r.data.query.employee !== q.employee) {
-                const params = new URLSearchParams({
-                  start: q.start,
-                  end: q.end,
-                  trendDays: String(q.trendDays),
-                });
-                if (r.data.query.employee) params.set("employee", r.data.query.employee);
-                router.replace(`/performance?${params}`);
-              } else setData(r.data);
-            }}
-          />
-          <Link
-            className="button button-outline"
-            href="/performance/settings"
-            data-testid="link-setup"
-          >
-            <SlidersHorizontal size={15} /> Records
-          </Link>
-          <button
-            type="button"
-            className="button button-outline"
-            onClick={panelLayout.reset}
-            data-testid="button-reset-panel-layout"
-          >
-            Reset panels
+            <RefreshCw
+              size={15}
+              aria-hidden="true"
+              className={loading ? "dashboard-refresh-icon--busy" : undefined}
+            />{" "}
+            {loading ? "Refreshing…" : "Refresh panels"}
           </button>
         </div>
       </header>
@@ -254,8 +222,19 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
         />
       </div>
 
+      <div className="pd-panel-layout-toolbar">
+        <button
+          type="button"
+          className="button button-outline button-sm"
+          onClick={panelLayout.reset}
+          data-testid="button-reset-panel-layout"
+        >
+          <RotateCcw size={14} aria-hidden="true" /> Reset panels
+        </button>
+      </div>
       <PerformanceDashboardPanels
         layout={panelLayout.layout}
+        employeeRowCount={visibleEmployeeRows}
         onMove={panelLayout.move}
         onResize={panelLayout.resize}
         onDrop={(id: DashboardPanelId, target: DashboardPanelId) => {
@@ -285,6 +264,7 @@ export function PerformanceDashboard({ initial }: { initial: DashboardData }) {
               profiles={data.payPlan.profiles}
               overallCadence={s.inspectionCadence}
               panelActions={controls}
+              onVisibleRowsChange={setVisibleEmployeeRows}
             />
           )
         }

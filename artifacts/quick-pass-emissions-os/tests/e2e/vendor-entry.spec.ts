@@ -17,15 +17,17 @@ test("vendor filters, minimal entry and separate business navigation work", asyn
     await expect(navigation.locator(`a[href="${href}"]`)).toHaveCount(0);
 
   const filter = page.getByRole("search", { name: "Filter providers" });
+  await expect(filter.getByLabel("Include archived providers")).toHaveCount(0);
+  await expect(page.getByText(/Phone links open your device's calling app/)).toHaveCount(0);
+  await expect(page.getByText(/Email links require an installed email app/)).toHaveCount(0);
   const results = {
     emissions: page.getByRole("link", { name: "Filter Emissions Contact", exact: true }),
     carwash: page.getByRole("link", { name: "Filter Car Wash Contact", exact: true }),
     archived: page.getByRole("link", { name: "Filter Archived Contact", exact: true }),
   };
-  async function apply(search: string, category = "", archived = false) {
+  async function apply(search: string, category = "") {
     await filter.getByLabel("Search name, contact or services").fill(search);
     await filter.getByLabel("Category", { exact: true }).selectOption(category);
-    await filter.getByLabel("Include archived providers").setChecked(archived);
     await filter.getByRole("button", { name: "Apply filters" }).click();
     await page.waitForURL(
       (url) =>
@@ -46,13 +48,18 @@ test("vendor filters, minimal entry and separate business navigation work", asyn
   await apply("Hydraulic fixture cleaning", "Carwash Equipment Service");
   await expect(results.carwash).toBeVisible();
   await expect(results.emissions).toHaveCount(0);
+  const carwashCard = page.locator(".vendor-directory-card").filter({ has: results.carwash });
+  await expect(carwashCard).toContainText("Category");
+  await expect(carwashCard).toContainText("Carwash Equipment Service");
+  await expect(carwashCard.locator(".vendor-directory-description p")).toHaveText(
+    "Hydraulic fixture cleaning",
+  );
+  await expect(carwashCard).not.toContainText("What they handle");
 
   await apply("", "Carwash Equipment Service");
   await expect(results.carwash).toBeVisible();
   await expect(results.emissions).toHaveCount(0);
   await expect(results.archived).toHaveCount(0);
-  await apply("", "Carwash Equipment Service", true);
-  await expect(results.archived).toBeVisible();
 
   await apply("Legacy fixture analyzer calibration", "Carwash Equipment Service");
   await expect(page.getByRole("heading", { name: "No providers match" })).toBeVisible();
@@ -60,7 +67,6 @@ test("vendor filters, minimal entry and separate business navigation work", asyn
   await expect(page).toHaveURL(/\/vendors$/);
   await expect(filter.getByLabel("Search name, contact or services")).toHaveValue("");
   await expect(filter.getByLabel("Category", { exact: true })).toHaveValue("");
-  await expect(filter.getByLabel("Include archived providers")).not.toBeChecked();
   await expect(results.emissions).toBeVisible();
   await expect(results.carwash).toBeVisible();
   await expect(results.archived).toHaveCount(0);
@@ -69,6 +75,16 @@ test("vendor filters, minimal entry and separate business navigation work", asyn
     page.getByRole("heading", { name: "Preferred provider by category", exact: true }),
   ).toHaveCount(0);
 
+  const addCard = page.locator("details.vendor-add-card");
+  const list = page.locator(".vendor-directory-grid");
+  await expect(addCard.locator("summary")).toHaveText("Add vendor");
+  const addBox = await addCard.boundingBox();
+  const listBox = await list.boundingBox();
+  expect(addBox).not.toBeNull();
+  expect(listBox).not.toBeNull();
+  expect(addBox!.y).toBeLessThan(listBox!.y);
+
+  await page.locator(".vendor-add-toggle").click();
   const form = page.locator("form").filter({
     has: page.getByRole("button", { name: "Add vendor", exact: true }),
   });
@@ -92,6 +108,11 @@ test("vendor filters, minimal entry and separate business navigation work", asyn
 
   const vendorLink = page.getByRole("link", { name, exact: true });
   await expect(vendorLink).toBeVisible();
+  const vendorCard = page.locator(".vendor-directory-card").filter({ has: vendorLink });
+  await expect(vendorCard).toContainText("Description");
+  await expect(vendorCard).toContainText("No description recorded.");
+  await expect(vendorCard).toContainText("555-0100");
+  await expect(vendorCard.getByRole("link", { name: /^Email / })).toHaveCount(0);
   await page.reload();
   await page.getByRole("link", { name, exact: true }).click();
   await expect(page).toHaveURL(/\/vendors\/[A-Za-z0-9_-]+$/);

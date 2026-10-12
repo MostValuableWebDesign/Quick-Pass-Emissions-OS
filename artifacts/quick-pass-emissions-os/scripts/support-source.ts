@@ -104,23 +104,24 @@ async function main() {
       },
       {
         key: "parts-support",
-        section: "Carwash Supplies and final correction",
+        section: "Carwash Supplies and owner clarification",
         entity: "VENDOR",
         values: {
           name: "KleenRite",
           contact: "",
           phone: phone.parts,
           email: "",
-          services: "Carwash parts only",
+          services: "Carwash parts and cleaning supplies",
           reference: "",
           notes: "",
           directory: {
             categories: [CATEGORIES[4]],
             accountReference: identifiers.parts,
-            sourceReference: "Operations guide — Carwash Supplies; final correction",
-            supportedServices: "Carwash parts: hoses, nozzles, spray guns, swivels and brushes",
+            sourceReference: "Operations guide — Carwash Supplies; owner clarification",
+            supportedServices:
+              "Carwash parts and cleaning supplies: hoses, guns, nozzles and brushes",
             operationalInstructions:
-              "Parts only. Wash chemicals and storage motors/pumps are supported by The Advanced Group. Motor belts are the documented retail/Amazon exception.",
+              "Use for carwash parts and cleaning supplies. The separate wash-chemical stocking duty is not an assignment to KleenRite.",
           },
         },
       },

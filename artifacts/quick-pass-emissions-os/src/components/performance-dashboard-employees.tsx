@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import type {
   DashboardEmployee,
@@ -39,11 +39,13 @@ export function EmployeeTable({
   profiles = [],
   overallCadence,
   panelActions,
+  onVisibleRowsChange,
 }: {
   employees: DashboardEmployee[];
   profiles?: PayProfile[];
   overallCadence?: InspectionCadence;
   panelActions?: ReactNode;
+  onVisibleRowsChange?: (count: number) => void;
 }) {
   const [sort, setSort] = useState<{ key: Key; dir: 1 | -1 }>({ key: "payCents", dir: -1 });
   const [q, setQ] = useState("");
@@ -65,6 +67,9 @@ export function EmployeeTable({
       );
     });
   }, [employees, sort, q]);
+  useEffect(() => {
+    onVisibleRowsChange?.(rows.length);
+  }, [onVisibleRowsChange, rows.length]);
   const maxCars = Math.max(1, ...employees.map((e) => e.cars ?? 0));
   const toggle = (key: Key) =>
     setSort((s) =>

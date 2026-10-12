@@ -1,3 +1,12 @@
+# Busy hours publication merge — October 12, 2026
+
+Merged the new Busy hours and Commission progress panels with shared GitHub main through `1e6bb99`, preserving incoming navigation, billing, payroll, Sunday trend behavior and automatic Employees panel height for fewer than seven rows. Both new panels retain drag/drop, resize, saved-layout migration and existing commission estimates. No business data or deployment was changed.
+
+- Combined production build, TypeScript and ESLint passed. Dependencies were installed from the frozen workspace lockfile. No build database access was enabled.
+- Both focused Performance panel browser workflows passed with no skips after updating the theme interaction to its new Settings location. This covers existing and new panel behavior, employee filters, daily commission progress, pagination, mobile and manager access restrictions.
+- All 365 non-database tests passed; 143 database tests were explicitly skipped in that run. The isolated full suite then ran 508 tests: 504 passed and four failed, none skipped. Incoming employee action validations failed three assertions in `tests/actions.test.ts`; incoming billing-address validation failed one assertion in `tests/phase4-database.test.ts`. These workflows were not changed by the new panels. The isolated upgrade runner was adapted to seed only baseline User/Employee/Dealership columns, because the latest Prisma client supplies contact fields that do not exist until the subsequent migrations. Before/after payroll, invoice and reversal snapshot assertions remain intact.
+- Repository-wide formatting continues to report incoming formatting differences; the panel merge resolutions and verification-runner edits use Prettier. The broader business browser suite was not rerun.
+
 # Busy hours and Commission progress — October 11, 2026
 
 Added two owner Performance panels using the existing theme and report/pay calculation path. Busy hours groups counted inspection timestamps by report-local clock hour, follows date/employee filters, excludes free retests and distinguishes incomplete timing from verified zero activity. Commission progress shows the existing $1-per-shop-test-above-50 daily estimate, resets the threshold every day, preserves eligibility/work adjustments in selected earnings and paginates daily rows at 15. Both panels support drag, keyboard move/resize and saved browser layouts. Legacy two-panel layouts keep their order and sizes, with the new panels appended. These views do not approve or mutate payroll.

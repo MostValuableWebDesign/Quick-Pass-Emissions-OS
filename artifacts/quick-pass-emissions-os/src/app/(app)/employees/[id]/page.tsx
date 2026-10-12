@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { manager } from "@/lib/access";
 import { db } from "@/lib/db";
-import { canManageRole, isManager } from "@/lib/policy";
+import { canManageRole } from "@/lib/policy";
 import { PageHeader, TaskTable, employeeSelect } from "@/components/shared";
 import { ActionForm } from "@/components/action-form";
 import { EmployeeFields } from "@/components/employee-fields";
-import { issueInvite, saveEmployee, setEmployeeActive } from "@/app/actions";
+import { saveEmployee, setEmployeeActive } from "@/app/actions";
 export default async function EmployeeDetail({ params }: { params: Promise<{ id: string }> }) {
   const actor = await manager();
   const employee = await db.employee.findUnique({
@@ -23,21 +23,16 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
     <>
       <PageHeader
         title={employee.user.name}
-        description={`${isManager(employee.user.role) ? (employee.user.role === "OWNER" ? "Owner" : "Manager") : "Staff record · No app access"} · ${employee.user.active ? "Active" : "Inactive"}`}
+        description={`${employee.jobRole || "Employee"} · ${employee.user.active ? "Active" : "Inactive"}`}
       />
       {canManageRole(actor.role, employee.user.role) ? (
         <section className="card card-body">
           <h2>Employee profile</h2>
           <ActionForm action={saveEmployee}>
             <input type="hidden" name="id" value={employee.id} />
-            <EmployeeFields employee={employee} owner={actor.role === "OWNER"} />
+            <EmployeeFields employee={employee} />
           </ActionForm>
           <div className="account-actions">
-            {isManager(employee.user.role) && (
-              <ActionForm action={issueInvite} submit="Issue private invitation">
-                <input type="hidden" name="id" value={employee.id} />
-              </ActionForm>
-            )}
             {employee.userId !== actor.id && <ActionForm
               action={setEmployeeActive}
               submit={employee.user.active ? "Remove from active staff" : "Restore employee"}

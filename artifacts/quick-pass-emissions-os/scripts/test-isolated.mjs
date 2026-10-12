@@ -105,14 +105,12 @@ try {
     );
     if (baseline.status !== 0) throw new Error("Isolated baseline migration failed.");
     fixture = new PrismaClient({ datasources: { db: { url: testUrl } } });
-    const user = await fixture.user.create({
-      data: {
-        name: "Migration sentinel owner",
-        email: "migration-sentinel@example.test",
-        role: "OWNER",
-      },
-    });
-    const employee = await fixture.employee.create({ data: { userId: user.id } });
+    // Seed only baseline columns: the current client also supplies newer contact defaults.
+    const user = { id: randomUUID() };
+    await fixture.$executeRaw`INSERT INTO "User" ("id", "name", "email", "role", "updatedAt")
+      VALUES (${user.id}, 'Migration sentinel owner', 'migration-sentinel@example.test', 'OWNER', CURRENT_TIMESTAMP)`;
+    const employee = { id: randomUUID() };
+    await fixture.$executeRaw`INSERT INTO "Employee" ("id", "userId") VALUES (${employee.id}, ${user.id})`;
     const period = await fixture.payrollPeriod.create({
       data: {
         startDate: "2026-01-01",
@@ -142,9 +140,9 @@ try {
         },
       },
     });
-    const dealership = await fixture.dealership.create({
-      data: { code: "SENTINEL", name: "Migration sentinel", billingAddress: "Fixture only" },
-    });
+    const dealership = { id: randomUUID() };
+    await fixture.$executeRaw`INSERT INTO "Dealership" ("id", "code", "name", "billingAddress", "updatedAt")
+      VALUES (${dealership.id}, 'SENTINEL', 'Migration sentinel', 'Fixture only', CURRENT_TIMESTAMP)`;
     const invoice = await fixture.dealerInvoice.create({
       data: {
         number: "SENTINEL",

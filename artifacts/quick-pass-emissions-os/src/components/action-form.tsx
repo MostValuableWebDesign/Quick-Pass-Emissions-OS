@@ -13,7 +13,17 @@ export function ActionForm({
   submit?: string;
   className?: string;
 }) {
-  const [state, formAction, pending] = useActionState(action, {});
+  const [state, formAction, pending] = useActionState(
+    async (previous: ActionState, data: FormData) => {
+      const result = await action(previous, data);
+      // Resolve private invitation paths on the currently viewed site. The token stays
+      // in the fragment, never in a server request path or query string.
+      return result.invite
+        ? { ...result, invite: new URL(result.invite, window.location.href).href }
+        : result;
+    },
+    {},
+  );
   return (
     <form action={formAction} className={className}>
       {children}

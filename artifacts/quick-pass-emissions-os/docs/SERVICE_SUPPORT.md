@@ -88,7 +88,7 @@ feature instructions are not independent contact-verification evidence.
 | OPUS TECH          | Analyzer support, supplied phone, immediate-call instruction                           | No named contact or verification date; supplied tech identifier is manager-only                  |
 | Pit Pro            | Chris, supplied phone, drain-pit service and as-needed scheduling instruction          | No cleaning cadence, preferred choice or physical pit assignment                                 |
 | The Advanced Group | Adam or Lamar, supplied main phone, wash equipment, chemicals and storage motors/pumps | No guessed primary/alternate personal numbers or equipment IDs                                   |
-| KleenRite          | Supplied phone, wash-parts category/instructions                                       | Final correction limits it to parts; customer identifier is manager-only                         |
+| KleenRite          | Supplied phone; hoses, guns, nozzles, brushes, carwash parts and cleaning supplies     | Owner clarified cleaning supplies; the separate wash-chemical duty does not assign those products to KleenRite; customer ID manager-only |
 | Termayne           | Camera/security concern and incomplete name retained in owner review                   | Not invented as a confirmed business provider; no contact method supplied                        |
 | Robert             | Belt-repair responsibility retained in owner review                                    | Incomplete identity; retail/Amazon belts are purchase exceptions, not verified service providers |
 

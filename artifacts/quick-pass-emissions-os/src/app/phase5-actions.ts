@@ -5,6 +5,12 @@ import { currentUser } from "@/lib/access";
 import { fields } from "@/lib/validation";
 import { BusinessError } from "@/modules/phase2";
 import * as automation from "@/modules/automation/service";
+import {
+  acknowledgePersonalReminder,
+  changePersonalReminderState,
+  createPersonalReminder,
+  updatePersonalReminder,
+} from "@/modules/automation/personal-reminders";
 import type { ActionState } from "./actions";
 async function perform(
   work: (actorId: string) => Promise<unknown>,
@@ -67,4 +73,19 @@ export async function acknowledgeReminderAction(_: ActionState, form: FormData) 
     (a) => automation.acknowledgeReminder(a, fields(form)),
     ["/reminders", "/notifications", "/dashboard"],
   );
+}
+export async function createPersonalReminderAction(_: ActionState, form: FormData) {
+  return perform((a) => createPersonalReminder(a, fields(form)), ["/reminders", "/notifications"]);
+}
+export async function updatePersonalReminderAction(_: ActionState, form: FormData) {
+  return perform((a) => updatePersonalReminder(a, fields(form)), ["/reminders", "/notifications"]);
+}
+export async function completePersonalReminderAction(_: ActionState, form: FormData) {
+  return perform((a) => changePersonalReminderState(a, fields(form), "complete"), ["/reminders", "/notifications"]);
+}
+export async function cancelPersonalReminderAction(_: ActionState, form: FormData) {
+  return perform((a) => changePersonalReminderState(a, fields(form), "cancel"), ["/reminders", "/notifications"]);
+}
+export async function acknowledgePersonalReminderAction(_: ActionState, form: FormData) {
+  return perform((a) => acknowledgePersonalReminder(a, fields(form)), ["/reminders", "/notifications"]);
 }

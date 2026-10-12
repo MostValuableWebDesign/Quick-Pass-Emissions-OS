@@ -125,7 +125,7 @@ test("workspace pages remain usable in light, dark, tablet and phone layouts", a
     }
     await toggle.click(); // Return to light and verify the next navigation preserves it.
   }
-  await page.goto("/account/password");
+  await page.goto("/settings/account");
   const password = page.getByLabel("Current password", { exact: true });
   await password.focus();
   await expect(password).toBeFocused();

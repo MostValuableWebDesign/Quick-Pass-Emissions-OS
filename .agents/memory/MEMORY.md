@@ -10,4 +10,8 @@
 - [Cold preview startup](cold-preview-startup.md) — framework “Ready” did not establish reachability after a workspace restart; Webpack restored the imported Next preview.
 - [Performance panel interactions](dashboard-panel-interactions.md) — browser-local layouts stay separate from business data; pointer and keyboard controls support reliable resizing and reordering.
 - [Business-area separation](business-area-separation.md) — Emissions and Car Wash have different employees and duties; keep their navigation distinct.
-- [Login branding direction](login-branding.md) — use the chosen Quick Pass service greeting and inspection imagery; preserve the approved right-hand sign-in design.
+- [Settings and operations UI scope](settings-operations-ui.md) — Keep station configuration in Settings, separate from business days; do not restore the removed roadmap and operations panels.
+- [Login branding direction](login-branding.md) — dark forest-green left pane, pale-mint headline, light supporting copy, and unchanged right-side sign-in.
+- [Dashboard clock test context](dashboard-clock-tests.md) — Dashboard markup tests need a mocked App Router and fixed system time for repeatable live-clock output.
+- [Dealership billing](dealership-billing.md) — dealership partners need regular invoice emails; a saved delivery record is not proof of sending.
+- [Verification tooling](verification-tooling.md) — temporary Python PDF-review installs can scaffold an unrelated root app; clean up only their unused generated changes.

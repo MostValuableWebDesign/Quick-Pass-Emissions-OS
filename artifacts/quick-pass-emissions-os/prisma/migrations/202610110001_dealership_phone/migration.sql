@@ -1,0 +1,1 @@
+ALTER TABLE "Dealership" ADD COLUMN "phone" TEXT NOT NULL DEFAULT '';

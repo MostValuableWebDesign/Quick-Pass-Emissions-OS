@@ -7,10 +7,13 @@ import { Empty, PageHeader } from "@/components/shared";
 import { ActionForm } from "@/components/action-form";
 import { markRead } from "@/app/actions";
 import { automationInbox } from "@/modules/automation/service";
-import { acknowledgeReminderAction } from "@/app/phase5-actions";
+import { acknowledgePersonalReminderAction, acknowledgeReminderAction } from "@/app/phase5-actions";
+import { listPersonalReminders } from "@/modules/automation/personal-reminders";
 export default async function Notifications() {
   const actor = await currentUser();
   const inbox = await automationInbox(actor.id);
+  const personal = await listPersonalReminders(actor.id);
+  const dueEvents = personal.upcoming.filter((reminder) => reminder.alertAt <= new Date());
   const alerts = await db.notification.findMany({
     where: {
       userId: actor.id,
@@ -22,10 +25,38 @@ export default async function Notifications() {
   return (
     <>
       <PageHeader
-        title="Your attention, where it matters"
-        description="Operational alerts from the scheduled operations check. Latest 100 unresolved alerts."
+        title="Notifications"
+        description="Your upcoming event alerts and operational notifications."
       />
       <section className="card">
+        <div className="card-heading">
+          <h2>Event alerts</h2>
+          <span className="count">{dueEvents.filter((reminder) => !reminder.readAt).length}</span>
+        </div>
+        {dueEvents.length ? (
+          dueEvents.map((reminder) => (
+            <div className="list-row" key={reminder.id}>
+              <div>
+                <strong>{reminder.title}</strong>
+                <small>{formatDate(reminder.startsAt)} · {reminder.readAt ? "Read" : "Alert active"}</small>
+                {reminder.description && <p className="preserve-lines">{reminder.description}</p>}
+                <Link className="text-link" href={`/reminders#${reminder.id}`}>Manage reminder</Link>
+              </div>
+              {!reminder.readAt && (
+                <ActionForm action={acknowledgePersonalReminderAction} submit="Mark read" className="inline-form">
+                  <input type="hidden" name="id" value={reminder.id} />
+                </ActionForm>
+              )}
+            </div>
+          ))
+        ) : (
+          <Empty title="No event alerts" text="Scheduled reminders appear here when their alert time arrives." />
+        )}
+      </section>
+      <section className="card">
+        <div className="card-heading">
+          <h2>Operational alerts</h2>
+        </div>
         {alerts.length ? (
           alerts.map((a) => (
             <div className="list-row" key={a.id}>

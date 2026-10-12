@@ -24,12 +24,18 @@ async function perform(work: (actorId: string) => Promise<unknown>): Promise<Act
 }
 export async function saveDealer(_: ActionState, form: FormData) {
   return perform((actor) =>
-    finance.saveDealer(actor, { ...fields(form), active: form.get("active") === "true" }),
+    finance.saveDealer(actor, {
+      ...fields(form),
+      ...(form.has("active") ? { active: form.get("active") === "true" } : {}),
+    }),
   );
 }
 export async function saveContact(_: ActionState, form: FormData) {
   return perform((actor) =>
-    finance.saveContact(actor, { ...fields(form), active: form.get("active") === "true" }),
+    finance.saveContact(actor, {
+      ...fields(form),
+      ...(form.has("active") ? { active: form.get("active") === "true" } : {}),
+    }),
   );
 }
 export async function authorizeTerms(_: ActionState, form: FormData) {

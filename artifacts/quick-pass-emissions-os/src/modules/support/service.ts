@@ -11,6 +11,7 @@ export const operationalSelect = {
   name: true,
   contact: true,
   phone: true,
+  services: true,
   email: true,
   active: true,
   version: true,

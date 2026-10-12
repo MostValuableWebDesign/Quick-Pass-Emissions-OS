@@ -41,7 +41,17 @@ export type IconKey =
   | "shield"
   | "map";
 
-export type NavItem = { href: string; label: string; icon: IconKey; roles: readonly NavRole[] };
+export type NavItem = {
+  href: string;
+  label: string;
+  icon: IconKey;
+  roles: readonly NavRole[];
+  parent?: string;
+  category?: string;
+  matchQuery?: Record<string, string>;
+  menuOnly?: boolean;
+  children?: NavItem[];
+};
 export type NavSection = { id: string; label: string; items: NavItem[] };
 
 export const NAV_SECTIONS: NavSection[] = [
@@ -51,8 +61,6 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "dashboard", roles: ALL },
       { href: "/overview", label: "Owner exceptions", icon: "gauge", roles: OWNER_ONLY },
-      { href: "/reminders", label: "Reminders", icon: "reminder", roles: ALL },
-      { href: "/notifications", label: "Notifications", icon: "bell", roles: ALL },
     ],
   },
   {
@@ -61,8 +69,23 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/performance", label: "Performance", icon: "chart", roles: OWNER_ONLY },
       { href: "/certificates", label: "Certificates", icon: "package", roles: FINANCE },
-      { href: "/dealerships", label: "Dealerships", icon: "building", roles: FINANCE },
-      { href: "/invoices", label: "Invoices & payments", icon: "receipt", roles: FINANCE },
+      {
+        href: "/dealerships",
+        label: "Dealerships",
+        icon: "building",
+        roles: FINANCE,
+        children: [
+          { href: "/invoices", label: "Invoices", icon: "receipt", roles: FINANCE, category: "Billing" },
+          {
+            href: "/invoices?view=payments",
+            label: "Payments",
+            icon: "wallet",
+            roles: FINANCE,
+            category: "Billing",
+            matchQuery: { view: "payments" },
+          },
+        ],
+      },
     ],
   },
   {
@@ -80,10 +103,17 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   {
     id: "shared-business",
-    label: "Shared Business",
+    label: "Business",
     items: [
-      { href: "/employees", label: "Employees", icon: "users", roles: MANAGERS },
-      { href: "/payroll", label: "Payroll & commissions", icon: "wallet", roles: FINANCE },
+      {
+        href: "/employees",
+        label: "Employees",
+        icon: "users",
+        roles: MANAGERS,
+        children: [
+          { href: "/payroll", label: "Payroll & commissions", icon: "wallet", roles: FINANCE },
+        ],
+      },
       { href: "/vendors", label: "Service & Support", icon: "truck", roles: OPERATORS },
       { href: "/finance", label: "Operational finance", icon: "ledger", roles: FINANCE },
     ],
@@ -92,19 +122,57 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "reports",
     label: "Reports",
     items: [
-      { href: "/reports", label: "Operational reports", icon: "chart", roles: FINANCE },
       { href: "/finance/reports", label: "Finance reports", icon: "fileChart", roles: FINANCE },
-      { href: "/summaries", label: "Summary archive", icon: "archive", roles: OWNER_ONLY },
     ],
   },
   {
     id: "settings",
     label: "Settings",
     items: [
-      { href: "/automation", label: "Automation", icon: "automation", roles: OWNER_ONLY },
-      { href: "/settings", label: "Settings & audit", icon: "settings", roles: MANAGERS },
-      { href: "/account/password", label: "Account & password", icon: "shield", roles: ALL },
-      { href: "/roadmap", label: "Product roadmap", icon: "map", roles: ALL },
+      {
+        href: "#settings-menu",
+        label: "Settings",
+        icon: "settings",
+        roles: ALL,
+        menuOnly: true,
+        children: [
+          {
+            href: "/settings",
+            label: "Business settings",
+            icon: "settings",
+            roles: MANAGERS,
+            category: "Business operations",
+          },
+          {
+            href: "/reminders",
+            label: "Reminders",
+            icon: "reminder",
+            roles: ALL,
+            category: "Reminders & notifications",
+          },
+          {
+            href: "/notifications",
+            label: "Notifications",
+            icon: "bell",
+            roles: ALL,
+            category: "Reminders & notifications",
+          },
+          {
+            href: "/settings/account",
+            label: "Account",
+            icon: "shield",
+            roles: MANAGERS,
+            category: "Account & security",
+          },
+          {
+            href: "/automation",
+            label: "Automation",
+            icon: "automation",
+            roles: OWNER_ONLY,
+            category: "Automation",
+          },
+        ],
+      },
     ],
   },
 ];
@@ -116,10 +184,27 @@ function isRole(role: string): role is NavRole {
 /** Sections filtered for a role; empty sections are dropped. Same output for desktop and mobile. */
 export function navForRole(role: string): NavSection[] {
   if (!isRole(role)) return [];
+  const filterItem = (item: NavItem, parent?: string): NavItem | null => {
+    if (!item.roles.includes(role)) return null;
+    const children = item.children
+      ?.map((child) => filterItem(child, item.menuOnly ? undefined : item.href))
+      .filter((child): child is NavItem => !!child);
+    return { ...item, ...(parent ? { parent } : {}), ...(item.children ? { children } : {}) };
+  };
   return NAV_SECTIONS.map((s) => ({
     ...s,
-    items: s.items.filter((i) => i.roles.includes(role)),
+    items: s.items.map((item) => filterItem(item)).filter((item): item is NavItem => !!item),
   })).filter((s) => s.items.length > 0);
+}
+
+/** Flatten the role-filtered tree for route checks and tests. */
+export function allNavItems(role: string): NavItem[] {
+  const flatten = (items: NavItem[]): NavItem[] =>
+    items.flatMap((item) => [
+      ...(item.menuOnly ? [] : [item]),
+      ...flatten(item.children ?? []),
+    ]);
+  return flatten(navForRole(role).flatMap((section) => section.items));
 }
 
 export type RouteDef = {
@@ -134,19 +219,51 @@ export type RouteDef = {
   roles: readonly NavRole[];
 };
 
-const navDefs: RouteDef[] = NAV_SECTIONS.flatMap((s) =>
-  s.items.map((i) => ({
-    pattern: i.href,
-    title: i.label,
-    section: s.label,
-    navHref: i.href,
-    roles: i.roles,
-  })),
-);
+const navDefs: RouteDef[] = (() => {
+  const seen = new Set<string>();
+  return NAV_SECTIONS.flatMap((section) =>
+    section.items.flatMap((item) => [
+      ...(!item.menuOnly ? [{ item, parent: item.parent, section: section.label }] : []),
+      ...(item.children ?? []).map((child) => ({
+        item: child,
+        parent: item.menuOnly ? undefined : item.href,
+        section: section.label,
+      })),
+    ]),
+  )
+    .filter(({ item }) => {
+      const pattern = item.href.split("?")[0];
+      if (seen.has(pattern)) return false;
+      seen.add(pattern);
+      return true;
+    })
+    .map(({ item, parent, section }) => ({
+      pattern: item.href.split("?")[0],
+      title: item.label,
+      section,
+      navHref: item.href,
+      parent,
+      roles: item.roles,
+    }));
+})();
 
 // Keep these routes resolvable for existing deep links and notifications,
 // without exposing them as sidebar navigation entries.
 const detachedNavDefs: RouteDef[] = [
+  {
+    pattern: "/reports",
+    title: "Operational reports",
+    section: "Reports",
+    navHref: "/reports",
+    roles: FINANCE,
+  },
+  {
+    pattern: "/summaries",
+    title: "Summary archive",
+    section: "Reports",
+    navHref: "/summaries",
+    roles: OWNER_ONLY,
+  },
   {
     pattern: "/maintenance",
     title: "Maintenance tickets",
@@ -216,7 +333,6 @@ export const ROUTES: RouteDef[] = [
   detail("/invoices/:id", "Invoice", "/invoices", FINANCE),
   detail("/rentals/:id", "Rental agreement", "/rentals", FINANCE),
   detail("/summaries/:id", "Summary", "/summaries", OWNER_ONLY),
-  detail("/performance/settings", "Performance setup", "/performance", OWNER_ONLY),
   detail("/performance/tests/:id", "Station test evidence", "/performance", OWNER_ONLY),
 ];
 
@@ -243,14 +359,30 @@ export function matchRoute(pathname: string): RouteDef | undefined {
  * The single nav href to mark current: the route's own nav entry if visible,
  * otherwise the longest visible nav href that prefixes the path on a segment boundary.
  */
-export function activeNavHref(pathname: string, role: string): string | undefined {
-  const visible = navForRole(role).flatMap((s) => s.items.map((i) => i.href));
+export function activeNavHref(
+  pathname: string,
+  role: string,
+  search = "",
+): string | undefined {
+  const query = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  const items = allNavItems(role);
+  const queryMatch = items.find((item) => {
+    if (!item.matchQuery) return false;
+    if (item.href.split("?")[0] !== pathname) return false;
+    return Object.entries(item.matchQuery).every(([key, value]) => query.get(key) === value);
+  });
+  const exact = queryMatch ?? items.find(
+    (item) => !item.matchQuery && item.href.split("?")[0] === pathname,
+  );
+  if (exact) return exact.href;
+  const visible = items.map((item) => item.href);
   const route = matchRoute(pathname);
   if (route && visible.includes(route.navHref)) return route.navHref;
   let best: string | undefined;
   for (const href of visible) {
-    if (pathname === href || pathname.startsWith(href + "/")) {
-      if (!best || href.length > best.length) best = href;
+    const base = href.split("?")[0];
+    if (pathname === base || pathname.startsWith(base + "/")) {
+      if (!best || base.length > best.split("?")[0].length) best = href;
     }
   }
   return best;

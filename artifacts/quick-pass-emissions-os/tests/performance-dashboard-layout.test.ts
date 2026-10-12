@@ -1,12 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_DASHBOARD_LAYOUT,
+  employeePanelDisplayHeight,
   parseDashboardLayout,
   reorderDashboardPanel,
   resizeDashboardPanel,
 } from "../src/components/performance-dashboard-layout";
 
 describe("customizable performance panels", () => {
+  it("expands the Employees panel to show up to six visible rows", () => {
+    expect(employeePanelDisplayHeight(240, 1)).toBe(280);
+    expect(employeePanelDisplayHeight(240, 4)).toBe(520);
+    expect(employeePanelDisplayHeight(240, 6)).toBe(680);
+    expect(employeePanelDisplayHeight(600, 4)).toBe(600);
+    expect(employeePanelDisplayHeight(240, 7)).toBe(240);
+    expect(employeePanelDisplayHeight(240, 0)).toBe(240);
+  });
+
   it("keeps existing full-width panels and adds two insight panels side by side", () => {
     expect(DEFAULT_DASHBOARD_LAYOUT).toEqual([
       { id: "trend", columns: 12, height: 360 },

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   activeNavHref,
+  allNavItems,
   breadcrumbs,
   matchRoute,
   navForRole,
@@ -10,7 +11,7 @@ import {
   withReturn,
 } from "@/lib/navigation";
 
-const hrefs = (role: string) => navForRole(role).flatMap((s) => s.items.map((i) => i.href));
+const hrefs = (role: string) => allNavItems(role).map((item) => item.href);
 
 describe("role-filtered navigation", () => {
   it.each(["EMPLOYEE", "BOOKKEEPER"])("%s has no application routes", (role) => {
@@ -34,8 +35,76 @@ describe("role-filtered navigation", () => {
     expect(hrefs("ADMIN")).not.toContain("/automation");
     expect(hrefs("ADMIN")).toContain("/settings");
     expect(hrefs("OWNER")).toEqual(
-      expect.arrayContaining(["/automation", "/summaries", "/overview"]),
+      expect.arrayContaining(["/automation", "/finance/reports", "/overview"]),
     );
+    expect(hrefs("OWNER")).not.toContain("/reports");
+    expect(hrefs("OWNER")).not.toContain("/summaries");
+    expect(matchRoute("/reports")?.title).toBe("Operational reports");
+    expect(matchRoute("/summaries")?.title).toBe("Summary archive");
+    expect(matchRoute("/summaries/example-id")?.title).toBe("Summary");
+  });
+  it("omits the retired Product roadmap tab and route", () => {
+    expect(hrefs("OWNER")).not.toContain("/roadmap");
+    expect(matchRoute("/roadmap")).toBeUndefined();
+  });
+  it("keeps Business settings under the Settings side-menu button", () => {
+    const sections = navForRole("OWNER");
+    const settings = sections.find((section) => section.id === "settings")!;
+    expect(settings.label).toBe("Settings");
+    expect(settings.items).toHaveLength(1);
+    const settingsMenu = settings.items[0];
+    expect(settingsMenu.label).toBe("Settings");
+    expect(settingsMenu.menuOnly).toBe(true);
+    expect(matchRoute(settingsMenu.href)).toBeUndefined();
+    expect(allNavItems("OWNER").some((item) => item.menuOnly)).toBe(false);
+    expect(settingsMenu.children?.map((item) => item.href)).toEqual([
+      "/settings",
+      "/reminders",
+      "/notifications",
+      "/settings/account",
+      "/automation",
+    ]);
+    expect(settingsMenu.children?.[0].label).toBe("Business settings");
+    expect(settingsMenu.children?.[0].category).toBe("Business operations");
+    expect(matchRoute("/settings")?.section).toBe("Settings");
+    expect(matchRoute("/settings")?.title).toBe("Business settings");
+    expect(breadcrumbs("/settings")).toEqual([
+      { label: "Settings" },
+      { label: "Business settings" },
+    ]);
+    expect(sections.some((section) => section.id === "business-setup")).toBe(false);
+    expect(matchRoute("/settings/import")).toBeUndefined();
+    expect(matchRoute("/settings/station-data")).toBeUndefined();
+    expect(hrefs("ADMIN")).toContain("/settings/account");
+    expect(hrefs("OWNER")).not.toContain("/settings/import");
+    expect(hrefs("ADMIN")).not.toContain("/settings/station-data");
+    expect(matchRoute("/performance/settings")).toBeUndefined();
+  });
+  it("groups reminder, notification, and account links in the Settings side menu", () => {
+    const sections = navForRole("OWNER");
+    const overview = sections.find((section) => section.id === "overview")!;
+    expect(overview.items.map((item) => item.href)).not.toContain("/reminders");
+    expect(overview.items.map((item) => item.href)).not.toContain("/notifications");
+    const settings = sections.find((section) => section.id === "settings")!;
+    const destinations = settings.items[0].children ?? [];
+    expect(destinations.map((item) => item.href)).toContain("/settings");
+    expect(destinations.map((item) => item.href)).toContain("/reminders");
+    expect(destinations.map((item) => item.href)).toContain("/notifications");
+    expect(destinations.map((item) => item.href)).toContain("/settings/account");
+    expect(destinations.filter((item) => item.category === "Reminders & notifications")
+      .map((item) => item.href)).toEqual(["/reminders", "/notifications"]);
+    expect(destinations.find((item) => item.href === "/settings/account")?.category)
+      .toBe("Account & security");
+    expect(allNavItems("ADMIN").some((item) => item.href === "/settings/import")).toBe(false);
+  });
+  it("nests invoices and the payments view beneath Dealerships", () => {
+    const emissions = navForRole("OWNER").find((section) => section.id === "emissions")!;
+    expect(emissions.items.map((item) => item.href)).not.toContain("/invoices");
+    const dealers = emissions.items.find((item) => item.href === "/dealerships")!;
+    expect(dealers.children?.map((item) => item.href)).toEqual(["/invoices", "/invoices?view=payments"]);
+    expect(activeNavHref("/invoices", "OWNER", "view=payments&q=test")).toBe("/invoices?view=payments");
+    expect(activeNavHref("/invoices", "OWNER")).toBe("/invoices");
+    expect(safeReturnPath("/invoices?view=payments", "ADMIN")).toBe("/invoices?view=payments");
   });
   it("gives management a separate Security category and camera route", () => {
     for (const role of ["OWNER", "ADMIN"]) {
@@ -62,16 +131,15 @@ describe("role-filtered navigation", () => {
       const emissions = sections.find((s) => s.id === "emissions")!;
       const carwash = sections.find((s) => s.id === "carwash")!;
       const shared = sections.find((s) => s.id === "shared-business")!;
+      const employees = shared.items.find((item) => item.href === "/employees")!;
+      expect(shared.label).toBe("Business");
       expect(emissions.items.map((i) => i.href)).toEqual(
-        expect.arrayContaining(["/certificates", "/dealerships", "/invoices"]),
+        expect.arrayContaining(["/certificates", "/dealerships"]),
       );
       expect(carwash.items.map((i) => i.href)).toEqual(["/carwash", "/equipment"]);
-      expect(shared.items.map((i) => i.href)).toEqual([
-        "/employees",
-        "/payroll",
-        "/vendors",
-        "/finance",
-      ]);
+      expect(shared.items.map((i) => i.href)).toEqual(["/employees", "/vendors", "/finance"]);
+      expect(employees.children?.map((item) => item.href)).toEqual(["/payroll"]);
+      expect(allNavItems(role).find((item) => item.href === "/payroll")?.parent).toBe("/employees");
       for (const path of ["/maintenance", "/maintenance/plans", "/chemicals", "/rentals"]) {
         expect(hrefs(role)).not.toContain(path);
         expect(matchRoute(path)).toBeDefined();
@@ -102,11 +170,12 @@ describe("route matching", () => {
   it("builds breadcrumbs for details", () => {
     expect(breadcrumbs("/invoices/i1")).toEqual([
       { label: "Emissions" },
-      { label: "Invoices & payments", href: "/invoices" },
+      { label: "Invoices", href: "/invoices" },
       { label: "Invoice" },
     ]);
     expect(breadcrumbs("/payroll")).toEqual([
-      { label: "Shared Business" },
+      { label: "Business" },
+      { label: "Employees", href: "/employees" },
       { label: "Payroll & commissions" },
     ]);
   });

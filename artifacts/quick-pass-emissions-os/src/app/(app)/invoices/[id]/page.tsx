@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { DemoNotice, RecordId, Money } from "@/components/phase3";
 import { PaymentFields, ReviewFields } from "@/components/finance";
+import { InvoiceEmailComposer } from "@/components/invoice-email-composer";
+import { invoiceSnapshotSchema } from "@/modules/finance/invoice-document";
 import * as actions from "@/app/phase4-actions";
 export default async function Invoice({ params }: { params: Promise<{ id: string }> }) {
   const actor = await currentUser(),
@@ -19,14 +21,7 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
       businessDate(),
     ),
     management = true;
-  const snap = i.snapshot as {
-    name: string;
-    code: string;
-    billingAddress: string;
-    termsDays: number;
-    termsReference: string;
-    contacts: { name: string; email: string; phone: string; purpose: string }[];
-  };
+  const snap = invoiceSnapshotSchema.parse(i.snapshot);
   return (
     <>
       <PageHeader
@@ -37,9 +32,10 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
       <section className="card card-body">
         <h2>Billing snapshot</h2>
         <h3>
-          {snap.name} · {snap.code}
+          {snap.name}
         </h3>
         <p>{snap.billingAddress}</p>
+        {snap.phone && <p>{snap.phone}</p>}
         {snap.contacts.map((c, n) => (
           <p key={n}>
             {c.name} · {c.purpose} · {c.email || c.phone}
@@ -50,8 +46,7 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
         </p>
         <p>{i.notes}</p>
         <p className="muted">
-          This retained snapshot does not change when the account is edited. Invoice PDF and email
-          delivery are not configured.
+          This retained snapshot does not change when the account is edited.
         </p>
         {i.deliveryReference && (
           <p>
@@ -113,6 +108,19 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
           )}
         </div>
       </section>
+      <InvoiceEmailComposer
+        invoiceId={i.id}
+        invoice={{
+          number: i.number,
+          dealershipName: snap.name,
+          dueDate: i.dueDate,
+          serviceDates: i.lines.map((line) => line.date),
+          remainingCents: summary.remainingCents,
+        }}
+        contacts={snap.contacts}
+        sender={{ name: actor.name, email: actor.email }}
+        eligible={!!i.approvedAt && i.state !== "VOIDED" && summary.remainingCents > 0}
+      />
       {management && i.state !== "VOIDED" && (
         <section className="card card-body space-top">
           <h2>Review & delivery record</h2>

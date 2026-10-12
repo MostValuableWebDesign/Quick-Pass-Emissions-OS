@@ -23,10 +23,6 @@ export default async function Vendors({
     category,
     archived: q.archived === "1",
   });
-  const preferredBy = new Map<string, string[]>();
-  for (const p of data.preferences)
-    if (p.vendorId)
-      preferredBy.set(p.vendorId, [...(preferredBy.get(p.vendorId) ?? []), p.category]);
   return (
     <>
       <PageHeader
@@ -62,12 +58,6 @@ export default async function Vendors({
             ))}
           </select>
         </div>
-        <div className="field">
-          <label>
-            <input type="checkbox" name="archived" value="1" defaultChecked={q.archived === "1"} />{" "}
-            Include archived providers
-          </label>
-        </div>
         <div className="form-footer">
           <button type="submit" className="badge neutral">
             Apply filters
@@ -75,80 +65,64 @@ export default async function Vendors({
           <Link href="/vendors">Clear</Link>
         </div>
       </form>
-      <p className="muted space-top">
-        Phone links open your device&apos;s calling app. On a desktop without an installed calling
-        app, the link may do nothing; copy the number instead.
-      </p>
-      <p className="muted">
-        Check the recorded confirmation date before relying on older details. No freshness interval,
-        business hours or emergency availability is assumed. Email links require an installed email
-        app.
-      </p>
+      {data.management && (
+        <details className="card dealership-add-card vendor-add-card space-top">
+          <summary className="button button-primary dealership-add-toggle vendor-add-toggle">
+            Add vendor
+          </summary>
+          <div className="card-body">
+            <p className="muted">
+              Vendor name and phone are required. New vendors remain unconfirmed until their
+              contact details are verified.
+            </p>
+            <VendorForm />
+          </div>
+        </details>
+      )}
       {data.providers.length === 0 ? (
         <Empty
           title="No providers match"
-          text="Try a different search or category, or include archived providers."
+          text="Try a different search or category."
         />
       ) : (
-        <div className="two-columns space-top">
+        <div className="vendor-directory-grid">
           {data.providers.map((p) => {
-            const missing =
-              !p.phone &&
-              !p.email &&
-              !p.alternatePhone &&
-              !p.alternateEmail &&
-              !p.emergencyPhone &&
-              !p.supportUrl &&
-              !p.website;
+            const description = p.supportedServices?.trim() || p.services?.trim();
             return (
-              <section className="card card-body" key={p.id}>
-                <h2>
-                  <Link href={`/vendors/${p.id}`}>{p.name}</Link>
-                </h2>
-                <p style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
-                  <span className={p.active ? "badge green" : "badge neutral"}>
-                    {p.active ? "Active" : "Archived"}
-                  </span>
-                  {p.verifiedDate ? (
-                    <span className="badge green">Verified contact {p.verifiedDate}</span>
-                  ) : (
-                    <span className="badge amber">Unconfirmed</span>
-                  )}
-                  {(preferredBy.get(p.id) ?? []).map((c) => (
-                    <span key={c} className="badge">
-                      Preferred: {c}
-                    </span>
-                  ))}
-                </p>
-                <p className="muted">
-                  Last confirmed: {p.lastConfirmedDate ? p.lastConfirmedDate : "not recorded"}
-                </p>
-                {p.categories.length > 0 && <p>{p.categories.join(" · ")}</p>}
-                {!p.verifiedDate && (
-                  <p className="notice">
-                    Contact details are unconfirmed. Verify them before assigning this vendor.
-                  </p>
+              <section className="card vendor-directory-card" key={p.id}>
+                <div className="vendor-directory-heading">
+                  <h2>
+                    <Link href={`/vendors/${p.id}`}>{p.name}</Link>
+                  </h2>
+                  {!p.active && <span className="badge neutral">Archived</span>}
+                  {!p.verifiedDate && <span className="badge amber">Unconfirmed</span>}
+                </div>
+                <div className="vendor-directory-categories">
+                  <span className="eyebrow">Category</span>
+                  <div className="vendor-category-list">
+                    {p.categories.length ? (
+                      p.categories.map((category) => (
+                        <span className="badge neutral" key={category}>
+                          {category}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="muted">Not categorized</span>
+                    )}
+                  </div>
+                </div>
+                <div className="vendor-directory-description">
+                  <p>{description || "No description recorded."}</p>
+                </div>
+                {p.phone ? (
+                  <ContactLine kind="phone" label="Phone" value={p.phone} extension={p.extension} />
+                ) : (
+                  <p className="muted vendor-directory-missing">Phone not recorded</p>
                 )}
-                {p.contact && <p>Contact: {p.contact}</p>}
-                <ContactLine kind="phone" label="Phone" value={p.phone} extension={p.extension} />
-                <ContactLine kind="email" label="Email" value={p.email} />
-                <ContactLine kind="phone" label="Emergency phone" value={p.emergencyPhone} />
-                {missing && <p className="notice">No contact method recorded.</p>}
-                <Link href={`/vendors/${p.id}`}>Full details and contact history</Link>
               </section>
             );
           })}
         </div>
-      )}
-      {data.management && (
-        <section className="card card-body space-top">
-          <h2>Add a vendor</h2>
-          <p className="muted">
-            Vendor name and phone are required. New vendors are active but remain unconfirmed until
-            their contact details are verified.
-          </p>
-          <VendorForm />
-        </section>
       )}
     </>
   );

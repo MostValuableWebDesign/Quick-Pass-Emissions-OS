@@ -77,14 +77,19 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   await page.mouse.move(x - columnPitch, y - 80, { steps: 10 });
   await page.mouse.up();
   await expect(employees).toHaveCSS("grid-column-start", "span 10");
-  await expect(employees).toHaveCSS("height", "300px");
+  const visibleRows = await employees.locator('tbody tr[data-testid^="row-employee-"]').count();
+  const visibleHeight = Math.max(
+    300,
+    visibleRows > 0 && visibleRows < 7 ? 200 + visibleRows * 80 : 300,
+  );
+  await expect(employees).toHaveCSS("height", `${visibleHeight}px`);
 
   await page.reload();
   await expect(
     page.getByTestId("performance-panel-grid").locator(".pd-widget").first(),
   ).toHaveAttribute("data-testid", "panel-employees");
   await expect(page.getByTestId("panel-employees")).toHaveCSS("grid-column-start", "span 10");
-  await expect(page.getByTestId("panel-employees")).toHaveCSS("height", "300px");
+  await expect(page.getByTestId("panel-employees")).toHaveCSS("height", `${visibleHeight}px`);
 
   await page.getByTestId("button-reset-panel-layout").click();
   await expect(
@@ -241,7 +246,10 @@ test("busy hours and commission progress follow reports, employee filters and sa
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
     .toBe(true);
-  await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+  await page.goto("/settings/account");
+  await page.getByRole("button", { name: "Switch to dark theme", exact: true }).click();
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await page.goto("/performance?start=2025-12-30&end=2026-01-15");
   await expect(
     commission.getByRole("heading", { name: "Commission progress", exact: true }),
   ).toBeVisible();

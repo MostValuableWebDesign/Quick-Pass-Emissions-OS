@@ -18,6 +18,11 @@ export function isDashboardPanelId(value: unknown): value is DashboardPanelId {
   return DEFAULT_DASHBOARD_LAYOUT.some((panel) => panel.id === value);
 }
 
+export function employeePanelDisplayHeight(savedHeight: number, visibleRows: number) {
+  const minimum = visibleRows > 0 && visibleRows < 7 ? 200 + visibleRows * 80 : 0;
+  return Math.max(savedHeight, minimum);
+}
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, Math.round(value)));
 

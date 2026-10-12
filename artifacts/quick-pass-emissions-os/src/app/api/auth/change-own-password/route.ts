@@ -22,10 +22,10 @@ function redirectTo(path: string) {
 export async function POST(request: Request) {
   try {
     if (Number(request.headers.get("content-length") || 0) > 16_384)
-      return redirectTo("/account/password?error=validation");
+      return redirectTo("/settings/account?error=validation");
     const form = await request.formData();
     const input = credentials.safeParse(Object.fromEntries(form));
-    if (!input.success) return redirectTo("/account/password?error=validation");
+    if (!input.success) return redirectTo("/settings/account?error=validation");
 
     const headers = new Headers(request.headers);
     headers.set("content-type", "application/json");
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
         }),
       }),
     );
-    let path = "/account/password?changed=1";
+    let path = "/settings/account?changed=1";
     if (!result.ok) {
       if (result.status === 401) path = "/login";
       else {
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
                 : result.status >= 500
                   ? "unavailable"
                   : "validation";
-        path = `/account/password?error=${error}`;
+        path = `/settings/account?error=${error}`;
       }
     }
     const response = redirectTo(path);
@@ -66,6 +66,6 @@ export async function POST(request: Request) {
     return response;
   } catch {
     // Do not log authentication exceptions or echo form values.
-    return redirectTo("/account/password?error=unavailable");
+    return redirectTo("/settings/account?error=unavailable");
   }
 }

@@ -9,10 +9,11 @@ import {
 
 describe("customizable performance panels", () => {
   it("expands the Employees panel to show up to six visible rows", () => {
-    expect(employeePanelDisplayHeight(240, 1)).toBe(280);
-    expect(employeePanelDisplayHeight(240, 4)).toBe(520);
-    expect(employeePanelDisplayHeight(240, 6)).toBe(680);
+    expect(employeePanelDisplayHeight(240, 1)).toBe(330);
+    expect(employeePanelDisplayHeight(240, 4)).toBe(570);
+    expect(employeePanelDisplayHeight(240, 6)).toBe(720);
     expect(employeePanelDisplayHeight(600, 4)).toBe(600);
+    expect(employeePanelDisplayHeight(240, 5)).toBe(650);
     expect(employeePanelDisplayHeight(240, 7)).toBe(240);
     expect(employeePanelDisplayHeight(240, 0)).toBe(240);
   });

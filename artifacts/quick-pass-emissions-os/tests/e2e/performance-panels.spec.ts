@@ -44,6 +44,9 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
     page.getByTestId("performance-panel-grid").locator(".pd-widget").first(),
   ).toHaveAttribute("data-testid", "panel-employees");
 
+  const initialRows = await employees.locator('tbody tr[data-testid^="row-employee-"]').count();
+  const minimumHeight =
+    initialRows > 0 && initialRows < 7 ? Math.min(720, 250 + initialRows * 80) : 0;
   const resize = employees.getByRole("button", { name: /Resize Employees panel/ });
   await resize.focus();
   await resize.press("ArrowLeft");
@@ -55,7 +58,7 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
         height: (element as HTMLElement).style.height,
       })),
     )
-    .toEqual({ columns: "span 11", height: "380px" });
+    .toEqual({ columns: "span 11", height: `${Math.max(380, minimumHeight)}px` });
 
   // Resize by grabbing the actual corner, rather than a header toolbar control.
   await expect(resize.locator("..")).toHaveAttribute("data-testid", "panel-employees");
@@ -80,7 +83,7 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   const visibleRows = await employees.locator('tbody tr[data-testid^="row-employee-"]').count();
   const visibleHeight = Math.max(
     300,
-    visibleRows > 0 && visibleRows < 7 ? 200 + visibleRows * 80 : 300,
+    visibleRows > 0 && visibleRows < 7 ? Math.min(720, 250 + visibleRows * 80) : 300,
   );
   await expect(employees).toHaveCSS("height", `${visibleHeight}px`);
 
@@ -185,7 +188,20 @@ test("busy hours and commission progress follow reports, employee filters and sa
   const commission = page.getByTestId("panel-commission-progress");
   await expect(grid.locator(".pd-widget")).toHaveCount(4);
   await expect(grid.locator(".pd-widget").first()).toHaveAttribute("data-panel-id", "employees");
-  await expect(page.getByTestId("panel-employees")).toHaveCSS("height", "360px");
+  const migratedEmployees = page.getByTestId("panel-employees");
+  const migratedRows = await migratedEmployees
+    .locator('tbody tr[data-testid^="row-employee-"]')
+    .count();
+  const migratedHeight = Math.max(
+    360,
+    migratedRows > 0 && migratedRows < 7 ? Math.min(720, 250 + migratedRows * 80) : 0,
+  );
+  await expect(migratedEmployees).toHaveCSS("height", `${migratedHeight}px`);
+  expect(
+    await page.evaluate(
+      () => JSON.parse(localStorage.getItem("quick-pass-performance-layout-v1")!)[0].height,
+    ),
+  ).toBe(360);
   await expect(busy.getByTestId("text-busy-tests")).toHaveText("94");
   await expect(busy.getByTestId("text-busy-peak")).toHaveText("11 AM");
   await expect(

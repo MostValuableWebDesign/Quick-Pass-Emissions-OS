@@ -19,7 +19,7 @@ export function isDashboardPanelId(value: unknown): value is DashboardPanelId {
 }
 
 export function employeePanelDisplayHeight(savedHeight: number, visibleRows: number) {
-  const minimum = visibleRows > 0 && visibleRows < 7 ? 200 + visibleRows * 80 : 0;
+  const minimum = visibleRows > 0 && visibleRows < 7 ? Math.min(720, 250 + visibleRows * 80) : 0;
   return Math.max(savedHeight, minimum);
 }
 

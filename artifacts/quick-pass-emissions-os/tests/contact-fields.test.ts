@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { ContactAddressFields } from "@/components/contact-address-fields";
 import { EmployeeFields } from "@/components/employee-fields";
 import { DealershipFields } from "@/components/dealership-fields";
 import { contactEmployeeInput, formatContactAddress } from "@/lib/contact-address";
@@ -13,6 +14,8 @@ describe("contact-focused forms", () => {
     for (const key of ["streetAddress", "addressLine2", "city", "state", "postalCode"])
       expect(html).toContain(`name="${key}"`);
     expect(html).toContain("Billing address");
+    expect(html).not.toContain("Find an address");
+    expect(html).toMatch(/<input(?=[^>]*name="streetAddress")(?=[^>]*role="combobox")[^>]*>/);
     expect(html).toContain("Additonal comments");
     expect(html).not.toContain("Private account notes");
   });
@@ -26,10 +29,23 @@ describe("contact-focused forms", () => {
       expect(html).not.toContain(`name="${key}"`);
   });
 
+  it("preserves multiline legacy street text when reopening the inline address field", () => {
+    const html = renderToStaticMarkup(
+      createElement(ContactAddressFields, { value: { streetAddress: "Legacy building\nSuite 7" } }),
+    );
+    expect(html).toMatch(
+      /<textarea(?=[^>]*name="streetAddress")(?=[^>]*role="combobox")[^>]*>Legacy building\nSuite 7<\/textarea>/,
+    );
+    expect(html).not.toContain("Find an address");
+  });
+
   it("accepts a staff contact without email and strips submitted account permissions", () => {
     const contact = contactEmployeeInput.parse({
-      name: "Example Inspector", phone: "(404) 555-0123", jobRole: "Inspector",
-      role: "OWNER", email: "example@example.test",
+      name: "Example Inspector",
+      phone: "(404) 555-0123",
+      jobRole: "Inspector",
+      role: "OWNER",
+      email: "example@example.test",
     });
     expect(contact.jobRole).toBe("Inspector");
     expect(contact).not.toHaveProperty("role");
@@ -38,13 +54,22 @@ describe("contact-focused forms", () => {
   });
 
   it("rejects malformed certification dates and formats billing addresses for invoices", () => {
-    expect(contactEmployeeInput.safeParse({
-      name: "Example Inspector", phone: "", jobRole: "Inspector",
-      certificationExpires: "2026-02-30",
-    }).success).toBe(false);
-    expect(formatContactAddress({
-      streetAddress: "123 Example Road", addressLine2: "Suite 2",
-      city: "Atlanta", state: "GA", postalCode: "30301",
-    })).toBe("123 Example Road\nSuite 2\nAtlanta, GA 30301");
+    expect(
+      contactEmployeeInput.safeParse({
+        name: "Example Inspector",
+        phone: "",
+        jobRole: "Inspector",
+        certificationExpires: "2026-02-30",
+      }).success,
+    ).toBe(false);
+    expect(
+      formatContactAddress({
+        streetAddress: "123 Example Road",
+        addressLine2: "Suite 2",
+        city: "Atlanta",
+        state: "GA",
+        postalCode: "30301",
+      }),
+    ).toBe("123 Example Road\nSuite 2\nAtlanta, GA 30301");
   });
 });

@@ -41,11 +41,14 @@ for (const kind of ["employee", "dealership", "vendor"] as const) {
     await fields.locator('[name="phone"]').fill("555-0100");
     if (kind === "employee") await fields.locator('[name="jobRole"]').fill("Inspector");
     await fields.getByLabel("Apartment, suite or unit (optional)").fill("Suite 12B");
-    const search = fields.getByRole("combobox");
+    const search = fields.getByRole("combobox", { name: "Street address", exact: true });
+    await expect(fields.getByLabel("Find an address", { exact: true })).toHaveCount(0);
     await search.fill("100 Fixture");
     await expect(fields.getByRole("option")).toHaveCount(1);
     await search.press("Escape");
     await expect(fields.getByRole("option")).toHaveCount(0);
+    await expect(addDialog).toBeVisible();
+    await expect(search).toHaveValue("100 Fixture");
     await search.fill("100 Fixture Street");
     await expect(fields.getByRole("option")).toHaveCount(1);
     await search.press("ArrowDown");
@@ -99,7 +102,8 @@ for (const kind of ["employee", "dealership", "vendor"] as const) {
     await expect(fields.locator(".address-source")).toContainText("Provider selected");
     // Provider failure does not block manual corrections or saving/reopening.
     await page.unroute("**/api/addresses");
-    await fields.getByRole("combobox").fill("Unavailable address");
+    await fields.getByLabel("Street address", { exact: true }).fill("Unavailable address");
+    await expect(fields.locator(".address-source")).toContainText("Manually entered");
     await expect(
       fields.getByText("Address lookup unavailable. You can enter and save the address manually."),
     ).toBeVisible();

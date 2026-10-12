@@ -3093,11 +3093,11 @@ textarea:focus-visible {
   }
 }
 
-.address-search {
+.address-autocomplete {
   position: relative;
   margin-block: 0.75rem;
 }
-.address-search > label {
+.address-autocomplete > label {
   display: block;
   font-weight: 600;
   margin-bottom: 0.35rem;

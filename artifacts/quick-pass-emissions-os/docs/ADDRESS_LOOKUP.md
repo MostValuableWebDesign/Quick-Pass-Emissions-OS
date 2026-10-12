@@ -1,10 +1,10 @@
 # Shared contact addresses
 
-Employees, dealerships and vendors use the same **Find an address** control and structured
+Employees, dealerships and vendors use the same autocomplete-enabled **Street address** field and structured
 street, apartment/suite/unit, city, state and ZIP fields. Type at least three characters;
 suggestions appear after a 350 ms pause. Use Up/Down then Enter, or select with a pointer.
-Escape dismisses suggestions. Searching does not change a saved address until selection;
-manual fields and Save remain available throughout lookup failures.
+Escape dismisses suggestions. Typing changes the street field immediately; selecting a suggestion fills the structured fields.
+Manual fields and Save remain available throughout lookup failures.
 
 Existing repository integrations, dependencies and configured credential names were inspected;
 no address provider was present. The adapter uses [Geoapify Address Autocomplete](https://apidocs.geoapify.com/docs/geocoding/address-autocomplete/),
@@ -21,8 +21,9 @@ search; see the [provider terms](https://www.geoapify.com/terms-and-conditions/)
 No key is included or account provisioned by this change. Missing credentials, throttling,
 network/provider failures and no matches all leave manual entry available.
 
-Only text entered into Find an address is sent to the provider. Structured manual fields are
-not automatically transmitted. The authenticated same-origin POST endpoint keeps the key on
+Street text typed into the address field is sent to the provider for suggestions. Apartment/suite,
+city, state and ZIP fields are not separately transmitted. Existing addresses are not looked up
+just by opening a form; saved data changes only after Save. The authenticated same-origin POST endpoint keeps the key on
 the server, requests at most five suggestions, has a five-second deadline and allows at most
 30 lookups per management account per minute using a persistent atomic counter shared across
 processes. Responses are no-store. Queries, upstream errors and credentials are not logged by

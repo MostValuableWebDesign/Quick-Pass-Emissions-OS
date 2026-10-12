@@ -1,3 +1,23 @@
+# Inline street-address suggestions — October 12, 2026
+
+Pulled shared main through `3f6c723`. Removed the separate Find an address input. Typing directly
+into Street address now requests suggestions; selecting one fills street, city, state and ZIP.
+Apartment/suite preservation, manual saving, source labels and server provenance checks remain.
+Legacy multiline addresses retain their original line breaks. Escape dismisses suggestions
+without closing the new add-record dialog, and Enter selects without submitting the form.
+
+- **578 unit/database tests passed, none skipped, in 69 files** using the owned isolated runner.
+- **Three focused address browser workflows passed, none skipped** across employees, dealerships
+  and vendors: direct Street address typing, no separate lookup field, keyboard/pointer selection,
+  unit preservation, manual fallback, create/edit/save/reopen, provenance labels and 390px fit.
+  Suggestions were controlled fixtures; native login and unrelated-origin rejection also passed.
+- Typecheck, ESLint, changed-file Prettier, whitespace checks and the standard production build
+  passed. Build database access used an unreachable URL; 61 trace manifests contained no private
+  verification/environment references. Repository-wide formatting reports 45 untouched files.
+- No schema, credentials, business database or deployment changed. Live suggestions still require
+  the optional server-side GEOAPIFY_API_KEY; live provider lookup was not verified. Disposable
+  databases, browser state and browser build caches were removed after verification.
+
 # Shared contact address lookup — October 12, 2026
 
 Pulled shared main first through `7b36d3f`. Added one shared address search/structured-fields

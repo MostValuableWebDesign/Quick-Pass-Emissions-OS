@@ -1,4 +1,5 @@
 export function browserSuite(env) {
+  if (env.E2E_MARKETING_ONLY === "1") return { "marketing.spec.ts": 1 };
   if (env.E2E_DOOR_CONNECTED_ONLY === "1") return { "door-access-connected.spec.ts": 2 };
   if (env.E2E_DOOR_ACCESS_ONLY === "1") return { "door-access.spec.ts": 3 };
   if (env.E2E_OWNER_EMAIL_ONLY === "1") return { "owner-email.spec.ts": 2 };
@@ -23,6 +24,7 @@ export function browserSuite(env) {
   if (env.E2E_IMPORT_ONLY === "1" || env.E2E_STATION_ONLY === "1")
     return { "settings-pages-retired.spec.ts": 1 };
   return {
+    "marketing.spec.ts": 1,
     "door-access.spec.ts": 3,
     "owner-email.spec.ts": 2,
     "addresses.spec.ts": 3,

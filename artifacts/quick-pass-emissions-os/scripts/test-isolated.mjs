@@ -18,6 +18,7 @@ let isolatedEnv;
 let upgradeDir;
 let fixture;
 let interrupted = false;
+let unitArgs = [];
 for (const signal of ["SIGINT", "SIGTERM"]) {
   process.on(signal, () => {
     interrupted = true;
@@ -33,7 +34,11 @@ async function run(script, env) {
             env,
             stdio: ["ignore", "pipe", "pipe"],
           })
-        : spawn("pnpm", ["run", script], { cwd: app, env, stdio: ["ignore", "pipe", "pipe"] });
+        : spawn("pnpm", ["run", script, ...(script === "test" ? unitArgs : [])], {
+            cwd: app,
+            env,
+            stdio: ["ignore", "pipe", "pipe"],
+          });
     let output = "";
     child.stdout.on("data", (chunk) => {
       output += chunk;
@@ -53,8 +58,17 @@ function redact(value) {
 }
 try {
   const args = process.argv.slice(2);
-  if (args.some((arg) => arg !== "--browser") || args.length > 1) {
-    throw new Error("Use test:isolated with optional --browser.");
+  if (args.length > 1 || args.some((arg) => arg !== "--browser" && !arg.startsWith("--tests="))) {
+    throw new Error(
+      "Use test:isolated with optional --browser or --tests=comma-separated test filenames.",
+    );
+  }
+  if (args[0]?.startsWith("--tests=")) {
+    const names = args[0].slice(8).split(",");
+    if (!names.length || names.some((name) => !/^[a-zA-Z0-9-]+\.test\.ts$/.test(name)))
+      throw new Error("Choose explicit test filenames.");
+    for (const name of names) await fs.access(path.join(app, "tests", name));
+    unitArgs = names.map((name) => `tests/${name}`);
   }
   const browser = args.includes("--browser");
   if (

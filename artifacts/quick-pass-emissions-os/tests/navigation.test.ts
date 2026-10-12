@@ -152,7 +152,12 @@ describe("role-filtered navigation", () => {
         expect.arrayContaining(["/certificates", "#dealerships-menu"]),
       );
       expect(carwash.items.map((i) => i.href)).toEqual(["/carwash", "/equipment"]);
-      expect(shared.items.map((i) => i.href)).toEqual(["#employees-menu", "/vendors", "/finance"]);
+      expect(shared.items.map((i) => i.href)).toEqual([
+        "#employees-menu",
+        "/vendors",
+        "/finance",
+        "#marketing-menu",
+      ]);
       expect(employees.menuOnly).toBe(true);
       expect(employees.children?.map((item) => item.href)).toEqual(["/employees", "/payroll"]);
       expect(employees.children?.[0].label).toBe("Employee directory");

@@ -177,3 +177,7 @@ Read [BUSINESS_RULES.md](BUSINESS_RULES.md) before configuring recurrence or cha
 ## Daily owner email
 
 Owner-only **Automation → Configure daily owner email** provides recipient selection, a live report preview, saved reports and email history with 15 rows per page. The owner-requested schedule is **6:30 PM America/New_York**, every day, for the **current day**. Delivery starts paused; configure the server email provider and persistent scheduler, then enable it explicitly. Reports separate estimated revenue, billing, receipts and incomplete payroll. Read [OWNER_DAILY_EMAIL.md](OWNER_DAILY_EMAIL.md) for activation and recovery.
+
+## Marketing
+
+**Business → Marketing** provides persistent campaigns, separate budget/spending records, optional customer-reported sources, validated single-service dealership promotions, receipt-based results, action reviews and private approved/draft materials. Google Business insights/reviews are explicitly unavailable until authorized data is connected. Nothing sends marketing messages, buys ads or publishes replies. See [MARKETING.md](MARKETING.md) for metric definitions, permissions, billing boundaries and local verification.

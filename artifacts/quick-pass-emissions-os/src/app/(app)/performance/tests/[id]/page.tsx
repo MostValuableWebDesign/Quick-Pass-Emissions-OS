@@ -2,7 +2,11 @@ import Link from "next/link";
 import { requireRole } from "@/lib/require-role";
 import { recordDetail } from "@/modules/station/service";
 import { correctionStationAction, reviewStationAction } from "@/app/station-actions";
-import { ActionForm } from "@/components/action-form";
+import { ActionForm, Field } from "@/components/action-form";
+import { marketingOptions, recordSourceDetail } from "@/modules/marketing/service";
+import { recordSource } from "@/app/marketing-actions";
+import { SourceCampaignFields } from "@/components/marketing-client";
+import { sourceOptions } from "@/components/marketing";
 import { PageHeader, Empty } from "@/components/shared";
 import { RecordLink } from "@/components/record-link";
 import { Badge, Boundary, fmtInstant } from "@/components/phase5";
@@ -14,6 +18,10 @@ export default async function StationTest({ params }: { params: Promise<{ id: st
   const { record, employees, services, entries, candidates } = await recordDetail(user.id, id);
   const source = record.revisions.find((r) => r.id === record.currentRevisionId) ?? null;
   const nameOf = (eid: string | null) => employees.find((e) => e.id === eid)?.user.name ?? null;
+  const [marketing, observation] = await Promise.all([
+    marketingOptions(user.id),
+    recordSourceDetail(user.id, id),
+  ]);
   const editable = record.state !== "SUPERSEDED" && !!source;
   return (
     <>
@@ -254,6 +262,33 @@ export default async function StationTest({ params }: { params: Promise<{ id: st
           )}
         </div>
       </Section>
+      {editable && (
+        <Section title="How did you hear about us?">
+          <div className="card-body">
+            <p className="muted">
+              Customer-reported source only. Promo code attribution is tracked separately. Unknown
+              or missing answers cannot be assigned to a campaign.
+            </p>
+            <ActionForm action={recordSource} submit="Save source">
+              <input type="hidden" name="recordId" value={record.id} />
+              <input type="hidden" name="version" value={observation?.version ?? 0} />
+              <SourceCampaignFields
+                sources={sourceOptions}
+                campaigns={marketing.campaigns}
+                source={observation?.source ?? ""}
+                campaignId={observation?.campaignId ?? ""}
+              />
+              <Field label="Evidence · optional" wide>
+                <input
+                  name="evidence"
+                  maxLength={2000}
+                  defaultValue={observation?.evidence ?? ""}
+                />
+              </Field>
+            </ActionForm>
+          </div>
+        </Section>
+      )}
     </>
   );
 }

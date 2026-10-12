@@ -1,5 +1,9 @@
 # Architecture
 
+## Marketing
+
+`src/modules/marketing` holds validation, exact-money/promo rules, evidence reporting and transactional services. App Router pages/actions coordinate those services without creating customers or a second payment system. Additive relational records preserve campaign history, optional source responses, frozen offer terms, expenses and owner reviews. Existing dealership receipts/reversals and individually linked verified retail evidence supply collected revenue, never portal revenue estimates. Private marketing files use a replaceable App Storage adapter with authenticated ID-based downloads; PostgreSQL holds approval metadata. See [MARKETING.md](MARKETING.md).
+
 ## Durable storage lifecycle
 
 All saved domain records remain in PostgreSQL across builds. Migration 007 adds a singleton storage identity without changing existing business data. The dev/start package scripts apply committed deploy migrations and verify the optional EXPECTED_DATABASE_ID before accepting traffic; builds never seed/reset/migrate. Infrastructure in src/lib/database-maintenance.ts provides complete private PostgreSQL dumps and transactional restore into a separate empty database. Optional DATA_BACKUP_DIR requires a successful full backup before pending migrations. Only fresh active owners can read storage identity/counts in Settings. Preview and production may use separate databases. See DATA_PERSISTENCE.md.

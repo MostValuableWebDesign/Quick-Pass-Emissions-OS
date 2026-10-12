@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { serviceMarketing } from "../marketing/promotions";
 import { randomUUID } from "node:crypto";
 import { savedContactAddress } from "@/lib/address-provenance";
 import {
@@ -230,8 +231,12 @@ export async function recordService(actorId: string, input: unknown) {
       "Service reference already exists.",
     );
     const row = await tx.dealerService.create({ data: { ...data, createdBy: actorId } });
+    const finalCents = await serviceMarketing(tx, actorId, input, row);
+    if (finalCents !== row.unitCents) {
+      await tx.dealerService.update({where:{id:row.id},data:{unitCents:finalCents}});
+    }
     await audit(tx, actorId, "DEALER_SERVICE", row.id, data);
-    return row;
+    return { ...row, unitCents: finalCents };
   });
 }
 export async function voidService(actorId: string, input: unknown) {

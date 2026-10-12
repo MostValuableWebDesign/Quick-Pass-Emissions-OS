@@ -46,6 +46,8 @@ enum Frequency {
 }
 
 model User {
+  requestedDoorCodes     DoorAccessCode[]        @relation("DoorCodeRequester")
+  registeredDoors        DoorLock[]              @relation("DoorRegistrar")
   ownerSummaryEmails     OwnerSummaryEmail[]
   ownerEmailSettings     OwnerEmailSetting[]     @relation("EmailSettingOwner")
   supportContactHistory  SupportContactHistory[]
@@ -131,6 +133,7 @@ model RateLimit {
 }
 
 model Employee {
+  doorCodes            DoorAccessCode[]
   responsibleBays      CarwashBay[]        @relation("BayResponsible")
   maintenancePlans     MaintenancePlan[]   @relation("PlanAssignee")
   maintenanceTickets   MaintenanceTicket[] @relation("TicketAssignee")
@@ -1337,4 +1340,55 @@ model OwnerSummaryEmail {
 
   @@unique([userId, reportDate])
   @@index([status, nextAttemptAt])
+}
+
+// No plaintext keypad codes are persisted. Fingerprints use a server-only HMAC key.
+model DoorLock {
+  id             String           @id @default(cuid())
+  name           String
+  deviceId       String           @unique
+  accountId      String
+  createdBy      String
+  creator        User             @relation("DoorRegistrar", fields: [createdBy], references: [id], onDelete: Restrict)
+  online         Boolean?
+  locked         Boolean?
+  batteryPercent Int?
+  checkedAt      DateTime?
+  nextCheckAt    DateTime         @default(now())
+  failure        String?
+  createdAt      DateTime         @default(now())
+  codes          DoorAccessCode[]
+}
+
+model DoorAccessCode {
+  id                String          @id @default(cuid())
+  doorId            String
+  door              DoorLock        @relation(fields: [doorId], references: [id], onDelete: Restrict)
+  employeeId        String?
+  employee          Employee?       @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  label             String
+  fingerprint       String
+  providerRef       String          @unique
+  providerId        String?         @unique
+  requestedBy       String
+  requester         User            @relation("DoorCodeRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
+  startsAt          DateTime?
+  endsAt            DateTime?
+  replacesId        String?         @unique
+  replaces          DoorAccessCode? @relation("DoorCodeReplacement", fields: [replacesId], references: [id], onDelete: Restrict)
+  replacement       DoorAccessCode? @relation("DoorCodeReplacement")
+  status            String          @default("PENDING")
+  desiredState      String          @default("ACTIVE")
+  version           Int             @default(1)
+  submitToken       String
+  attemptedAt       DateTime?
+  revokeRequestedBy String?
+  revokeRequestedAt DateTime?
+  checkedAt         DateTime?
+  nextCheckAt       DateTime        @default(now())
+  failure           String?
+  createdAt         DateTime        @default(now())
+
+  @@unique([doorId, fingerprint])
+  @@index([status, nextCheckAt])
 }

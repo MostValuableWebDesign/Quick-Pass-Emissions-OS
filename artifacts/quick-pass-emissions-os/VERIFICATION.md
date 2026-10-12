@@ -605,3 +605,45 @@ Database tests truncate their explicitly isolated `_test` fixtures. `npm test` w
 - Visually checked at 1440 × 1000 and 390 × 844. The phone layout had no horizontal overflow; required email/password controls and `/api/sign-in` form action were verified in the browser. No credentials were submitted.
 - After incorporating shared main through `67f288d`, typecheck, ESLint and the production build passed. All 427 tests passed in 42 files using a separately created and removed disposable test database; none skipped. Login source formatting passed.
 - Repository-wide formatting fails on eight pre-existing files from the newly fetched dashboard/retest changes. The existing database-maintenance filesystem tracing build warning remains. The full authenticated browser suite was not rerun for this presentation-only change. No deployment occurred.
+
+## 2026-10-12 — Schlage door access
+
+Added Security → Door access for the owner's selected Schlage Encode BE489WB.
+The fixed-origin Seam integration records durable staff/temporary code requests,
+replacement/revocation, last-known door status and 15-row code/history pages.
+Owners register hardware; management permissions are rechecked under personnel
+and security locks at request and provider dispatch. Queued actions cannot use
+an inactive actor or remove a newly privileged target's access. Staff removal
+queues revocation atomically. No plaintext PINs are stored, returned or audited.
+Read [DOOR_ACCESS.md](DOOR_ACCESS.md) for provisioning and confirmation limits.
+
+Verified locally:
+
+- `npm run typecheck` and `npm run lint`: passed.
+- Full owned isolated suite: **627 tests in 73 files passed**, no skipped tests.
+  Includes 29 new provider/persistence tests for authorization races, timeouts,
+  duplicate submission, delayed confirmation, replacement ordering, staff removal,
+  temporary native scheduling, event matching, pagination and credential isolation.
+- Additive migration `202610120006_door_access` applied to isolated PostgreSQL.
+  Existing approved payroll, invoice and signed-reversal upgrade sentinels retained.
+- `E2E_DOOR_CONNECTED_ONLY=1` owned browser run: **2 checks passed**, no skips,
+  covering registration, staff issue/change/revoke, provider-confirmed removal,
+  PIN clearing, reload persistence and manager controls with a synthetic transport.
+- `E2E_DOOR_ACCESS_ONLY=1` owned browser run: **3 checks passed**, no skips,
+  covering owner/manager setup, responsive navigation and anonymous/legacy denial.
+- `npm run build`: passed using an unreachable verification-only database.
+  All **64** production trace manifests were checked; none reference private
+  verification files or the synthetic door-provider preload/fixture.
+- Changed supported files pass Prettier. Repository-wide `format:check` still
+  flags **39 untouched files**; no broad formatting rewrite was included.
+
+The full default **32-check browser suite was attempted before integrating concurrent contact-form updates and failed**. Several
+existing checks target controls absent in the pulled pre-change source, including
+`Toggle theme`, `+ Add an employee`, old certificate settings and the Settings
+`Run operations check` button. Other legacy workflow assertions also failed.
+The strict completion guard was retained; this run is not counted as passing.
+Updating those existing workflow tests is outside this door integration change.
+
+No real Seam credentials, connected Schlage account or physical locks were used.
+Live provisioning, actual keypad tests, deployment and a persistent scheduler
+remain external setup. Push status is distinct from deployment.

@@ -148,7 +148,7 @@ E2E_DIRECT=1 npm run test:e2e
 
 In Replit, omit `E2E_DIRECT=1` to use the configured preview port; that port must be free. `DATABASE_URL` supplies the connection to the PostgreSQL server, and the runners generate their own database name, signing secret and private sessions. `DEMO_PASSWORD` and a pre-seeded app are unnecessary. `E2E_CHROMIUM_PATH` optionally selects an installed browser.
 
-The default browser command requires all 29 checks across navigation, personnel/invitations, tasks, payroll, certificates, maintenance, chemicals, rentals, dealer billing, finance, Phase 5 automation and Performance panels (32 with station history enabled). Phase 5 covers configuration, summary delivery and immutability, reminders, CSV reports, failed-job retry and role restrictions. A missing workflow file, skipped test, failure or retry fails the completion guard. Targeted security/theme/login/support/import/certificate/station modes remain available and report only their selected coverage. Browser traces, screenshots and video are disabled; temporary sessions and reports are private and removed on completion.
+The default browser command requires all 32 checks across navigation, personnel/invitations, tasks, payroll, certificates, maintenance, chemicals, rentals, dealer billing, finance, Phase 5 automation and Performance panels (35 with station history enabled). Phase 5 covers configuration, summary delivery and immutability, reminders, CSV reports, failed-job retry and role restrictions. A missing workflow file, skipped test, failure or retry fails the completion guard. Targeted security/theme/login/support/import/certificate/station modes remain available and report only their selected coverage. Browser traces, screenshots and video are disabled; temporary sessions and reports are private and removed on completion.
 
 ## Scheduling
 
@@ -169,6 +169,10 @@ Read [BUSINESS_RULES.md](BUSINESS_RULES.md) before configuring recurrence or cha
 - [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md): remaining phases.
 - [AGENTS.md](AGENTS.md): future coding-agent instructions.
 - [docs/OPERATIONS.md](docs/OPERATIONS.md): backup, recovery, maintenance and security notes.
+
+## Door access
+
+**Security → Door access** supports the selected Schlage Encode BE489WB through Seam: staff and temporary keypad codes, staff-code changes, revocation, last-known door status and durable history with 15 items per page. Owner connection setup is required; API acceptance remains pending until provider confirmation. See [DOOR_ACCESS.md](DOOR_ACCESS.md). Existing credentials and hardware have not been live-verified.
 
 ## Daily owner email
 

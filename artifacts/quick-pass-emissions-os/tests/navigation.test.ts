@@ -91,10 +91,14 @@ describe("role-filtered navigation", () => {
     expect(destinations.map((item) => item.href)).toContain("/reminders");
     expect(destinations.map((item) => item.href)).toContain("/notifications");
     expect(destinations.map((item) => item.href)).toContain("/settings/account");
-    expect(destinations.filter((item) => item.category === "Reminders & notifications")
-      .map((item) => item.href)).toEqual(["/reminders", "/notifications"]);
-    expect(destinations.find((item) => item.href === "/settings/account")?.category)
-      .toBe("Account & security");
+    expect(
+      destinations
+        .filter((item) => item.category === "Reminders & notifications")
+        .map((item) => item.href),
+    ).toEqual(["/reminders", "/notifications"]);
+    expect(destinations.find((item) => item.href === "/settings/account")?.category).toBe(
+      "Account & security",
+    );
     expect(allNavItems("ADMIN").some((item) => item.href === "/settings/import")).toBe(false);
   });
   it("nests the dealership directory, invoices, and payments under a menu-only Dealerships heading", () => {
@@ -110,7 +114,9 @@ describe("role-filtered navigation", () => {
     ]);
     expect(dealers.children?.[0].label).toBe("Dealerships & contacts");
     expect(matchRoute(dealers.href)).toBeUndefined();
-    expect(activeNavHref("/invoices", "OWNER", "view=payments&q=test")).toBe("/invoices?view=payments");
+    expect(activeNavHref("/invoices", "OWNER", "view=payments&q=test")).toBe(
+      "/invoices?view=payments",
+    );
     expect(activeNavHref("/invoices", "OWNER")).toBe("/invoices");
     expect(activeNavHref("/dealerships", "OWNER")).toBe("/dealerships");
     expect(safeReturnPath("/invoices?view=payments", "ADMIN")).toBe("/invoices?view=payments");
@@ -119,7 +125,7 @@ describe("role-filtered navigation", () => {
     for (const role of ["OWNER", "ADMIN"]) {
       const security = navForRole(role).find((section) => section.id === "security");
       expect(security?.label).toBe("Security");
-      expect(security?.items.map((item) => item.href)).toEqual(["/security"]);
+      expect(security?.items.map((item) => item.href)).toEqual(["/security", "/security/doors"]);
       expect(activeNavHref("/security", role)).toBe("/security");
       expect(safeReturnPath("/security", role)).toBe("/security");
     }

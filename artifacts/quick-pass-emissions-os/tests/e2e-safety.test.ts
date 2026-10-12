@@ -21,6 +21,7 @@ describe("Browser isolation gates", () => {
     const suite = browserSuite({});
     expect(Object.keys(suite)).toEqual(
       expect.arrayContaining([
+        "door-access.spec.ts",
         "addresses.spec.ts",
         "login.spec.ts",
         "theme.spec.ts",
@@ -33,7 +34,7 @@ describe("Browser isolation gates", () => {
         "phase5.spec.ts",
       ]),
     );
-    expect(Object.values(suite).reduce((sum, n) => sum + n, 0)).toBe(29);
+    expect(Object.values(suite).reduce((sum, n) => sum + n, 0)).toBe(32);
     const suites = Object.entries(suite).map(([file, count]) => ({
       file,
       specs: Array.from({ length: count }, () => ({ tests: [{}] })),
@@ -62,6 +63,9 @@ describe("Browser isolation gates", () => {
       EXPECTED_DATABASE_ID: "business-id",
       DATA_BACKUP_DIR: "/private/business-backups",
       RESTORE_DATABASE_URL: "postgresql://localhost/recovery",
+      SEAM_API_KEY: "must-not-touch-doors",
+      SEAM_CONNECTED_ACCOUNT_ID: "private-account",
+      DOOR_CODE_HMAC_KEY: "private-key",
       RESEND_API_KEY: "must-not-send",
       OWNER_SUMMARY_FROM_EMAIL: "private@example.test",
       OWNER_SUMMARY_APP_URL: "https://private.example.test",
@@ -73,6 +77,9 @@ describe("Browser isolation gates", () => {
       EXPECTED_DATABASE_ID: "",
       DATA_BACKUP_DIR: "",
       RESTORE_DATABASE_URL: "",
+      SEAM_API_KEY: "",
+      SEAM_CONNECTED_ACCOUNT_ID: "",
+      DOOR_CODE_HMAC_KEY: "",
       RESEND_API_KEY: "",
       OWNER_SUMMARY_FROM_EMAIL: "",
       OWNER_SUMMARY_APP_URL: "",

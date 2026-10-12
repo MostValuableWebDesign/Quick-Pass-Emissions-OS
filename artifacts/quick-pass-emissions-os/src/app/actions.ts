@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { currentUser, manager } from "@/lib/access";
 import { canManageRole, isManager } from "@/lib/policy";
+import { revokeStaffCodes } from "@/modules/security/service";
 import { savedContactAddress } from "@/lib/address-provenance";
 import { contactEmployeeInput } from "@/lib/contact-address";
 import { businessHoursFromForm } from "@/lib/business-hours";
@@ -250,6 +251,7 @@ export async function setEmployeeActive(_: ActionState, form: FormData) {
       if (!canManageRole(actor.role, employee.user.role))
         throw new Error("Only the owner may manage privileged accounts.");
       await tx.user.update({ where: { id: employee.userId }, data: { active } });
+      if (!active) await revokeStaffCodes(tx, employeeId, actor.id);
       await tx.session.deleteMany({ where: { userId: employee.userId } });
       await tx.invite.updateMany({
         where: { employeeId, usedAt: null },

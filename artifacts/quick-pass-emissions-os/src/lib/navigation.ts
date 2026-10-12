@@ -83,7 +83,13 @@ export const NAV_SECTIONS: NavSection[] = [
             roles: FINANCE,
             category: "Directory",
           },
-          { href: "/invoices", label: "Invoices", icon: "receipt", roles: FINANCE, category: "Billing" },
+          {
+            href: "/invoices",
+            label: "Invoices",
+            icon: "receipt",
+            roles: FINANCE,
+            category: "Billing",
+          },
           {
             href: "/invoices?view=payments",
             label: "Payments",
@@ -107,7 +113,10 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "security",
     label: "Security",
-    items: [{ href: "/security", label: "Camera viewing", icon: "camera", roles: MANAGERS }],
+    items: [
+      { href: "/security", label: "Camera viewing", icon: "camera", roles: MANAGERS },
+      { href: "/security/doors", label: "Door access", icon: "key", roles: MANAGERS },
+    ],
   },
   {
     id: "shared-business",
@@ -223,10 +232,7 @@ export function navForRole(role: string): NavSection[] {
 /** Flatten the role-filtered tree for route checks and tests. */
 export function allNavItems(role: string): NavItem[] {
   const flatten = (items: NavItem[]): NavItem[] =>
-    items.flatMap((item) => [
-      ...(item.menuOnly ? [] : [item]),
-      ...flatten(item.children ?? []),
-    ]);
+    items.flatMap((item) => [...(item.menuOnly ? [] : [item]), ...flatten(item.children ?? [])]);
   return flatten(navForRole(role).flatMap((section) => section.items));
 }
 
@@ -382,11 +388,7 @@ export function matchRoute(pathname: string): RouteDef | undefined {
  * The single nav href to mark current: the route's own nav entry if visible,
  * otherwise the longest visible nav href that prefixes the path on a segment boundary.
  */
-export function activeNavHref(
-  pathname: string,
-  role: string,
-  search = "",
-): string | undefined {
+export function activeNavHref(pathname: string, role: string, search = ""): string | undefined {
   const query = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
   const items = allNavItems(role);
   const queryMatch = items.find((item) => {
@@ -394,9 +396,8 @@ export function activeNavHref(
     if (item.href.split("?")[0] !== pathname) return false;
     return Object.entries(item.matchQuery).every(([key, value]) => query.get(key) === value);
   });
-  const exact = queryMatch ?? items.find(
-    (item) => !item.matchQuery && item.href.split("?")[0] === pathname,
-  );
+  const exact =
+    queryMatch ?? items.find((item) => !item.matchQuery && item.href.split("?")[0] === pathname);
   if (exact) return exact.href;
   const visible = items.map((item) => item.href);
   const route = matchRoute(pathname);

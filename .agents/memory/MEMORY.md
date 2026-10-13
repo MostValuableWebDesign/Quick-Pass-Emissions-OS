@@ -17,3 +17,4 @@
 - [Verification tooling](verification-tooling.md) — temporary Python PDF-review installs can scaffold an unrelated root app; clean up only their unused generated changes.
 - [HTML validation patterns](html-validation-patterns.md) — escape punctuation in HTML `pattern` character classes; modern browsers can ignore invalid patterns silently.
 - [Marketing scope](marketing-scope.md) — evidence reporting and owner-controlled drafts do not authorize outbound marketing or parallel payment systems.
+- [Reolink camera setup](reolink-camera-setup.md) — Argus PT is standalone; the NVR is separate, so treat Reolink video as external unless supported access is added.

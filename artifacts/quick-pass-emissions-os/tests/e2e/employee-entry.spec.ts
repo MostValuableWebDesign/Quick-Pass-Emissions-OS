@@ -6,6 +6,12 @@ async function confirmAction(page: Page, button: Locator, accept: boolean) {
   await button.click();
   const dialog = page.getByRole("alertdialog", { name: "Confirm employee removal" });
   await expect(dialog).toBeVisible();
+  const dialogBox = await dialog.boundingBox();
+  const viewport = page.viewportSize();
+  expect(dialogBox).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  expect(Math.abs(dialogBox!.x + dialogBox!.width / 2 - viewport!.width / 2)).toBeLessThanOrEqual(1);
+  expect(Math.abs(dialogBox!.y + dialogBox!.height / 2 - viewport!.height / 2)).toBeLessThanOrEqual(1);
   await expect(dialog).toContainText("payroll history will be kept");
   await expect(dialog).not.toContainText("replit.dev");
   await dialog

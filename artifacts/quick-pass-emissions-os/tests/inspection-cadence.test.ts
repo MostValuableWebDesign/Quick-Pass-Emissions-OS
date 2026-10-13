@@ -195,6 +195,7 @@ describe("report-based typical time between tests", () => {
     expect(html).not.toContain(".00");
     expect(html).toContain("button-sort-inspectionCadence");
     expect(inspectionTime(5.5)).toBe("6 min");
+    expect(inspectionTime(null)).toBe("Pending");
     expect(usd(23000)).toBe("$230");
 
     const employee = data.employees.find((person) => person.inspector === "A")!;

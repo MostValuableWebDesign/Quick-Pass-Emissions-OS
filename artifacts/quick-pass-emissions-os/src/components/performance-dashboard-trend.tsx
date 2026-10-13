@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import type { DashboardData } from "@/modules/station/dashboard-types";
-import { excludeSundayTrendDays, shortDate, usd } from "./performance-dashboard-format";
+import { shortDate, usd } from "./performance-dashboard-format";
 
 type Metric = "cars" | "revenue";
 
@@ -27,8 +27,7 @@ export function PerformanceTrend({
   panelActions?: ReactNode;
 }) {
   const [metric, setMetric] = useState<Metric>("cars");
-  const weekdays = excludeSundayTrendDays(series);
-  const rows = weekdays.map((s) => ({
+  const rows = series.map((s) => ({
     date: s.date,
     value: metric === "cars" ? s.cars : s.revenueCents === null ? null : s.revenueCents / 100,
     station: metric === "cars" && filtered ? s.stationCars : null,
@@ -40,8 +39,10 @@ export function PerformanceTrend({
       <div className="pd-card-h">
         <div className="pd-card-title">
           <h2>Trend</h2>
-          <p>
-            {rows.length} days{gaps ? ` · ${gaps} without data shown as gaps` : ""}
+          <p data-testid="text-trend-period">
+            {rows.length} {rows.length === 1 ? "day" : "days"} · {series[0]?.date}
+            {series.length > 1 ? ` – ${series.at(-1)?.date}` : ""}
+            {gaps ? ` · ${gaps} without data shown as gaps` : ""}
             {filtered && metric === "cars" ? " · line is station total" : ""}
           </p>
         </div>
@@ -132,7 +133,7 @@ export function PerformanceTrend({
           </ResponsiveContainer>
         </div>
       ) : (
-        <div className="pd-empty">No counts recorded for this trend window yet.</div>
+        <div className="pd-empty">No counts recorded for the selected dates yet.</div>
       )}
     </section>
   );

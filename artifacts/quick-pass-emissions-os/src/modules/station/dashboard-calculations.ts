@@ -23,9 +23,7 @@ export function calendarDays(start: string, end: string) {
   return days;
 }
 export function dashboardDates(query: DashboardQuery, today: string) {
-  const trendStart =
-    query.start === query.end ? addDays(query.end, 1 - query.trendDays) : query.start;
-  return [...new Set([...calendarDays(trendStart, query.end), today])].sort();
+  return [...new Set([...calendarDays(query.start, query.end), today])].sort();
 }
 export function inspectorKey(inspector: string) {
   return `inspector:${encodeURIComponent(inspector)}`;
@@ -188,10 +186,7 @@ export function buildDashboard(
       return day.total === 0 || selected[0]?.cars !== null ? emptyCounts() : null;
     return day.inspectors.find((i) => i.inspector === selectedInspector) ?? emptyCounts();
   };
-  const seriesDates = calendarDays(
-    query.start === query.end ? addDays(query.end, 1 - query.trendDays) : query.start,
-    query.end,
-  );
+  const seriesDates = selectedDates;
   const series = seriesDates.map((date) => {
     const day = byDate.get(date);
     const counts = day ? countFor(day) : null;

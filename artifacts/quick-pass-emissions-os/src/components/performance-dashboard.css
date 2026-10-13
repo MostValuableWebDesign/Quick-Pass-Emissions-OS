@@ -985,3 +985,135 @@
   display: grid;
   gap: 14px;
 }
+
+/* Shared dashboard scope: compact controls precede every data panel. */
+.pd-toolbar {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 14px 16px;
+  position: relative;
+  z-index: 5;
+}
+.pd-toolbar-main,
+.pd-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pd-toolbar-main {
+  justify-content: space-between;
+}
+.pd-toolbar-actions {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+.pd-toolbar .button {
+  white-space: nowrap;
+  min-height: 38px;
+}
+.pd-employee-focus label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.pd-employee-focus select {
+  min-width: 170px;
+  max-width: 250px;
+  height: 38px;
+}
+.pd-date-picker {
+  position: relative;
+}
+.pd-date-picker summary {
+  list-style: none;
+  cursor: pointer;
+}
+.pd-date-picker summary::-webkit-details-marker {
+  display: none;
+}
+.pd-date-picker[open] summary {
+  border-color: var(--action);
+}
+.pd-date-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 550px;
+  max-width: calc(100vw - 48px);
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgb(0 0 0 / 16%);
+  z-index: 10;
+}
+.pd-date-popover .pd-cal-form {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+}
+.pd-date-popover .pd-cal-top {
+  flex-wrap: wrap;
+}
+.pd-date-popover .field {
+  min-width: 0;
+}
+.pd-date-popover input {
+  width: 100%;
+  min-width: 0;
+}
+.pd-toolbar .pd-panel-layout-toolbar {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.pd-scope-note {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 8px 0 0;
+}
+.pd-toolbar .dashboard-refresh-wrap {
+  flex-direction: row;
+  align-items: center;
+}
+@media (max-width: 760px) {
+  .pd-toolbar-main,
+  .pd-toolbar-actions {
+    width: 100%;
+    margin: 0;
+    justify-content: flex-start;
+  }
+  .pd-date-picker {
+    position: static;
+  }
+  .pd-date-popover {
+    right: 10px;
+    left: 10px;
+    top: auto;
+    width: auto;
+    max-width: none;
+    margin-top: 8px;
+  }
+  .pd-date-popover .pd-cal-form {
+    grid-template-columns: 1fr;
+  }
+  .pd-date-popover .pd-cal-side {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pd-employee-focus,
+  .pd-employee-focus label {
+    width: 100%;
+  }
+  .pd-employee-focus select {
+    flex: 1;
+    max-width: none;
+    min-width: 0;
+  }
+  .pd-date-picker summary {
+    white-space: normal;
+  }
+}

@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { excludeSundayTrendDays } from "../src/components/performance-dashboard-format";
-
-describe("Performance trend dates", () => {
-  it("excludes Sunday while keeping Saturday and Monday", () => {
-    const days = ["2026-10-10", "2026-10-11", "2026-10-12"].map((date) => ({ date }));
-    expect(excludeSundayTrendDays(days)).toEqual([{ date: "2026-10-10" }, { date: "2026-10-12" }]);
+import { longDate, shortDate } from "../src/components/performance-dashboard-format";
+describe("Performance reporting-date labels", () => {
+  it("keeps a selected Sunday labeled as its report-local calendar date", () => {
+    expect(longDate("2026-10-11")).toBe("Sun, Oct 11, 2026");
+    expect(shortDate("2026-10-11")).toBe("Oct 11");
   });
-
-  it("keeps the trend empty when its window contains only Sundays", () => {
-    expect(excludeSundayTrendDays([{ date: "2026-10-11" }, { date: "2026-10-18" }])).toEqual([]);
+  it("does not shift calendar dates at DST boundaries", () => {
+    expect(longDate("2026-03-08")).toBe("Sun, Mar 8, 2026");
+    expect(longDate("2026-11-01")).toBe("Sun, Nov 1, 2026");
   });
 });

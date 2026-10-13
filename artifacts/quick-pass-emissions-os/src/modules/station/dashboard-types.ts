@@ -41,6 +41,7 @@ import type { SourceRefreshStatus } from "@/lib/source-refresh";
 export type DashboardQuery = {
   start: string;
   end: string;
+  /** Legacy URL/action compatibility; every panel is scoped by start/end. */
   trendDays: 7 | 30;
   employee?: string;
 };

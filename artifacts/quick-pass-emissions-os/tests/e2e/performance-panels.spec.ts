@@ -20,6 +20,16 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
     "title",
     /free retests included/i,
   );
+  const toolbar = page.getByTestId("performance-toolbar");
+  const toolbarBox = await toolbar.boundingBox();
+  const headlineBox = await page.getByRole("region", { name: "Headline numbers" }).boundingBox();
+  expect(toolbarBox && headlineBox && toolbarBox.y + toolbarBox.height <= headlineBox.y).toBe(true);
+  await toolbar.getByTestId("button-save-panel-layout").click();
+  await expect(page.getByTestId("performance-layout-save-status")).toHaveText(
+    "Layout saved to your account",
+  );
+  await expect(page.getByTestId("select-trend")).toHaveCount(0);
+  await expect(page.getByTestId("text-trend-period")).toContainText("1 day");
   await page.getByTestId("button-sort-inspectionCadence").click();
   await expect(page.locator(".pd-table tbody tr").first()).toContainText("Fixture Two");
   await page.getByTestId("button-sort-inspectionCadence").click();
@@ -313,6 +323,29 @@ test("busy hours and commission progress follow reports, employee filters and sa
   await expect(busy).toContainText("Selected employee");
   await expect(commission).toContainText("Selected employee commission (est.)");
 
+  await expect(page.getByTestId("text-trend-period")).toContainText("1 day · 2026-01-15");
+  await expect(
+    page.getByTestId("panel-employees").locator('tbody tr[data-testid^="row-employee-"]'),
+  ).toHaveCount(1);
+  // Apply the date range through the shared top toolbar, retaining employee focus.
+  await page.getByTestId("button-date-range").click();
+  await page.getByTestId("input-start").fill("2026-01-14");
+  await page.getByTestId("button-apply-range").click();
+  await expect(page).toHaveURL(/start=2026-01-14/);
+  await expect(page.getByTestId("select-employee")).toHaveValue("inspector:Fixture%20One");
+  await expect(page.getByTestId("text-trend-period")).toContainText(
+    "2 days · 2026-01-14 – 2026-01-15",
+  );
+  await expect(commission.getByRole("progressbar")).toHaveCount(2);
+  await expect(busy).toContainText("Selected employee");
+  await page.getByTestId("select-employee").selectOption("");
+  await expect(page).toHaveURL(/start=2026-01-14&end=2026-01-15/);
+  await expect(
+    page.getByTestId("panel-employees").locator('tbody tr[data-testid^="row-employee-"]'),
+  ).toHaveCount(2);
+  await page.goto("/performance?start=2026-01-11&end=2026-01-11");
+  await expect(page.getByTestId("text-trend-period")).toContainText("1 day · 2026-01-11");
+
   await page.goto("/performance?start=2025-12-30&end=2026-01-15");
   await expect(commission.getByTestId("text-progress-commission")).toHaveText("$1,528.00");
   await expect(commission.getByRole("progressbar")).toHaveCount(15);
@@ -321,6 +354,14 @@ test("busy hours and commission progress follow reports, employee filters and sa
   await expect(commission).toContainText("Page 2 of 2");
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByTestId("button-date-range").click();
+  await expect(page.getByTestId("input-start")).toBeVisible();
+  const pickerBox = await page.locator(".pd-date-popover").boundingBox();
+  expect(pickerBox && pickerBox.x >= 0 && pickerBox.x + pickerBox.width <= 390).toBe(true);
+  await page.getByTestId("input-start").press("Escape");
+  await expect(page.getByTestId("input-start")).toBeHidden();
+  await expect(page.getByTestId("button-date-range")).toBeFocused();
+
   await expect(busy).toHaveCSS("grid-column-start", "1");
   await expect(commission).toHaveCSS("grid-column-start", "1");
   await expect

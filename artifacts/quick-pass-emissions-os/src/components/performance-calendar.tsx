@@ -33,19 +33,10 @@ type Props = {
   start: string;
   end: string;
   today: string;
-  trendDays: number;
   employee?: string | null;
-  employeeOptions: { id: string; name: string }[];
 };
 
-export function PerformanceCalendar({
-  start,
-  end,
-  today,
-  trendDays,
-  employee,
-  employeeOptions,
-}: Props) {
+export function PerformanceCalendar({ start, end, today, employee }: Props) {
   const [mode, setMode] = useState<CalMode>(start === end ? "single" : "range");
   const [sel, setSel] = useState<CalSel>({ start, end });
   const [hover, setHover] = useState<string | null>(null);
@@ -114,7 +105,7 @@ export function PerformanceCalendar({
       method="get"
       action="/performance"
       className="pd-cal-form"
-      aria-label="Date and filters"
+      aria-label="Reporting dates"
     >
       <div className="pd-cal" data-testid="calendar">
         <div className="pd-cal-top">
@@ -221,25 +212,39 @@ export function PerformanceCalendar({
           </strong>
           {pending && <small>Pick an end date, or Apply for one day.</small>}
         </div>
-        <input type="hidden" name="start" value={out.start} />
-        <input type="hidden" name="end" value={out.end} />
+        <input type="hidden" name="employee" value={employee ?? ""} />
         <label className="field">
-          <span>Employee</span>
-          <select name="employee" defaultValue={employee ?? ""} data-testid="select-employee">
-            <option value="">All</option>
-            {employeeOptions.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name}
-              </option>
-            ))}
-          </select>
+          <span>From</span>
+          <input
+            type="date"
+            name="start"
+            value={out.start}
+            max={today}
+            required
+            data-testid="input-start"
+            onChange={(e) => {
+              const start = e.target.value;
+              const end = !sel.end || sel.end < start ? start : sel.end;
+              setSel({ start, end });
+              setMode(start === end ? "single" : "range");
+            }}
+          />
         </label>
         <label className="field">
-          <span>Trend</span>
-          <select name="trendDays" defaultValue={String(trendDays)} data-testid="select-trend">
-            <option value="7">Week</option>
-            <option value="30">Month</option>
-          </select>
+          <span>Through</span>
+          <input
+            type="date"
+            name="end"
+            value={out.end}
+            min={out.start}
+            max={today}
+            required
+            data-testid="input-end"
+            onChange={(e) => {
+              setSel({ ...sel, end: e.target.value });
+              setMode(e.target.value === sel.start ? "single" : "range");
+            }}
+          />
         </label>
         <div className="pd-cal-acts">
           <button
@@ -255,7 +260,7 @@ export function PerformanceCalendar({
             Today
           </button>
           <button className="button button-primary button-sm" data-testid="button-apply-range">
-            Apply
+            Apply dates
           </button>
         </div>
       </div>

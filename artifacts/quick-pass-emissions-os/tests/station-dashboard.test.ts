@@ -67,6 +67,35 @@ describe("Performance financial projections", () => {
     expect(data.current?.total).toBe(95);
     expect(data.series.at(-1)?.stationCars).toBe(95);
   });
+  it("uses the same selected single day for every panel, ignoring legacy trend windows", () => {
+    const data = buildDashboard(
+      { ...query, trendDays: 30, employee: inspectorKey("Fixture Two") },
+      today,
+      [{ ...day, date: "2026-01-14" }, day],
+      plan,
+    );
+    expect(data.series).toHaveLength(1);
+    expect(data.series[0]).toMatchObject({ date: today, cars: 25, revenueCents: 50000 });
+    expect(data.commissionProgress.days.map((d) => d.date)).toEqual([today]);
+    expect(data.busyHours.expectedDays).toBe(1);
+    expect(data.employees).toHaveLength(1);
+    expect(data.summary.cars).toBe(data.series[0].cars);
+  });
+  it("aligns inclusive multi-day ranges and preserves Sundays and missing days", () => {
+    const data = buildDashboard(
+      { ...query, start: "2026-01-11", end: "2026-01-15" },
+      today,
+      [{ ...day, date: "2026-01-11" }, day],
+      plan,
+    );
+    expect(data.series.map((d) => d.date)).toEqual(calendarDays("2026-01-11", "2026-01-15"));
+    expect(data.series[0].cars).toBe(95);
+    expect(data.series[1].cars).toBeNull();
+    expect(data.commissionProgress.days.map((d) => d.date)).toEqual(data.series.map((d) => d.date));
+    expect(data.busyHours.expectedDays).toBe(5);
+    expect(data.summary.expectedDays).toBe(5);
+    expect(data.summary.cars).toBeNull();
+  });
   it("keeps missing source data null and graph gaps instead of manufacturing zero", () => {
     const data = buildDashboard(query, today, [], plan);
     expect(data.summary.cars).toBeNull();

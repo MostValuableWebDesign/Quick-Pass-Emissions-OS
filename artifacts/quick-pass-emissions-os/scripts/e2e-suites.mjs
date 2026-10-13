@@ -1,4 +1,5 @@
 export function browserSuite(env) {
+  if (env.E2E_PAY_ADJUSTMENTS_ONLY === "1") return { "payroll-adjustments.spec.ts": 1 };
   if (env.E2E_TREND_ONLY === "1") return { "performance-trend.spec.ts": 1 };
   if (env.E2E_NAV_CLEANUP_ONLY === "1") return { "navigation-cleanup.spec.ts": 1 };
   if (env.E2E_BUSINESS_HOURS_ONLY === "1") return { "business-hours.spec.ts": 1 };
@@ -46,6 +47,7 @@ export function browserSuite(env) {
     "navigation.spec.ts": 6,
     "operations.spec.ts": 3,
     "phase2.spec.ts": 1,
+    "payroll-adjustments.spec.ts": 1,
     "phase3.spec.ts": 1,
     "phase4.spec.ts": 1,
     "phase5.spec.ts": 2,

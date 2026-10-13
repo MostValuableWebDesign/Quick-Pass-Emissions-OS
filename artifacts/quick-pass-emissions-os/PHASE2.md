@@ -4,6 +4,24 @@ Current access policy: this app is exclusively for owners and management (OWNER/
 
 Phase 2 is implemented locally on top of the Phase 1 repository. No business rates, eligibility, actual counts, wages, stock, order confirmations or payments are seeded. Test fixtures are illustrative. GitHub publication and deployment require a separate instruction.
 
+## Employee pay adjustment panel
+
+In **Payroll & commissions → Adjust pay & commissions**, owners select a staff record
+from the paginated employee list. Base pay supports hourly, daily, weekly and fixed-period
+rates, with optional explicit schedule inputs. Commission supports explicit eligibility,
+approved personal/whole-shop daily counts, a test threshold, rate and optional progressive
+volume boost. Enter dollars to two decimal places; the server converts them exactly to
+integer cents. Blank/invalid amounts are rejected; explicit zero is allowed.
+
+Use an exact rate or increase/decrease the existing rate by percentage. Percentage changes
+retain the existing arrangement/policy settings and reject a changed source version.
+Each save needs a new effective date and reason, appends a persistent version/audit record,
+and appears in **Pay transaction history**. Frozen dates and duplicate effective versions
+remain blocked by the existing services. Managers may read the pay overview/history but
+cannot authorize changes. Use the Pay overview date to inspect future or earlier rates.
+The existing Pay setup dialog configures Performance estimates separately.
+No schema change, wage payment or external sending is involved.
+
 ## Payroll workflow
 
 1. An owner authorizes a dated pay arrangement and dated commission eligibility/policy for each payroll employee. Amounts are **integer USD cents**. FIXED is the amount for one entire payroll period; HOURLY is cents per hour. Configure dates carefully; existing versions cannot be edited or deleted. New versions require a reason. Station totals are not accepted as personal attribution.

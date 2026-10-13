@@ -4,6 +4,7 @@ import { z } from "zod";
 import { currentUser } from "@/lib/access";
 import { fields } from "@/lib/validation";
 import { BusinessError } from "@/modules/phase2";
+import { dollarsInput } from "@/modules/payroll/form-input";
 import * as payroll from "@/modules/payroll/service";
 import * as certificates from "@/modules/certificates/service";
 import type { ActionState } from "./actions";
@@ -34,6 +35,27 @@ export async function saveCommissionPolicy(_: ActionState, form: FormData) {
 }
 export async function adjustCompensation(_: ActionState, form: FormData) {
   return perform((actor) => payroll.adjustCompensation(actor, fields(form)));
+}
+export async function savePayrollBaseDollars(_: ActionState, form: FormData) {
+  return perform((actor) =>
+    payroll.saveArrangement(actor, {
+      ...fields(form),
+      amountCents: dollarsInput.parse(form.get("amountDollars")),
+    }),
+  );
+}
+export async function savePayrollCommissionDollars(_: ActionState, form: FormData) {
+  return perform((actor) =>
+    payroll.savePolicy(actor, {
+      ...fields(form),
+      eligible: z.enum(["true", "false"]).parse(form.get("eligible")) === "true",
+      rateCents: dollarsInput.parse(form.get("rateDollars")),
+      volumeIncreaseCents:
+        form.get("volumeIncreaseDollars") === ""
+          ? null
+          : dollarsInput.parse(form.get("volumeIncreaseDollars")),
+    }),
+  );
 }
 export async function saveEmission(_: ActionState, form: FormData) {
   return perform((actor) => payroll.importEmissions(actor, [fields(form)]));

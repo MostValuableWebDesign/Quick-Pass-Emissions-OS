@@ -807,3 +807,43 @@ Verification:
   retains unrelated existing failures. The default browser suite was not rerun.
 
 Publication follows the standing shared-main policy; pushing is not deployment.
+
+## 2026-10-13 — Employee payroll pay and commission adjustment panel
+
+Pulled shared main, then exposed the existing dated payroll configuration services
+in an owner-only **Adjust pay & commissions** panel on Payroll & commissions.
+Owners select an employee from the existing 15-item paging scope and save base
+pay by hourly/daily/weekly/fixed basis, or configure commission eligibility,
+personal/shop approved count basis, daily threshold, rate and optional volume boost.
+Existing rates prefill the forms. Exact dollar entry converts to integer cents
+without floating-point arithmetic; missing/invalid amounts are rejected while
+explicit zero remains valid. Percentage increase/decrease reuses the existing
+source-version checks, exact rounding and bounds.
+
+Every save requires an effective date and reason and appends the existing durable
+version and audit history. Frozen payroll dates and duplicate effective versions
+remain blocked; approved snapshots are unchanged. Performance estimate Pay setup
+remains separate and is explicitly identified. Managers can read the overview
+and history but cannot authorize rate changes. No migration, wage payment,
+external message or deployment is involved.
+
+Verification:
+
+- 54 focused payroll input/calculation/summary/rule/browser-isolation tests passed.
+- One complete isolated browser workflow passed: exact daily base, commission and
+  volume-boost setup, percentage base increase and commission decrease, updated
+  overview, reload persistence, audit reasons, independent employee selection,
+  phone fit and manager exclusion. No skips or business data were used. Initial
+  checks caught a server/client pagination-prop issue and accessible select-label
+  mismatches; both were corrected before the passing run.
+- Full isolated PostgreSQL suite: **736 passed, 1 failed, none skipped** across
+  80 files. The remaining unchanged Marketing test expects today's October 13
+  cancellation in a report ending October 12. Existing payroll authorization,
+  frozen-date, concurrency, snapshot and transaction-history checks passed.
+- TypeScript, ESLint, changed-file formatting and production build passed. Build
+  used an unreachable build-only database. The 71 production trace manifests contained
+  zero private verification references. Repository-wide formatting retains unrelated
+  baseline failures. The default browser suite was not rerun;
+  its strict manifest now additionally includes the payroll-adjustment workflow.
+
+Publication follows the standing shared-main policy; deployment is separate.

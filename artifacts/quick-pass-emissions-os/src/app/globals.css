@@ -3377,3 +3377,27 @@ textarea:focus-visible {
 .mk-boundary .badge {
   align-self: flex-start;
 }
+
+.pay-adjust-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+.pay-adjust-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  min-width: 0;
+}
+.pay-adjust-card > .field {
+  margin: 16px 0;
+}
+.pay-adjust-card .form-grid > p {
+  grid-column: 1 / -1;
+}
+@media (max-width: 900px) {
+  .pay-adjust-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -12,7 +12,7 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20Two")).toContainText(
     "8.0 min",
   );
-  await expect(page.getByText("Typical time between tests", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Avg Test Time", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Pace settings", exact: true })).toHaveCount(0);
   await expect(page.getByRole("dialog", { name: "Pace settings" })).toHaveCount(0);
   await expect(page.getByText(/gaps used|excluded long gaps|overnight excluded/i)).toHaveCount(0);

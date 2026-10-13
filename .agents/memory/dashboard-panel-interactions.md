@@ -38,3 +38,9 @@ Keep the Reset panels control directly beside the movable panel area, not in the
 **Why:** The user asked for the reset button to be close to the panels that can be moved.
 
 **How to apply:** Place layout-reset controls immediately above their panel grid; do not mix them with data-refresh or payroll actions.
+
+Performance tables must fit the available panel width without horizontal scrolling, including when a panel is resized.
+
+**Why:** The user wants employee data and columns visible together without having to scroll sideways.
+
+**How to apply:** Let table columns share available width, wrap labels and secondary details, and adapt spacing to narrower panels instead of imposing a wide minimum table size.

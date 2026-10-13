@@ -187,7 +187,7 @@ describe("report-based typical time between tests", () => {
     );
     expect(html).toContain('class="pd-table pd-num pd-employee-table"');
     expect(html).toContain("<colgroup>");
-    expect(html).toContain("Typical time between tests");
+    expect(html).toContain("Avg Test Time");
     expect(html).toContain("5.0 min");
     expect(html).not.toMatch(/gaps used|excluded long gaps|overnight excluded/i);
     expect(html).not.toContain("min/car");

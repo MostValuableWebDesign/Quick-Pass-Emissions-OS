@@ -79,7 +79,7 @@ export function EmployeeTable({
   const rev = sumKnown(rows, "revenueCents");
 
   return (
-    <section className="pd-card" aria-label="Employees">
+    <section className="pd-card pd-employee-card" aria-label="Employees">
       <div className="pd-card-h">
         <div className="pd-card-title">
           <h2>Employees</h2>
@@ -102,14 +102,14 @@ export function EmployeeTable({
         <div className="table-scroll">
           <table className="pd-table pd-num pd-employee-table">
             <colgroup>
-              <col style={{ width: "20%" }} />
-              <col style={{ width: "7.5%" }} />
-              <col style={{ width: "7%" }} />
-              <col style={{ width: "19%" }} />
-              <col style={{ width: "11%" }} />
-              <col style={{ width: "13%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "10.5%" }} />
+               <col style={{ width: "16%" }} />
+               <col style={{ width: "6%" }} />
+               <col style={{ width: "5%" }} />
+               <col style={{ width: "13%" }} />
+               <col style={{ width: "11%" }} />
+               <col style={{ width: "15%" }} />
+               <col style={{ width: "16%" }} />
+               <col style={{ width: "18%" }} />
             </colgroup>
             <thead>
               <tr>
@@ -126,7 +126,7 @@ export function EmployeeTable({
                       onClick={() => toggle(k)}
                       data-testid={`button-sort-${k}`}
                     >
-                      {l}
+                      <span>{l}</span>
                       {sort.key === k &&
                         (sort.dir === 1 ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
                     </button>
@@ -179,7 +179,6 @@ export function EmployeeTable({
                       {dailyBase !== null && profile && (
                         <small>
                           {usd(dailyBase)} / day · {usd(dailyBase * profile.shiftsPerWeek)} / week
-                          {profile.approximate ? " approx." : ""}
                         </small>
                       )}
                     </td>
@@ -196,7 +195,6 @@ export function EmployeeTable({
                       ) : (
                         <strong>{usd(e.payCents)}</strong>
                       )}
-                      {e.approximate && <small>estimated</small>}
                     </td>
                   </tr>
                 );

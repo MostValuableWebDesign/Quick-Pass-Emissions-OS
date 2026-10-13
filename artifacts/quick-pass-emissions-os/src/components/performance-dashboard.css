@@ -591,25 +591,65 @@
   text-align: right;
 }
 .pd-employee-table {
-  min-width: 1000px;
+  width: 100%;
+  min-width: 0;
   table-layout: fixed;
 }
 .pd-employee-table.pd-table th,
 .pd-employee-table.pd-table td {
-  padding-right: 10px;
-  padding-left: 10px;
+  padding: 8px 6px;
   vertical-align: middle;
+  overflow-wrap: anywhere;
 }
 .pd-employee-table.pd-table th button {
   display: flex;
   width: 100%;
   justify-content: flex-start;
+  align-items: flex-start;
+}
+.pd-employee-table.pd-table th button span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .pd-employee-table.pd-table th.r button {
   justify-content: flex-end;
 }
 .pd-employee-table td small {
   margin-top: 4px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.pd-employee-card {
+  container-type: inline-size;
+}
+@container (max-width: 760px) {
+  .pd-employee-table.pd-table th,
+  .pd-employee-table.pd-table td {
+    padding: 6px 4px;
+  }
+  .pd-employee-table.pd-table th {
+    font-size: 8px;
+    letter-spacing: 0.3px;
+  }
+  .pd-employee-table.pd-table td {
+    font-size: 10px;
+  }
+  .pd-employee-table td small {
+    font-size: 8px;
+  }
+}
+@container (max-width: 520px) {
+  .pd-employee-table.pd-table th,
+  .pd-employee-table.pd-table td {
+    padding: 4px 2px;
+  }
+  .pd-employee-table.pd-table th {
+    font-size: 7px;
+    letter-spacing: 0;
+  }
+  .pd-employee-table.pd-table td {
+    font-size: 9px;
+  }
 }
 .pd-table td {
   padding: 13px 20px;

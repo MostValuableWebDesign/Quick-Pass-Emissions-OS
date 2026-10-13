@@ -30,7 +30,11 @@ export function PerformanceDashboard({
   layoutAccountId: string;
 }) {
   const [data, setData] = useState<DashboardData>(initial);
-  const [visibleEmployeeRows, setVisibleEmployeeRows] = useState(initial.employees.length);
+  const [visibleEmployeeRows, setVisibleEmployeeRows] = useState(
+    initial.employees.filter(
+      (employee) => !initial.query.employee || employee.id === initial.query.employee,
+    ).length,
+  );
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [sourceStatus, setSourceStatus] = useState<SourceRefreshStatus>("cached");
@@ -286,7 +290,17 @@ export function PerformanceDashboard({
         }}
         renderPanel={(id, controls) =>
           id === "trend" ? (
-            <PerformanceTrend series={data.series} filtered={filtered} panelActions={controls} />
+            <PerformanceTrend
+              series={data.series}
+              filtered={filtered}
+              panelActions={controls}
+              trendDays={q.trendDays}
+              endDate={q.end}
+              startDate={q.start}
+              employeeId={q.employee}
+              today={data.today}
+              employeeName={empName}
+            />
           ) : id === "busy-hours" ? (
             <PerformanceBusyHours
               data={data.busyHours}
@@ -306,6 +320,8 @@ export function PerformanceDashboard({
               employees={data.employees}
               profiles={data.payPlan.profiles}
               overallCadence={s.inspectionCadence}
+              selectedEmployeeId={q.employee}
+              scopeLabel={empName ?? "All employees"}
               panelActions={controls}
               onVisibleRowsChange={setVisibleEmployeeRows}
             />

@@ -43,4 +43,10 @@ Performance tables must fit the available panel width without horizontal scrolli
 
 **Why:** The user wants employee data and columns visible together without having to scroll sideways.
 
-**How to apply:** Let table columns size from their content, center numeric headers and values, wrap labels and secondary details, and adapt spacing to narrower panels instead of imposing a wide minimum. Performance currency and timing are shown as whole numbers; keep weekly base reference separate from selected-period base to avoid repeating the daily amount.
+**How to apply:** Let table columns size from their content, center numeric headers and values, wrap labels and secondary details, and adapt spacing to narrower panels instead of imposing a wide minimum. Keep the Employees panel compact for fewer than seven rows while ensuring the rows fit; preserve deliberately larger saved sizes. Performance currency and timing are whole numbers, and weekly base reference stays separate from selected-period base.
+
+Keep report scope separate from the chart's trend view. Year view uses calendar-year monthly totals.
+
+**Why:** The user found the date, employee and trend controls confusing and chose monthly totals for Year view.
+
+**How to apply:** Report dates control selected-period results; employee focus should remain consistent across report panels. Trend changes must preserve report dates and employee focus. Label daily lookback dates and the year shown. Do not present incomplete monthly coverage as zero or as a complete total; distinguish the current month-to-date from completed months.

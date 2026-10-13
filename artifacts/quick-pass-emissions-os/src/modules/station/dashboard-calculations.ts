@@ -22,10 +22,23 @@ export function calendarDays(start: string, end: string) {
   for (let date = start; date <= end; date = addDays(date, 1)) days.push(date);
   return days;
 }
+export function dashboardTrendRange(query: DashboardQuery, today: string) {
+  if (query.trendDays === 365) {
+    const year = query.end.slice(0, 4);
+    const yearEnd = `${year}-12-31`;
+    return { start: `${year}-01-01`, end: yearEnd < today ? yearEnd : today };
+  }
+  return { start: addDays(query.end, 1 - query.trendDays), end: query.end };
+}
 export function dashboardDates(query: DashboardQuery, today: string) {
-  const trendStart =
-    query.start === query.end ? addDays(query.end, 1 - query.trendDays) : query.start;
-  return [...new Set([...calendarDays(trendStart, query.end), today])].sort();
+  const trend = dashboardTrendRange(query, today);
+  return [
+    ...new Set([
+      ...calendarDays(query.start, query.end),
+      ...calendarDays(trend.start, trend.end),
+      today,
+    ]),
+  ].sort();
 }
 export function inspectorKey(inspector: string) {
   return `inspector:${encodeURIComponent(inspector)}`;
@@ -188,10 +201,8 @@ export function buildDashboard(
       return day.total === 0 || selected[0]?.cars !== null ? emptyCounts() : null;
     return day.inspectors.find((i) => i.inspector === selectedInspector) ?? emptyCounts();
   };
-  const seriesDates = calendarDays(
-    query.start === query.end ? addDays(query.end, 1 - query.trendDays) : query.start,
-    query.end,
-  );
+  const trendRange = dashboardTrendRange(query, today);
+  const seriesDates = calendarDays(trendRange.start, trendRange.end);
   const series = seriesDates.map((date) => {
     const day = byDate.get(date);
     const counts = day ? countFor(day) : null;

@@ -13,10 +13,7 @@ describe("customizable performance panels", () => {
     expect(normalizeDashboardLayout(DEFAULT_DASHBOARD_LAYOUT)).toEqual(DEFAULT_DASHBOARD_LAYOUT);
     expect(normalizeDashboardLayout(DEFAULT_DASHBOARD_LAYOUT.slice(0, 3))).toBeNull();
     expect(
-      normalizeDashboardLayout([
-        ...DEFAULT_DASHBOARD_LAYOUT,
-        DEFAULT_DASHBOARD_LAYOUT[0],
-      ]),
+      normalizeDashboardLayout([...DEFAULT_DASHBOARD_LAYOUT, DEFAULT_DASHBOARD_LAYOUT[0]]),
     ).toBeNull();
     expect(
       normalizeDashboardLayout(
@@ -28,11 +25,13 @@ describe("customizable performance panels", () => {
   });
 
   it("expands the Employees panel to show up to six visible rows", () => {
-    expect(employeePanelDisplayHeight(240, 1)).toBe(330);
-    expect(employeePanelDisplayHeight(240, 4)).toBe(570);
-    expect(employeePanelDisplayHeight(240, 6)).toBe(720);
+    expect(employeePanelDisplayHeight(240, 1)).toBe(240);
+    expect(employeePanelDisplayHeight(240, 3)).toBe(364);
+    expect(employeePanelDisplayHeight(420, 3)).toBe(364);
+    expect(employeePanelDisplayHeight(240, 4)).toBe(442);
+    expect(employeePanelDisplayHeight(240, 6)).toBe(598);
     expect(employeePanelDisplayHeight(600, 4)).toBe(600);
-    expect(employeePanelDisplayHeight(240, 5)).toBe(650);
+    expect(employeePanelDisplayHeight(240, 5)).toBe(520);
     expect(employeePanelDisplayHeight(240, 7)).toBe(240);
     expect(employeePanelDisplayHeight(240, 0)).toBe(240);
   });
@@ -40,7 +39,7 @@ describe("customizable performance panels", () => {
   it("keeps existing full-width panels and adds two insight panels side by side", () => {
     expect(DEFAULT_DASHBOARD_LAYOUT).toEqual([
       { id: "trend", columns: 12, height: 360 },
-      { id: "employees", columns: 12, height: 420 },
+      { id: "employees", columns: 12, height: 240 },
       { id: "busy-hours", columns: 6, height: 420 },
       { id: "commission-progress", columns: 6, height: 420 },
     ]);

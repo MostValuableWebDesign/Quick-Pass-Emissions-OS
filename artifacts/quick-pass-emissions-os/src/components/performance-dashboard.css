@@ -362,6 +362,13 @@
   border-left: 1px solid var(--line);
   align-self: stretch;
 }
+.pd-cal-scope-title {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+}
 .pd-cal-sum {
   display: flex;
   flex-direction: column;
@@ -460,11 +467,32 @@
 }
 .pd-card-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
   min-width: 0;
   margin-left: auto;
+}
+.pd-trend-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pd-trend-view select {
+  min-height: 32px;
+  max-width: 210px;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
 }
 .pd-panel-tools {
   display: inline-flex;

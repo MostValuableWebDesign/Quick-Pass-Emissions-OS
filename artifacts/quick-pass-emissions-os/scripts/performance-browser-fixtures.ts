@@ -7,12 +7,20 @@ export async function performanceBrowserFixtures(
   db: PrismaClient,
   ownerId: string,
   station: string,
+  yearHistory = false,
 ) {
   const hash = createHash("sha256").update(station).digest("hex");
   const today = businessDate();
   const dates = new Set<string>();
   for (let i = 0; i < 61; i++) dates.add(addDays(today, -i));
   for (let i = 0; i < 61; i++) dates.add(addDays("2026-01-15", -i));
+  if (yearHistory)
+    for (
+      let date = addDays(`${today.slice(0, 4)}-01-01`, -30);
+      date <= today;
+      date = addDays(date, 1)
+    )
+      dates.add(date);
   const identity = (date: string, inspector: string, index: number) =>
     createHash("sha256").update(`${date}:${inspector}:${index}`).digest("hex");
   const profiles = ["Fixture One", "Fixture Two"].map((name, i) => ({
@@ -33,7 +41,7 @@ export async function performanceBrowserFixtures(
       actorId: ownerId,
       entityId: hash,
       action: "STATION_PERFORMANCE_PAY_PLAN",
-       details: { revision: 1, profiles, adjustments: [] },
+      details: { revision: 1, profiles, adjustments: [] },
     },
   });
   for (const date of dates)
@@ -55,8 +63,15 @@ export async function performanceBrowserFixtures(
             ...Array.from({ length: 70 }, (_, i) => ({
               inspector: "Fixture One",
               minute: 540 + i * 5,
-              vinHash: identity(date === "2026-01-15" && i === 0 ? "2026-01-14" :
-                date === "2026-01-15" && i === 1 ? "2025-12-15" : date, "Fixture One", i),
+              vinHash: identity(
+                date === "2026-01-15" && i === 0
+                  ? "2026-01-14"
+                  : date === "2026-01-15" && i === 1
+                    ? "2025-12-15"
+                    : date,
+                "Fixture One",
+                i,
+              ),
               recordKey: identity(date, "Fixture One", i),
               outcome: i < 55 ? "passed" : i < 68 ? "failed" : "aborted",
             })),

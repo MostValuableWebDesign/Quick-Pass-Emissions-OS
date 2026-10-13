@@ -38,12 +38,16 @@ export function EmployeeTable({
   employees,
   profiles = [],
   overallCadence,
+  selectedEmployeeId,
+  scopeLabel = "All employees",
   panelActions,
   onVisibleRowsChange,
 }: {
   employees: DashboardEmployee[];
   profiles?: PayProfile[];
   overallCadence?: InspectionCadence;
+  selectedEmployeeId?: string;
+  scopeLabel?: string;
   panelActions?: ReactNode;
   onVisibleRowsChange?: (count: number) => void;
 }) {
@@ -53,7 +57,8 @@ export function EmployeeTable({
     const t = q.trim().toLowerCase();
     const list = employees.filter(
       (e) =>
-        !t || e.name.toLowerCase().includes(t) || (e.inspector ?? "").toLowerCase().includes(t),
+        (!selectedEmployeeId || e.id === selectedEmployeeId) &&
+        (!t || e.name.toLowerCase().includes(t) || (e.inspector ?? "").toLowerCase().includes(t)),
     );
     return [...list].sort((a, b) => {
       const x = sort.key === "inspectionCadence" ? a.inspectionCadence.medianMinutes : a[sort.key];
@@ -66,11 +71,11 @@ export function EmployeeTable({
         sort.dir
       );
     });
-  }, [employees, sort, q]);
+  }, [employees, selectedEmployeeId, sort, q]);
   useEffect(() => {
     onVisibleRowsChange?.(rows.length);
   }, [onVisibleRowsChange, rows.length]);
-  const maxCars = Math.max(1, ...employees.map((e) => e.cars ?? 0));
+  const maxCars = Math.max(1, ...rows.map((e) => e.cars ?? 0));
   const toggle = (key: Key) =>
     setSort((s) =>
       s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: key === "name" ? 1 : -1 },
@@ -83,7 +88,7 @@ export function EmployeeTable({
       <div className="pd-card-h">
         <div className="pd-card-title">
           <h2>Employees</h2>
-          <p>Estimated pay for the selected dates. Not payroll.</p>
+          <p>{scopeLabel} · selected report period</p>
         </div>
         <div className="pd-card-actions">
           <input

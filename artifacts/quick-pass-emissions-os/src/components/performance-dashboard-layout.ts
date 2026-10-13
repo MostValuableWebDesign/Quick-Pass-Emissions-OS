@@ -9,7 +9,7 @@ export type DashboardLayout = DashboardPanel[];
 export const DASHBOARD_LAYOUT_KEY = "quick-pass-performance-layout-v1";
 export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayout = [
   { id: "trend", columns: 12, height: 360 },
-  { id: "employees", columns: 12, height: 420 },
+  { id: "employees", columns: 12, height: 240 },
   { id: "busy-hours", columns: 6, height: 420 },
   { id: "commission-progress", columns: 6, height: 420 },
 ];
@@ -52,8 +52,10 @@ export function normalizeDashboardLayout(value: unknown): DashboardLayout | null
 }
 
 export function employeePanelDisplayHeight(savedHeight: number, visibleRows: number) {
-  const minimum = visibleRows > 0 && visibleRows < 7 ? Math.min(720, 250 + visibleRows * 80) : 0;
-  return Math.max(savedHeight, minimum);
+  const minimum = visibleRows > 0 && visibleRows < 7 ? Math.min(720, 130 + visibleRows * 78) : 0;
+  // 420px was the former default, not an intentional resize. Treat it as automatic height.
+  const previousDefault = savedHeight === 420 ? 240 : savedHeight;
+  return Math.max(previousDefault, minimum);
 }
 
 const clamp = (value: number, min: number, max: number) =>

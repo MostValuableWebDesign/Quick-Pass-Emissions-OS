@@ -20,6 +20,61 @@ export const shortDate = (d: string) =>
 export function excludeSundayTrendDays<T extends { date: string }>(days: readonly T[]): T[] {
   return days.filter(({ date }) => new Date(`${date}T12:00:00Z`).getUTCDay() !== 0);
 }
+export type DailyTrendPoint = { date: string; value: number | null; station: number | null };
+export type MonthlyTrendPoint = DailyTrendPoint & {
+  label: string;
+  monthToDate: boolean;
+  status: "complete" | "incomplete" | "upcoming";
+};
+export function monthlyTrendPoints(
+  days: readonly DailyTrendPoint[],
+  year: number,
+  throughDate: string,
+): MonthlyTrendPoint[] {
+  const yearEnd = `${year}-12-31`;
+  const end = throughDate < yearEnd ? throughDate : yearEnd;
+  const byDate = new Map(days.map((day) => [day.date, day]));
+
+  return Array.from({ length: 12 }, (_, month) => {
+    const monthNumber = String(month + 1).padStart(2, "0");
+    const start = `${year}-${monthNumber}-01`;
+    const monthLastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+    const last = `${year}-${monthNumber}-${String(monthLastDay).padStart(2, "0")}`;
+    const segmentEnd = last < end ? last : end;
+    const label = new Date(Date.UTC(year, month, 1)).toLocaleDateString("en-US", {
+      month: "short",
+      timeZone: "UTC",
+    });
+    if (start > end)
+      return {
+        date: start,
+        label,
+        monthToDate: false,
+        value: null,
+        station: null,
+        status: "upcoming" as const,
+      };
+
+    const expected: DailyTrendPoint[] = [];
+    for (let date = start; date <= segmentEnd;) {
+      if (new Date(`${date}T12:00:00Z`).getUTCDay() !== 0)
+        expected.push(byDate.get(date) ?? { date, value: null, station: null });
+      const next = new Date(`${date}T12:00:00Z`);
+      next.setUTCDate(next.getUTCDate() + 1);
+      date = next.toISOString().slice(0, 10);
+    }
+    const complete = expected.length > 0 && expected.every((day) => day.value !== null);
+    const stationComplete = expected.length > 0 && expected.every((day) => day.station !== null);
+    return {
+      date: start,
+      label,
+      monthToDate: segmentEnd < last,
+      value: complete ? expected.reduce((sum, day) => sum + (day.value ?? 0), 0) : null,
+      station: stationComplete ? expected.reduce((sum, day) => sum + (day.station ?? 0), 0) : null,
+      status: complete ? ("complete" as const) : ("incomplete" as const),
+    };
+  });
+}
 export const longDate = (d: string) =>
   new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", {
     weekday: "short",

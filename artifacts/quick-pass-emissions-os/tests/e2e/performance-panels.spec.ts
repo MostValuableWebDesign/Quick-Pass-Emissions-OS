@@ -57,7 +57,10 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
 
   const initialRows = await employees.locator('tbody tr[data-testid^="row-employee-"]').count();
   const minimumHeight =
-    initialRows > 0 && initialRows < 7 ? Math.min(720, 250 + initialRows * 80) : 0;
+    initialRows > 0 && initialRows < 7 ? Math.min(720, 130 + initialRows * 78) : 0;
+  const heightBeforeKeyboard = await employees.evaluate((element) =>
+    Number.parseInt((element as HTMLElement).style.height, 10),
+  );
   const resize = employees.getByRole("button", { name: /Resize Employees panel/ });
   await resize.focus();
   await resize.press("ArrowLeft");
@@ -69,7 +72,10 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
         height: (element as HTMLElement).style.height,
       })),
     )
-    .toEqual({ columns: "span 11", height: `${Math.max(380, minimumHeight)}px` });
+    .toEqual({
+      columns: "span 11",
+      height: `${Math.max(240, heightBeforeKeyboard - 40, minimumHeight)}px`,
+    });
 
   // Resize by grabbing the actual corner, rather than a header toolbar control.
   await expect(resize.locator("..")).toHaveAttribute("data-testid", "panel-employees");
@@ -93,8 +99,9 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   await expect(employees).toHaveCSS("grid-column-start", "span 10");
   const visibleRows = await employees.locator('tbody tr[data-testid^="row-employee-"]').count();
   const visibleHeight = Math.max(
-    300,
-    visibleRows > 0 && visibleRows < 7 ? Math.min(720, 250 + visibleRows * 80) : 300,
+    240,
+    heightBeforeKeyboard - 120,
+    visibleRows > 0 && visibleRows < 7 ? Math.min(720, 130 + visibleRows * 78) : 0,
   );
   await expect(employees).toHaveCSS("height", `${visibleHeight}px`);
   await expect(page.getByTestId("performance-layout-save-status")).toHaveText(
@@ -237,8 +244,8 @@ test("busy hours and commission progress follow reports, employee filters and sa
     .locator('tbody tr[data-testid^="row-employee-"]')
     .count();
   const migratedHeight = Math.max(
-    420,
-    migratedRows > 0 && migratedRows < 7 ? Math.min(720, 250 + migratedRows * 80) : 0,
+    240,
+    migratedRows > 0 && migratedRows < 7 ? Math.min(720, 130 + migratedRows * 78) : 0,
   );
   await expect(migratedEmployees).toHaveCSS("height", `${migratedHeight}px`);
   await expect(migratedEmployees).toHaveCSS("grid-column-start", "span 6");
@@ -269,7 +276,7 @@ test("busy hours and commission progress follow reports, employee filters and sa
   await expect(busy).not.toContainText("loaded days have complete timing");
   await expect(commission).not.toContainText("The selected estimate follows Pay setup");
   await expect(commission).not.toContainText("Performance estimates only, not approved payroll.");
-  await expect(commission.getByTestId("text-progress-commission")).toHaveText("$88.00");
+  await expect(commission.getByTestId("text-progress-commission")).toHaveText("$88");
   await expect(commission.getByRole("progressbar")).toHaveAttribute(
     "aria-valuetext",
     "94 shop tests, 44 commission tests",

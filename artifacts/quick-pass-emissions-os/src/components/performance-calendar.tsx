@@ -113,8 +113,9 @@ export function PerformanceCalendar({
       ref={formRef}
       method="get"
       action="/performance"
+      id="performance-query"
       className="pd-cal-form"
-      aria-label="Date and filters"
+      aria-label="Report scope"
     >
       <div className="pd-cal" data-testid="calendar">
         <div className="pd-cal-top">
@@ -210,8 +211,9 @@ export function PerformanceCalendar({
       </div>
 
       <div className="pd-cal-side">
+        <div className="pd-cal-scope-title">Report scope</div>
         <div className="pd-cal-sum" data-testid="text-cal-selection">
-          <span className="lab">{mode === "single" ? "Day" : "Range"}</span>
+          <span className="lab">Report period</span>
           <strong className="pd-num">
             {mode === "single" || (out.start === out.end && !pending)
               ? label(out.start)
@@ -223,22 +225,16 @@ export function PerformanceCalendar({
         </div>
         <input type="hidden" name="start" value={out.start} />
         <input type="hidden" name="end" value={out.end} />
+        <input type="hidden" name="trendDays" value={trendDays} />
         <label className="field">
-          <span>Employee</span>
+          <span>Employee focus</span>
           <select name="employee" defaultValue={employee ?? ""} data-testid="select-employee">
-            <option value="">All</option>
+            <option value="">All employees</option>
             {employeeOptions.map((e) => (
               <option key={e.id} value={e.id}>
                 {e.name}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Trend</span>
-          <select name="trendDays" defaultValue={String(trendDays)} data-testid="select-trend">
-            <option value="7">Week</option>
-            <option value="30">Month</option>
           </select>
         </label>
         <div className="pd-cal-acts">
@@ -255,7 +251,7 @@ export function PerformanceCalendar({
             Today
           </button>
           <button className="button button-primary button-sm" data-testid="button-apply-range">
-            Apply
+            Apply report
           </button>
         </div>
       </div>

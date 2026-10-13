@@ -22,8 +22,10 @@ import { DashboardClock } from "@/components/dashboard-clock";
 import { DashboardRefresh } from "@/components/dashboard-refresh";
 import { RecordLink } from "@/components/record-link";
 import { CertificateOrderLink } from "@/components/certificate-order-link";
-import { businessDashboard } from "@/modules/dashboard/service";
+import { businessDashboard, sortAttention } from "@/modules/dashboard/service";
 import { readCertificatePortalStatus } from "@/modules/certificates/portal";
+import { certificatesLow } from "@/modules/certificates/portal-types";
+import { paydayCalendar } from "@/modules/payroll/payday-rules";
 
 const money = (cents: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
@@ -54,6 +56,7 @@ export default async function Dashboard({
     businessDashboard(user.id, now),
     readCertificatePortalStatus().catch(() => null),
   ]);
+  const paydaySnapshot = paydayCalendar(now);
   let performanceData: DashboardData | null = null;
   if (user.role === "OWNER") {
     try {
@@ -74,9 +77,42 @@ export default async function Dashboard({
   const emissionsClosedToday = isEmissionsClosedOn(data.today);
   const params = await searchParams;
   const requested = Number(params.attentionPage ?? 1);
-  const pages = Math.max(1, Math.ceil(data.attention.length / 15));
+  const portalCertificatesLow = certificateStatus
+    ? certificatesLow(certificateStatus.balance, certificateStatus.threshold)
+    : false;
+  const attentionItems = data.attention.filter(
+    (item) => !(portalCertificatesLow && item.id === "stock:certificates"),
+  );
+  if (portalCertificatesLow && certificateStatus?.balance !== null && certificateStatus) {
+    attentionItems.push({
+      id: "portal-certificates-low",
+      title: "Certificate balance is low",
+      detail: `${certificateStatus.balance} certificates remain · reorder at ${certificateStatus.threshold} or less${certificateStatus.error ? `. ${certificateStatus.error}` : "."}`,
+      href: "/certificates#portal",
+      severity: certificateStatus.balance === 0 ? "critical" : "urgent",
+      date: data.today,
+    });
+  }
+  if (paydaySnapshot.alert) {
+    const { date, payDate, daysAway } = paydaySnapshot.alert;
+    attentionItems.push({
+      id: `payroll-payday:${date}`,
+      title:
+        daysAway === 0
+          ? "Today is payday"
+          : daysAway === 1
+            ? "Payroll is due tomorrow"
+            : `Payroll is due in ${daysAway} days`,
+      detail: `Scheduled payday ${payDate} · reminder only, payment is not confirmed.`,
+      href: "/payroll",
+      severity: daysAway === 0 ? "urgent" : "soon",
+      date: payDate,
+    });
+  }
+  const sortedAttention = sortAttention(attentionItems);
+  const pages = Math.max(1, Math.ceil(sortedAttention.length / 15));
   const page = Math.min(pages, Number.isSafeInteger(requested) && requested > 0 ? requested : 1);
-  const attention = data.attention.slice((page - 1) * 15, page * 15);
+  const attention = sortedAttention.slice((page - 1) * 15, page * 15);
   const dashboardUpdatedAt = new Date();
   return (
     <div className="business-dashboard">
@@ -257,12 +293,12 @@ export default async function Dashboard({
               <AlertTriangle size={22} aria-hidden="true" /> Needs attention
             </h2>
             <p>
-              {data.attention.length} unresolved items · critical first, then overdue/reorder, then
+              {sortedAttention.length} unresolved items · critical first, then overdue/reorder, then
               upcoming
             </p>
           </div>
-          <span className={`badge ${data.attention.length ? "amber" : "green"}`}>
-            {data.attention.length} open
+          <span className={`badge ${sortedAttention.length ? "amber" : "green"}`}>
+            {sortedAttention.length} open
           </span>
         </div>
         {attention.length ? (

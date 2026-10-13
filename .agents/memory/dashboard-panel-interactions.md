@@ -50,3 +50,9 @@ Keep report scope separate from the chart's trend view. Year view uses calendar-
 **Why:** The user found the date, employee and trend controls confusing and chose monthly totals for Year view.
 
 **How to apply:** Report dates control selected-period results; employee focus should remain consistent across report panels. Trend changes must preserve report dates and employee focus. Label daily lookback dates and the year shown. Do not present incomplete monthly coverage as zero or as a complete total; distinguish the current month-to-date from completed months.
+
+Dashboard Needs attention includes live certificate-threshold alerts and calendar-based payday reminders. The payday reminder stays in the business panel through its active date window even when the account-specific banner is acknowledged.
+
+**Why:** The user wants low-certificate and payroll alerts in Needs attention. Dismissing a personal banner should not hide an active business due-date reminder.
+
+**How to apply:** Use the saved provider balance and configured inclusive threshold for certificate alerts, deduplicating a recorded-stock warning when the provider count is already low. Keep the dashboard payday item date-driven from the established payday calendar; do not couple it to the top banner's per-account acknowledgement.

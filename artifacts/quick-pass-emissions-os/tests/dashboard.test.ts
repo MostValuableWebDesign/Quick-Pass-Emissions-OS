@@ -7,12 +7,25 @@ const mocks = vi.hoisted(() => ({
   dashboard: vi.fn(),
   performance: vi.fn(),
   certificates: vi.fn(),
+  payday: vi.fn(),
 }));
-vi.mock("@/modules/dashboard/service", () => ({ businessDashboard: mocks.dashboard }));
+vi.mock("@/modules/dashboard/service", () => ({
+  businessDashboard: mocks.dashboard,
+  sortAttention: (items: Array<{ severity: string; date: string; id: string }>) => {
+    const priority: Record<string, number> = { critical: 0, urgent: 1, soon: 2 };
+    return items.sort(
+      (a, b) =>
+        priority[a.severity] - priority[b.severity] ||
+        a.date.localeCompare(b.date) ||
+        a.id.localeCompare(b.id),
+    );
+  },
+}));
 vi.mock("@/modules/station/dashboard-service", () => ({ readDashboard: mocks.performance }));
 vi.mock("@/modules/certificates/portal", () => ({
   readCertificatePortalStatus: mocks.certificates,
 }));
+vi.mock("@/modules/payroll/payday-rules", () => ({ paydayCalendar: mocks.payday }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: () => undefined }),
 }));
@@ -84,14 +97,14 @@ function performanceFixture() {
     staleDates: [],
   };
 }
-function certificateFixture(balance: number | null = 28) {
+function certificateFixture(balance: number | null = 60) {
   return {
     station: "GA102539",
     analyzer: "HT111411",
     balance,
-    startingBalance: balance === null ? null : 34,
+    startingBalance: balance === null ? null : balance + 6,
     checkedAt: balance === null ? null : "2026-10-10T12:55:00.000Z",
-    threshold: 30,
+    threshold: 50,
   };
 }
 async function render(data = fixture(), attentionPage = "1") {
@@ -106,6 +119,9 @@ beforeEach(() => {
   mocks.dashboard.mockReset();
   mocks.performance.mockReset().mockResolvedValue(performanceFixture());
   mocks.certificates.mockReset().mockResolvedValue(certificateFixture());
+  mocks.payday
+    .mockReset()
+    .mockReturnValue({ date: "2026-10-10", nextRefreshAt: "2026-10-11T04:00:00.000Z", alert: null });
 });
 afterEach(() => vi.useRealTimers());
 describe("Business dashboard presentation", () => {
@@ -139,10 +155,9 @@ describe("Business dashboard presentation", () => {
       "Estimated commission",
       "$60.00",
       "Certificates remaining",
-      "28",
+      "60",
       "Starting count · first check today",
-      "34",
-      "Low · reorder threshold 30",
+      "66",
       "HT111411",
       "missing inputs",
       "No unresolved attention items",
@@ -200,10 +215,69 @@ describe("Business dashboard presentation", () => {
     expect(html).not.toContain("No verified portal count yet.");
     expect(html).not.toContain("$0.00");
   });
+  it("adds the low provider certificate balance without duplicating the recorded-stock alert", async () => {
+    const data = fixture();
+    data.attention = [
+      {
+        id: "stock:certificates",
+        title: "Certificate reorder needed",
+        detail: "Recorded stock estimate is low",
+        href: "/certificates",
+        severity: "urgent",
+        date: data.today,
+      },
+      {
+        id: "invoice:fixture",
+        title: "Fixture dealership: overdue invoice",
+        detail: "$25.00 outstanding",
+        href: "/invoices/fixture",
+        severity: "urgent",
+        date: data.today,
+      },
+    ];
+    mocks.certificates.mockResolvedValue({
+      ...certificateFixture(50),
+      error: "The last portal check failed. Any saved balance may be out of date.",
+    });
+
+    const html = await render(data);
+    const panel = html.slice(
+      html.indexOf('class="card business-attention"'),
+      html.indexOf('id="quick-actions-heading"'),
+    );
+    expect(panel).toContain("Certificate balance is low");
+    expect(panel).toContain("50 certificates remain · reorder at 50 or less");
+    expect(panel).toContain("saved balance may be out of date");
+    expect(panel).not.toContain("Certificate reorder needed");
+    expect(panel).toContain('href="/certificates#portal"');
+    expect(panel).toContain("2 unresolved items");
+  });
+  it("adds the active payday reminder to Needs attention and does not imply payment occurred", async () => {
+    mocks.payday.mockReturnValue({
+      date: "2026-10-10",
+      nextRefreshAt: "2026-10-11T04:00:00.000Z",
+      alert: {
+        date: "2026-10-10",
+        payDate: "2026-10-12",
+        daysAway: 2,
+        tone: "yellow",
+      },
+    });
+
+    const html = await render();
+    const panel = html.slice(
+      html.indexOf('class="card business-attention"'),
+      html.indexOf('id="quick-actions-heading"'),
+    );
+    expect(panel).toContain("Payroll is due in 2 days");
+    expect(panel).toContain("Scheduled payday 2026-10-12");
+    expect(panel).toContain("payment is not confirmed");
+    expect(panel).toContain('href="/payroll"');
+  });
   it("paginates unresolved attention at 15 items and keeps the final item accessible", async () => {
     const data = fixture();
     data.attention = Array.from({ length: 16 }, (_, n) => ({
-      id: String(n),
+      id: String(n + 1).padStart(2, "0"),
       title: `Unresolved item ${n + 1}`,
       detail: "Fixture",
       href: "/certificates",

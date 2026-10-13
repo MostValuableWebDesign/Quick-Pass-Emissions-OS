@@ -91,7 +91,8 @@ export function PaydayBanner({ initial }: { initial: PaydaySnapshot }) {
         </strong>
         <span> · {payday} · Payroll is paid every Monday.</span>
         <small>
-          Acknowledge hides this reminder for your account today; it does not record a payment.
+          Acknowledge hides this banner for your account today; the Dashboard still shows the due
+          date. It does not record a payment.
         </small>
         {error || (!state.ok && state.message) ? (
           <small role="status">{error || state.message}</small>

@@ -48,12 +48,19 @@ test("payday banner changes urgency and acknowledgement only hides the current a
     await page.goto("/dashboard");
     await expect(banner).toHaveAttribute("data-tone", "yellow");
     await expect(banner).toContainText("Payroll is due in 2 days");
+    const attention = page.locator(".business-attention");
+    await expect(
+      attention.getByRole("heading", { name: "Payroll is due in 2 days", exact: true }),
+    ).toBeVisible();
     await expect(banner).toHaveCSS("background-color", "rgb(255, 248, 219)");
     await capture("yellow-desktop");
     await banner.getByRole("button", { name: "Acknowledge for today", exact: true }).click();
     await expect(banner).toHaveCount(0);
     await page.reload();
     await expect(banner).toHaveCount(0);
+    await expect(
+      attention.getByRole("heading", { name: "Payroll is due in 2 days", exact: true }),
+    ).toBeVisible();
     await page.goto("/payroll");
     await expect(banner).toHaveCount(0);
     const manager = await browser.newContext({
@@ -72,6 +79,9 @@ test("payday banner changes urgency and acknowledgement only hides the current a
     await page.evaluate(() => window.dispatchEvent(new Event("focus")));
     await expect(banner).toHaveAttribute("data-tone", "orange");
     await expect(banner).toContainText("Payroll is due tomorrow");
+    await expect(
+      attention.getByRole("heading", { name: "Payroll is due tomorrow", exact: true }),
+    ).toBeVisible();
     await expect(banner).toHaveCSS("background-color", "rgb(255, 240, 223)");
     await capture("orange-desktop");
     await banner.getByRole("button", { name: "Acknowledge for today", exact: true }).click();
@@ -80,6 +90,9 @@ test("payday banner changes urgency and acknowledgement only hides the current a
     await page.reload();
     await expect(banner).toHaveAttribute("data-tone", "red");
     await expect(banner).toContainText("Today is payday");
+    await expect(
+      attention.getByRole("heading", { name: "Today is payday", exact: true }),
+    ).toBeVisible();
     await expect(banner).toHaveCSS("background-color", "rgb(254, 238, 238)");
     await banner.getByRole("link", { name: "Review payroll", exact: true }).click();
     await expect(page).toHaveURL(/\/payroll$/);

@@ -11,8 +11,8 @@ test("vendor filters, minimal entry and separate business navigation work", asyn
   const emissions = navigation.getByRole("list", { name: /^emissions$/i });
   const carwash = navigation.getByRole("list", { name: /^car wash$/i });
   await expect(emissions.getByRole("link", { name: "Certificates", exact: true })).toBeVisible();
-  await expect(emissions.getByRole("link", { name: "Carwash & bays", exact: true })).toHaveCount(0);
-  await expect(carwash.getByRole("link", { name: "Carwash & bays", exact: true })).toBeVisible();
+  await expect(emissions.getByRole("link", { name: "Carwash & Bays", exact: true })).toHaveCount(0);
+  await expect(carwash.getByRole("link", { name: "Carwash & Bays", exact: true })).toBeVisible();
   await expect(carwash.getByRole("link", { name: "Certificates", exact: true })).toHaveCount(0);
   for (const href of ["/maintenance", "/maintenance/plans", "/chemicals", "/rentals"])
     await expect(navigation.locator(`a[href="${href}"]`)).toHaveCount(0);

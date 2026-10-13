@@ -19,7 +19,7 @@ export default async function Carwash() {
   return (
     <>
       <PageHeader
-        title="Carwash & bays"
+        title="Carwash & Bays"
         description="Six physical bays, recorded condition, responsibility, and downtime."
       />
       <DemoNotice demo={data.demo} />

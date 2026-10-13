@@ -46,10 +46,11 @@ export function PayrollDateFilter({
         <button type="button" className={mode === "range" ? "filter-tab active" : "filter-tab"}
           aria-pressed={mode === "range"} onClick={() => { setMode("range"); if (to < from) setTo(from); }}>Date range</button>
       </div>
-      <label className="field">
-        <span>{mode === "day" ? "Date" : "Start date"}</span>
+      <div className="field">
+        <label htmlFor="payroll-date-start">{mode === "day" ? "Date" : "Start date"}</label>
         <div className="payroll-date-control">
-          <input ref={startRef} type="date" name="start" aria-label={mode === "day" ? "Date" : "Start date"}
+          <input id="payroll-date-start" ref={startRef} type="date" name="start"
+            aria-label={mode === "day" ? "Date" : "Start date"}
             value={from} max={today} required
             onChange={(event) => {
               setFrom(event.target.value);
@@ -64,11 +65,11 @@ export function PayrollDateFilter({
             </svg>
           </button>
         </div>
-      </label>
-      {mode === "range" && <label className="field">
-        <span>End date</span>
+      </div>
+      {mode === "range" && <div className="field">
+        <label htmlFor="payroll-date-end">End date</label>
         <div className="payroll-date-control">
-          <input ref={endRef} type="date" name="end" aria-label="End date"
+          <input id="payroll-date-end" ref={endRef} type="date" name="end" aria-label="End date"
             value={to} min={from} max={today} required
             onChange={(event) => setTo(event.target.value)} />
           <button type="button" className="calendar-picker-button"
@@ -80,7 +81,7 @@ export function PayrollDateFilter({
             </svg>
           </button>
         </div>
-      </label>}
+      </div>}
       <button className="button button-secondary" type="button" disabled={loading}
         onClick={() => show(today, today)}>Today</button>
       <button className="button button-primary" type="submit" disabled={loading}>

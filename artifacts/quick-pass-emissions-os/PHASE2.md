@@ -4,6 +4,15 @@ Current access policy: this app is exclusively for owners and management (OWNER/
 
 Phase 2 is implemented locally on top of the Phase 1 repository. No business rates, eligibility, actual counts, wages, stock, order confirmations or payments are seeded. Test fixtures are illustrative. GitHub publication and deployment require a separate instruction.
 
+## Payday alert
+
+Payroll payday is Monday. A shared app banner progresses from yellow Saturday to
+orange Sunday to red Monday. Owners/managers can acknowledge it for their own current
+Eastern day; the database retains that acknowledgment across navigation, restarts and
+builds. It returns on the next alert day/week, does not hide other accounts' reminders,
+and is separate from payroll preparation, approval and actual wage payment. The UI
+refreshes calendar display at the day boundary; no operations job or sender is added.
+
 ## Employee pay adjustment panel
 
 In **Payroll & commissions → Adjust pay & commissions**, owners select a staff record

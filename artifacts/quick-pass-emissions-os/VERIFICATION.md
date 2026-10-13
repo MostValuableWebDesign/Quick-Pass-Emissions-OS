@@ -847,3 +847,47 @@ Verification:
   its strict manifest now additionally includes the payroll-adjustment workflow.
 
 Publication follows the standing shared-main policy; deployment is separate.
+
+## 2026-10-13 — Monday payday banner and daily acknowledgement
+
+The owner confirmed Monday payroll. A shared app banner beside the certificate
+alert uses Eastern calendar days: Saturday yellow/two days away, Sunday orange/one
+day away, Monday red/payday, absent Tuesday–Friday. Review payroll opens the existing
+page. Acknowledge for today persists an account-and-date-scoped audit event, hiding
+only that owner/manager's reminder until the next Eastern date. Acknowledgment is
+not payment confirmation and does not alter payroll or hide other accounts' alerts.
+It survives reloads/builds through the existing PostgreSQL audit ledger. No schema
+migration, payment, email or new scheduled job is introduced.
+
+Calendar reads are read-only and roles are rechecked under existing locks. The
+acknowledgment transaction resolves today's date after acquiring those locks,
+rejects stale/future/off-window dates, and deduplicates repeated clicks. The client
+refreshes this display on navigation/focus/visibility and Eastern midnight; it
+never enqueues automation or makes a provider request. Unrelated jobs are unchanged.
+
+Verification:
+
+- 17 focused calendar/browser-isolation tests passed, covering Eastern versus UTC
+  midnight, Monday windows, non-alert weekdays, DST and year boundaries.
+- Full isolated PostgreSQL suite: **759 passed, 1 failed, none skipped** across
+  83 files. All eight new database checks passed: read-only display, durable own-day
+  acknowledgement, independent accounts/days/weeks, no payment confirmation, stale
+  submissions, repeat-click concurrency, legacy-role denial and deactivation races.
+  The remaining unchanged Marketing test still expects an October 13 cancellation
+  in a reporting period ending October 12; no full-suite success is claimed.
+- One isolated browser workflow passed through yellow Saturday, orange Sunday,
+  red Monday, acknowledgement/reload/navigation, same-tab next-day return on focus,
+  account isolation, next-week return,
+  payroll link and phone fit. Computed background colors were verified and synthetic
+  desktop/phone banner captures visually inspected. The owned clock fixture extends
+  only test sessions while advancing dates and restores their original timestamps;
+  production authentication policy is unchanged.
+- TypeScript, ESLint and production build passed. Build used an unreachable build-only
+  database. The 71 production trace manifests had zero private/clock-fixture references.
+  Changed files pass formatting; repository-wide formatting retains existing
+  unrelated failures. The default browser suite was not rerun. Its strict manifest
+  additionally includes the payday workflow; isolated clock code is never imported by
+  application runtime code. Clock manipulation is limited to the explicit targeted
+  payday mode; the default browser suite keeps its real clock/session policy.
+
+Publication follows the standing shared-main policy; deployment is not performed.

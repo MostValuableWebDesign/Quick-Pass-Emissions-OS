@@ -987,16 +987,63 @@ main#main {
   color: var(--on-action);
   background: var(--action);
 }
-.payroll-calendar { width: min(100%, 330px); }
-.payroll-calendar-nav { display: flex; justify-content: space-between; align-items: center; margin: 14px 0 8px; }
-.payroll-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
-.payroll-calendar-weekday { text-align: center; font-size: 11px; color: var(--muted); padding: 7px 0; }
-.payroll-calendar-day { min-height: 38px; padding: 4px; border: 0; border-radius: 8px; background: var(--surface); color: var(--text); cursor: pointer; }
-.payroll-calendar-day:hover, .payroll-calendar-day:focus-visible, .payroll-calendar-day.in-range { background: var(--soft); outline-color: var(--action); }
-.payroll-calendar-day.selected { background: var(--action); color: var(--on-action); font-weight: 700; }
-.payroll-calendar-day:disabled { opacity: .3; cursor: default; }
-.payroll-calendar-selection { display: flex; flex: 1 1 220px; flex-direction: column; gap: 12px; padding-top: 4px; max-width: 400px; }
-.payroll-calendar-actions { display: flex; gap: 10px; margin-top: 8px; }
+.payroll-calendar {
+  width: min(100%, 330px);
+}
+.payroll-calendar-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 14px 0 8px;
+}
+.payroll-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+.payroll-calendar-weekday {
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 7px 0;
+}
+.payroll-calendar-day {
+  min-height: 38px;
+  padding: 4px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.payroll-calendar-day:hover,
+.payroll-calendar-day:focus-visible,
+.payroll-calendar-day.in-range {
+  background: var(--soft);
+  outline-color: var(--action);
+}
+.payroll-calendar-day.selected {
+  background: var(--action);
+  color: var(--on-action);
+  font-weight: 700;
+}
+.payroll-calendar-day:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.payroll-calendar-selection {
+  display: flex;
+  flex: 1 1 220px;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+  max-width: 400px;
+}
+.payroll-calendar-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
 .calendar-picker-button {
   display: grid;
   flex: 0 0 42px;
@@ -3483,5 +3530,96 @@ textarea:focus-visible {
 @media (max-width: 900px) {
   .pay-adjust-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Monday payday: explicit calendar urgency, separate from payment status. */
+.payday-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 24px;
+  border-bottom: 1px solid;
+  font-size: 13px;
+}
+.payday-banner--yellow {
+  background: #fff8db;
+  color: #6c4e00;
+  border-color: #d6b64a;
+}
+.payday-banner--orange {
+  background: #fff0df;
+  color: #873905;
+  border-color: #df9b56;
+}
+.payday-banner--red {
+  background: #feeeee;
+  color: #9f2020;
+  border-color: #df9a9a;
+}
+.payday-banner-content {
+  flex: 1 1 300px;
+  min-width: 0;
+}
+.payday-banner-content small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+}
+.payday-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.payday-banner-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.payday-banner-button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+.payday-banner-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.dark .payday-banner--yellow {
+  background: #302b16;
+  color: #f5db79;
+  border-color: #71611f;
+}
+.dark .payday-banner--orange {
+  background: #332316;
+  color: #ffc18d;
+  border-color: #88532a;
+}
+.dark .payday-banner--red {
+  background: #341c20;
+  color: #ffb8b8;
+  border-color: #874048;
+}
+@media (max-width: 480px) {
+  .payday-banner {
+    padding: 14px 16px;
+    align-items: flex-start;
+  }
+  .payday-banner-actions {
+    width: 100%;
+  }
+  .payday-banner-button {
+    min-height: 44px;
   }
 }

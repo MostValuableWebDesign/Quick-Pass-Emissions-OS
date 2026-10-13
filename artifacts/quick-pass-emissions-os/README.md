@@ -181,6 +181,20 @@ Read [BUSINESS_RULES.md](BUSINESS_RULES.md) before configuring recurrence or cha
 
 **Security → Door access** supports the selected Schlage Encode BE489WB through Seam: staff and temporary keypad codes, staff-code changes, revocation, last-known door status and durable history with 15 items per page. Owner connection setup is required; API acceptance remains pending until provider confirmation. See [DOOR_ACCESS.md](DOOR_ACCESS.md). Existing credentials and hardware have not been live-verified.
 
+## Monday payday reminder
+
+Payroll is paid every **Monday**. The shared management banner is **yellow Saturday**
+(two days away), **orange Sunday** (one day away), and **red Monday** (payday), using
+America/New_York calendar dates. It is absent Tuesday–Friday. **Review payroll** opens
+Payroll & commissions. **Acknowledge for today** hides the banner for the signed-in
+owner/manager's current Eastern day, persists across reloads/builds in the existing
+PostgreSQL audit ledger, and does not hide other managers' reminders. The next day
+and next week's reminders return independently. Acknowledging does not record a
+wage payment. The UI refreshes calendar state on navigation, focus and Eastern
+midnight; it creates no scheduled jobs, email or payments. No external scheduler or
+new database migration is required. `E2E_PAYDAY_ONLY=1 npm run test:e2e` verifies the
+full banner flow with an owned synthetic clock.
+
 ## Daily owner email
 
 Owner-only **Automation → Configure daily owner email** provides recipient selection, a live report preview, saved reports and email history with 15 rows per page. The owner-requested schedule is **6:30 PM America/New_York**, every day, for the **current day**. Delivery starts paused; configure the server email provider and persistent scheduler, then enable it explicitly. Reports separate estimated revenue, billing, receipts and incomplete payroll. Read [OWNER_DAILY_EMAIL.md](OWNER_DAILY_EMAIL.md) for activation and recovery.

@@ -44,6 +44,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "./ui/button";
+import { PaydayBanner } from "./payday-banner";
+import type { PaydaySnapshot } from "@/modules/payroll/payday-rules";
 import { CertificatePortalBanner } from "./certificate-portal-banner";
 import { NotificationBell } from "./notification-bell";
 import type { CertificatePortalStatus } from "@/modules/certificates/portal-types";
@@ -99,10 +101,12 @@ export function Shell({
   children,
   role,
   certificateStatus = null,
+  paydaySnapshot,
 }: {
   children: React.ReactNode;
   role: string;
   certificateStatus?: CertificatePortalStatus | null;
+  paydaySnapshot?: PaydaySnapshot;
 }) {
   const path = usePathname();
   const params = useSearchParams();
@@ -111,7 +115,9 @@ export function Shell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
-  const [sideMenu, setSideMenu] = useState<{ href: string; left: number; top: number } | null>(null);
+  const [sideMenu, setSideMenu] = useState<{ href: string; left: number; top: number } | null>(
+    null,
+  );
   const sidebarRef = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
 
@@ -144,7 +150,10 @@ export function Shell({
     if (isMobile || !item.children?.length) return;
     const rect = anchor.getBoundingClientRect();
     const categories = new Set(item.children.map((child) => child.category));
-    const estimatedHeight = Math.min(window.innerHeight - 24, item.children.length * 38 + categories.size * 28 + 24);
+    const estimatedHeight = Math.min(
+      window.innerHeight - 24,
+      item.children.length * 38 + categories.size * 28 + 24,
+    );
     const top = Math.max(12, Math.min(rect.top, window.innerHeight - estimatedHeight - 12));
     setSideMenu({ href: item.href, left: rect.right - 2, top });
   };
@@ -158,7 +167,8 @@ export function Shell({
 
   // Page title from the route registry.
   useEffect(() => {
-    if (route) document.title = `${selectedItem?.matchQuery ? selectedItem.label : route.title} · Quick Pass Emissions`;
+    if (route)
+      document.title = `${selectedItem?.matchQuery ? selectedItem.label : route.title} · Quick Pass Emissions`;
   }, [route, selectedItem?.label, selectedItem?.matchQuery]);
 
   const drawerOpen = isMobile && mobileOpen;
@@ -236,7 +246,8 @@ export function Shell({
                     const children = item.children ?? [];
                     const hasChildren = children.length > 0;
                     const categoryStarts = Boolean(
-                      item.category && (index === 0 || section.items[index - 1].category !== item.category),
+                      item.category &&
+                      (index === 0 || section.items[index - 1].category !== item.category),
                     );
                     const current = item.href === active;
                     const childIsCurrent = children.some((child) => child.href === active);
@@ -253,8 +264,7 @@ export function Shell({
                             </li>,
                           ]
                         : []),
-                      (
-                        <li
+                      <li
                         className={[
                           "nav-item",
                           hasChildren ? "nav-item-with-children" : "",
@@ -271,14 +281,16 @@ export function Shell({
                           const target = event.relatedTarget;
                           const movingToFlyout =
                             target instanceof Element &&
-                            target.closest(".nav-flyout")?.getAttribute("data-nav-parent") === item.href;
+                            target.closest(".nav-flyout")?.getAttribute("data-nav-parent") ===
+                              item.href;
                           if (hasChildren && !isMobile && !movingToFlyout) setSideMenu(null);
                         }}
                         onFocus={(event) => {
                           const target = event.relatedTarget;
                           const movingFromFlyout =
                             target instanceof Element &&
-                            target.closest(".nav-flyout")?.getAttribute("data-nav-parent") === item.href;
+                            target.closest(".nav-flyout")?.getAttribute("data-nav-parent") ===
+                              item.href;
                           if (hasChildren && !isMobile && !movingFromFlyout)
                             openSideMenu(item, event.currentTarget);
                         }}
@@ -286,7 +298,8 @@ export function Shell({
                           const target = event.relatedTarget;
                           const movingToFlyout =
                             target instanceof Element &&
-                            target.closest(".nav-flyout")?.getAttribute("data-nav-parent") === item.href;
+                            target.closest(".nav-flyout")?.getAttribute("data-nav-parent") ===
+                              item.href;
                           if (hasChildren && !isMobile && !movingToFlyout) setSideMenu(null);
                         }}
                         onKeyDown={(event) => {
@@ -295,7 +308,9 @@ export function Shell({
                             setOpenSubmenus((old) => ({ ...old, [item.href]: false }));
                             setSideMenu(null);
                             event.currentTarget
-                              .querySelector<HTMLButtonElement>(".nav-menu-trigger, .nav-submenu-toggle")
+                              .querySelector<HTMLButtonElement>(
+                                ".nav-menu-trigger, .nav-submenu-toggle",
+                              )
                               ?.focus();
                           }
                         }}
@@ -325,7 +340,10 @@ export function Shell({
                                 if (root instanceof HTMLElement) openSideMenu(item, root);
                                 if (event.detail === 0)
                                   requestAnimationFrame(() =>
-                                    document.getElementById(submenuId)?.querySelector<HTMLAnchorElement>("a")?.focus(),
+                                    document
+                                      .getElementById(submenuId)
+                                      ?.querySelector<HTMLAnchorElement>("a")
+                                      ?.focus(),
                                   );
                               }}
                             >
@@ -372,10 +390,16 @@ export function Shell({
                                 } else if (submenuOpen) {
                                   setSideMenu(null);
                                 } else {
-                                  openSideMenu(item, event.currentTarget.closest("[data-nav-root]") as HTMLElement);
+                                  openSideMenu(
+                                    item,
+                                    event.currentTarget.closest("[data-nav-root]") as HTMLElement,
+                                  );
                                   if (event.detail === 0)
                                     requestAnimationFrame(() =>
-                                      document.getElementById(submenuId)?.querySelector<HTMLAnchorElement>("a")?.focus(),
+                                      document
+                                        .getElementById(submenuId)
+                                        ?.querySelector<HTMLAnchorElement>("a")
+                                        ?.focus(),
                                     );
                                 }
                               }}
@@ -420,8 +444,7 @@ export function Shell({
                             ))}
                           </div>
                         )}
-                        </li>
-                      ),
+                      </li>,
                     ];
                   })}
                 </ul>
@@ -429,7 +452,10 @@ export function Shell({
             ))}
           </nav>
         </aside>
-        {!isMobile && sideMenu && sideMenuItem && typeof document !== "undefined" &&
+        {!isMobile &&
+          sideMenu &&
+          sideMenuItem &&
+          typeof document !== "undefined" &&
           createPortal(
             <div
               id={`nav-submenu-${sections.find((section) => section.items.some((item) => item.href === sideMenu.href))?.id}-${sideMenu.href.replaceAll("/", "-")}`}
@@ -442,14 +468,16 @@ export function Shell({
                 const target = event.relatedTarget;
                 const movingToParent =
                   target instanceof Element &&
-                  target.closest("[data-nav-root]")?.getAttribute("data-nav-root") === sideMenu.href;
+                  target.closest("[data-nav-root]")?.getAttribute("data-nav-root") ===
+                    sideMenu.href;
                 if (!movingToParent) setSideMenu(null);
               }}
               onBlur={(event) => {
                 const target = event.relatedTarget;
                 const movingToParent =
                   target instanceof Element &&
-                  target.closest("[data-nav-root]")?.getAttribute("data-nav-root") === sideMenu.href;
+                  target.closest("[data-nav-root]")?.getAttribute("data-nav-root") ===
+                    sideMenu.href;
                 const movingWithinFlyout =
                   target instanceof Element &&
                   target.closest(".nav-flyout")?.getAttribute("data-nav-parent") === sideMenu.href;
@@ -460,7 +488,9 @@ export function Shell({
                   event.preventDefault();
                   setSideMenu(null);
                   document
-                     .querySelector<HTMLElement>(`[data-nav-root="${sideMenu.href}"] .nav-menu-trigger, [data-nav-root="${sideMenu.href}"] .nav-submenu-toggle`)
+                    .querySelector<HTMLElement>(
+                      `[data-nav-root="${sideMenu.href}"] .nav-menu-trigger, [data-nav-root="${sideMenu.href}"] .nav-submenu-toggle`,
+                    )
                     ?.focus();
                   return;
                 }
@@ -472,15 +502,21 @@ export function Shell({
                 if (event.shiftKey && activeLink === links[0]) {
                   event.preventDefault();
                   document
-                     .querySelector<HTMLElement>(`[data-nav-root="${sideMenu.href}"] .nav-menu-trigger, [data-nav-root="${sideMenu.href}"] .nav-submenu-toggle`)
+                    .querySelector<HTMLElement>(
+                      `[data-nav-root="${sideMenu.href}"] .nav-menu-trigger, [data-nav-root="${sideMenu.href}"] .nav-submenu-toggle`,
+                    )
                     ?.focus();
                 } else if (!event.shiftKey && activeLink === links.at(-1)) {
                   const nav = sidebarRef.current;
-                  const root = nav?.querySelector<HTMLElement>(`[data-nav-root="${sideMenu.href}"]`);
+                  const root = nav?.querySelector<HTMLElement>(
+                    `[data-nav-root="${sideMenu.href}"]`,
+                  );
                   const focusable = Array.from(
                     nav?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [],
                   ).filter((node) => node.getClientRects().length > 0);
-                  const rootToggle = root?.querySelector<HTMLElement>(".nav-menu-trigger, .nav-submenu-toggle");
+                  const rootToggle = root?.querySelector<HTMLElement>(
+                    ".nav-menu-trigger, .nav-submenu-toggle",
+                  );
                   const index = rootToggle ? focusable.indexOf(rootToggle) : -1;
                   const next = focusable[index + 1];
                   if (next) {
@@ -581,6 +617,7 @@ export function Shell({
               </Button>
             </div>
           </header>
+          {paydaySnapshot && <PaydayBanner initial={paydaySnapshot} />}
           <CertificatePortalBanner initial={certificateStatus} role={role} />
           <main id="main">
             {back && (

@@ -82,3 +82,15 @@ Quick actions are ordinary navigation: the official certificate portal opens in 
 ## Daily owner email
 
 Owners may select only current active OWNER accounts as daily report recipients. Every calendar day becomes due at 6:30 PM Eastern and reports that date, using data saved when generated. Later entries do not rewrite the captured report. Missing coverage/payroll inputs stay unavailable; known partial totals, estimates, billed amounts and recorded receipts remain distinct. The report never infers profit. Pausing cancels unsent deliveries. Re-enabling does not resend a previously queued or accepted owner/date. Queued sends recheck current recipient role, active status, address and selection before external delivery.
+
+## Monday payroll reminder
+
+The owner confirmed payroll is paid every Monday. Show a management-only app banner
+on Saturday (yellow/two calendar days away), Sunday (orange/one day away), and Monday
+(red/payday), using Eastern dates across DST. Hide it outside this window; do not infer
+holiday shifts or overdue/paid status. Each owner/manager may acknowledge only today's
+alert for their own account. Acknowledgment persists in the existing audit ledger and
+expires for display at the next Eastern date; the following day/week is independent.
+It never marks payroll approved or wages paid. Calendar reads are read-only and require
+current management access; acknowledgment rechecks active role and today's date after
+the transaction lock, rejects stale/future tabs, and deduplicates repeat submissions.

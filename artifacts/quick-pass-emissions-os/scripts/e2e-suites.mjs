@@ -1,4 +1,5 @@
 export function browserSuite(env) {
+  if (env.E2E_PAYDAY_ONLY === "1") return { "payday-alert.spec.ts": 1 };
   if (env.E2E_PAYROLL_OVERVIEW_ONLY === "1") return { "payroll-overview.spec.ts": 1 };
   if (env.E2E_PAY_ADJUSTMENTS_ONLY === "1") return { "payroll-adjustments.spec.ts": 1 };
   if (env.E2E_TREND_ONLY === "1") return { "performance-trend.spec.ts": 1 };
@@ -49,6 +50,7 @@ export function browserSuite(env) {
     "operations.spec.ts": 3,
     "phase2.spec.ts": 1,
     "payroll-adjustments.spec.ts": 1,
+    "payday-alert.spec.ts": 1,
     "phase3.spec.ts": 1,
     "phase4.spec.ts": 1,
     "phase5.spec.ts": 2,

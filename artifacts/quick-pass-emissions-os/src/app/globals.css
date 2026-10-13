@@ -991,10 +991,41 @@ main#main {
   flex: 1 1 180px;
   max-width: 240px;
 }
-.payroll-date-filter input[type="date"] {
+.payroll-date-control {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.payroll-date-control input[type="date"] {
   width: 100%;
+  min-width: 0;
   min-height: 42px;
   cursor: pointer;
+}
+.calendar-picker-button {
+  display: grid;
+  flex: 0 0 42px;
+  place-items: center;
+  min-height: 42px;
+  padding: 8px;
+  border: 1px solid var(--input-line);
+  border-radius: 9px;
+  color: var(--text);
+  background: var(--surface);
+  cursor: pointer;
+}
+.calendar-picker-button:hover,
+.calendar-picker-button:focus-visible {
+  border-color: var(--action);
+  background: var(--soft);
+}
+.calendar-picker-button svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .employee-removal-confirmation::backdrop {
   background: rgb(7 20 12 / 58%);

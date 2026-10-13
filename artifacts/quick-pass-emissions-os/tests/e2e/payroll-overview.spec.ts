@@ -8,8 +8,13 @@ test("owner can select a pay day and range without a transaction history panel",
   await expect(overview).toBeVisible();
   await expect(overview.getByRole("table", { name: "Employee pay summary" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Pay transaction history" })).toHaveCount(0);
+  await expect(overview.getByRole("button", { name: "Open calendar for date" })).toBeVisible();
+  await overview.getByRole("button", { name: "Open calendar for date" }).click();
 
   await overview.getByRole("button", { name: "Date range" }).click();
+  await expect(overview.getByRole("button", { name: "Open calendar for start date" })).toBeVisible();
+  await expect(overview.getByRole("button", { name: "Open calendar for end date" })).toBeVisible();
+  await overview.getByRole("button", { name: "Open calendar for start date" }).click();
   await overview.getByLabel("Start date").fill("2026-10-05");
   await overview.getByLabel("End date").fill("2026-10-06");
   await overview.getByRole("button", { name: "Apply" }).click();

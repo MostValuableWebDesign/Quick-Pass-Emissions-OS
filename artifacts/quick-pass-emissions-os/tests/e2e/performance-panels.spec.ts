@@ -281,7 +281,7 @@ test("busy hours and commission progress follow reports, employee filters and sa
     "aria-valuetext",
     "94 shop tests, 44 commission tests",
   );
-  await expect(commission).toContainText("$44.00 / eligible worker");
+  await expect(commission).toContainText("$44 / eligible worker");
   await expect(commission).not.toContainText("not approved payroll");
 
   // New IDs participate in the same pointer/keyboard layout system.
@@ -312,7 +312,7 @@ test("busy hours and commission progress follow reports, employee filters and sa
     "/performance?start=2026-01-15&end=2026-01-15&employee=inspector%3AFixture%2520One",
   );
   await expect(busy.getByTestId("text-busy-tests")).toHaveText("69");
-  await expect(commission.getByTestId("text-progress-commission")).toHaveText("$44.00");
+  await expect(commission.getByTestId("text-progress-commission")).toHaveText("$44");
   await expect(commission.getByRole("progressbar")).toHaveAttribute(
     "aria-valuetext",
     "94 shop tests, 44 commission tests",
@@ -321,7 +321,7 @@ test("busy hours and commission progress follow reports, employee filters and sa
   await expect(commission).toContainText("Selected employee commission (est.)");
 
   await page.goto("/performance?start=2025-12-30&end=2026-01-15");
-  await expect(commission.getByTestId("text-progress-commission")).toHaveText("$1,528.00");
+  await expect(commission.getByTestId("text-progress-commission")).toHaveText("$1,528");
   await expect(commission.getByRole("progressbar")).toHaveCount(15);
   await commission.getByRole("button", { name: "Next", exact: true }).click();
   await expect(commission.getByRole("progressbar")).toHaveCount(2);

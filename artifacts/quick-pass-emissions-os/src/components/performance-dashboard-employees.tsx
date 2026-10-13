@@ -22,7 +22,7 @@ const COLS: [Key, string, boolean][] = [
   ["name", "Employee", false],
   ["cars", "Cars", true],
   ["workingDays", "Days", true],
-  ["inspectionCadence", "Typical time between tests", true],
+  ["inspectionCadence", "Avg Test Time", true],
   ["revenueCents", "Revenue", true],
   ["baseCents", "Base", true],
   ["commissionCents", "Commission", true],

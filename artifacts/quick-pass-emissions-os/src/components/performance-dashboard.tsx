@@ -209,7 +209,7 @@ export function PerformanceDashboard({
             className="pd-kpi"
             title="Median consecutive-test gap, paired separately for each employee and day. Free retests included; not measured inspection duration."
           >
-            <span className="lab">Typical time between tests</span>
+            <span className="lab">Avg Test Time</span>
             <strong data-testid="text-inspection-interval">
               {inspectionTime(s.inspectionCadence.medianMinutes)}
             </strong>

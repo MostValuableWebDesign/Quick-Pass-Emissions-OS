@@ -125,7 +125,7 @@ export function applyPerformancePay(
 
 export async function employeePayOverview(actorId: string, input: unknown, performanceAccess: boolean) {
   const filter = payOverviewInput.parse(input);
-  const data = await payrollDashboard(actorId, filter);
+  const data = await payrollDashboard(actorId, filter, { activeEmployeesOnly: true });
   const today = businessDate();
   const weekEnd = data.week.end > today ? today : data.week.end;
   if (!performanceAccess) return applyPerformancePay(data, null);

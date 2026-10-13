@@ -90,21 +90,30 @@ const historyWhere = {
     action: { startsWith: prefix },
   })),
 };
-export async function payrollDashboard(actorId: string, input: unknown = {}) {
+export async function payrollDashboard(
+  actorId: string,
+  input: unknown = {},
+  options: { activeEmployeesOnly?: boolean } = {},
+) {
   const filter = dashboardInput.parse(input);
   const week = weekBounds(filter.date, filter.weekStart);
   const start = filter.start ?? filter.date;
   const end = filter.end ?? start;
   const windowStart = start < week.start ? start : week.start;
   const windowEnd = end > week.end ? end : week.end;
+  const employeeWhere = options.activeEmployeesOnly ? { user: { active: true } } : {};
   return phase2(actorId, financeRoles, async (tx) => {
-    const employeesPaging = pageInfo(await tx.employee.count(), filter.employeesPage);
+    const employeesPaging = pageInfo(
+      await tx.employee.count({ where: employeeWhere }),
+      filter.employeesPage,
+    );
     const historyPaging = pageInfo(
       await tx.auditLog.count({ where: historyWhere }),
       filter.historyPage,
     );
     const periodsPaging = pageInfo(await tx.payrollPeriod.count(), filter.periodsPage);
     const employees = await tx.employee.findMany({
+      where: employeeWhere,
       orderBy: [{ user: { name: "asc" } }, { id: "asc" }],
       take: PAYROLL_PAGE_SIZE,
       skip: (employeesPaging.page - 1) * PAYROLL_PAGE_SIZE,

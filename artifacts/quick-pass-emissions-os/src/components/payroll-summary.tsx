@@ -33,7 +33,7 @@ export function PayrollSummary({
             <th>Commission rate</th>
           </tr></thead>
           <tbody>
-            {data.employees.map((employee) => (
+            {data.employees.filter((employee) => employee.active).map((employee) => (
               <tr key={employee.id}>
                 <td>
                   <RecordLink href={`/employees/${employee.id}`}>{employee.name}</RecordLink>
@@ -59,7 +59,8 @@ export function PayrollSummary({
           </tbody>
         </table>
       </div>
-      {!data.employees.length && <p className="card-body muted">No employees to display.</p>}
+      {!data.employees.some((employee) => employee.active) &&
+        <p className="card-body muted">No active employees to display.</p>}
     </section>
   );
 }

@@ -98,7 +98,20 @@ describe("informational employee pay overview", () => {
   it("shows a neutral empty state", () => {
     const data = fixture();
     data.employees = [];
-    expect(render(data)).toContain("No employees to display.");
+    expect(render(data)).toContain("No active employees to display.");
     expect(render(data)).not.toMatch(/configur|authoriz/i);
+  });
+  it("omits inactive employees from the overview without changing their stored record", () => {
+    const data = fixture();
+    data.employees.push({
+      ...data.employees[0],
+      id: "inactive-clinton",
+      name: "Clinton",
+      active: false,
+    });
+    const html = render(data);
+    expect(html).toContain("Sample employee");
+    expect(html).not.toContain("inactive-clinton");
+    expect(html).not.toContain(">Clinton</a>");
   });
 });

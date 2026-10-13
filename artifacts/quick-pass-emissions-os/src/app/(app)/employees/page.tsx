@@ -26,7 +26,24 @@ export default async function Employees({
   );
   return (
     <>
-      <PageHeader title="Employees" description="Employee contacts, job roles, and active staff.">
+      <PageHeader title="Employees" description="Employee contacts, job roles, and active staff." />
+      <div className="employee-list-toolbar">
+        <nav className="filter-tabs" aria-label="Employee status filters">
+          {[
+            ["active", "Active staff"],
+            ["inactive", "Removed staff"],
+            ["all", "All staff"],
+          ].map(([value, label]) => (
+            <Link
+              key={value}
+              href={value === "active" ? "/employees" : `/employees?status=${value}`}
+              aria-current={status === value ? "page" : undefined}
+              className={`badge ${status === value ? "green" : "neutral"}`}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
         {status !== "inactive" && (
           <DirectoryAddDialog title="Add employee">
             <ActionForm action={saveEmployee} submit="Create employee">
@@ -34,23 +51,7 @@ export default async function Employees({
             </ActionForm>
           </DirectoryAddDialog>
         )}
-      </PageHeader>
-      <nav className="filter-tabs" aria-label="Employee status filters">
-        {[
-          ["active", "Active staff"],
-          ["inactive", "Removed staff"],
-          ["all", "All staff"],
-        ].map(([value, label]) => (
-          <Link
-            key={value}
-            href={value === "active" ? "/employees" : `/employees?status=${value}`}
-            aria-current={status === value ? "page" : undefined}
-            className={`badge ${status === value ? "green" : "neutral"}`}
-          >
-            {label}
-          </Link>
-        ))}
-      </nav>
+      </div>
       <section className="card space-top">
         <div className="card-heading">
           <h2>

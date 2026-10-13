@@ -837,6 +837,20 @@ main#main {
   justify-content: flex-end;
   margin-top: 20px;
 }
+.employee-list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.employee-list-toolbar .filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .directory-add-dialog {
   width: min(680px, calc(100vw - 32px));
   max-width: none;

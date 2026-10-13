@@ -30,6 +30,11 @@ A PostgreSQL-backed Phases 1–5 business application for Quick Pass Emissions, 
 **Payroll & commissions:** employee-first daily/weekly base rates, approved daily/weekly commissions,
 average commission per approved day, effective-dated exact/percentage pay changes, progressive
 personal-volume incentives, latest approved gross payroll and a durable transaction history.
+The owner-only **Adjust pay & commissions** panel selects each employee and saves exact-dollar
+or percentage base/rate changes, eligibility, personal/shop count basis, daily thresholds and
+optional volume boosts. Choose an effective date and record the reason; the existing ledger
+retains every version. Employee selection and history use 15 items per page. Performance
+report-estimate Pay setup remains separate from payroll rates.
 Payroll display lists use 15 items per page; approved exports include all rows. Owners configure
 rates and changes; management prepares/reviews records. Read [PHASE2.md](PHASE2.md) for pay
 bases, approval evidence and the additive migration that preserves existing data.

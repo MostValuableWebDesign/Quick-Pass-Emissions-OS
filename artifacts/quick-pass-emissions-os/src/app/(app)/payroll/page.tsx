@@ -1,3 +1,4 @@
+import { PayrollAdjustments } from "@/components/payroll-adjustments";
 import { currentUser } from "@/lib/access";
 import { payrollOverview } from "@/modules/payroll/service";
 import { employeePayOverview, payOverviewInput } from "@/modules/payroll/overview";
@@ -57,6 +58,17 @@ export default async function Payroll({
         <p className="notice warning">
           Choose a valid date or range ending today or earlier. Showing today.
         </p>
+      )}
+      {actor.role === "OWNER" && (
+        <PayrollAdjustments
+          key={`${dashboard.employeesPaging.page}:${dashboard.filter.date}`}
+          data={dashboard}
+          query={new URLSearchParams(
+            Object.entries(params).filter(
+              (entry): entry is [string, string] => typeof entry[1] === "string",
+            ),
+          ).toString()}
+        />
       )}
       <PayrollSummary data={dashboard} href={href} />
     </>

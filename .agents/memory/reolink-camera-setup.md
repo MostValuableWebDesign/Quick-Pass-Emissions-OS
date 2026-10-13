@@ -3,8 +3,8 @@ name: Reolink camera setup
 description: Current camera/NVR topology and constraints for adding Reolink access to Quick Pass.
 ---
 
-Quick Pass has a standalone Reolink Argus PT (hardware BIPC_566MIX16M35SD965MP). The business has a separate NVR; the Argus PT is listed on its own in Reolink and is not an NVR channel. The user has not identified a Reolink Home Hub. The user requires the camera to display inside Quick Pass; an external Reolink software link is not the desired final result.
+Quick Pass has a standalone Reolink Argus PT (hardware BIPC_566MIX16M35SD965MP). The user confirmed there is no Home Hub and asked to drop the NVR setup. The user wants live video inside Quick Pass, but the camera is currently standalone.
 
-**Why:** the user clarified after the launch panel was added: "the camera should display in app."
+**Why:** the user clarified that the current external Reolink launcher does not meet the in-app viewing goal, then declined the Home Hub route because they do not have one.
 
-**How to apply:** Keep the distinction between camera microSD, Home Hub, and NVR storage explicit. Check current official compatibility against the exact NVR hardware and firmware: Reolink lists this Argus PT revision as upgradable for some NVRs as well as Home Hubs. Do not assume a Home Hub is the only route. An in-app viewer needs a supported video source and safe network reachability; never request or display camera credentials in chat. Explain the change to standalone access before adding a battery camera to an NVR.
+**How to apply:** Do not implement a pretend or unsupported live feed for the standalone battery camera. Reolink's supported third-party stream protocols require a compatible Hub for this camera; without one, the official Reolink app/client link is the supported option. Revisit in-app video only if the user chooses a supported video source and secure network bridge. Never request or display camera credentials in chat.

@@ -39,6 +39,9 @@ test("owner adjusts each employee's dated base pay and commissions with persiste
     await db.$disconnect();
   }
   await page.goto("/payroll");
+  await expect(
+    page.getByText(/\d+ pay adjustment employees · Page \d+ of \d+ · 15 per page/),
+  ).toHaveCount(0);
   const panels = page.locator(
     'section[aria-label="Employee pay overview"], section[aria-label="Adjust pay and commissions"]',
   );
@@ -62,14 +65,16 @@ test("owner adjusts each employee's dated base pay and commissions with persiste
       .filter({ hasText: "AAA Payroll adjustment fixture" }),
   ).toContainText("$125.50");
   const commission = form(page, "Save commission");
-  await commission.getByLabel("Commission eligibility").selectOption("true");
-  await commission.getByLabel("Commission basis").selectOption("PERSONAL_APPROVED_DAILY");
+  for (const label of [
+    "Commission eligibility",
+    "Commission basis",
+    "Volume boost starts above tests/day",
+    "Additional rate per test above volume threshold ($)",
+  ]) {
+    await expect(commission.getByLabel(label, { exact: true })).toHaveCount(0);
+  }
   await commission.getByLabel("Daily test threshold").fill("50");
   await commission.getByLabel("Commission per qualifying test ($)", { exact: true }).fill("1.25");
-  await commission.getByLabel("Volume boost starts above tests/day").fill("80");
-  await commission
-    .getByLabel("Additional rate per test above volume threshold ($)", { exact: true })
-    .fill("0.50");
   await commission.getByLabel("Effective date").fill("2026-01-01");
   await commission.getByLabel("Reason for change").fill("Synthetic volume incentive");
   await save(commission, "Save commission");
@@ -100,6 +105,10 @@ test("owner adjusts each employee's dated base pay and commissions with persiste
       select: { details: true },
     });
     const auditDetails = JSON.stringify(audit);
+    expect(auditDetails).toContain('"eligible":true');
+    expect(auditDetails).toContain('"attribution":"SHOP_WIDE_APPROVED_DAILY"');
+    expect(auditDetails).toContain('"volumeThreshold":null');
+    expect(auditDetails).toContain('"volumeIncreaseCents":null');
     expect(auditDetails).toContain("Synthetic base increase");
     expect(auditDetails).toContain("Synthetic commission decrease");
   } finally {

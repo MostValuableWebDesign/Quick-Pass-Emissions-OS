@@ -177,28 +177,26 @@ function EmployeeEditor({ employee: e, date }: { employee: Employee; date: strin
             <PercentageFields expectedId={e.policy.id} target="COMMISSION" />
           ) : (
             <>
-              <Field label="Commission eligibility">
-                <select
-                  name="eligible"
-                  defaultValue={e.policy ? String(e.policy.eligible) : ""}
-                  required
-                >
-                  <option value="" disabled>
-                    Select eligibility
-                  </option>
-                  <option value="true">Eligible</option>
-                  <option value="false">Not eligible</option>
-                </select>
-              </Field>
-              <Field label="Commission basis">
-                <select name="attribution" defaultValue={e.policy?.attribution ?? ""} required>
-                  <option value="" disabled>
-                    Select count basis
-                  </option>
-                  <option value="PERSONAL_APPROVED_DAILY">Approved personal daily tests</option>
-                  <option value="SHOP_WIDE_APPROVED_DAILY">Approved whole-shop daily tests</option>
-                </select>
-              </Field>
+              <input
+                name="eligible"
+                type="hidden"
+                value={String(e.policy?.eligible ?? true)}
+              />
+              <input
+                name="attribution"
+                type="hidden"
+                value={e.policy?.attribution ?? "SHOP_WIDE_APPROVED_DAILY"}
+              />
+              <input
+                name="volumeThreshold"
+                type="hidden"
+                value={e.policy?.volumeThreshold ?? ""}
+              />
+              <input
+                name="volumeIncreaseDollars"
+                type="hidden"
+                value={dollars(e.policy?.volumeIncreaseCents ?? undefined)}
+              />
               <Field label="Daily test threshold">
                 <input
                   name="threshold"
@@ -221,31 +219,6 @@ function EmployeeEditor({ employee: e, date }: { employee: Employee; date: strin
                   required
                 />
               </Field>
-              <Field label="Volume boost starts above tests/day">
-                <input
-                  name="volumeThreshold"
-                  type="number"
-                  min="0"
-                  max="100000"
-                  step="1"
-                  defaultValue={e.policy?.volumeThreshold ?? ""}
-                />
-              </Field>
-              <Field label="Additional rate per test above volume threshold ($)">
-                <input
-                  name="volumeIncreaseDollars"
-                  type="number"
-                  min="0"
-                  max="20000000"
-                  step="0.01"
-                  defaultValue={dollars(e.policy?.volumeIncreaseCents ?? undefined)}
-                />
-              </Field>
-              <p className="muted">
-                Leave both volume boost fields blank to disable the boost. A percentage change
-                adjusts the base commission rate and retains existing eligibility, thresholds and
-                boost.
-              </p>
             </>
           )}
           <ChangeFields date={date} />
@@ -274,15 +247,14 @@ export function PayrollAdjustments({ data, query }: { data: Data; query: string 
           appears in Pay transaction history. Existing dated rates and approved payroll are
           retained.
         </p>
-        <p className="muted">
-          These are payroll rates. The separate Pay setup dialog controls Performance report
-          estimates.
-        </p>
-        <PayrollPagination
-          label="Pay adjustment employees"
-          paging={data.employeesPaging}
-          href={href}
-        />
+        {data.employeesPaging.totalPages > 1 && (
+          <PayrollPagination
+            label="Pay adjustment employees"
+            paging={data.employeesPaging}
+            href={href}
+            showSummary={false}
+          />
+        )}
         {employee ? (
           <>
             <Field label="Employee to adjust">
@@ -304,10 +276,6 @@ export function PayrollAdjustments({ data, query }: { data: Data; query: string 
         ) : (
           <p className="muted">Create an employee record before configuring pay.</p>
         )}
-        <p className="muted">
-          Rates shown use the Pay overview date below. Use a new effective date for each version;
-          frozen payroll dates cannot be changed.
-        </p>
       </div>
     </section>
   );

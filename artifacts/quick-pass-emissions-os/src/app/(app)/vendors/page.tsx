@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Camera, Cog, Gauge, Package, Waves, Wrench, type LucideIcon } from "lucide-react";
 import { currentUser } from "@/lib/access";
 
 import { directory } from "@/modules/support/service";
@@ -8,6 +9,15 @@ import { DemoNotice } from "@/components/phase3";
 import { ContactLine } from "@/components/support-contact";
 import { VendorForm } from "@/components/support-vendor-form";
 import { DirectoryAddDialog } from "@/components/directory-add-dialog";
+
+const serviceIcons: Record<(typeof CATEGORIES)[number], LucideIcon> = {
+  "Analyzer Service & Technical Support": Gauge,
+  "Drain Pit Maintenance": Waves,
+  "Carwash Equipment Service": Wrench,
+  "Camera & Security Support": Camera,
+  "Wash Parts Supply": Package,
+  "Belt Repair": Cog,
+};
 
 export default async function Vendors({
   searchParams,
@@ -26,7 +36,7 @@ export default async function Vendors({
   });
   return (
     <>
-      <PageHeader title="Service & support" />
+      <PageHeader title="Service & Support" />
       <DemoNotice demo={data.demo} />
       {data.management && (
         <div className="directory-add-toolbar">
@@ -80,9 +90,14 @@ export default async function Vendors({
         <div className="vendor-directory-grid">
           {data.providers.map((p) => {
             const description = p.supportedServices?.trim() || p.services?.trim();
+            const ServiceIcon =
+              serviceIcons[p.categories[0] as (typeof CATEGORIES)[number]] ?? Wrench;
             return (
               <section className="card vendor-directory-card" key={p.id}>
                 <div className="vendor-directory-heading">
+                  <span className="vendor-service-icon" aria-hidden="true">
+                    <ServiceIcon size={18} strokeWidth={1.9} />
+                  </span>
                   <h2>
                     <Link href={`/vendors/${p.id}`}>{p.name}</Link>
                   </h2>

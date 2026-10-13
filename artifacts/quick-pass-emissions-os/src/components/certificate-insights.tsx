@@ -176,11 +176,10 @@ export function CertificateInsights({
             <table data-testid="provider-order-table">
               <thead>
                 <tr>
-                  <th>Order date · provider local</th>
+                  <th>Order date</th>
                   <th>Transaction</th>
                   <th>Analyzer</th>
                   <th>Certificates ordered</th>
-                  <th>Provider analyzer flag</th>
                 </tr>
               </thead>
               <tbody>
@@ -192,7 +191,6 @@ export function CertificateInsights({
                     <td>{order.transactionId}</td>
                     <td>{order.analyzer}</td>
                     <td>{order.quantity.toLocaleString("en-US")}</td>
-                    <td>{order.analyzerFlag}</td>
                   </tr>
                 ))}
               </tbody>

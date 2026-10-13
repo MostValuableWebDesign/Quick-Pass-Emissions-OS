@@ -101,16 +101,6 @@ export function EmployeeTable({
       {rows.length ? (
         <div className="table-scroll">
           <table className="pd-table pd-num pd-employee-table">
-            <colgroup>
-               <col style={{ width: "16%" }} />
-               <col style={{ width: "6%" }} />
-               <col style={{ width: "5%" }} />
-               <col style={{ width: "13%" }} />
-               <col style={{ width: "11%" }} />
-               <col style={{ width: "15%" }} />
-               <col style={{ width: "16%" }} />
-               <col style={{ width: "18%" }} />
-            </colgroup>
             <thead>
               <tr>
                 {COLS.map(([k, l, r]) => (
@@ -177,9 +167,7 @@ export function EmployeeTable({
                         usd(e.baseCents)
                       )}
                       {dailyBase !== null && profile && (
-                        <small>
-                          {usd(dailyBase)} / day · {usd(dailyBase * profile.shiftsPerWeek)} / week
-                        </small>
+                        <small>{usd(dailyBase * profile.shiftsPerWeek)} / week</small>
                       )}
                     </td>
                     <td className="r">

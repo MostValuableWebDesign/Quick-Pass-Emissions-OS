@@ -593,13 +593,17 @@
 .pd-employee-table {
   width: 100%;
   min-width: 0;
-  table-layout: fixed;
+  table-layout: auto;
 }
 .pd-employee-table.pd-table th,
 .pd-employee-table.pd-table td {
   padding: 8px 6px;
   vertical-align: middle;
   overflow-wrap: anywhere;
+}
+.pd-employee-table.pd-table th.r,
+.pd-employee-table.pd-table td.r {
+  text-align: center;
 }
 .pd-employee-table.pd-table th button {
   display: flex;
@@ -612,7 +616,7 @@
   overflow-wrap: anywhere;
 }
 .pd-employee-table.pd-table th.r button {
-  justify-content: flex-end;
+  justify-content: center;
 }
 .pd-employee-table td small {
   margin-top: 4px;

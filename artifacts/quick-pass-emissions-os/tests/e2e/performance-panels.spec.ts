@@ -5,12 +5,12 @@ import path from "node:path";
 test("signed-in owner can drag, resize, persist and reset performance panels", async ({ page }) => {
   await page.goto("/performance");
   await expect(page.getByRole("heading", { name: "Performance" })).toBeVisible();
-  await expect(page.getByTestId("text-inspection-interval")).toHaveText("5.0 min");
+  await expect(page.getByTestId("text-inspection-interval")).toHaveText("5 min");
   await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20One")).toContainText(
-    "5.0 min",
+    "5 min",
   );
   await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20Two")).toContainText(
-    "8.0 min",
+    "8 min",
   );
   await expect(page.getByText("Avg Test Time", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Pace settings", exact: true })).toHaveCount(0);
@@ -244,7 +244,7 @@ test("busy hours and commission progress follow reports, employee filters and sa
   await expect(migratedEmployees).toHaveCSS("grid-column-start", "span 6");
   await expect(busy.getByTestId("text-busy-tests")).toHaveText("94");
   // Pace includes all 95 physical tests, including the free retest.
-  await expect(page.getByTestId("text-inspection-interval")).toHaveText("5.0 min");
+  await expect(page.getByTestId("text-inspection-interval")).toHaveText("5 min");
   await expect(page.getByText(/gaps used|excluded long gaps|overnight excluded/i)).toHaveCount(0);
 
   await expect(busy.getByTestId("text-busy-peak")).toHaveText("11 AM");

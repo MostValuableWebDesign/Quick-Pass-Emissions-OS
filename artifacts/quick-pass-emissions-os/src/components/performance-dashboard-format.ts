@@ -1,4 +1,4 @@
-export const usd = (cents: number | null | undefined, whole = false) =>
+export const usd = (cents: number | null | undefined, whole = true) =>
   cents === null || cents === undefined
     ? "Unknown"
     : (cents / 100).toLocaleString("en-US", {
@@ -10,7 +10,7 @@ export const usd = (cents: number | null | undefined, whole = false) =>
 export const num = (n: number | null | undefined) =>
   n === null || n === undefined ? "No data" : n.toLocaleString("en-US");
 export const inspectionTime = (minutes: number | null) =>
-  minutes === null ? "No usable gaps" : `${minutes.toFixed(1)} min`;
+  minutes === null ? "No usable gaps" : `${Math.round(minutes)} min`;
 export const shortDate = (d: string) =>
   new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", {
     month: "short",

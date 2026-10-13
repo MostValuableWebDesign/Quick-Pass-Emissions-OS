@@ -43,4 +43,4 @@ Performance tables must fit the available panel width without horizontal scrolli
 
 **Why:** The user wants employee data and columns visible together without having to scroll sideways.
 
-**How to apply:** Let table columns share available width, wrap labels and secondary details, and adapt spacing to narrower panels instead of imposing a wide minimum table size.
+**How to apply:** Let table columns size from their content, center numeric headers and values, wrap labels and secondary details, and adapt spacing to narrower panels instead of imposing a wide minimum. Performance currency and timing are shown as whole numbers; keep weekly base reference separate from selected-period base to avoid repeating the daily amount.

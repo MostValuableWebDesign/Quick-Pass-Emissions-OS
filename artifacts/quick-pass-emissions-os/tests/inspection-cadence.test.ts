@@ -6,6 +6,7 @@ import { buildDashboard, inspectorKey } from "../src/modules/station/dashboard-c
 import { dashboardDaySchema } from "../src/modules/station/dashboard-service";
 import type { PortalDay } from "../src/modules/station/dashboard-types";
 import { EmployeeTable } from "../src/components/performance-dashboard-employees";
+import { inspectionTime, usd } from "../src/components/performance-dashboard-format";
 
 const date = "2026-10-10";
 function day(tests: NonNullable<PortalDay["testTimes"]>, businessDate = date): PortalDay {
@@ -186,12 +187,40 @@ describe("report-based typical time between tests", () => {
       }),
     );
     expect(html).toContain('class="pd-table pd-num pd-employee-table"');
-    expect(html).toContain("<colgroup>");
+    expect(html).not.toContain("<colgroup>");
     expect(html).toContain("Avg Test Time");
-    expect(html).toContain("5.0 min");
+    expect(html).toContain("5 min");
     expect(html).not.toMatch(/gaps used|excluded long gaps|overnight excluded/i);
     expect(html).not.toContain("min/car");
+    expect(html).not.toContain(".00");
     expect(html).toContain("button-sort-inspectionCadence");
+    expect(inspectionTime(5.5)).toBe("6 min");
+    expect(usd(23000)).toBe("$230");
+
+    const employee = data.employees.find((person) => person.inspector === "A")!;
+    const profile = {
+      id: "profile-A",
+      name: "Inspector A",
+      inspector: "A",
+      hourlyCents: 2300,
+      mondayCents: null,
+      standardMinutes: 600,
+      shiftsPerWeek: 5,
+      availableWeekdays: [1, 2, 3, 4, 5, 6],
+      scheduledWeekdays: [6],
+      commissionEligible: true,
+      approximate: true,
+    };
+    const payHtml = renderToStaticMarkup(
+      createElement(EmployeeTable, {
+        employees: [{ ...employee, workingDays: 1, baseCents: 23000, payCents: 23000 }],
+        profiles: [profile],
+      }),
+    );
+    expect(payHtml).toContain("$230");
+    expect(payHtml).toContain("$1,150 / week");
+    expect(payHtml).not.toContain("$230 / day");
+    expect(payHtml).not.toContain("approx.");
   });
   it("pools retained daily employee gaps for ranges, rather than averaging medians or bridging days", () => {
     const second = day(

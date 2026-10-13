@@ -20,19 +20,15 @@ export function LoginBrand() {
           <span>Emissions</span>
         </h1>
         <p className="qp-greeting">How May I Help You?</p>
-        <p className="login-story-copy">
-          Friendly service. Clear results. Confidence on the road.
-        </p>
+        <p className="login-story-copy">Friendly service. Clear results. Confidence on the road.</p>
       </div>
       <figure className="qp-photo">
         <Image
-          src="https://images.pexels.com/photos/4116198/pexels-photo-4116198.jpeg?auto=compress&cs=tinysrgb&w=1100"
-          alt="A technician using a diagnostic tablet inside a vehicle"
-          width={1100}
-          height={733}
-          unoptimized
+          src="/login-emissions-station.webp"
+          alt="Quick Pass Emissions inspection and car wash station"
+          width={1400}
+          height={613}
           loading="eager"
-          referrerPolicy="no-referrer"
         />
         <figcaption>
           <span className="qp-photo-mark" aria-hidden="true">

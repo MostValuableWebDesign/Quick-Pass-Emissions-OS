@@ -26,7 +26,15 @@ export default async function Employees({
   );
   return (
     <>
-      <PageHeader title="Employees" description="Employee contacts, job roles, and active staff." />
+      <PageHeader title="Employees" description="Employee contacts, job roles, and active staff.">
+        {status !== "inactive" && (
+          <DirectoryAddDialog title="Add employee">
+            <ActionForm action={saveEmployee} submit="Create employee">
+              <EmployeeFields />
+            </ActionForm>
+          </DirectoryAddDialog>
+        )}
+      </PageHeader>
       <nav className="filter-tabs" aria-label="Employee status filters">
         {[
           ["active", "Active staff"],
@@ -43,15 +51,6 @@ export default async function Employees({
           </Link>
         ))}
       </nav>
-      {status !== "inactive" && (
-        <div className="directory-add-toolbar">
-          <DirectoryAddDialog title="Add employee">
-            <ActionForm action={saveEmployee} submit="Create employee">
-              <EmployeeFields />
-            </ActionForm>
-          </DirectoryAddDialog>
-        </div>
-      )}
       <section className="card space-top">
         <div className="card-heading">
           <h2>

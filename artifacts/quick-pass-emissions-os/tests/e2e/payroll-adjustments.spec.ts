@@ -39,6 +39,12 @@ test("owner adjusts each employee's dated base pay and commissions with persiste
     await db.$disconnect();
   }
   await page.goto("/payroll");
+  const panels = page.locator(
+    'section[aria-label="Employee pay overview"], section[aria-label="Adjust pay and commissions"]',
+  );
+  await expect(panels).toHaveCount(2);
+  expect(await panels.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label"))))
+    .toEqual(["Employee pay overview", "Adjust pay and commissions"]);
   const panel = page.getByRole("region", { name: "Adjust pay and commissions" });
   await panel.getByLabel("Employee to adjust").selectOption(id);
   const base = form(page, "Save base pay");

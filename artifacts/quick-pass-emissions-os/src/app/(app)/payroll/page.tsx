@@ -59,6 +59,7 @@ export default async function Payroll({
           Choose a valid date or range ending today or earlier. Showing today.
         </p>
       )}
+      <PayrollSummary data={dashboard} href={href} />
       {actor.role === "OWNER" && (
         <PayrollAdjustments
           key={`${dashboard.employeesPaging.page}:${dashboard.filter.date}`}
@@ -70,7 +71,6 @@ export default async function Payroll({
           ).toString()}
         />
       )}
-      <PayrollSummary data={dashboard} href={href} />
     </>
   );
 }

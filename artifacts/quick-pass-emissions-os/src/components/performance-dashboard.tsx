@@ -132,19 +132,19 @@ export function PerformanceDashboard({
             method="get"
             action="/performance"
             className="pd-employee-focus"
-            aria-label="Employee focus"
+            aria-label="Employee filter"
           >
             <input type="hidden" name="start" value={q.start} />
             <input type="hidden" name="end" value={q.end} />
             <input type="hidden" name="trendDays" value={q.trendDays} />
             <label>
-              <span>Employee focus</span>
               <select
                 name="employee"
                 value={q.employee ?? ""}
                 onChange={(e) => e.currentTarget.form?.requestSubmit()}
                 data-testid="select-employee"
                 aria-controls="performance-headline performance-panels"
+                aria-label="Employee"
               >
                 <option value="">All employees</option>
                 {data.employeeOptions.map((e) => (
@@ -260,10 +260,6 @@ export function PerformanceDashboard({
           </button>
         </div>
 
-        <p className="pd-scope-note">
-          Report totals follow these dates and employee focus. Trend view sets the chart period.
-          Commission eligibility uses the shop’s daily volume.
-        </p>
       </section>
 
       {(message || data.error) && (

@@ -12,7 +12,7 @@ test("report scope stays stable when switching daily and yearly trends", async (
   await page.setViewportSize({ width: 1440, height: 1100 });
   await page.goto(`/performance?start=${reportDate}&end=${reportDate}&trendDays=7`);
   const scope = page.getByRole("form", { name: "Reporting dates" });
-  const employeeFocus = page.getByRole("form", { name: "Employee focus" });
+  const employeeFocus = page.getByRole("form", { name: "Employee filter" });
   const trend = page.getByRole("region", { name: "Trend", exact: true });
   await page.getByTestId("button-date-range").click();
   await expect(page.getByTestId("button-date-range")).toHaveAttribute("aria-expanded", "true");

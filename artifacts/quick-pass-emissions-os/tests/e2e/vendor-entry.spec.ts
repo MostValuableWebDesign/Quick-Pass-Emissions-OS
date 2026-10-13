@@ -5,6 +5,7 @@ import { login } from "./workflow-helpers";
 test("vendor filters, minimal entry and separate business navigation work", async ({ page }) => {
   await login(page, "owner@example.test");
   await page.goto("/vendors");
+  await expect(page.getByRole("heading", { name: "Service & Support", exact: true })).toBeVisible();
 
   const navigation = page.getByRole("navigation", { name: "Main navigation" });
   const emissions = navigation.getByRole("list", { name: /^emissions$/i });
@@ -52,6 +53,7 @@ test("vendor filters, minimal entry and separate business navigation work", asyn
   await expect(results.carwash).toBeVisible();
   await expect(results.emissions).toHaveCount(0);
   const carwashCard = page.locator(".vendor-directory-card").filter({ has: results.carwash });
+  await expect(carwashCard.locator(".vendor-service-icon svg")).toHaveCount(1);
   await expect(carwashCard).toContainText("Category");
   await expect(carwashCard).toContainText("Carwash Equipment Service");
   await expect(carwashCard.locator(".vendor-directory-description p")).toHaveText(

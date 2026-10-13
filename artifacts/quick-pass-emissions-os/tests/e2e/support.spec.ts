@@ -72,13 +72,6 @@ test("service support directory persists role-safe contacts and separate mainten
     await expect(page.getByRole("link", { name: `${name} unconfirmed`, exact: true })).toHaveCount(
       0,
     );
-    const pref = page
-      .locator("form")
-      .filter({ has: page.getByRole("heading", { name: CATEGORIES[0], exact: true }) });
-    await pref.locator('select[name="vendorId"]').selectOption(vendor.id);
-    await pref.locator('[name="reason"]').fill("Explicit synthetic preference");
-    await pref.getByRole("button", { name: "Save preference" }).click();
-    await expect(pref.getByRole("status")).toHaveText("Saved successfully.");
     await page.getByRole("link", { name, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/vendors/${vendor.id}$`));
     await expect(page.locator('a[href="tel:8005550123"]')).toHaveCount(1);

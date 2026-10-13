@@ -260,8 +260,9 @@ describe("VIN-based free retests", () => {
     expect(data.summary.inspectionCadence.timedTests).toBe(5);
     expect(data.summary.inspectionCadence.includedGaps).toBe(3);
   });
-  it("loads lookback for the trend and today without exporting a multi-year gap", () => {
+  it("loads lookback for the selected dates and today without exporting a multi-year gap", () => {
     const needed = retestHistoryDates({ ...query, start: "2025-01-15", end: "2025-01-15" }, today);
+    expect(needed).toContain("2024-12-16");
     expect(needed).toContain("2024-12-10");
     expect(needed).toContain(addDays(today, -30));
     expect(needed).not.toContain("2025-08-01");

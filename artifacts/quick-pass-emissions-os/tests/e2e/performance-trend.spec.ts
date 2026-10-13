@@ -7,15 +7,25 @@ test("report scope stays stable when switching daily and yearly trends", async (
   page.on("pageerror", (error) => errors.push(error.message));
   const year = new Date().getFullYear();
   const reportDate = `${year}-01-15`;
+  const captures = path.resolve("../../generated-artifacts/performance-trend");
+  await mkdir(captures, { recursive: true });
   await page.setViewportSize({ width: 1440, height: 1100 });
   await page.goto(`/performance?start=${reportDate}&end=${reportDate}&trendDays=7`);
-  const scope = page.getByRole("form", { name: "Report scope" });
+  const scope = page.getByRole("form", { name: "Reporting dates" });
+  const employeeFocus = page.getByRole("form", { name: "Employee focus" });
   const trend = page.getByRole("region", { name: "Trend", exact: true });
-  await expect(scope).toContainText("Report period");
+  await page.getByTestId("button-date-range").click();
+  await expect(page.getByTestId("button-date-range")).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("#performance-date-popover")).toBeVisible();
+  await page.screenshot({ path: path.join(captures, "date-controls-desktop.jpg"), fullPage: true });
+  await expect(scope).toBeVisible();
+  await expect(scope).toContainText("From");
   await expect(scope.getByTestId("select-trend")).toHaveCount(0);
   await expect(trend.getByTestId("select-trend")).toBeVisible();
   const originalCars = await page.getByTestId("text-cars").textContent();
   const originalPay = await page.getByTestId("text-pay").textContent();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("button-date-range")).toHaveAttribute("aria-expanded", "false");
 
   await trend.getByTestId("select-trend").selectOption("365");
   await expect(page).toHaveURL(/trendDays=365/);
@@ -27,16 +37,16 @@ test("report scope stays stable when switching daily and yearly trends", async (
   await expect(trend.locator(".recharts-wrapper")).toBeVisible();
   await expect(trend.locator(".recharts-wrapper").getByText("Jan", { exact: true })).toBeVisible();
 
-  await scope.getByTestId("select-employee").selectOption({ label: "Fixture Two" });
-  await scope.getByTestId("button-apply-range").click();
+  await employeeFocus.getByTestId("select-employee").selectOption({ label: "Fixture Two" });
+  await expect(page).toHaveURL(/trendDays=365/);
+  expect(new URL(page.url()).searchParams.get("start")).toBe(reportDate);
+  expect(new URL(page.url()).searchParams.get("end")).toBe(reportDate);
   await expect(page.getByTestId("text-cars")).toHaveText("25");
   await expect(
     page.getByRole("region", { name: "Employees", exact: true }).locator("tbody tr[data-testid]"),
   ).toHaveCount(1);
   await expect(trend).toContainText("Fixture Two");
 
-  const captures = path.resolve("../../generated-artifacts/performance-trend");
-  await mkdir(captures, { recursive: true });
   await page.screenshot({ path: path.join(captures, "year-desktop.jpg"), fullPage: true });
   await trend.getByTestId("select-trend").selectOption("30");
   await expect(page).toHaveURL(/trendDays=30/);

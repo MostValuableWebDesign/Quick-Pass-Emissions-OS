@@ -259,7 +259,7 @@ export function PerformanceDashboardPanels({
     );
   };
   return (
-    <div className="pd-grid" data-testid="performance-panel-grid">
+    <div className="pd-grid" id="performance-panels" data-testid="performance-panel-grid">
       {layout.map((panel) =>
         (() => {
           const height =

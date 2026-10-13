@@ -2,7 +2,7 @@
 
 import "./performance-dashboard.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RefreshCw, RotateCcw } from "lucide-react";
+import { CalendarDays, RefreshCw, RotateCcw, Save } from "lucide-react";
 import type { DashboardData, DashboardState } from "@/modules/station/dashboard-types";
 import { getPerformanceDashboardAction } from "@/modules/station/dashboard-actions";
 import type { DashboardLayout } from "./performance-dashboard-layout";
@@ -38,6 +38,8 @@ export function PerformanceDashboard({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [sourceStatus, setSourceStatus] = useState<SourceRefreshStatus>("cached");
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const dateTrigger = useRef<HTMLButtonElement>(null);
   const busy = useRef(false);
   const { start, end, trendDays, employee } = initial.query;
   const q = useMemo(() => ({ start, end, trendDays, employee }), [start, end, trendDays, employee]);
@@ -118,26 +120,151 @@ export function PerformanceDashboard({
             )}
           </div>
         </div>
-        <div className="pd-actions">
-          <div className="dashboard-refresh-wrap">
+      </header>
+
+      <section
+        className="pd-toolbar"
+        aria-label="Performance controls"
+        data-testid="performance-toolbar"
+      >
+        <div className="pd-toolbar-main">
+          <form
+            method="get"
+            action="/performance"
+            className="pd-employee-focus"
+            aria-label="Employee focus"
+          >
+            <input type="hidden" name="start" value={q.start} />
+            <input type="hidden" name="end" value={q.end} />
+            <input type="hidden" name="trendDays" value={q.trendDays} />
+            <label>
+              <span>Employee focus</span>
+              <select
+                name="employee"
+                value={q.employee ?? ""}
+                onChange={(e) => e.currentTarget.form?.requestSubmit()}
+                data-testid="select-employee"
+                aria-controls="performance-headline performance-panels"
+              >
+                <option value="">All employees</option>
+                {data.employeeOptions.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </form>
+          <div className="pd-toolbar-actions">
             <button
               type="button"
-              className="button dashboard-refresh-button"
-              onClick={() => load(true)}
-              disabled={loading}
-              data-testid="button-refresh"
+              className="button button-outline button-sm"
+              onClick={panelLayout.retrySave}
+              disabled={panelLayout.saveStatus === "saving"}
+              data-testid="button-save-panel-layout"
             >
-              <RefreshCw
-                size={15}
-                aria-hidden="true"
-                className={loading ? "dashboard-refresh-icon--busy" : undefined}
-              />{" "}
-              {loading ? "Refreshing…" : "Refresh panels"}
+              <Save size={15} aria-hidden="true" /> Save layout
             </button>
-            <SourceRefreshIndicator status={sourceStatus} source="Georgia I/M" />
+            <div
+              className="pd-date-picker"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  setDatePickerOpen(false);
+                  dateTrigger.current?.focus();
+                }
+              }}
+            >
+              <button
+                type="button"
+                ref={dateTrigger}
+                className="button button-outline button-sm pd-date-trigger"
+                aria-label="Reporting date range"
+                aria-expanded={datePickerOpen}
+                aria-controls="performance-date-popover"
+                onClick={() => setDatePickerOpen((open) => !open)}
+                data-testid="button-date-range"
+              >
+                <CalendarDays size={15} aria-hidden="true" />{" "}
+                {q.start === q.end
+                  ? longDate(q.start)
+                  : `${longDate(q.start)} – ${longDate(q.end)}`}{" "}
+                <span aria-hidden="true">⌄</span>
+              </button>
+              {datePickerOpen && (
+                <div className="pd-date-popover" id="performance-date-popover">
+                  <PerformanceCalendar
+                    key={`${q.start}-${q.end}-${q.trendDays}`}
+                    start={q.start}
+                    end={q.end}
+                    today={data.today}
+                    employee={q.employee}
+                    trendDays={q.trendDays}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="pd-actions">
+              <div className="dashboard-refresh-wrap">
+                <button
+                  type="button"
+                  className="button dashboard-refresh-button"
+                  onClick={() => load(true)}
+                  disabled={loading}
+                  data-testid="button-refresh"
+                >
+                  <RefreshCw
+                    size={15}
+                    aria-hidden="true"
+                    className={loading ? "dashboard-refresh-icon--busy" : undefined}
+                  />{" "}
+                  {loading ? "Refreshing…" : "Refresh panels"}
+                </button>
+                <SourceRefreshIndicator status={sourceStatus} source="Georgia I/M" />
+              </div>
+            </div>
           </div>
         </div>
-      </header>
+        <div className="pd-panel-layout-toolbar">
+          <div
+            className="pd-panel-layout-status"
+            role="status"
+            aria-live="polite"
+            data-testid="performance-layout-save-status"
+          >
+            {panelLayout.saveStatus === "saving"
+              ? "Saving layout to your account…"
+              : panelLayout.saveStatus === "saved"
+                ? "Layout saved to your account"
+                : panelLayout.saveStatus === "error"
+                  ? "Could not sync the layout to your account."
+                  : "Layout changes save to your account automatically"}
+          </div>
+          {panelLayout.saveStatus === "error" && (
+            <button
+              type="button"
+              className="button button-outline button-sm"
+              onClick={panelLayout.retrySave}
+              data-testid="button-retry-panel-layout-save"
+            >
+              Retry save
+            </button>
+          )}
+          <button
+            type="button"
+            className="button button-outline button-sm"
+            onClick={panelLayout.reset}
+            data-testid="button-reset-panel-layout"
+          >
+            <RotateCcw size={14} aria-hidden="true" /> Reset panels
+          </button>
+        </div>
+
+        <p className="pd-scope-note">
+          Report totals follow these dates and employee focus. Trend view sets the chart period.
+          Commission eligibility uses the shop’s daily volume.
+        </p>
+      </section>
 
       {(message || data.error) && (
         <div className="notice warning" role="alert" style={{ margin: 0 }}>
@@ -145,7 +272,7 @@ export function PerformanceDashboard({
         </div>
       )}
 
-      <section className="pd-hero" aria-label="Headline numbers">
+      <section className="pd-hero" id="performance-headline" aria-label="Headline numbers">
         <div className="pd-today">
           <div className="lab" data-testid="text-headline-period">
             {single ? longDate(q.start) : `${longDate(q.start)} to ${longDate(q.end)}`} ·{" "}
@@ -233,52 +360,6 @@ export function PerformanceDashboard({
         </div>
       </section>
 
-      <div className="pd-controls">
-        <PerformanceCalendar
-          key={`${q.start}-${q.end}`}
-          start={q.start}
-          end={q.end}
-          today={data.today}
-          trendDays={q.trendDays}
-          employee={q.employee}
-          employeeOptions={data.employeeOptions}
-        />
-      </div>
-
-      <div className="pd-panel-layout-toolbar">
-        <div
-          className="pd-panel-layout-status"
-          role="status"
-          aria-live="polite"
-          data-testid="performance-layout-save-status"
-        >
-          {panelLayout.saveStatus === "saving"
-            ? "Saving layout to your account…"
-            : panelLayout.saveStatus === "saved"
-              ? "Layout saved to your account"
-              : panelLayout.saveStatus === "error"
-                ? "Could not sync the layout to your account."
-                : "Layout changes save to your account automatically"}
-        </div>
-        {panelLayout.saveStatus === "error" && (
-          <button
-            type="button"
-            className="button button-outline button-sm"
-            onClick={panelLayout.retrySave}
-            data-testid="button-retry-panel-layout-save"
-          >
-            Retry save
-          </button>
-        )}
-        <button
-          type="button"
-          className="button button-outline button-sm"
-          onClick={panelLayout.reset}
-          data-testid="button-reset-panel-layout"
-        >
-          <RotateCcw size={14} aria-hidden="true" /> Reset panels
-        </button>
-      </div>
       <PerformanceDashboardPanels
         layout={panelLayout.layout}
         employeeRowCount={visibleEmployeeRows}

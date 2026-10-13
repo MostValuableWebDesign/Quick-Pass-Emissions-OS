@@ -56,16 +56,20 @@ export function PerformanceTrend({
   const rows = yearly ? monthlyTrendPoints(dailyRows, year, today) : dailyRows;
   const has = rows.some((r) => r.value !== null);
   const scope = employeeName ?? "All employees";
+  const dailyGaps = dailyRows.filter((row) => row.value === null).length;
   return (
     <section className="pd-card" aria-label="Trend">
       <div className="pd-card-h">
         <div className="pd-card-title">
           <h2>Trend</h2>
-          <p>
+          <p data-testid="text-trend-period">
             {yearly
               ? `${year} · monthly totals`
               : `Daily · ${trendDays} days through ${shortDate(endDate)}`}
             {` · ${scope}`}
+            {!yearly && dailyGaps > 0
+              ? ` · ${dailyGaps} ${dailyGaps === 1 ? "day" : "days"} without data`
+              : ""}
             {filtered && metric === "cars" ? " · line is station total" : ""}
           </p>
         </div>

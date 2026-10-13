@@ -766,3 +766,44 @@ provisioning remain operator setup. A presence-only check found no local Google 
 client secret, encryption key or canonical BETTER_AUTH_URL configured; no secret values
 were printed. Deployed environment configuration was not inspected. The exact runtime callback is displayed in
 Analytics; detailed steps are in [GOOGLE_ANALYTICS.md](GOOGLE_ANALYTICS.md).
+
+## 2026-10-13 — Shared Performance reporting scope and toolbar
+
+Pulled shared main before editing. The compact toolbar precedes headline numbers
+and every Performance panel, with employee focus at left and Save layout, reporting
+dates and Refresh panels at the top right. The date picker supports a single day,
+inclusive range, direct date entry and keyboard navigation. Save layout explicitly
+persists the existing account layout; automatic layout saving/reset/retry remain.
+
+Trend previously expanded single-day selections to a separate seven/thirty-day
+window and filtered out Sundays. It now uses the same inclusive start/end and
+employee as headline totals, Employees, Busy hours and Commission progress. The
+independent Trend selector and obsolete Sunday filter are removed. Legacy trendDays
+URLs remain accepted but cannot broaden the reporting scope. Missing dates remain
+unknown gaps. Station comparison lines and the existing whole-shop daily commission
+threshold retain explicit labels while employee metrics follow the selected focus.
+Refresh keeps the existing export lock, cooldown, bounded batches and cache fallback.
+No business data migration or deployment is included.
+
+Verification:
+
+- 67 focused calculation/calendar/layout/format tests passed. They cover single-day
+  scope regardless of legacy trendDays, inclusive ranges, Sundays, missing dates,
+  employee totals and retest lookback boundaries.
+- Both isolated Performance browser workflows passed: shared toolbar above totals,
+  single-day Trend, actual date-range application retaining employee focus, employee
+  changes retaining dates, Sunday selection, explicit account saving, reload persistence,
+  drag/resize/reset, commission pagination, manager restrictions, mobile sizing and
+  mobile date-picker bounds/Escape focus return.
+- The full disposable-database suite ran: **712 passed, 1 failed, none skipped** across
+  78 files. The remaining Marketing cancellation test has an October 12 report end
+  while voidService records today's October 13 cancellation; it expects CANCELLED
+  within the earlier report. Marketing source/tests were unchanged. No full-suite
+  success is claimed. The related retest expectation was updated to the selected-day
+  30-day lookback instead of the obsolete expanded trend window.
+- TypeScript, ESLint and changed-file formatting passed. Production build and final
+  mobile date-picker checks passed. The build used an unreachable build-only database;
+  71 production trace manifests contained zero private verification references. Repository-wide formatting
+  retains unrelated existing failures. The default browser suite was not rerun.
+
+Publication follows the standing shared-main policy; pushing is not deployment.

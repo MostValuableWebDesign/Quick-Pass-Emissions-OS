@@ -161,7 +161,7 @@ function EmployeeEditor({ employee: e, date }: { employee: Employee; date: strin
             value={commissionMode}
             onChange={(event) => setCommissionMode(event.target.value)}
           >
-            <option value="EXACT">Set rate and volume rules</option>
+            <option value="EXACT">Set exact rate</option>
             <option value="PERCENT" disabled={!e.policy}>
               Increase or decrease rate by percentage
             </option>

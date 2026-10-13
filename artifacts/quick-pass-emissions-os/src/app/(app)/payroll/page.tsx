@@ -1,7 +1,7 @@
 import { currentUser } from "@/lib/access";
 import { payrollOverview } from "@/modules/payroll/service";
-import { dashboardInput, payrollDashboard } from "@/modules/payroll/dashboard";
-import { PayrollSummary, PayrollHistory } from "@/components/payroll-summary";
+import { employeePayOverview, payOverviewInput } from "@/modules/payroll/overview";
+import { PayrollSummary } from "@/components/payroll-summary";
 import { PageHeader } from "@/components/shared";
 import { PayrollPaySetup } from "@/components/payroll-pay-setup";
 import { readDashboard, resolveDashboardQuery } from "@/modules/station/dashboard-service";
@@ -14,6 +14,8 @@ export default async function Payroll({
     status?: string;
     periodId?: string;
     date?: string;
+    start?: string;
+    end?: string;
     weekStart?: string;
     employeesPage?: string;
     historyPage?: string;
@@ -23,8 +25,8 @@ export default async function Payroll({
   const actor = await currentUser();
   const params = await searchParams;
   const data = await payrollOverview(actor.id, params);
-  const parsed = dashboardInput.safeParse(params);
-  const dashboard = await payrollDashboard(actor.id, parsed.success ? parsed.data : {});
+  const parsed = payOverviewInput.safeParse(params);
+  const dashboard = await employeePayOverview(actor.id, parsed.success ? parsed.data : {}, actor.role === "OWNER");
   const paySetup =
     actor.role === "OWNER" ? await readDashboard(actor.id, resolveDashboardQuery({})) : null;
   const href = (key: string, page: number) => {
@@ -41,7 +43,7 @@ export default async function Payroll({
     <>
       <PageHeader
         title="Payroll & commissions"
-        description="Employee daily and weekly pay, recorded commissions and transaction history."
+        description="Employee daily and weekly pay and calculated commissions."
       >
         {paySetup && <PayrollPaySetup initial={paySetup} />}
       </PageHeader>
@@ -53,15 +55,10 @@ export default async function Payroll({
       )}
       {!parsed.success && (
         <p className="notice warning">
-          Choose a valid pay overview date and week start. Showing the current week.
+          Choose a valid date or range ending today or earlier. Showing today.
         </p>
       )}
       <PayrollSummary data={dashboard} href={href} />
-      <PayrollHistory
-        data={dashboard}
-        names={Object.fromEntries(data.employees.map((employee) => [employee.id, employee.user.name]))}
-        href={(page) => href("historyPage", page)}
-      />
     </>
   );
 }

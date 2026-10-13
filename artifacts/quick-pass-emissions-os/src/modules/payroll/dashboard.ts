@@ -14,6 +14,8 @@ import {
 export const PAYROLL_PAGE_SIZE = 15;
 export const dashboardInput = z.object({
   date: dateString.default(() => businessDate()),
+  start: dateString.optional(),
+  end: dateString.optional(),
   weekStart: requiredInteger(1, 7).default(1),
   employeesPage: requiredInteger(1, 1000000000).default(1),
   historyPage: requiredInteger(1, 1000000000).default(1),
@@ -91,6 +93,10 @@ const historyWhere = {
 export async function payrollDashboard(actorId: string, input: unknown = {}) {
   const filter = dashboardInput.parse(input);
   const week = weekBounds(filter.date, filter.weekStart);
+  const start = filter.start ?? filter.date;
+  const end = filter.end ?? start;
+  const windowStart = start < week.start ? start : week.start;
+  const windowEnd = end > week.end ? end : week.end;
   return phase2(actorId, financeRoles, async (tx) => {
     const employeesPaging = pageInfo(await tx.employee.count(), filter.employeesPage);
     const historyPaging = pageInfo(
@@ -110,11 +116,11 @@ export async function payrollDashboard(actorId: string, input: unknown = {}) {
           take: 1,
         },
         commissionPolicies: {
-          where: { effectiveDate: { lte: week.end > filter.date ? week.end : filter.date } },
+          where: { effectiveDate: { lte: windowEnd } },
           orderBy: { effectiveDate: "desc" },
         },
         emissions: {
-          where: { date: { gte: week.start, lte: week.end } },
+          where: { date: { gte: windowStart, lte: windowEnd } },
           orderBy: { date: "asc" },
         },
         payrollLines: {
@@ -132,7 +138,7 @@ export async function payrollDashboard(actorId: string, input: unknown = {}) {
       },
     });
     const shopCounts = await tx.dailyEmission.findMany({
-      where: { date: { gte: week.start, lte: week.end } },
+      where: { date: { gte: windowStart, lte: windowEnd } },
       select: { date: true, count: true, approvedAt: true },
     });
     return {
@@ -157,7 +163,18 @@ export async function payrollDashboard(actorId: string, input: unknown = {}) {
           arrangement,
           policy,
           base,
-          commission: commissionSummary(filter.date, e.emissions, e.commissionPolicies, shopCounts),
+          commission: commissionSummary(
+            filter.date,
+            e.emissions.filter((c) => c.date >= week.start && c.date <= week.end),
+            e.commissionPolicies,
+            shopCounts,
+          ),
+          rangeCommission: commissionSummary(
+            filter.date,
+            e.emissions.filter((c) => c.date >= start && c.date <= end),
+            e.commissionPolicies,
+            shopCounts,
+          ),
           approvedPayroll: e.payrollLines[0] ?? null,
         };
       }),

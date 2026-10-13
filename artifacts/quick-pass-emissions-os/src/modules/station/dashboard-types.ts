@@ -74,6 +74,12 @@ export type DashboardEmployee = {
   revenueCents: number | null;
   baseCents: number | null;
   commissionCents: number | null;
+  commissionDays?: {
+    date: string;
+    cents: number | null;
+    working: boolean;
+    workKnown: boolean;
+  }[];
   payCents: number | null;
   approximate: boolean;
   inspectionCadence: InspectionCadence;

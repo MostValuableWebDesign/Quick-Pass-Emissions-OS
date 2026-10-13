@@ -1,4 +1,5 @@
 export function browserSuite(env) {
+  if (env.E2E_PAYROLL_OVERVIEW_ONLY === "1") return { "payroll-overview.spec.ts": 1 };
   if (env.E2E_TREND_ONLY === "1") return { "performance-trend.spec.ts": 1 };
   if (env.E2E_NAV_CLEANUP_ONLY === "1") return { "navigation-cleanup.spec.ts": 1 };
   if (env.E2E_BUSINESS_HOURS_ONLY === "1") return { "business-hours.spec.ts": 1 };

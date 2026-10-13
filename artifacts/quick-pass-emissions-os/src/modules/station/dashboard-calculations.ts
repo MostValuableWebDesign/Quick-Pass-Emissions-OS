@@ -153,6 +153,12 @@ export function buildDashboard(
         : null,
       baseCents,
       commissionCents,
+      commissionDays: daily.map((day, index) => ({
+        date: selectedDates[index],
+        cents: day.commission,
+        working: day.working,
+        workKnown: day.workKnown,
+      })),
       payCents: nullableSum([baseCents, commissionCents]),
       approximate: profile.approximate || daily.some((d) => d.estimatedHours),
       inspectionCadence: inspectionCadence(
@@ -182,6 +188,18 @@ export function buildDashboard(
       commissionCents: selectedComplete
         ? days.reduce((n, d) => n + commission(d.day.total), 0)
         : null,
+      commissionDays: selectedDates.map((date) => {
+        const day = byDate.get(date);
+        const working = !!day?.inspectors.some(
+          (i) => i.inspector === inspector && (i.rawTotal ?? i.total) > 0,
+        );
+        return {
+          date,
+          cents: day && day.retestComplete !== false ? (working ? commission(day.total) : 0) : null,
+          working,
+          workKnown: !!day,
+        };
+      }),
       payCents: null,
       approximate: true,
       inspectionCadence: inspectionCadence(

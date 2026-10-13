@@ -958,6 +958,44 @@ main#main {
   background: var(--surface);
   box-shadow: 0 28px 100px rgb(0 0 0 / 28%);
 }
+.payroll-date-filter {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.payroll-date-filter .filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: center;
+}
+.payroll-date-filter .filter-tab {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--text);
+  background: var(--surface);
+  cursor: pointer;
+}
+.payroll-date-filter .filter-tab:hover {
+  background: var(--soft);
+}
+.payroll-date-filter .filter-tab.active {
+  border-color: var(--action);
+  color: var(--on-action);
+  background: var(--action);
+}
+.payroll-date-filter .field {
+  flex: 1 1 180px;
+  max-width: 240px;
+}
+.payroll-date-filter input[type="date"] {
+  width: 100%;
+  min-height: 42px;
+  cursor: pointer;
+}
 .employee-removal-confirmation::backdrop {
   background: rgb(7 20 12 / 58%);
   backdrop-filter: blur(5px);

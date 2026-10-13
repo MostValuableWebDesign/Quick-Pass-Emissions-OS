@@ -70,3 +70,9 @@ Previously supplied compensation must populate matching Payroll employee records
 **Why:** The user repeated that base pay and commission had already been provided and asked to fill out the employees under Payroll & commissions.
 
 **How to apply:** Reuse confirmed compensation for existing matching employees, preserve the shop-wide daily commission rule, and do not fabricate test counts, worked dates or payroll approvals. Missing roster entries require a separate decision rather than silently creating personnel.
+
+Employee pay overview should use the same cached, free-retest-adjusted shop counts as Performance for projected daily and range commissions. Partial source coverage is not a complete payroll balance; historical payroll records remain intact even if their transaction list is hidden from this overview.
+
+**Why:** The owner wants the overview's known commission values calculated for a chosen date or range without reviving approval and transaction-history panels.
+
+**How to apply:** Keep estimated Performance-based amounts distinct from approved payroll. Sum the shop-wide threshold separately for each loaded day, identify gaps rather than assuming zero, and avoid deleting audit or payment records to simplify the page.

@@ -76,3 +76,9 @@ Employee pay overview should use the same cached, free-retest-adjusted shop coun
 **Why:** The owner wants the overview's known commission values calculated for a chosen date or range without reviving approval and transaction-history panels.
 
 **How to apply:** Keep estimated Performance-based amounts distinct from approved payroll. Sum the shop-wide threshold separately for each loaded day, identify gaps rather than assuming zero, and avoid deleting audit or payment records to simplify the page.
+
+Payroll date selection needs a visible in-page calendar for both single days and two-click ranges; native date inputs alone were not usable for the owner.
+
+**Why:** The owner repeatedly could not select a date despite native picker controls. Browser checks of the native-input flow failed repeatedly, while clicking dates in the in-page calendar passed the signed-in check.
+
+**How to apply:** Keep month navigation and selectable day buttons, make an incomplete range obvious, and apply the chosen dates to the overview without relying on the browser's native date popup.

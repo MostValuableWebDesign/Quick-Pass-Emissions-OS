@@ -36,9 +36,9 @@ test("payroll hides retired panels while certificate preparation and review rema
   await expect(page.getByRole("table", { name: "Employee pay summary" })).toBeVisible();
   await expect(page.getByRole("table", { name: "Pay transactions" })).toHaveCount(0);
   await page.getByRole("button", { name: "Date range" }).click();
-  await page.getByLabel("Start date").fill("2026-10-05");
-  await page.getByLabel("End date").fill("2026-10-06");
-  await page.getByRole("button", { name: "Apply" }).click();
+  await page.getByTestId("pay-day-2026-10-05").click();
+  await page.getByTestId("pay-day-2026-10-06").click();
+  await page.getByRole("button", { name: "Apply dates" }).click();
   await expect(page).toHaveURL(/start=2026-10-05.*end=2026-10-06/);
   await expect(page.getByText("Selected range: 2026-10-05 — 2026-10-06")).toBeVisible();
   for (const retiredHeading of [

@@ -18,8 +18,13 @@ export function LoginBrand() {
           <br />
           <span>Emissions</span>
         </h1>
-        <p className="qp-greeting">How May I Help You?</p>
-        <p className="login-story-copy">Friendly service. Clear results. Confidence on the road.</p>
+        <p className="qp-greeting">
+          Your emissions test.
+          <br />
+          Your tag renewal.
+          <br />
+          Your One Stop Shop.
+        </p>
       </div>
       <figure className="qp-photo">
         <Image

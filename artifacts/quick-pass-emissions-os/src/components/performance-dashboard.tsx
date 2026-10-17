@@ -314,7 +314,7 @@ export function PerformanceDashboard({
           <div className="lab" data-testid="text-headline-label">
             Cars tested
           </div>
-          <strong className="pd-num" data-testid="text-cars-tested-total">
+          <strong className="pd-num" data-testid="text-cars">
             {num(s.cars)}
           </strong>
           {s.cars !== null ? (
@@ -346,10 +346,6 @@ export function PerformanceDashboard({
                   </span>
                 )}
               </div>
-              <small style={{ display: "block", marginTop: 10 }}>
-                {usd(s.revenueCents, true)} estimated revenue · selected {single ? "day" : "range"}
-                {s.freeRetests > 0 && ` · ${s.freeRetests} free retests excluded`}
-              </small>
             </>
           ) : (
             <small>
@@ -367,13 +363,11 @@ export function PerformanceDashboard({
         </div>
         <div className="pd-kpis pd-num">
           <div className="pd-kpi">
-            <span className="lab">Cars tested</span>
-            <strong data-testid="text-cars">{num(s.cars)}</strong>
-            <small>
-              {s.cars === null
-                ? "Count unavailable"
-                : `${s.passed} pass · ${s.failed} fail · ${s.aborted} abort${s.other > 0 ? ` · ${s.other} other` : ""}`}
-            </small>
+            <span className="lab">Retest count</span>
+            <strong data-testid="text-retests">
+              {s.cars === null ? "Pending" : num(s.freeRetests)}
+            </strong>
+            <small>Free VIN retests within 30 days</small>
           </div>
           <div className="pd-kpi accent">
             <span className="lab">Revenue (est.)</span>

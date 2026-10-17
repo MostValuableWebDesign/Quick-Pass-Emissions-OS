@@ -6,7 +6,7 @@
     "node": ">=22.12 <27"
   },
   "scripts": {
-    "dev": "tsx scripts/database.ts migrate && next dev --webpack --hostname 0.0.0.0 --port ${PORT:-3000}",
+    "dev": "prisma generate && tsx scripts/database.ts migrate && next dev --webpack --hostname 0.0.0.0 --port ${PORT:-3000}",
     "build": "prisma generate && next build",
     "start": "tsx scripts/database.ts migrate && next start --hostname 0.0.0.0",
     "lint": "eslint .",

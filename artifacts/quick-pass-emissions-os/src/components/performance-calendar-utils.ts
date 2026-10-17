@@ -1,6 +1,17 @@
 export type CalMode = "single" | "range";
 export type CalSel = { start: string; end: string | null };
 
+export const modeForDates = (start: string, end: string): CalMode =>
+  start === end ? "single" : "range";
+
+export function selectStartDate(mode: CalMode, selection: CalSel, start: string): CalSel {
+  if (mode === "single") return { start, end: start };
+  return { start, end: selection.end && selection.end >= start ? selection.end : null };
+}
+
+export const shouldAutoSearchSingleDay = (mode: CalMode, selection: CalSel) =>
+  mode === "single" && selection.start === selection.end;
+
 const pad = (n: number) => String(n).padStart(2, "0");
 export const iso = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 export const parseIso = (s: string) => {

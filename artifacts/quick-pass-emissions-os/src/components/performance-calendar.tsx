@@ -7,9 +7,12 @@ import {
   type CalSel,
   dayState,
   finalize,
+  modeForDates,
   monthGrid,
   parseIso,
   pickDay,
+  selectStartDate,
+  shouldAutoSearchSingleDay,
   shiftMonth,
 } from "./performance-calendar-utils";
 
@@ -38,7 +41,7 @@ type Props = {
 };
 
 export function PerformanceCalendar({ start, end, today, employee, trendDays }: Props) {
-  const [mode, setMode] = useState<CalMode>(start === end ? "single" : "range");
+  const [mode, setMode] = useState<CalMode>(modeForDates(start, end));
   const [sel, setSel] = useState<CalSel>({ start, end });
   const [hover, setHover] = useState<string | null>(null);
   const init = parseIso(end || today);
@@ -58,15 +61,17 @@ export function PerformanceCalendar({ start, end, today, employee, trendDays }: 
     const next = pickDay(mode, sel, day, today);
     setSel(next);
     setFocusDay(day);
-    if (mode === "single" && next.start === day) {
-      // Submit the clicked date, not the previous render's hidden values.
-      const form = formRef.current;
-      if (form) {
-        (form.elements.namedItem("start") as HTMLInputElement).value = next.start;
-        (form.elements.namedItem("end") as HTMLInputElement).value = next.end ?? next.start;
-        form.requestSubmit();
-      }
-    }
+    if (shouldAutoSearchSingleDay(mode, next)) submit(next);
+  };
+
+  const submit = (selection: CalSel) => {
+    // Submit the new selection, not the previous render's controlled values.
+    const form = formRef.current;
+    if (!form) return;
+    const values = finalize(selection);
+    (form.elements.namedItem("start") as HTMLInputElement).value = values.start;
+    (form.elements.namedItem("end") as HTMLInputElement).value = values.end;
+    form.requestSubmit();
   };
 
   const onKey = (e: React.KeyboardEvent, day: string) => {
@@ -227,10 +232,9 @@ export function PerformanceCalendar({ start, end, today, employee, trendDays }: 
             required
             data-testid="input-start"
             onChange={(e) => {
-              const start = e.target.value;
-              const end = !sel.end || sel.end < start ? start : sel.end;
-              setSel({ start, end });
-              setMode(start === end ? "single" : "range");
+              const next = selectStartDate(mode, sel, e.target.value);
+              setSel(next);
+              if (shouldAutoSearchSingleDay(mode, next)) submit(next);
             }}
           />
         </label>
@@ -245,8 +249,13 @@ export function PerformanceCalendar({ start, end, today, employee, trendDays }: 
             required
             data-testid="input-end"
             onChange={(e) => {
-              setSel({ ...sel, end: e.target.value });
-              setMode(e.target.value === sel.start ? "single" : "range");
+              const next = { ...sel, end: e.target.value };
+              setSel(next);
+              if (mode === "single") {
+                const nextMode = modeForDates(next.start, next.end ?? next.start);
+                setMode(nextMode);
+                if (shouldAutoSearchSingleDay(nextMode, next)) submit(next);
+              }
             }}
           />
         </label>

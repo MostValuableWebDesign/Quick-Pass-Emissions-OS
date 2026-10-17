@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   dayState,
   finalize,
+  modeForDates,
   monthGrid,
   pickDay,
+  selectStartDate,
+  shouldAutoSearchSingleDay,
   shiftMonth,
 } from "@/components/performance-calendar-utils";
 
@@ -25,6 +28,34 @@ describe("performance calendar helpers", () => {
     expect(
       pickDay("single", { start: "2025-03-01", end: "2025-03-05" }, "2025-03-10", max),
     ).toEqual({ start: "2025-03-10", end: "2025-03-10" });
+  });
+  it("auto-searches a past date selected through From in single-day mode", () => {
+    const selection = selectStartDate(
+      "single",
+      { start: "2025-03-15", end: "2025-03-15" },
+      "2025-03-10",
+    );
+    expect(selection).toEqual({ start: "2025-03-10", end: "2025-03-10" });
+    expect(
+      shouldAutoSearchSingleDay(modeForDates(selection.start, selection.end!), selection),
+    ).toBe(true);
+  });
+  it("keeps From changes in date-range mode pending until Apply", () => {
+    const existingRange = selectStartDate(
+      "range",
+      { start: "2025-03-01", end: "2025-03-15" },
+      "2025-03-10",
+    );
+    expect(existingRange).toEqual({ start: "2025-03-10", end: "2025-03-15" });
+    expect(shouldAutoSearchSingleDay("range", existingRange)).toBe(false);
+
+    const newRange = selectStartDate(
+      "range",
+      { start: "2025-03-01", end: "2025-03-05" },
+      "2025-03-10",
+    );
+    expect(newRange).toEqual({ start: "2025-03-10", end: null });
+    expect(shouldAutoSearchSingleDay("range", newRange)).toBe(false);
   });
   it("ignores future days", () => {
     const sel = { start: "2025-03-01", end: null };

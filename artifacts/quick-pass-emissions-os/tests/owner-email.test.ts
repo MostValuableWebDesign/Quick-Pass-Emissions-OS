@@ -82,6 +82,10 @@ describe("Daily owner email transport and content", () => {
     expect(r.html).not.toContain("<script>");
     expect(r.html).not.toContain("<img src=x>");
     expect(r.html).toContain("&lt;img src=x&gt;");
+    expect(r.html).toContain("border-top:5px solid #00345b");
+    expect(r.html).toContain("color:#0078bd");
+    expect(r.html).toContain("background:#f8fafc");
+    expect(r.html).not.toContain("#218845");
     expect(escapeEmail("a&\"'<>")).toBe("a&amp;&quot;&#39;&lt;&gt;");
   });
   it("rejects incomplete sender configuration and unsafe app origins", () => {

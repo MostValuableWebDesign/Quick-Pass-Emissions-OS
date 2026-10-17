@@ -10,6 +10,18 @@ export const escapeEmail = (s: string) =>
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
   );
 
+const emailPalette = {
+  navy: "#00345b",
+  blue: "#0078bd",
+  link: "#005a8d",
+  background: "#f8fafc",
+  surface: "#ffffff",
+  text: "#343b3f",
+  muted: "#586166",
+  line: "#d8e2eb",
+  soft: "#f5f8fb",
+};
+
 export function renderOwnerEmail(snapshot: DailySnapshot, generatedAt: Date, reportUrl?: string) {
   const s = snapshot;
   const subject = `Quick Pass Emissions — Daily owner summary · ${s.today}`;
@@ -69,6 +81,6 @@ export function renderOwnerEmail(snapshot: DailySnapshot, generatedAt: Date, rep
     ...sections.flatMap((s) => ["", s.title, ...s.lines]),
     ...(reportUrl ? ["", `Open saved report: ${reportUrl}`] : []),
   ].join("\n");
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${escapeEmail(subject)}</title></head><body style="margin:0;background:#f5f7f5;color:#18241c;font-family:Arial,sans-serif"><main style="max-width:640px;margin:24px auto;padding:28px;background:#ffffff;border-top:5px solid #218845"><p style="color:#218845;font-weight:bold">QUICK PASS EMISSIONS</p><h1 style="font-size:25px">Daily owner summary · ${escapeEmail(s.today)}</h1><p style="color:#526257;font-size:13px">${escapeEmail(note)}</p>${sections.map((s) => `<h2 style="font-size:19px;margin-top:28px">${escapeEmail(s.title)}</h2><ul>${s.lines.map((line) => `<li style="margin:10px 0;line-height:1.5">${escapeEmail(line)}</li>`).join("")}</ul>`).join("")}${reportUrl ? `<p><a style="color:#218845" href="${escapeEmail(reportUrl)}">Open saved report in Quick Pass</a></p>` : ""}</main></body></html>`;
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${escapeEmail(subject)}</title></head><body style="margin:0;padding:1px;background:${emailPalette.background};color:${emailPalette.text};font-family:Arial,sans-serif"><main style="max-width:640px;margin:24px auto;padding:28px;background:${emailPalette.surface};border:1px solid ${emailPalette.line};border-top:5px solid ${emailPalette.navy}"><p style="margin:0 0 8px;color:${emailPalette.blue};font-size:12px;font-weight:bold;letter-spacing:1px">QUICK PASS EMISSIONS</p><h1 style="margin:0;color:${emailPalette.navy};font-size:25px">Daily owner summary · ${escapeEmail(s.today)}</h1><p style="margin:16px 0;color:${emailPalette.muted};font-size:13px;line-height:1.55">${escapeEmail(note)}</p>${sections.map((s) => `<h2 style="margin:28px 0 10px;padding-bottom:8px;border-bottom:1px solid ${emailPalette.line};color:${emailPalette.navy};font-size:19px">${escapeEmail(s.title)}</h2><ul style="margin:0;padding-left:22px">${s.lines.map((line) => `<li style="margin:10px 0;color:${emailPalette.text};line-height:1.5">${escapeEmail(line)}</li>`).join("")}</ul>`).join("")}${reportUrl ? `<p style="margin-top:24px;padding:14px;background:${emailPalette.soft}"><a style="color:${emailPalette.link};font-weight:bold" href="${escapeEmail(reportUrl)}">Open saved report in Quick Pass</a></p>` : ""}</main></body></html>`;
   return { subject, text, html };
 }

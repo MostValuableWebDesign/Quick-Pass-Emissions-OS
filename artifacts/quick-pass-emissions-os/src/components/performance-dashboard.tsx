@@ -40,6 +40,7 @@ export function PerformanceDashboard({
   const [sourceStatus, setSourceStatus] = useState<SourceRefreshStatus>("cached");
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const dateTrigger = useRef<HTMLButtonElement>(null);
+  const datePickerRef = useRef<HTMLDivElement>(null);
   const busy = useRef(false);
   const { start, end, trendDays, employee } = initial.query;
   const q = useMemo(() => ({ start, end, trendDays, employee }), [start, end, trendDays, employee]);
@@ -80,6 +81,17 @@ export function PerformanceDashboard({
       mounted = false;
     };
   }, [load]);
+
+  useEffect(() => {
+    if (!datePickerOpen) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (event.target instanceof Node && !datePickerRef.current?.contains(event.target)) {
+        setDatePickerOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, [datePickerOpen]);
 
   const s = data.summary;
   const single = q.start === q.end;
@@ -167,6 +179,7 @@ export function PerformanceDashboard({
             </button>
             <div
               className="pd-date-picker"
+              ref={datePickerRef}
               onKeyDown={(e) => {
                 if (e.key === "Escape") {
                   e.preventDefault();

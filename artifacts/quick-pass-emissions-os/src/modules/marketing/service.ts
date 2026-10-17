@@ -182,7 +182,19 @@ export async function savePromo(actorId: string, input: unknown) {
     );
     if (before?._count.redemptions) {
       requireRule(
-        ["campaignId", "code", "kind", "value", "startDate", "endDate", "usageLimit"].every(
+        [
+          "campaignId",
+          "code",
+          "kind",
+          "value",
+          "startDate",
+          "endDate",
+          "usageLimit",
+          "eligibility",
+          "minimumCents",
+          "eligibleService",
+          "stackingAllowed",
+        ].every(
           (k) =>
             JSON.stringify(data[k as keyof typeof data]) ===
             JSON.stringify(before[k as keyof typeof before]),
@@ -190,13 +202,36 @@ export async function savePromo(actorId: string, input: unknown) {
         "Redeemed offer terms are frozen. Create a new code; you may still deactivate this one.",
       );
     }
+    const approving = ["APPROVED", "ACTIVE"].includes(data.approvalStatus);
+    requireRule(
+      !approving || (data.eligibility.length > 0 && data.minimumCents !== null),
+      "Specify eligibility and minimum allowed price before owner approval.",
+    );
+    requireRule(
+      data.approvalStatus !== "EXPIRED" || data.endDate < businessDate(),
+      "Only past offers may be marked expired.",
+    );
+    const policy = {
+      ...data,
+      approvalStatus:
+        data.approvalStatus === "ACTIVE" && !data.active ? "PAUSED" : data.approvalStatus,
+      active: data.active && data.approvalStatus === "ACTIVE",
+      approvedBy: approving ? actorId : before?.approvedBy,
+      approvedAt: approving ? new Date() : before?.approvedAt,
+    };
     const row = key
       ? await tx.marketingPromo.update({
           where: { id: key },
-          data: { ...data, version: { increment: 1 } },
+          data: { ...policy, version: { increment: 1 } },
         })
-      : await tx.marketingPromo.create({ data: { ...data, createdBy: actorId } });
-    await audit(tx, actorId, "MARKETING_PROMO_SAVED", row.id, { before, ...data });
+      : await tx.marketingPromo.create({ data: { ...policy, createdBy: actorId } });
+    await audit(
+      tx,
+      actorId,
+      approving ? "MARKETING_PROMO_OWNER_APPROVED" : "MARKETING_PROMO_SAVED",
+      row.id,
+      { before, ...data },
+    );
     return row;
   });
 }

@@ -1,4 +1,15 @@
 export function browserSuite(env) {
+  if (env.E2E_MANAGER_REGRESSION === "1")
+    return {
+      "manager-workspace.spec.ts": 2,
+      "operations.spec.ts": 3,
+      "marketing.spec.ts": 1,
+      "phase2.spec.ts": 1,
+      "phase3.spec.ts": 1,
+      "phase4.spec.ts": 1,
+      "phase5.spec.ts": 2,
+    };
+  if (env.E2E_MANAGER_ONLY === "1") return { "manager-workspace.spec.ts": 2 };
   if (env.E2E_HISTORY_ONLY === "1") return { "inspection-history.spec.ts": 2 };
   if (env.E2E_PAYDAY_ONLY === "1") return { "payday-alert.spec.ts": 1 };
   if (env.E2E_PAYROLL_OVERVIEW_ONLY === "1") return { "payroll-overview.spec.ts": 1 };
@@ -34,6 +45,7 @@ export function browserSuite(env) {
   if (env.E2E_IMPORT_ONLY === "1" || env.E2E_STATION_ONLY === "1")
     return { "settings-pages-retired.spec.ts": 1 };
   return {
+    "manager-workspace.spec.ts": 2,
     "inspection-history.spec.ts": 2,
     "analytics.spec.ts": 2,
 

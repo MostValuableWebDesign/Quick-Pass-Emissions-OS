@@ -56,6 +56,8 @@ export async function savePromo(_: ActionState, form: FormData) {
       stationHashes: form.getAll("stationHashes"),
       value: decimalHundredths(form.get("offerValue")),
       active: form.get("active") === "true",
+      minimumCents: form.get("minimumPrice") ? decimalHundredths(form.get("minimumPrice")) : null,
+      stackingAllowed: false,
     }),
   );
 }

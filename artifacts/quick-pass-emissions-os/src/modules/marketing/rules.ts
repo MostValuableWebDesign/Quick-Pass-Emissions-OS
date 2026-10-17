@@ -87,6 +87,11 @@ export const promoInput = z
     stationHashes: stationList,
     usageLimit: requiredInteger(1, 1000000),
     active: z.boolean().default(true),
+    approvalStatus: z.enum(["DRAFT", "APPROVED", "ACTIVE", "PAUSED", "EXPIRED"]).default("DRAFT"),
+    eligibleService: z.literal("EMISSIONS").default("EMISSIONS"),
+    eligibility: z.string().trim().max(2000).default(""),
+    minimumCents: z.union([cents, z.null()]).default(null),
+    stackingAllowed: z.literal(false).default(false),
   })
   .refine((v) => v.endDate >= v.startDate, "End date must follow start date.")
   .refine(
@@ -141,6 +146,8 @@ export function promoAllowed(
     endDate: string;
     stationHashes: unknown;
     usageLimit: number;
+    approvedAt?: Date | null;
+    approvalStatus?: string;
   },
   campaign: { status: string; startDate: string; endDate: string; stationHashes: unknown },
   date: string,
@@ -149,6 +156,8 @@ export function promoAllowed(
 ) {
   return (
     promo.active &&
+    !!promo.approvedAt &&
+    promo.approvalStatus === "ACTIVE" &&
     campaign.status === "ACTIVE" &&
     date >= promo.startDate &&
     date <= promo.endDate &&

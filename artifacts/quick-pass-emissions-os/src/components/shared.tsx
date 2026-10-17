@@ -19,9 +19,7 @@ export function PageHeader({
       <div>
         <p className="eyebrow">{eyebrow}</p>
         <h1>{title}</h1>
-        {description != null && description !== "" ? (
-          <p className="muted">{description}</p>
-        ) : null}
+        {description != null && description !== "" ? <p className="muted">{description}</p> : null}
       </div>
       <div className="heading-actions">{children}</div>
     </div>
@@ -49,7 +47,13 @@ export function Status({ task }: { task: Pick<TaskInstance, "status" | "dueAt"> 
       ) : (
         <Clock3 size={12} />
       )}{" "}
-      {late ? "Overdue" : task.status.toLowerCase().replaceAll("_", " ")}
+      {late
+        ? "Overdue"
+        : task.status === "PENDING"
+          ? "To do"
+          : task.status === "BLOCKED"
+            ? "Waiting"
+            : task.status.toLowerCase().replaceAll("_", " ")}
     </span>
   );
 }

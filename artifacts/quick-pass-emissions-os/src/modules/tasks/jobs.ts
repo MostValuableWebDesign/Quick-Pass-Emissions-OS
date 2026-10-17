@@ -22,7 +22,7 @@ export async function runJobs(now = new Date()) {
           : addDays(today, -31);
         const until = addDays(today, 14);
         const templates = await tx.taskTemplate.findMany({
-          where: { active: true, employee: { user: { active: true } } },
+          where: { active: true, managerTask: false, employee: { user: { active: true } } },
         });
         const closed = new Set((await tx.closure.findMany()).map((c) => c.date));
         let count = 0;

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { businessDate } from "../src/lib/time";
 import type { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 const enabled = !!process.env.TEST_DATABASE_URL;
@@ -100,6 +101,9 @@ if (enabled) {
         endDate: "2026-10-31",
         stationHashes: [hash],
         usageLimit: 10,
+        approvalStatus: "ACTIVE",
+        eligibility: "Fixture paid inspections only",
+        minimumCents: 1000,
         active: true,
         ...extra,
       });
@@ -209,7 +213,8 @@ if (enabled) {
       await expect(s.savePromo(owner, { ...p, stationHashes: [hash], value: 300 })).rejects.toThrow(
         "frozen",
       );
-      await s.savePromo(owner, { ...p, stationHashes: [hash], active: false });
+      const paused = await s.savePromo(owner, { ...p, stationHashes: [hash], active: false });
+      expect(paused.approvalStatus).toBe("PAUSED");
       const invoice = await invoiceFor([svc.id], 1800);
       const result = (await s.marketingOverview(owner, { ...reportQuery, campaignId })).report;
       expect(result.attributedPaidInspections).toBe(1);
@@ -245,9 +250,28 @@ if (enabled) {
       await expect(service({ promoCode: "FALL2", inspectionKind: "PAID" })).rejects.toThrow(
         "usage limit",
       );
-      const report = (await s.marketingOverview(owner, reportQuery)).report;
+      const report = (await s.marketingOverview(owner, { ...reportQuery, end: businessDate() }))
+        .report;
       expect(report.redemptions[0]?.status).toBe("CANCELLED");
       expect(report.discountsCents).toBe(0);
+    });
+    it("keeps drafts unavailable and requires explicit owner-approved rules and a minimum price", async () => {
+      const draft = await promo({ approvalStatus: "DRAFT" });
+      expect(draft.active).toBe(false);
+      await expect(service({ promoCode: draft.code, inspectionKind: "PAID" })).rejects.toThrow(
+        /unavailable/,
+      );
+      await expect(promo({ code: "NORULES", eligibility: "", minimumCents: null })).rejects.toThrow(
+        /eligibility/,
+      );
+      await promo({ code: "FLOOR", minimumCents: 1900 });
+      await expect(service({ promoCode: "FLOOR", inspectionKind: "PAID" })).rejects.toThrow(
+        /minimum price/,
+      );
+      expect(await db.marketingRedemption.count()).toBe(0);
+      expect(
+        await db.auditLog.count({ where: { action: "MARKETING_PROMO_OWNER_APPROVED" } }),
+      ).toBeGreaterThan(0);
     });
     it("uses net real receipts and reversals proportionally for mixed invoices", async () => {
       await promo();

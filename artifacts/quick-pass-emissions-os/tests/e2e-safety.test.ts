@@ -36,7 +36,7 @@ describe("Browser isolation gates", () => {
         "inspection-history.spec.ts",
       ]),
     );
-    expect(Object.values(suite).reduce((sum, n) => sum + n, 0)).toBe(41);
+    expect(Object.values(suite).reduce((sum, n) => sum + n, 0)).toBe(43);
     const suites = Object.entries(suite).map(([file, count]) => ({
       file,
       specs: Array.from({ length: count }, () => ({ tests: [{}] })),

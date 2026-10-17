@@ -1,5 +1,9 @@
 # Business rules and deliberate limits
 
+## Operations Manager boundaries
+
+See [OPERATIONS_MANAGER.md](OPERATIONS_MANAGER.md). Management alone records execution and independent review; staff never log in. Task completion does not pay payroll, submit ACH, confirm deposits, receive supplies, repair equipment or publish content. Personal availability is explicitly configured and schedule changes require preview/approval; missing capacity stays unscheduled. The owner-requested workspace-access recurrence generator uses durable cursors and template/date uniqueness, separate from the existing independent operations job. Pay-guide values and grass-cutting compensation remain unverified references; existing approved payroll rules remain authoritative. Bank remote-deposit limits and stock thresholds have no invented defaults. Legacy promotions require explicit owner rule review before new redemption.
+
 ## Marketing boundaries
 
 Marketing source reporting is optional and missing/unknown responses remain explicit. Customer-reported campaign and tracked promo attribution stay separate, with one canonical inspection counted once. Paid status must be evidence-supported; VIN/30-day free retests and incomplete lookback do not become paid sales. Budget is separate from spending; collected revenue uses existing recorded receipts, not the $20 estimate. Promo application is owner-only, atomic with a single paid dealership service, and must leave a positive existing-workflow charge. Used terms remain frozen and cancelled/refunded uses still consume lifetime limits. No marketing sends, ad purchases, social publication or Google review publication occur. Google analytics/review features require authorized data. See [MARKETING.md](MARKETING.md).

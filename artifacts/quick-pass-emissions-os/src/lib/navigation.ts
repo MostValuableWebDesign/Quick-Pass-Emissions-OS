@@ -60,6 +60,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Overview",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "dashboard", roles: ALL },
+      { href: "/operations", label: "Operations manager", icon: "tasks", roles: MANAGERS },
       { href: "/analytics", label: "Analytics", icon: "chart", roles: MANAGERS },
       { href: "/overview", label: "Owner exceptions", icon: "gauge", roles: OWNER_ONLY },
     ],
@@ -372,6 +373,34 @@ const detachedNavDefs: RouteDef[] = [
     section: "Car Wash",
     navHref: "/rentals",
     roles: FINANCE,
+  },
+  {
+    pattern: "/operations",
+    title: "Operations manager",
+    section: "Operations",
+    navHref: "/operations",
+    roles: MANAGERS,
+  },
+  {
+    pattern: "/operations/schedule",
+    title: "My weekly schedule",
+    section: "Operations",
+    navHref: "/operations",
+    roles: MANAGERS,
+  },
+  {
+    pattern: "/operations/supplies",
+    title: "Weekly supplies",
+    section: "Operations",
+    navHref: "/operations",
+    roles: MANAGERS,
+  },
+  {
+    pattern: "/operations/registers",
+    title: "Payment & deposit evidence",
+    section: "Operations",
+    navHref: "/operations",
+    roles: MANAGERS,
   },
   { pattern: "/tasks", title: "Tasks", section: "Operations", navHref: "/tasks", roles: OPERATORS },
   {

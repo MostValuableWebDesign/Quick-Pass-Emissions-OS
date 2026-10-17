@@ -1,5 +1,9 @@
 # Architecture
 
+## Operations Manager
+
+`src/modules/manager` extends the existing responsibility records and joins existing operational modules into `/operations`. Personnel → Phase 2 → Phase 3 → Phase 4 → automation → manager locks serialize fresh management authorization, task/dependency edits, inventory-trigger deduplication, schedule proposals/approval and external evidence. Versioned availability, commitments and saved plans are separate from employee shifts; proposals never rewrite deadlines or payroll. General supplies do not duplicate certificate/chemical ledgers. Payment/deposit evidence is a separate non-posting register, with unique period/check keys and independent reconciliation. Existing MarketingPromo definitions retain their original redemption lock and gain explicit owner policy/price-floor approval. The workspace has the user-requested explicit access-generation exception: bounded, cursor-based manager recurrence and source triggers run when opened, without calling other automation or providers. Original operations-job templates and independent reminders remain intact. See [OPERATIONS_MANAGER.md](OPERATIONS_MANAGER.md).
+
 ## Historical inspection import
 
 `station/history` adds owner-authorized foreground batches to existing StationRecord/StationRevision identities. Database jobs/windows, encrypted staging, append-only row decisions and context-bound source evidence persist checkpoints across restarts. Short personnel → station → history transactions claim 120-second leases; the existing test-export gate bounds provider work outside locks and shares cooldowns with Performance/daily counts. Source-total reconciliation includes existing canonical inspections. New historical-only records stay outside operational and Marketing totals until explicitly introduced to the original review workflow. Period grouping and indexed candidate lookbacks calculate returning vehicles from explicit paid/completed/non-free facts; no heuristic paid estimate is reused. No new scheduler, independent worker or financial posting exists. See [INSPECTION_HISTORY.md](INSPECTION_HISTORY.md).
@@ -36,7 +40,7 @@ Invitations have 256-bit random tokens, hashed storage, atomic single-use consum
 
 Overdue is a derived status, not a stale persisted state. Task completion has an authoritative timestamp and an independent review timestamp. Manager reassignment resets no historical events. Notification uniqueness is recipient/task-specific; completion/cancellation resolves related alerts. Reassigned employees cannot see the former employee's notification through the notification page.
 
-The scheduler takes a transaction-scoped PostgreSQL advisory lock and creates instances with unique-key duplicate skipping. Each job has an observable run record. A failed job rolls back generation; a failed run is recorded outside that transaction. No web page secretly generates tasks on GET. Generation and alerts are the work of a separate CLI/endpoint trigger.
+The original scheduler takes a transaction-scoped PostgreSQL advisory lock and creates instances with unique-key duplicate skipping. Each job has an observable run record. A failed job rolls back generation; a failed run is recorded outside that transaction. Original duty generation and alerts remain independently triggered by CLI/endpoint. The explicitly requested Operations Manager access-generation exception is described above; its page states this behavior and does not claim unattended execution.
 
 ## Payroll and inventory
 

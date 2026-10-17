@@ -22,8 +22,10 @@ import {
 } from "@/lib/validation";
 import { dueInstant, businessDate, addDays } from "@/lib/time";
 import { changeTask, taskChange } from "@/modules/tasks/service";
+import { managerTransaction, reviewResponsibility } from "@/modules/manager/service";
 import { runJobs } from "@/modules/tasks/jobs";
 import { occursOn } from "@/modules/tasks/recurrence";
+import { BusinessError } from "@/modules/phase2";
 import type { Prisma } from "@prisma/client";
 export type ActionState = { ok?: boolean; message?: string; invite?: string };
 export async function saveOwnAccount(_: ActionState, form: FormData) {
@@ -147,6 +149,7 @@ async function perform(work: () => Promise<ActionState | void>): Promise<ActionS
   } catch (error) {
     if (error instanceof z.ZodError)
       return { ok: false, message: error.issues[0]?.message || "Check your entries." };
+    if (error instanceof BusinessError) return { ok: false, message: error.message };
     // Never return database/constraint details, tokens, or stack traces to the browser.
     if (
       error instanceof Error &&
@@ -555,8 +558,20 @@ export async function pauseTemplate(_: ActionState, form: FormData) {
     const actor = await manager();
     const templateId = id.parse(form.get("id"));
     const active = form.get("active") === "true";
-    await db.$transaction(async (tx) => {
-      await tx.taskTemplate.update({ where: { id: templateId }, data: { active } });
+    await managerTransaction(actor.id, async (tx) => {
+      const before = await tx.taskTemplate.findUniqueOrThrow({ where: { id: templateId } });
+      if (before.version !== Number(form.get("version")))
+        throw new Error("This duty changed. Refresh.");
+      await tx.taskTemplate.update({
+        where: { id: templateId },
+        data: {
+          active,
+          version: { increment: 1 },
+          ...(active && before.managerTask
+            ? { generatedThrough: addDays(businessDate(), -1) }
+            : {}),
+        },
+      });
       await tx.auditLog.create({
         data: {
           actorId: actor.id,
@@ -576,20 +591,7 @@ export async function updateTask(_: ActionState, form: FormData) {
 export async function reviewTask(_: ActionState, form: FormData) {
   return perform(async () => {
     const actor = await manager();
-    const taskId = id.parse(form.get("taskId"));
-    await db.$transaction(async (tx) => {
-      const changed = await tx.taskInstance.updateMany({
-        where: { id: taskId, status: "COMPLETED", reviewedAt: null },
-        data: { reviewedAt: new Date(), reviewedBy: actor.id, version: { increment: 1 } },
-      });
-      if (!changed.count) throw new Error("This task is not awaiting review.");
-      await tx.taskEvent.create({
-        data: { taskId, actorId: actor.id, actorName: actor.name, action: "REVIEWED" },
-      });
-      await tx.auditLog.create({
-        data: { actorId: actor.id, action: "TASK_REVIEWED", entityId: taskId, details: {} },
-      });
-    });
+    await reviewResponsibility(actor.id, fields(form));
   });
 }
 export async function overrideTask(_: ActionState, form: FormData) {
@@ -605,7 +607,7 @@ export async function overrideTask(_: ActionState, form: FormData) {
         version: z.coerce.number().int().min(0),
       })
       .parse(fields(form));
-    await db.$transaction(async (tx) => {
+    await managerTransaction(actor.id, async (tx) => {
       const employee = await tx.employee.findUniqueOrThrow({
         where: { id: data.employeeId },
         include: { user: true },
@@ -732,7 +734,7 @@ export async function addTaskNote(_: ActionState, form: FormData) {
     const actor = await currentUser();
     const taskId = id.parse(form.get("taskId"));
     const message = note.min(1).parse(form.get("note"));
-    await db.$transaction(async (tx) => {
+    await managerTransaction(actor.id, async (tx) => {
       await tx.taskInstance.findUniqueOrThrow({ where: { id: taskId } });
       await tx.taskEvent.create({
         data: { taskId, actorId: actor.id, actorName: actor.name, action: "NOTE", note: message },

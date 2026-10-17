@@ -93,6 +93,13 @@ export async function serviceMarketing(
       "Offers must leave a positive charge in the existing billing workflow.",
     );
     finalCents -= discount;
+    requireRule(
+      promo.minimumCents !== null &&
+        finalCents >= promo.minimumCents &&
+        !promo.stackingAllowed &&
+        promo.eligibleService === "EMISSIONS",
+      "Offer would violate approved minimum price or service/stacking rules.",
+    );
     const redemption = await tx.marketingRedemption.create({
       data: {
         promoId: promo.id,
@@ -112,6 +119,11 @@ export async function serviceMarketing(
           usageLimit: promo.usageLimit,
           offer: promo.campaign.offer,
           campaignId: promo.campaignId,
+          eligibility: promo.eligibility,
+          minimumCents: promo.minimumCents,
+          stackingAllowed: promo.stackingAllowed,
+          approvedBy: promo.approvedBy,
+          approvedAt: promo.approvedAt?.toISOString() ?? null,
         },
         createdBy: actorId,
       },

@@ -60,21 +60,28 @@ model MarketingExpense {
 }
 
 model MarketingPromo {
-  id            String                @id @default(cuid())
-  campaignId    String
-  campaign      MarketingCampaign     @relation(fields: [campaignId], references: [id], onDelete: Restrict)
-  code          String                @unique
-  kind          String
-  value         Int
-  startDate     String
-  endDate       String
-  stationHashes Json
-  usageLimit    Int
-  active        Boolean               @default(true)
-  version       Int                   @default(0)
-  createdBy     String
-  createdAt     DateTime              @default(now())
-  redemptions   MarketingRedemption[]
+  approvalStatus  String                @default("LEGACY_REVIEW")
+  eligibleService String                @default("EMISSIONS")
+  eligibility     String                @default("")
+  minimumCents    Int?
+  stackingAllowed Boolean               @default(false)
+  approvedBy      String?
+  approvedAt      DateTime?
+  id              String                @id @default(cuid())
+  campaignId      String
+  campaign        MarketingCampaign     @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  code            String                @unique
+  kind            String
+  value           Int
+  startDate       String
+  endDate         String
+  stationHashes   Json
+  usageLimit      Int
+  active          Boolean               @default(true)
+  version         Int                   @default(0)
+  createdBy       String
+  createdAt       DateTime              @default(now())
+  redemptions     MarketingRedemption[]
 }
 
 model MarketingObservation {
@@ -330,49 +337,160 @@ model Closure {
 }
 
 model TaskTemplate {
-  id              String         @id @default(cuid())
-  title           String
-  description     String         @default("")
-  frequency       Frequency
-  startDate       String
-  endDate         String?
-  weekdays        Int[]          @default([])
-  dueTime         String
-  priority        Priority       @default(NORMAL)
-  employeeId      String
-  employee        Employee       @relation(fields: [employeeId], references: [id])
-  reviewRequired  Boolean        @default(false)
-  escalationHours Int            @default(0)
-  active          Boolean        @default(true)
-  demo            Boolean        @default(false)
-  createdAt       DateTime       @default(now())
-  instances       TaskInstance[]
+  generatedThrough String?
+  version          Int            @default(0)
+  workspaceKey     String?        @unique
+  managerTask      Boolean        @default(false)
+  area             String         @default("GENERAL")
+  station          String         @default("")
+  durationMinutes  Int            @default(30)
+  checklist        Json           @default("[]")
+  oversightId      String?
+  sourceHref       String         @default("")
+  id               String         @id @default(cuid())
+  title            String
+  description      String         @default("")
+  frequency        Frequency
+  startDate        String
+  endDate          String?
+  weekdays         Int[]          @default([])
+  dueTime          String
+  priority         Priority       @default(NORMAL)
+  employeeId       String
+  employee         Employee       @relation(fields: [employeeId], references: [id])
+  reviewRequired   Boolean        @default(false)
+  escalationHours  Int            @default(0)
+  active           Boolean        @default(true)
+  demo             Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  instances        TaskInstance[]
 }
 
 model TaskInstance {
-  id              String         @id @default(cuid())
+  managerTask     Boolean          @default(false)
+  area            String           @default("GENERAL")
+  station         String           @default("")
+  durationMinutes Int              @default(30)
+  checklist       Json             @default("[]")
+  oversightId     String?
+  sourceHref      String           @default("")
+  evidence        String           @default("")
+  dependencies    TaskDependency[] @relation("Dependent")
+  dependents      TaskDependency[] @relation("Prerequisite")
+  id              String           @id @default(cuid())
   templateId      String
-  template        TaskTemplate   @relation(fields: [templateId], references: [id])
+  template        TaskTemplate     @relation(fields: [templateId], references: [id])
   occurrenceDate  String
   title           String
   description     String
   dueAt           DateTime
   employeeId      String
-  employee        Employee       @relation(fields: [employeeId], references: [id])
+  employee        Employee         @relation(fields: [employeeId], references: [id])
   priority        Priority
   reviewRequired  Boolean
   escalationHours Int
-  status          TaskStatus     @default(PENDING)
+  status          TaskStatus       @default(PENDING)
   completedAt     DateTime?
   reviewedAt      DateTime?
   reviewedBy      String?
-  version         Int            @default(0)
+  version         Int              @default(0)
   events          TaskEvent[]
   notifications   Notification[]
 
   @@unique([templateId, occurrenceDate])
   @@index([employeeId, dueAt])
   @@index([status, dueAt])
+  @@index([area, dueAt])
+}
+
+model TaskDependency {
+  taskId         String
+  task           TaskInstance @relation("Dependent", fields: [taskId], references: [id], onDelete: Restrict)
+  prerequisiteId String
+  prerequisite   TaskInstance @relation("Prerequisite", fields: [prerequisiteId], references: [id], onDelete: Restrict)
+
+  @@id([taskId, prerequisiteId])
+}
+
+model ManagerAvailability {
+  userId         String   @id
+  version        Int      @default(0)
+  days           Json
+  reservePercent Int
+  updatedAt      DateTime @updatedAt
+}
+
+model ManagerCommitment {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  date        String
+  startTime   String
+  endTime     String
+  cancelledAt DateTime?
+
+  @@index([userId, date])
+}
+
+model ManagerSchedule {
+  id                  String    @id @default(cuid())
+  userId              String
+  startDate           String
+  status              String    @default("DRAFT")
+  availabilityVersion Int?
+  payload             Json
+  createdAt           DateTime  @default(now())
+  approvedAt          DateTime?
+
+  @@index([userId, startDate])
+}
+
+model SupplyItem {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  unit            String
+  balance         Int?
+  reorderLevel    Int?
+  preferredVendor String           @default("")
+  version         Int              @default(0)
+  countedAt       DateTime?
+  purchases       SupplyPurchase[]
+}
+
+model SupplyPurchase {
+  id           String     @id @default(cuid())
+  itemId       String
+  item         SupplyItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  quantity     Int
+  vendor       String
+  reference    String     @unique
+  status       String     @default("PREPARED")
+  version      Int        @default(0)
+  receivedAt   DateTime?
+  reconciledAt DateTime?
+  createdBy    String
+  createdAt    DateTime   @default(now())
+}
+
+model ManagerFinancialEvidence {
+  id           String    @id @default(cuid())
+  kind         String
+  sourceKey    String    @unique
+  amountCents  Int
+  date         String
+  method       String
+  reference    String    @unique
+  notes        String
+  createdBy    String
+  createdAt    DateTime  @default(now())
+  reconciledAt DateTime?
+  reconciledBy String?
+}
+
+model ManagerBankPolicy {
+  id               String @id @default("business")
+  remoteLimitCents Int?
+  version          Int    @default(0)
 }
 
 model TaskEvent {

@@ -204,7 +204,13 @@ async function main() {
   const email = `regression-${randomUUID()}@example.test`;
   const password = randomBytes(32).toString("base64url");
   const user = await db.user.create({
-    data: { name: "Regression Owner", email, role: "OWNER", emailVerified: true },
+    data: {
+      name: "Regression Owner",
+      email,
+      role: "OWNER",
+      emailVerified: true,
+      ...(suite["manager-workspace.spec.ts"] ? { employee: { create: { demo: true } } } : {}),
+    },
   });
   stage = "owned credential setup";
   await db.account.create({

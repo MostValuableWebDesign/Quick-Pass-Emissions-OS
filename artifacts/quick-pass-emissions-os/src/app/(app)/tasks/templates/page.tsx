@@ -115,6 +115,7 @@ export default async function Templates() {
               className="inline-form"
             >
               <input type="hidden" name="id" value={t.id} />
+              <input type="hidden" name="version" value={t.version} />
               <input type="hidden" name="active" value={String(!t.active)} />
             </ActionForm>
           </div>

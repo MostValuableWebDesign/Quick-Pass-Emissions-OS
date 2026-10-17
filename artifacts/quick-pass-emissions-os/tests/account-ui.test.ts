@@ -29,11 +29,12 @@ describe("account navigation and controls", () => {
     expect(header).not.toContain("user-label");
   });
 
-  it("removes the secondary workspace identity pane from the sidebar", () => {
+  it("removes the secondary workspace identity pane while retaining the accessible logo", () => {
     const props = { role: "OWNER", children: "Dashboard" };
     const html = renderToStaticMarkup(createElement(Shell, props));
     const sidebar = html.slice(html.indexOf("<aside"), html.indexOf("</aside>"));
-    expect(sidebar).not.toContain("Quick Pass Emissions");
+    expect(sidebar).toContain('aria-label="Quick Pass Emissions dashboard"');
+    expect(sidebar).toContain('class="brand-logo"');
     expect(sidebar).not.toContain("Tag renewal");
     expect(sidebar).not.toContain("workspace-dot");
   });
@@ -56,13 +57,25 @@ describe("account navigation and controls", () => {
   });
 
   it("keeps add user collapsed behind a button and protects the current owner's account", () => {
-    const html = renderToStaticMarkup(createElement(ManagementAccounts, {
-      currentUserId: "owner",
-      accounts: [{ user: {
-        id: "owner", name: "Example Owner", email: "owner@example.test", phone: "",
-        role: "OWNER", active: true, employee: null, accounts: [{ id: "credential" }],
-      } }],
-    }));
+    const html = renderToStaticMarkup(
+      createElement(ManagementAccounts, {
+        currentUserId: "owner",
+        accounts: [
+          {
+            user: {
+              id: "owner",
+              name: "Example Owner",
+              email: "owner@example.test",
+              phone: "",
+              role: "OWNER",
+              active: true,
+              employee: null,
+              accounts: [{ id: "credential" }],
+            },
+          },
+        ],
+      }),
+    );
     expect(html).toContain("<details");
     expect(html).toContain("Add user");
     expect(html).not.toContain("<details open");

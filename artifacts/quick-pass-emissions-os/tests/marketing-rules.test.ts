@@ -33,6 +33,8 @@ describe("Marketing arithmetic and evidence boundaries", () => {
     };
     const p = {
       active: true,
+      approvalStatus: "ACTIVE",
+      approvedAt: new Date("2026-10-01T12:00:00Z"),
       startDate: c.startDate,
       endDate: c.endDate,
       stationHashes: ["station"],

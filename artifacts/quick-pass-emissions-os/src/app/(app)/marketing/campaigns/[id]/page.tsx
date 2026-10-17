@@ -282,7 +282,15 @@ export default async function Campaign({
                     </td>
                     <td>{redemptionsByCode.get(p.code) ?? 0}</td>
                     <td>
-                      <StatusBadge status={p.active ? "ACTIVE" : "INACTIVE"} />
+                      <StatusBadge
+                        status={
+                          p.endDate < today
+                            ? "EXPIRED"
+                            : p.startDate > today && p.approvalStatus === "ACTIVE"
+                              ? "APPROVED"
+                              : p.approvalStatus
+                        }
+                      />
                     </td>
                     <td>
                       {editable && (
@@ -531,6 +539,9 @@ function PromoForm({
     endDate: string;
     usageLimit: number;
     active: boolean;
+    approvalStatus: string;
+    eligibility: string;
+    minimumCents: number | null;
     _count: { redemptions: number };
   };
 }) {
@@ -588,12 +599,45 @@ function PromoForm({
           readOnly={locked}
         />
       </Field>
-      <Field label="State">
-        <select name="active" defaultValue={promo ? String(promo.active) : "true"}>
-          <option value="true">Active</option>
-          <option value="false">Inactive</option>
+      <Field label="Eligibility · owner-approved rules" wide>
+        <textarea
+          name="eligibility"
+          maxLength={2000}
+          defaultValue={promo?.eligibility ?? ""}
+          readOnly={locked}
+        />
+      </Field>
+      <Field label="Minimum allowed final price · USD">
+        <input
+          name="minimumPrice"
+          inputMode="decimal"
+          defaultValue={
+            promo?.minimumCents === null || promo?.minimumCents === undefined
+              ? ""
+              : centsInput(promo.minimumCents)
+          }
+          readOnly={locked}
+        />
+      </Field>
+      <Field label="Approval & lifecycle">
+        <select
+          name="approvalStatus"
+          defaultValue={
+            promo?.approvalStatus === "LEGACY_REVIEW" ? "DRAFT" : (promo?.approvalStatus ?? "DRAFT")
+          }
+        >
+          {["DRAFT", "APPROVED", "ACTIVE", "PAUSED", "EXPIRED"].map((s) => (
+            <option key={s}>{s}</option>
+          ))}
         </select>
       </Field>
+      <p className="mk-hint wide">
+        Emissions only in the existing single-inspection billing flow. No stacking or staff price
+        overrides. Dates include the full selected Eastern days. Saving Approved or Active records
+        owner approval; eligibility must be checked against evidence before applying the code.
+        Legacy offers require rule review before further redemption.
+      </p>
+      <input type="hidden" name="active" value="true" />
       {locked && (
         <p className="mk-hint wide">
           Used {promo._count.redemptions} times (including cancellations). Offer terms are frozen;

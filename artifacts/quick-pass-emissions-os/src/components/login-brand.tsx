@@ -35,10 +35,6 @@ export function LoginBrand() {
           loading="eager"
         />
       </figure>
-      <footer className="login-brand-footer">
-        <span>QUICK PASS EMISSIONS</span>
-        <span>HERE TO HELP</span>
-      </footer>
     </section>
   );
 }

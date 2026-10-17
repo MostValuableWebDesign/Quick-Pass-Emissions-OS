@@ -99,12 +99,6 @@
   transform: scale(1.025);
 }
 
-.login-professional .login-brand.qp-brand .login-brand-footer {
-  margin-top: 22px;
-  padding-top: 1px;
-  color: #c0d8e8;
-}
-
 @keyframes qp-arrive {
   from {
     opacity: 0;
@@ -167,8 +161,7 @@
     letter-spacing: -0.2px;
   }
 
-  .login-professional .login-brand.qp-brand .qp-story .login-story-copy,
-  .login-professional .login-brand.qp-brand .login-brand-footer {
+  .login-professional .login-brand.qp-brand .qp-story .login-story-copy {
     display: none;
   }
 

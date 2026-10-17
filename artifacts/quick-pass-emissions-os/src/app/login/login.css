@@ -92,16 +92,6 @@
   font-size: 11px;
   text-align: right;
 }
-.login-professional .login-brand-footer {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  color: var(--login-muted);
-  font-size: 8px;
-  font-weight: 500;
-  letter-spacing: 1.5px;
-}
 .login-professional .login-panel {
   display: flex;
   align-items: center;
@@ -258,7 +248,6 @@
   .login-professional .login-story,
   .login-professional .login-kicker,
   .login-business-areas,
-  .login-professional .login-brand-footer,
   .login-professional .login-brand .login-story-copy {
     display: none;
   }

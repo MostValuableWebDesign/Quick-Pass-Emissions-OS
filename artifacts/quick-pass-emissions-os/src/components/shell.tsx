@@ -1,5 +1,6 @@
 "use client";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -223,12 +224,17 @@ export function Shell({
           inert={isMobile && !mobileOpen ? true : undefined}
           aria-label="Workspace sidebar"
         >
-          <Link className="brand" href="/dashboard">
-            <span className="brand-icon">
+          <Link className="brand" href="/dashboard" aria-label="Quick Pass Emissions dashboard">
+            <Image
+              className="brand-logo"
+              src="/images/quick-pass-logo.png"
+              alt=""
+              width={2172}
+              height={724}
+              priority
+            />
+            <span className="brand-icon" aria-hidden="true">
               <CheckCheck size={26} />
-            </span>
-            <span className="nav-label">
-              Quick Pass<small>EMISSIONS</small>
             </span>
           </Link>
           <nav aria-label="Main navigation" className="primary-nav">

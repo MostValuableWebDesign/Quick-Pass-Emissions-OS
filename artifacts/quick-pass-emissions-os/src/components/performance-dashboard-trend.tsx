@@ -164,9 +164,9 @@ export function PerformanceTrend({
               <Area
                 dataKey="value"
                 type="linear"
-                stroke="var(--chart-green)"
+                stroke="var(--chart-blue)"
                 strokeWidth={2.5}
-                fill="var(--chart-green)"
+                fill="var(--chart-blue)"
                 fillOpacity={0.18}
                 connectNulls={false}
                 isAnimationActive={false}

@@ -1,5 +1,5 @@
 .pd {
-  --pd-teal: var(--action);
+  --pd-blue: var(--action);
   --pd-mint: var(--chart-green);
   --pd-amber: var(--warning);
   --pd-rose: var(--danger);
@@ -335,7 +335,7 @@
 }
 .pd-cal-day.sel span,
 .pd-cal-day.sel:hover span {
-  background: var(--pd-teal);
+  background: var(--pd-blue);
   color: var(--on-action);
 }
 .pd-cal-day.today:not(.sel) span {
@@ -594,7 +594,7 @@
   border-radius: 8px;
   padding: 9px 12px;
   font-size: 12px;
-  box-shadow: 0 6px 20px #0d530e18;
+  box-shadow: 0 6px 20px rgb(0 32 56 / 10%);
 }
 .pd-tip b {
   display: block;
@@ -728,10 +728,10 @@
   max-height: 90dvh;
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 30px 80px #10220e40;
+  box-shadow: 0 30px 80px rgb(0 14 28 / 40%);
 }
 .pd-dialog::backdrop {
-  background: #10220e80;
+  background: #071d32b8;
 }
 .pd-dialog-h {
   display: flex;
@@ -944,7 +944,7 @@
   border-radius: 7px;
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 6px 20px #0d530e18;
+  box-shadow: 0 6px 20px rgb(0 32 56 / 10%);
   font-size: 11px;
   line-height: 1.25;
   white-space: nowrap;
@@ -990,7 +990,7 @@
 }
 .pd-hour-column > span {
   width: 100%;
-  background: var(--chart-green);
+  background: var(--chart-blue);
   border-radius: 3px 3px 0 0;
 }
 .pd-hour-chart small {
@@ -1021,7 +1021,7 @@
 .pd-commission-track > span {
   display: block;
   height: 100%;
-  background: var(--chart-green);
+  background: var(--chart-blue);
 }
 .pd-hour-column.unknown,
 .pd-commission-track.unknown {

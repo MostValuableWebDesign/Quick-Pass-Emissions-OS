@@ -12,6 +12,20 @@ test("professional login branding, responsive form, keyboard access, errors and 
   await expect(
     page.getByRole("region", { name: "Quick Pass Emissions", exact: true }),
   ).toBeVisible();
+  const logo = page.getByRole("img", { name: "Quick Pass Emissions", exact: true });
+  await expect(logo).toBeVisible();
+  await expect
+    .poll(() => logo.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+    .toBe(2172);
+  const buildingPhoto = page.getByRole("img", {
+    name: "The Wash Rack car wash building with blue signage",
+    exact: true,
+  });
+  await expect(buildingPhoto).toBeVisible();
+  await expect
+    .poll(() => buildingPhoto.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+    .toBe(1240);
+  await expect(page.locator(".qp-photo figcaption")).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Quick Pass Emissions", exact: true }),
   ).toBeVisible();
@@ -27,15 +41,21 @@ test("professional login branding, responsive form, keyboard access, errors and 
   await expect(password).toHaveValue("");
   await expect(page.locator(".login-service-art")).toHaveCount(0);
   expect(await submit.evaluate((button) => getComputedStyle(button).backgroundColor)).toBe(
-    "rgb(48, 109, 41)",
+    "rgb(0, 120, 189)",
   );
   await expect(page.locator(".login-professional")).toHaveCSS(
     "background-color",
-    "rgb(250, 251, 248)",
+    "rgb(248, 250, 252)",
   );
-  await expect(page.locator(".login-brand")).toHaveCSS("background-color", "rgb(252, 253, 251)");
-  await expect(page.locator(".login-form h2")).toHaveCSS("color", "rgb(41, 49, 45)");
-  await expect(submit).toHaveCSS("color", "rgb(251, 245, 221)");
+  await expect(page.locator(".login-brand")).toHaveCSS("color", "rgb(244, 247, 250)");
+  await expect(page.locator(".login-form h2")).toHaveCSS("color", "rgb(52, 59, 63)");
+  await expect(submit).toHaveCSS("color", "rgb(255, 255, 255)");
+  expect(
+    await page
+      .locator(".login-brand h1")
+      .evaluate((heading) => getComputedStyle(heading).fontFamily),
+  ).toContain("Barlow Condensed");
+  await expect(page.locator(".login-brand")).toHaveCSS("background-image", /linear-gradient/);
   for (const [name, width, height] of [
     ["desktop", 1440, 1000],
     ["tablet", 768, 1024],
@@ -45,6 +65,7 @@ test("professional login branding, responsive form, keyboard access, errors and 
     await expect(email).toBeVisible();
     await expect(password).toBeVisible();
     await expect(submit).toBeVisible();
+    await expect(buildingPhoto).toBeVisible();
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
       .toBe(true);
@@ -68,12 +89,34 @@ test("professional login branding, responsive form, keyboard access, errors and 
   await email.focus();
   await page.keyboard.press("Tab");
   await expect(password).toBeFocused();
+  await expect(password).toHaveCSS("outline-color", "rgb(0, 120, 189)");
   await page.keyboard.press("Tab");
   await expect(submit).toBeFocused();
+  await submit.hover();
+  await expect(submit).toHaveCSS("background-color", "rgb(0, 90, 141)");
+  const disabledOpacity = await submit.evaluate((button) => {
+    const nativeButton = button as HTMLButtonElement;
+    nativeButton.disabled = true;
+    const opacity = getComputedStyle(nativeButton).opacity;
+    nativeButton.disabled = false;
+    return opacity;
+  });
+  expect(disabledOpacity).toBe("0.6");
+  await email.fill("");
+  await password.fill("");
+  await submit.click();
+  await expect(email).toBeFocused();
   await page.evaluate(() => document.documentElement.classList.add("dark"));
-  expect(await submit.evaluate((button) => getComputedStyle(button).backgroundColor)).toBe(
-    "rgb(48, 109, 41)",
+  await page.mouse.move(0, 0);
+  await expect
+    .poll(() => submit.evaluate((button) => getComputedStyle(button).backgroundColor))
+    .toBe("rgb(0, 120, 189)");
+  await expect(page.locator(".login-professional")).toHaveCSS(
+    "background-color",
+    "rgb(13, 27, 41)",
   );
+  await expect(email).toHaveCSS("background-color", "rgb(20, 38, 56)");
+  await expect(email).toHaveCSS("color", "rgb(244, 247, 250)");
   for (const [error, text] of [
     ["rate_limit", "Too many sign-in attempts"],
     ["security", "browser security validation"],

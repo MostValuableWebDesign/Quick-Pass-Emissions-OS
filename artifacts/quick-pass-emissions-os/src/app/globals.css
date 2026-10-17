@@ -1,67 +1,86 @@
 @import "tailwindcss";
 @custom-variant dark (&:is(.dark *));
+@font-face {
+  font-family: "Barlow Condensed";
+  src: url("/fonts/barlow-condensed-700-latin.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
 :root {
-  --brand: #306d29;
-  --action: #306d29;
-  --action-hover: #0d530e;
-  --on-action: #fbf5dd;
-  --focus: #306d29;
-  --bg: #fafbf8;
+  --brand: #00345b;
+  --action: #0078bd;
+  --action-hover: #005a8d;
+  --on-action: #ffffff;
+  --focus: #0078bd;
+  --link: #005a8d;
+  --bg: #f8fafc;
   --surface: #ffffff;
-  --text: #29312d;
-  --muted: #626b65;
-  --line: #e0e5dc;
-  --primary: #306d29;
-  --soft: #f2f5ed;
-  --input-line: #7e8c78;
+  --text: #343b3f;
+  --muted: #586166;
+  --line: #d8e2eb;
+  --primary: #005a8d;
+  --soft: #f5f8fb;
+  --input-line: #71808a;
+  --success: #26734d;
+  --success-bg: #eaf5ee;
+  --success-line: #b7d8c1;
   --warning: #835b16;
   --warning-bg: #fbf3e2;
   --warning-line: #e8d7ae;
   --danger: #ab3c35;
   --danger-bg: #fbedeb;
   --danger-line: #eac9c5;
-  --nav-bg: #fcfdfb;
-  --nav-text: #29312d;
-  --nav-line: #e0e5dc;
-  --nav-muted: #626b65;
-  --nav-hover: #f2f5ed;
-  --nav-active: #306d29;
-  --nav-active-text: #fbf5dd;
-  --nav-accent: #0d530e;
-  --chart-green: #306d29;
-  --chart-neutral: #737a41;
-  --dashboard-info: #356f91;
+  --nav-bg: #00345b;
+  --nav-text: #ffffff;
+  --nav-line: #315a78;
+  --nav-muted: #d5e2eb;
+  --nav-hover: #0a416b;
+  --nav-active: #0078bd;
+  --nav-active-text: #ffffff;
+  --nav-accent: #8ccbf8;
+  --chart-green: #26734d;
+  --chart-blue: #0078bd;
+  --chart-neutral: #687c8c;
+  --dashboard-info: #005a8d;
   --dashboard-report: #705496;
-  --shadow: 0 2px 8px #0d530e0a;
+  --shadow: 0 2px 8px rgb(0 32 56 / 6%);
+  --font-display: "Barlow Condensed", "Arial Narrow", Impact, sans-serif;
   color-scheme: light;
 }
 .dark {
-  --bg: #10220e;
-  --surface: #172f13;
-  --text: #f1f3f0;
-  --muted: #bdc5bf;
-  --line: #3e5930;
-  --primary: #a7cb8b;
-  --soft: #233e1c;
-  --input-line: #8a9b6a;
-  --focus: #e7e1b1;
-  --nav-bg: #172f13;
-  --nav-text: #f1f3f0;
-  --nav-line: #456237;
-  --nav-muted: #bdc5bf;
-  --nav-hover: #254a1f;
-  --nav-accent: #e7e1b1;
+  --bg: #0d1b29;
+  --surface: #142638;
+  --text: #f4f7fa;
+  --muted: #bdc9d2;
+  --line: #31495e;
+  --primary: #8ccbf8;
+  --soft: #1b3348;
+  --input-line: #7890a2;
+  --focus: #a8d7f4;
+  --link: #8ccbf8;
+  --success: #9dd6ae;
+  --success-bg: #183a2a;
+  --success-line: #3b6549;
+  --nav-bg: #071d32;
+  --nav-text: #f4f7fa;
+  --nav-line: #31506a;
+  --nav-muted: #c9d8e3;
+  --nav-hover: #102e48;
+  --nav-active: #005a8d;
+  --nav-accent: #a8d7f4;
   --warning: #edca80;
   --warning-bg: #3c311e;
   --warning-line: #695530;
   --danger: #f2aaa3;
   --danger-bg: #402823;
   --danger-line: #70433d;
-  --chart-green: #a7cb8b;
-  --chart-neutral: #e7e1b1;
+  --chart-green: #9dd6ae;
+  --chart-blue: #67b7ea;
+  --chart-neutral: #b0beca;
   --dashboard-info: #95c8df;
   --dashboard-report: #c2acdf;
-  --shadow: none;
+  --shadow: 0 2px 8px rgb(0 0 0 / 14%);
   color-scheme: dark;
 }
 * {
@@ -77,7 +96,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a {
-  color: inherit;
+  color: var(--link);
   text-decoration: none;
 }
 button,
@@ -120,8 +139,9 @@ p {
 h1 {
   font-size: 30px;
   line-height: 1.25;
-  letter-spacing: -1px;
-  font-weight: 500;
+  letter-spacing: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
 }
 h2 {
   font-size: 16px;
@@ -175,21 +195,16 @@ svg {
 }
 .brand {
   display: flex;
-  gap: 12px;
   align-items: center;
   color: var(--nav-text);
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.4px;
-  line-height: 1.2;
+  min-height: 62px;
 }
-.brand small {
+.brand-logo {
   display: block;
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 2.8px;
-  color: var(--nav-muted);
-  margin-top: 6px;
+  width: 100%;
+  max-width: 204px;
+  height: auto;
+  object-fit: contain;
 }
 .brand-icon {
   width: 40px;
@@ -197,9 +212,15 @@ svg {
   border-radius: 10px;
   border: 1px solid var(--nav-line);
   background: transparent;
-  display: grid;
+  display: none;
   place-items: center;
   color: var(--nav-text);
+}
+.collapsed .brand-logo {
+  display: none;
+}
+.collapsed .brand-icon {
+  display: grid;
 }
 .nav-caption {
   font-size: 10px;
@@ -487,6 +508,7 @@ svg {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  color: var(--nav-text);
   font-size: 11px;
   margin: 20px 10px 0;
 }
@@ -599,7 +621,7 @@ svg {
 .nav-backdrop {
   position: fixed;
   inset: 64px 0 0 0;
-  background: #0e211580;
+  background: #071d32b8;
   z-index: 25;
 }
 .business-zone {
@@ -710,6 +732,10 @@ main#main {
   background: var(--surface);
   color: var(--text);
 }
+.button-outline:hover:not(:disabled) {
+  border-color: var(--action);
+  background: var(--soft);
+}
 .button-ghost {
   background: transparent;
   color: var(--text);
@@ -730,7 +756,7 @@ main#main {
   color: var(--text);
   font-size: 12px;
   margin-bottom: 21px;
-  border: 1px solid #57aa802f;
+  border: 1px solid var(--line);
 }
 .notice.warning {
   background: var(--warning-bg);
@@ -867,7 +893,7 @@ main#main {
   box-shadow: 0 24px 80px rgb(0 0 0 / 28%);
 }
 .directory-add-dialog::backdrop {
-  background: rgb(9 20 15 / 58%);
+  background: rgb(0 23 43 / 58%);
   backdrop-filter: blur(3px);
 }
 .directory-add-dialog-header {
@@ -1072,7 +1098,7 @@ main#main {
   stroke-linejoin: round;
 }
 .employee-removal-confirmation::backdrop {
-  background: rgb(7 20 12 / 58%);
+  background: rgb(0 23 43 / 58%);
   backdrop-filter: blur(5px);
 }
 .employee-removal-content {
@@ -1301,8 +1327,9 @@ td small {
   text-transform: capitalize;
 }
 .badge.green {
-  background: var(--soft);
-  color: var(--text);
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success-line);
 }
 .badge.danger {
   background: var(--danger-bg);
@@ -1675,7 +1702,7 @@ input[type="checkbox"] {
   font-size: 11px;
 }
 .success {
-  color: var(--text);
+  color: var(--success);
 }
 .error-text {
   color: var(--danger);
@@ -2900,10 +2927,10 @@ details > summary {
   color: var(--metric-accent);
 }
 .dashboard-metric-icon--tests {
-  --metric-accent: var(--chart-green);
+  --metric-accent: var(--chart-blue);
 }
 .dashboard-metric-icon--revenue {
-  --metric-accent: var(--chart-green);
+  --metric-accent: var(--chart-blue);
 }
 .dashboard-metric-icon--pay {
   --metric-accent: var(--dashboard-info);
@@ -2981,17 +3008,17 @@ details > summary {
   gap: 8px;
   min-height: 40px;
   padding: 9px 15px;
-  border: 1px solid color-mix(in srgb, var(--chart-green) 32%, var(--line));
+  border: 1px solid color-mix(in srgb, var(--chart-blue) 32%, var(--line));
   border-radius: 999px;
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--chart-green) 13%, var(--surface)),
+    color-mix(in srgb, var(--chart-blue) 13%, var(--surface)),
     var(--surface)
   );
-  color: var(--chart-green);
+  color: var(--link);
   font-size: 12px;
   font-weight: 650;
-  box-shadow: 0 3px 12px color-mix(in srgb, var(--chart-green) 10%, transparent);
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--chart-blue) 10%, transparent);
   transition:
     transform 150ms ease,
     background 150ms ease,
@@ -3000,12 +3027,12 @@ details > summary {
 }
 .dashboard-refresh-button.button:hover:not(:disabled) {
   transform: translateY(-1px);
-  border-color: var(--chart-green);
-  background: color-mix(in srgb, var(--chart-green) 17%, var(--surface));
-  box-shadow: 0 5px 15px color-mix(in srgb, var(--chart-green) 16%, transparent);
+  border-color: var(--chart-blue);
+  background: color-mix(in srgb, var(--chart-blue) 17%, var(--surface));
+  box-shadow: 0 5px 15px color-mix(in srgb, var(--chart-blue) 16%, transparent);
 }
 .dashboard-refresh-button.button:focus-visible {
-  outline: 2px solid var(--chart-green);
+  outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
 .dashboard-refresh-button.button:disabled {
@@ -3158,7 +3185,7 @@ details > summary {
   gap: 14px;
 }
 .dashboard-shortcut {
-  --shortcut-accent: var(--chart-green);
+  --shortcut-accent: var(--link);
   border: 1px solid var(--line);
   border-top: 3px solid var(--shortcut-accent);
   border-radius: 14px;
@@ -3173,7 +3200,7 @@ details > summary {
   --shortcut-accent: var(--dashboard-info);
 }
 .dashboard-shortcut--payroll {
-  --shortcut-accent: var(--chart-green);
+  --shortcut-accent: var(--link);
 }
 .dashboard-shortcut--performance {
   --shortcut-accent: var(--dashboard-report);

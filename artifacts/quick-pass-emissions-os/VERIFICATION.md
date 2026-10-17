@@ -1,3 +1,48 @@
+# Quick Pass website theme alignment — October 17, 2026
+
+Updated the existing Quick Pass Emissions OS theme to match the verified public-site navy and
+blue palette, with neutral white/off-white working surfaces, blue-gray panels, charcoal text,
+and subtle borders. Light and dark modes share the revised tokens; login and Performance
+styling now follow the app palette while semantic success, warning and error colors remain
+distinct. Added self-hosted Barlow Condensed 700 for major headings only; body, controls,
+financial values and dense content retain the existing system typography. Authentication,
+routes, data, calculations and business workflows were not changed.
+
+- **Theme browser workflow passed, no skips**, using runner-owned synthetic records. It covered
+  the main navigation pages in light/dark mode at desktop, tablet and phone sizes, plus keyboard
+  forms, dialogs and responsive navigation. **Login browser workflow passed, no skips**, covering
+  desktop/tablet/mobile, keyboard access, error states and the native management sign-in.
+  The E2E browser ran in its supported direct mode after the proxied session setup could not
+  complete. Screenshots are synthetic; no production business records or credentials were used.
+- **Isolated unit/database suite: 82 files and 782 tests passed; one test failed.** The unrelated
+  failure is `tests/marketing-database.test.ts`, where a cancellation assertion received
+  `RECORDED` instead of `CANCELLED`. The theme changes do not touch that module or test.
+- TypeScript, ESLint, changed-file Prettier, whitespace checks and the optimized production
+  build passed. The build used an unreachable database URL and did not query business data.
+  Repository-wide formatting still reports 45 untouched baseline files; it is not an
+  all-clean formatting result.
+- Remaining non-brand colors are an explicit semantic allowlist: success and meaningful green
+  chart data, warning/pending and payday-urgency states (amber/orange), error/critical states
+  (red), and informational/report/chart-series distinctions (blue, violet and neutral). The
+  status text and icon/color combinations remain intact in both themes. The owner-email renderer
+  keeps its existing document palette because downloadable document and email branding are
+  outside this task.
+- The normal preview restarted and shows the existing sign-in page; no sign-in was attempted.
+  An earlier screenshot capture reported a hydration warning for an injected
+  `caret-color: transparent` input style (no matching rule exists in app source); it was not
+  reproduced in the final desktop/mobile captures. `/favicon.ico` still returns 404. The
+  synthetic-fixture browser workflows passed; those screenshots cover signed-in screens without
+  exposing business data.
+- The public website reference was reconfirmed against its verified navy/blue palette. No
+  database schema, business data, authentication behavior, public website or deployment was
+  changed. The normal app preview remains behind its existing sign-in.
+- The supplied transparent logo is now used in the login brand panel and expanded sidebar; the
+  collapsed sidebar retains its compact checkmark. Browser checks verified both image loads and
+  the collapsed fallback after the update.
+- The login photo now uses a crop of the supplied Option 1 building only, excluding the right-side
+  legend and the lower alternatives. The old overlaid caption was removed; the cropped image is
+  visible on desktop, tablet and phone.
+
 # Daily owner email — October 12, 2026
 
 Pulled shared main through `bebea19` before implementation. The owner confirmed **6:30 PM Eastern

@@ -1,17 +1,16 @@
 import Image from "next/image";
-import { CheckCheck } from "lucide-react";
 
 export function LoginBrand() {
   return (
     <section className="login-brand qp-brand" aria-label="Quick Pass Emissions">
-      <div className="login-wordmark">
-        <span className="login-mark" aria-hidden="true">
-          <CheckCheck size={27} strokeWidth={1.7} />
-        </span>
-        <span>
-          Quick Pass<span className="login-wordmark-detail">Emissions</span>
-        </span>
-      </div>
+      <Image
+        className="login-logo"
+        src="/images/quick-pass-logo.png"
+        alt="Quick Pass Emissions"
+        width={2172}
+        height={724}
+        priority
+      />
       <div className="login-story qp-story">
         <p className="login-kicker">GEORGIA VEHICLE INSPECTIONS</p>
         <h1>
@@ -24,18 +23,12 @@ export function LoginBrand() {
       </div>
       <figure className="qp-photo">
         <Image
-          src="/login-emissions-station.webp"
-          alt="Quick Pass Emissions inspection and car wash station"
-          width={1400}
-          height={613}
+          src="/login-option-1-building.webp"
+          alt="The Wash Rack car wash building with blue signage"
+          width={1240}
+          height={580}
           loading="eager"
         />
-        <figcaption>
-          <span className="qp-photo-mark" aria-hidden="true">
-            <CheckCheck size={15} strokeWidth={1.8} />
-          </span>
-          A clear check. A confident drive.
-        </figcaption>
       </figure>
       <footer className="login-brand-footer">
         <span>QUICK PASS EMISSIONS</span>

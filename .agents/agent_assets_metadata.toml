@@ -1,0 +1,212 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "qKw55z0QqRCbDtunvEhT1"
+uri = "file://generated-artifacts/quick-pass-theme/dashboard-desktop.png"
+type = "image"
+title = "Dashboard — desktop, light mode"
+description = "Updated navy and blue shell with neutral surfaces and synthetic demonstration data."
+logical_id = "7b481c93-737f-489b-afee-782a4aab0678"
+content_hash = "sha256:50b3315e2d00ccfcd8911018f229bd55696f0e18aaf194a02056cbed27780e17"
+size = 189354
+mtime_ms = 1792242657263
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/7b481c93-737f-489b-afee-782a4aab0678/c4ba547a-14f8-42e3-9930-435fc65d46f2"
+storage_version_token = "1792243866110016"
+content_type = "image/png"
+
+[[outputs]]
+id = "wB4evderyFdoURxnvAl7Z"
+uri = "file://generated-artifacts/quick-pass-theme/dashboard-desktop-dark.png"
+type = "image"
+title = "Dashboard — desktop, dark mode"
+description = "Navy/slate dark theme with readable text and retained semantic alerts; synthetic demonstration data."
+logical_id = "2f79c9d5-ffb4-4bdd-9cae-83e847787cf8"
+content_hash = "sha256:c90340ffdf7615b1ef620a2027b9088efbaf59f5ea7302a28f3f6dab62615041"
+size = 191350
+mtime_ms = 1792242657883
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/2f79c9d5-ffb4-4bdd-9cae-83e847787cf8/89dd1834-8994-4b81-a73a-83b0aa009cce"
+storage_version_token = "1792243866698171"
+content_type = "image/png"
+
+[[outputs]]
+id = "ftuN617bu5e_8LzVq7qkj"
+uri = "file://generated-artifacts/quick-pass-theme/performance-phone.png"
+type = "image"
+title = "Performance — mobile"
+description = "Phone layout showing the updated theme and distinct labeled payroll/certificate alerts."
+logical_id = "a4f79e5b-a64a-4756-9baf-ba9e5cdb8588"
+content_hash = "sha256:a50b8cb8b201bc3e2aa4c1b5fa7ebd4e88a5e394fa4ad737478addac38458cc7"
+size = 70276
+mtime_ms = 1792242665151
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/a4f79e5b-a64a-4756-9baf-ba9e5cdb8588/1dd81470-6482-4489-81cb-4f67f8291e8b"
+storage_version_token = "1792243867171112"
+content_type = "image/png"
+
+[[outputs]]
+id = "9HhtLuY9ejtw6CbXPDrl6"
+uri = "file://generated-artifacts/quick-pass-theme/invoices-desktop.png"
+type = "image"
+title = "Invoices — desktop"
+description = "Updated table, filters, and navigation in the synthetic demonstration workspace."
+logical_id = "9a33b378-ed6d-4ad7-a9e3-1aa5e961c3d9"
+content_hash = "sha256:176a71334772d072530ff50b3994d39a4af867fc2972d406ea33193deb0e1ca9"
+size = 125871
+mtime_ms = 1792242670283
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/9a33b378-ed6d-4ad7-a9e3-1aa5e961c3d9/d00035bd-659d-49a6-9806-d0a968513077"
+storage_version_token = "1792243867680694"
+content_type = "image/png"
+
+[[outputs]]
+id = "ovIqSeT3gSvEwLN9WpGpM"
+uri = "file://generated-artifacts/quick-pass-theme/reports-desktop.png"
+type = "image"
+title = "Operational reports — desktop"
+description = "Updated report controls, neutral cards, and blue primary action in the synthetic workspace."
+logical_id = "6055072c-b64a-45c3-8c11-01909202e964"
+content_hash = "sha256:c0071782d4c1e0f5b69ca2e2f8e8845d97e7b14bb45a80368a814b733c62a8d1"
+size = 145506
+mtime_ms = 1792242697171
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/6055072c-b64a-45c3-8c11-01909202e964/9df020c9-f30e-462b-aa50-c52b88a476c9"
+storage_version_token = "1792243868127476"
+content_type = "image/png"
+
+[[outputs]]
+id = "ZVtON9q-lXQiFTqO1Yg8r"
+uri = "file://generated-artifacts/quick-pass-theme/dealership-form-dialog-phone.png"
+type = "image"
+title = "Dealership form — mobile dialog"
+description = "Updated neutral form surfaces, controls, and focus styling in a phone-sized view."
+logical_id = "aaa28d28-b66c-4f60-9093-b11f70249b47"
+content_hash = "sha256:816a26b4676c6fb64aec936b098306765ef0f23a877f92a7493c3e828da6121a"
+size = 51604
+mtime_ms = 1792242698735
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/aaa28d28-b66c-4f60-9093-b11f70249b47/ca6fea55-f407-4c6f-be9f-a61362bddb77"
+storage_version_token = "1792243868575552"
+content_type = "image/png"
+
+[[outputs]]
+id = "jC3_URLj_-48EJRKkVrC6"
+uri = "file://generated-artifacts/quick-pass-theme/mobile-navigation-open.png"
+type = "image"
+title = "Mobile navigation — open state"
+description = "Responsive navigation with selected states using the new navy and blue palette."
+logical_id = "496c35e6-bdde-4584-90f2-636727efef42"
+content_hash = "sha256:f8bbceb0b9dc9824832b8757795783269f5a621a12c5ee04e93245c3af5a95f8"
+size = 50673
+mtime_ms = 1792242701743
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/496c35e6-bdde-4584-90f2-636727efef42/5276eba3-aa12-488a-bb12-7dba87fc94ea"
+storage_version_token = "1792243869058247"
+content_type = "image/png"
+
+[[outputs]]
+id = "UH78j0booHcvOHz0QQo5e"
+uri = "file://generated-artifacts/quick-pass-login/login-mobile.png"
+type = "image"
+title = "Sign-in — mobile"
+description = "Updated login branding with the existing sign-in behavior and content."
+logical_id = "93755123-7ec0-40f7-91d4-dc2944d40636"
+content_hash = "sha256:664f182b6b1002f1ba473bf845d815b02d2d029b8816b880fb55ff59cc433664"
+size = 78989
+mtime_ms = 1792242730935
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/93755123-7ec0-40f7-91d4-dc2944d40636/116f7e5c-0938-4267-9196-825c1bc832fa"
+storage_version_token = "1792243869487926"
+content_type = "image/png"
+
+[[outputs]]
+id = "shqnD_mu4BqG9Ghp_5DEb"
+uri = "file://generated-artifacts/quick-pass-theme-logo/dashboard-desktop.png"
+type = "image"
+title = "Quick Pass logo in the desktop app"
+description = "The supplied logo now appears in the expanded navy sidebar; the screenshot uses synthetic demonstration records."
+logical_id = "940cf300-2ff8-4234-af3c-63a9ac41d9c4"
+content_hash = "sha256:401657e216906e37e8ece4d0d682c2c7b96761e7fa760630268d6c4cdce4ada9"
+size = 196255
+mtime_ms = 1792244203163
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/940cf300-2ff8-4234-af3c-63a9ac41d9c4/5b931741-2cf0-40b0-932f-91dfaa150ca8"
+storage_version_token = "1792244457729245"
+content_type = "image/png"
+
+[[outputs]]
+id = "cRc_tVCwQc15Blr6OO8TV"
+uri = "file://generated-artifacts/quick-pass-theme-logo/mobile-navigation-open.png"
+type = "image"
+title = "Quick Pass logo in mobile navigation"
+description = "Mobile drawer showing the full supplied logo with the updated app theme."
+logical_id = "2a2e30c7-eeb8-4c26-bead-87769abef75d"
+content_hash = "sha256:04a9f76605ff3a8a5b7a6a96a45ffb05da31350c3a3e1036a5af30972b22f12c"
+size = 56024
+mtime_ms = 1792244252643
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/2a2e30c7-eeb8-4c26-bead-87769abef75d/c24dbffe-2499-4cad-b999-4afbf73be72a"
+storage_version_token = "1792244458168142"
+content_type = "image/png"
+
+[[outputs]]
+id = "uAe--v3HnHjeUJ_3fILd7"
+uri = "file://generated-artifacts/quick-pass-login-logo/login-desktop.png"
+type = "image"
+title = "Quick Pass logo on the desktop sign-in page"
+description = "The supplied logo is integrated into the existing login brand panel; sign-in behavior is unchanged."
+logical_id = "19ae663d-62e8-4d4c-838a-15217ac1fc78"
+content_hash = "sha256:4a4c13ee1e8155e67e057925bac00b0fd0d229603f949304a035f261f22ec431"
+size = 578661
+mtime_ms = 1792244284771
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/19ae663d-62e8-4d4c-838a-15217ac1fc78/62e14de0-6105-42f8-993c-9859fb0f90c0"
+storage_version_token = "1792244458652151"
+content_type = "image/png"
+
+[[outputs]]
+id = "7__HS4vEC30g-Yo-z7CZt"
+uri = "file://generated-artifacts/quick-pass-login-logo/login-mobile.png"
+type = "image"
+title = "Quick Pass logo on the mobile sign-in page"
+description = "Responsive sign-in branding with the supplied logo at phone size."
+logical_id = "19ba91a7-781e-42eb-b106-1cd73366959c"
+content_hash = "sha256:2beb102afefe6b47967fe3125e6a514079032712bcd652a0f93081793507613b"
+size = 84647
+mtime_ms = 1792244285151
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/19ba91a7-781e-42eb-b106-1cd73366959c/f7e95a73-c714-4cdf-a32e-6778374a4e63"
+storage_version_token = "1792244459117517"
+content_type = "image/png"
+
+[[outputs]]
+id = "34Rzhy8R0zNSo2G1xNGrY"
+uri = "file://generated-artifacts/quick-pass-login-option-1/login-desktop.png"
+type = "image"
+title = "Login page with the Option 1 building photo"
+description = "Desktop login screenshot showing only the building crop; the right-side legend and lower alternatives are excluded."
+logical_id = "b5e69033-4fff-47bf-8f21-605604627cb9"
+content_hash = "sha256:b4875752f2266d02e01308ec49a0b587d6fda416cdc0eed96d24f65cc7bef9b8"
+size = 673947
+mtime_ms = 1792244649395
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/b5e69033-4fff-47bf-8f21-605604627cb9/9a525adf-7389-4f0b-867b-66570166526f"
+storage_version_token = "1792244724334136"
+content_type = "image/png"
+
+[[outputs]]
+id = "DemszgETG5-NDMyPiYhPh"
+uri = "file://generated-artifacts/quick-pass-login-option-1/login-mobile.png"
+type = "image"
+title = "Mobile login with the Option 1 building photo"
+description = "Phone-size login screenshot with the clean building crop visible above the sign-in form."
+logical_id = "b11ddf6d-cd6e-4356-80e5-4c31ccd2b347"
+content_hash = "sha256:b51a5d9b8292861b6f108e23e69105953e08b27f77c812d9300a5f907a3e9fac"
+size = 188983
+mtime_ms = 1792244649851
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/b11ddf6d-cd6e-4356-80e5-4c31ccd2b347/e7fd3eb2-4b3e-4771-b235-b4e71654789b"
+storage_version_token = "1792244724917957"
+content_type = "image/png"
+
+[[outputs]]
+id = "Rsc8eFuZJbCnlad1yA17H"
+uri = "file://generated-artifacts/quick-pass-login-option-1/login-tablet.png"
+type = "image"
+title = "Tablet login with the Option 1 building photo"
+description = "Tablet login screenshot showing the responsive photo treatment without the source legend."
+logical_id = "2e99df2d-3195-4608-a8ae-9981c94935ea"
+content_hash = "sha256:efeac05bef5ce250c2e0dd32981d46433e94cd104c0f32fd3bda4a3433c45dc9"
+size = 413330
+mtime_ms = 1792244649651
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/2e99df2d-3195-4608-a8ae-9981c94935ea/6fc39a83-3ecb-43ab-88e3-1ae7a6c1df86"
+storage_version_token = "1792244725423157"
+content_type = "image/png"

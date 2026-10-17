@@ -259,7 +259,6 @@ export function PerformanceDashboard({
             <RotateCcw size={14} aria-hidden="true" /> Reset panels
           </button>
         </div>
-
       </section>
 
       {(message || data.error) && (
@@ -313,7 +312,11 @@ export function PerformanceDashboard({
             </>
           ) : (
             <small>
-              {loading ? "Fetching selected counts..." : "Selected counts not available yet."}
+              {s.reportedTests != null
+                ? `${num(s.reportedTests)} report rows loaded. Paid car count pending 30-day retest history.`
+                : loading
+                  ? "Fetching selected counts..."
+                  : "Selected counts not available yet."}
             </small>
           )}
         </div>

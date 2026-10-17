@@ -24,9 +24,14 @@ returns a wait message while retaining saved data.
 
 Historical Performance requests cover at most three days each and use at most three
 requests per run, including single-day checks needed to establish an explicit empty date.
-Today's request is isolated and prioritized. Successful batches are cached before proceeding;
+Selected report dates are prioritized and never bundled with supporting trend/retest dates;
+today's request also stays isolated. Successful batches are cached before proceeding;
 missing history resumes on a later owner-triggered load after cooldown. No absent date is
 invented as zero and there is no unattended retry/polling.
+
+When the selected report is verified but 30-day VIN history is incomplete, Performance shows
+the raw report-row total separately while paid-car counts and revenue remain pending.
+An invalid supporting export does not erase an already verified selected-date cache.
 
 All test-export network requests share a 45-second operation deadline. The reservation
 expires after two minutes if a process disappears; token checks prevent an expired run

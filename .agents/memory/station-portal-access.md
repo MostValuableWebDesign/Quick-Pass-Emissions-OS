@@ -68,3 +68,9 @@ Daily station counts must be accessible by choosing one date, without a separate
 **Why:** The user said, “i should be able to select a date and get the daily count.”
 
 **How to apply:** Keep single-day lookup direct while retaining the source-evidence boundary: selecting a date authorizes the bounded on-view read, not unattended polling. Only the verified explicit source reply proves an aggregate zero.
+
+Selected-date retrieval takes priority over unrelated supporting trend and retest history.
+
+**Why:** A valid single-date export was unavailable in Performance because it was bundled with a neighboring date containing incomplete source evidence. A generic range error concealed the actual failing query.
+
+**How to apply:** Keep selected dates isolated from supporting batches, preserve successful caches when later requests fail, and expose controlled verification reasons with the actual query dates. Raw report rows are not paid-car totals while 30-day VIN history is incomplete.

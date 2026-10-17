@@ -159,6 +159,7 @@ describe("VIN-based free retests", () => {
       (day) => day.date !== addDays(today, -30),
     );
     const data = buildDashboard(query, today, classifyDashboardRetests(days), plan);
+    expect(data.summary.reportedTests).toBe(1);
     expect(data.summary.cars).toBeNull();
     expect(data.summary.revenueCents).toBeNull();
     expect(data.summary.commissionCents).toBeNull();

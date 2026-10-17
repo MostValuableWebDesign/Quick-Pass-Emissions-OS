@@ -308,7 +308,7 @@ export async function loadDashboard(
       const partial = () => {
         sourceError = "History is partially loaded. Continue after the station cooldown.";
       };
-      for (const chunk of testExportBatches(needed, initial.today)) {
+      for (const chunk of testExportBatches(needed, initial.today, query)) {
         if (requests >= TEST_EXPORT_MAX_REQUESTS || run.signal.aborted) {
           partial();
           break;

@@ -186,6 +186,35 @@ const daily = {
       expect(calendarDays(start, end).some((date) => savedDates.has(date))).toBe(false);
   });
 
+  it("caches the selected day before an unrelated supporting export fails", async () => {
+    const date = addDays(today, -3);
+    portal.range.mockImplementation(async (start: string, end: string) => {
+      if (start === date && end === date) return [empty(date)];
+      throw new Error("Synthetic invalid supporting export");
+    });
+    const result = await dashboard.loadDashboard(owners[0], {
+      ...query,
+      start: date,
+      end: date,
+    });
+    expect(portal.range.mock.calls[0].slice(0, 2)).toEqual([date, date]);
+    expect(result.sourceStatus).toBe("partial");
+    expect(result.missingDates).not.toContain(date);
+    expect(result.summary.cars).toBe(0);
+    expect(
+      await db.auditLog.count({
+        where: {
+          action: "STATION_PERFORMANCE_DAY_CACHED",
+          details: { path: ["date"], equals: date },
+        },
+      }),
+    ).toBe(1);
+    const state = await db.stationTestExportState.findUniqueOrThrow({
+      where: { stationHash: hash },
+    });
+    expect(state.cooldownUntil.getTime() - Date.now()).toBeGreaterThan(295_000);
+  });
+
   it("counts single-day empty checks in the same request budget and never invents zeros", async () => {
     portal.range.mockImplementation(async (start: string, end: string) =>
       start === end ? [empty(start)] : [],

@@ -112,6 +112,7 @@ export type DashboardData = {
   current: (Counts & { date: string; retrievedAt: string }) | null;
   summary: {
     inspectionCadence: InspectionCadence;
+    reportedTests: number | null;
     cars: number | null;
     freeRetests: number;
     revenueCents: number | null;

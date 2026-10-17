@@ -18,13 +18,7 @@ export function LoginBrand() {
           <br />
           <span>Emissions</span>
         </h1>
-        <p className="qp-greeting">
-          Your emissions test.
-          <br />
-          Your tag renewal.
-          <br />
-          Your One Stop Shop.
-        </p>
+        <p className="qp-greeting">Your emissions test. Your tag renewal. Your One Stop Shop.</p>
       </div>
       <figure className="qp-photo">
         <Image

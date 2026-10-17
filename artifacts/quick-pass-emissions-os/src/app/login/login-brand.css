@@ -56,10 +56,11 @@
 .login-professional .qp-greeting {
   margin-top: 19px;
   color: #f4f7fa;
-  font-size: clamp(19px, 2vw, 25px);
+  font-size: clamp(10px, 1.25vw, 19px);
   font-weight: 450;
   letter-spacing: -0.6px;
   line-height: 1.35;
+  white-space: nowrap;
 }
 
 .login-professional .login-brand.qp-brand .qp-story .login-story-copy {
@@ -157,7 +158,7 @@
 
   .login-professional .qp-greeting {
     margin-top: 5px;
-    font-size: 15px;
+    font-size: clamp(9px, 2.8vw, 15px);
     letter-spacing: -0.2px;
   }
 

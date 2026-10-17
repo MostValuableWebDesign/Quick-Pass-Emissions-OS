@@ -413,7 +413,11 @@ export async function marketingOverview(actorId: string, input: unknown) {
     const records =
       actor.role === "OWNER"
         ? await tx.stationRecord.findMany({
-            where: { stationHash: station.hash, state: { not: "SUPERSEDED" } },
+            where: {
+              stationHash: station.hash,
+              historicalOnly: false,
+              state: { not: "SUPERSEDED" },
+            },
             include: {
               revisions: { where: { businessDate: { gte: q.start, lte: q.end } } },
               marketingObservation: true,

@@ -21,7 +21,8 @@ vi.mock("../src/modules/station/test-export-gate", () => ({
   withStationTestExport: mocks.gate,
   requireActiveTestExport: mocks.active,
 }));
-vi.mock("../src/modules/phase2", () => ({
+vi.mock("../src/modules/phase2", async (original) => ({
+  ...(await original<typeof import("../src/modules/phase2")>()),
   audit: mocks.audit,
   requireRule: (valid: unknown, message: string) => {
     if (!valid) throw new Error(message);

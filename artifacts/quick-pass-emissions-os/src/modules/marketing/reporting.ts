@@ -39,7 +39,7 @@ export async function buildReport(tx: Tx, query: z.infer<typeof reportInput>, ha
   );
   const filter = !!query.campaignId || !!query.channel;
   const records = await tx.stationRecord.findMany({
-    where: { stationHash: hash, state: { not: "SUPERSEDED" } },
+    where: { stationHash: hash, historicalOnly: false, state: { not: "SUPERSEDED" } },
     include: { revisions: true, marketingObservation: true },
   });
   const services = await tx.dealerService.findMany({

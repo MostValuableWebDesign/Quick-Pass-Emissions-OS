@@ -19,6 +19,7 @@ import {
 import type { DashboardPanelId } from "./performance-dashboard-layout";
 import type { SourceRefreshStatus } from "@/lib/source-refresh";
 import { SourceRefreshIndicator } from "./source-refresh-indicator";
+import { ReturningVehicles } from "./returning-vehicles";
 
 export function PerformanceDashboard({
   initial,
@@ -398,6 +399,7 @@ export function PerformanceDashboard({
         </div>
       </section>
 
+      {data.returningVehicles && <ReturningVehicles report={data.returningVehicles} />}
       <PerformanceDashboardPanels
         layout={panelLayout.layout}
         employeeRowCount={visibleEmployeeRows}

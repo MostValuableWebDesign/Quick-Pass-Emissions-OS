@@ -12,6 +12,7 @@ import { PACE_SETTINGS_ACTION, paceSettingsSchema } from "./pace-settings";
 
 import { withStationTestExport, requireActiveTestExport } from "./test-export-gate";
 import { testExportBatches, TEST_EXPORT_MAX_REQUESTS } from "./test-export-batches";
+import { returningInTransaction } from "./history/report";
 
 const SNAPSHOT = "STATION_PERFORMANCE_DAY_CACHED";
 const PLAN = "STATION_PERFORMANCE_PAY_PLAN";
@@ -240,6 +241,7 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
           : businessDate(new Date(d.retrievedAt)) <= d.date,
       )
       .map((d) => d.date);
+    data.returningVehicles = await returningInTransaction(tx, [hash], query);
     return data;
   });
 }

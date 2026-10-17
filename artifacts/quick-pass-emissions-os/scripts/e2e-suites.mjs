@@ -1,4 +1,5 @@
 export function browserSuite(env) {
+  if (env.E2E_HISTORY_ONLY === "1") return { "inspection-history.spec.ts": 2 };
   if (env.E2E_PAYDAY_ONLY === "1") return { "payday-alert.spec.ts": 1 };
   if (env.E2E_PAYROLL_OVERVIEW_ONLY === "1") return { "payroll-overview.spec.ts": 1 };
   if (env.E2E_PAY_ADJUSTMENTS_ONLY === "1") return { "payroll-adjustments.spec.ts": 1 };
@@ -33,6 +34,7 @@ export function browserSuite(env) {
   if (env.E2E_IMPORT_ONLY === "1" || env.E2E_STATION_ONLY === "1")
     return { "settings-pages-retired.spec.ts": 1 };
   return {
+    "inspection-history.spec.ts": 2,
     "analytics.spec.ts": 2,
 
     "marketing.spec.ts": 1,

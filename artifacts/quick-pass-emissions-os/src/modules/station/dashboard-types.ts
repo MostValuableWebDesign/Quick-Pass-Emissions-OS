@@ -158,6 +158,7 @@ export type DashboardData = {
     outcome: number;
   }[];
   error?: string;
+  returningVehicles?: import("./history/report").ReturningVehicleReport;
 };
 export type DashboardState = {
   ok?: boolean;

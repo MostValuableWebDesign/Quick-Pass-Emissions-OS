@@ -143,6 +143,11 @@ export async function importReport(actorId: string, input: { body: string; reaso
           },
         });
         if (existing) {
+          // An explicit reviewed-report import may promote historical evidence into this workflow.
+          await tx.stationRecord.updateMany({
+            where: { id: existing.recordId, historicalOnly: true },
+            data: { historicalOnly: false },
+          });
           duplicates++;
           continue;
         }
@@ -523,6 +528,7 @@ export async function currentRecords(tx: Tx, hash: string, start: string, end: s
   const records = await tx.stationRecord.findMany({
     where: {
       stationHash: hash,
+      historicalOnly: false,
       state: { not: "SUPERSEDED" },
       revisions: { some: { businessDate: { gte: start, lte: end } } },
     },

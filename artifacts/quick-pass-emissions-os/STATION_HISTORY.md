@@ -1,5 +1,9 @@
 # Station history and performance
 
+## Two-year owner-controlled import and returning vehicles
+
+The newer **Performance → Historical import** workflow extends canonical inspection evidence with persistent monthly windows, explicit Start/Pause/Resume, source-total reconciliation, row decisions and conservative VIN/plate matching. It uses the existing bulk-export reader and shared cooldown, with CSV/original `.xls` fallback. It does not schedule background collection or infer payment from outcomes. See [INSPECTION_HISTORY.md](INSPECTION_HISTORY.md). This extends the historical manual-import scope described below; earlier live-verification notes remain historical evidence, not proof of a new two-year collection.
+
 ## Owner-triggered daily portal lookup
 
 Performance supports **Get daily count from portal** for a selected single date.

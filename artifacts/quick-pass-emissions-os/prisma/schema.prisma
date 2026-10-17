@@ -1201,43 +1201,157 @@ model StationImport {
 }
 
 model StationRecord {
-  id                   String                @id @default(cuid())
+  id                   String                     @id @default(cuid())
+  historicalOnly       Boolean                    @default(false)
   stationHash          String
-  state                String                @default("PENDING")
-  version              Int                   @default(1)
+  state                String                     @default("PENDING")
+  version              Int                        @default(1)
   currentRevisionId    String?
   employeeId           String?
   mappingId            String?
-  disposition          String                @default("UNRESOLVED")
+  disposition          String                     @default("UNRESOLVED")
   eligible             Boolean?
   dealerServiceId      String?
   financeEntryId       String?
-  reason               String                @default("")
+  reason               String                     @default("")
   revisions            StationRevision[]
   marketingObservation MarketingObservation?
+  inspectionEvidence   StationInspectionEvidence?
 
   @@index([stationHash, state])
 }
 
 model StationRevision {
-  id            String        @id @default(cuid())
-  stationHash   String
-  fingerprint   String
-  recordId      String
-  record        StationRecord @relation(fields: [recordId], references: [id], onDelete: Restrict)
-  importId      String
-  import        StationImport @relation(fields: [importId], references: [id], onDelete: Restrict)
-  sourceDate    String
-  businessDate  String
-  inspector     String
-  outcome       String
-  certificate   String
-  vehicleSuffix String
-  vehicleHash   String
-  observedAt    DateTime      @default(now())
+  id                 String                     @id @default(cuid())
+  stationHash        String
+  fingerprint        String
+  recordId           String
+  record             StationRecord              @relation(fields: [recordId], references: [id], onDelete: Restrict)
+  importId           String
+  import             StationImport              @relation(fields: [importId], references: [id], onDelete: Restrict)
+  sourceDate         String
+  businessDate       String
+  inspector          String
+  outcome            String
+  certificate        String
+  vehicleSuffix      String
+  vehicleHash        String
+  observedAt         DateTime                   @default(now())
+  inspectionEvidence StationInspectionEvidence?
 
   @@unique([stationHash, fingerprint])
   @@index([businessDate])
+  @@index([stationHash, businessDate])
+}
+
+// Historical import is evidence on the existing canonical inspection, never a financial posting.
+model StationInspectionEvidence {
+  id           String          @id @default(cuid())
+  recordId     String          @unique
+  record       StationRecord   @relation(fields: [recordId], references: [id], onDelete: Restrict)
+  revisionId   String          @unique
+  revision     StationRevision @relation(fields: [revisionId], references: [id], onDelete: Restrict)
+  stationHash  String
+  source       String
+  sourceId     String?
+  signature    String
+  businessDate String
+  vinHash      String?
+  plateHash    String?
+  invalidVin   Boolean         @default(false)
+  payment      String
+  retest       String
+  completion   String
+  payload      String
+  provenance   String
+  createdBy    String
+  createdAt    DateTime        @default(now())
+
+  @@unique([stationHash, source, sourceId])
+  @@index([stationHash, businessDate])
+  @@index([stationHash, vinHash, businessDate])
+  @@index([stationHash, plateHash, businessDate])
+}
+
+model StationVehiclePlate {
+  id          String @id @default(cuid())
+  stationHash String
+  plateHash   String
+  vinHash     String
+
+  @@unique([stationHash, plateHash, vinHash])
+  @@index([stationHash, vinHash, plateHash])
+}
+
+model InspectionHistoryJob {
+  id            String                    @id @default(cuid())
+  createdBy     String
+  startDate     String
+  endDate       String
+  stationHashes String[]
+  mode          String
+  source        String
+  recordLimit   Int                       @default(100)
+  status        String                    @default("PAUSED")
+  createdAt     DateTime                  @default(now())
+  windows       InspectionHistoryWindow[]
+}
+
+model InspectionHistoryWindow {
+  id            String                 @id @default(cuid())
+  jobId         String
+  job           InspectionHistoryJob   @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  stationHash   String
+  revision      Int                    @default(1)
+  superseded    Boolean                @default(false)
+  startDate     String
+  endDate       String
+  status        String                 @default("PENDING")
+  stagedAt      DateTime?
+  sourceTotal   Int?
+  totalBasis    String                 @default("UNVERIFIED")
+  fetched       Int                    @default(0)
+  imported      Int                    @default(0)
+  duplicates    Int                    @default(0)
+  rejected      Int                    @default(0)
+  unresolved    Int                    @default(0)
+  cursor        Int                    @default(0)
+  attempts      Int                    @default(0)
+  nextAttemptAt DateTime?
+  leaseToken    String?
+  leaseUntil    DateTime?
+  checkpointAt  DateTime?
+  importId      String?
+  error         String?
+  rows          InspectionHistoryRow[]
+
+  @@unique([jobId, stationHash, startDate, revision])
+  @@index([jobId, status, startDate])
+}
+
+model InspectionHistoryRow {
+  id        String                      @id @default(cuid())
+  windowId  String
+  window    InspectionHistoryWindow     @relation(fields: [windowId], references: [id], onDelete: Restrict)
+  rowNumber Int
+  payload   String
+  status    String                      @default("PENDING")
+  recordId  String?
+  reason    String?
+  decisions InspectionHistoryDecision[]
+
+  @@unique([windowId, rowNumber])
+  @@index([windowId, status, rowNumber])
+}
+
+model InspectionHistoryDecision {
+  id        String               @id @default(cuid())
+  rowId     String
+  row       InspectionHistoryRow @relation(fields: [rowId], references: [id], onDelete: Restrict)
+  status    String
+  reason    String
+  recordId  String?
+  createdAt DateTime             @default(now())
 }
 
 model StationMapping {

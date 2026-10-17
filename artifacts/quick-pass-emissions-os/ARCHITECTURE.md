@@ -1,5 +1,9 @@
 # Architecture
 
+## Historical inspection import
+
+`station/history` adds owner-authorized foreground batches to existing StationRecord/StationRevision identities. Database jobs/windows, encrypted staging, append-only row decisions and context-bound source evidence persist checkpoints across restarts. Short personnel → station → history transactions claim 120-second leases; the existing test-export gate bounds provider work outside locks and shares cooldowns with Performance/daily counts. Source-total reconciliation includes existing canonical inspections. New historical-only records stay outside operational and Marketing totals until explicitly introduced to the original review workflow. Period grouping and indexed candidate lookbacks calculate returning vehicles from explicit paid/completed/non-free facts; no heuristic paid estimate is reused. No new scheduler, independent worker or financial posting exists. See [INSPECTION_HISTORY.md](INSPECTION_HISTORY.md).
+
 ## Marketing
 
 `src/modules/marketing` holds validation, exact-money/promo rules, evidence reporting and transactional services. App Router pages/actions coordinate those services without creating customers or a second payment system. Additive relational records preserve campaign history, optional source responses, frozen offer terms, expenses and owner reviews. Existing dealership receipts/reversals and individually linked verified retail evidence supply collected revenue, never portal revenue estimates. Private marketing files use a replaceable App Storage adapter with authenticated ID-based downloads; PostgreSQL holds approval metadata. See [MARKETING.md](MARKETING.md).

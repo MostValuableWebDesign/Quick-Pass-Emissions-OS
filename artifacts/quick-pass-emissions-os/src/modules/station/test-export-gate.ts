@@ -36,7 +36,7 @@ export async function requireActiveTestExport(tx: Tx, hash: string, run: TestExp
 /** A short claim transaction, bounded network work, then token-checked cleanup. No network under DB locks. */
 export async function withStationTestExport<T>(
   actorId: string,
-  kind: "PERFORMANCE" | "DAILY_COUNT",
+  kind: "PERFORMANCE" | "DAILY_COUNT" | "HISTORY",
   work: (run: TestExportRun) => Promise<T>,
 ): Promise<T> {
   const config = stationConfig();

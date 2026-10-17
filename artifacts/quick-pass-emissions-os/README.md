@@ -48,6 +48,8 @@ from business-contact verification. `E2E_ADDRESSES_ONLY=1 npm run test:e2e` veri
 
 ## Quick start
 
+**Historical inspections:** owners can open **Performance → Historical import** to collect up to two years through the existing portal export or CSV/original `.xls` files. Start/Pause/Resume uses bounded foreground requests with PostgreSQL checkpoints, duplicate/conflict review and monthly source-total reconciliation. Returning-vehicle reporting shares Performance dates/employee focus and separates unknown statuses and incomplete coverage. No scheduling subscription or unattended worker is added. Read [INSPECTION_HISTORY.md](INSPECTION_HISTORY.md) for operation, required evidence and limitations.
+
 Use Node.js 22.12+ (22 or 24 LTS recommended), npm, and PostgreSQL 16+. Actual validation for this delivery is recorded in [VERIFICATION.md](VERIFICATION.md).
 
 ```sh

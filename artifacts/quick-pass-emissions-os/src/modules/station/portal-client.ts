@@ -10,6 +10,13 @@ const ORIGIN = "https://gadashboard.com";
 export const REPORT_PATH = "/Applications/TestHistoryVirReprint.aspx";
 const ALLOWED_PATHS = new Set(["/", "/Login.aspx", "/Default.aspx", REPORT_PATH]);
 const LIMIT = 2_000_000;
+export class PortalRetryError extends BusinessError {
+  constructor(public retryAfterMs: number) {
+    super(
+      "Station portal is temporarily unavailable or rate limited. Retry after its saved cooldown.",
+    );
+  }
+}
 type Node = DefaultTreeAdapterMap["node"];
 type Element = DefaultTreeAdapterMap["element"];
 export const portalChildren = (n: Node): Node[] => ("childNodes" in n ? n.childNodes : []);
@@ -122,6 +129,14 @@ export class PortalSession {
       }
       if (!response.ok) {
         await response.body?.cancel();
+        if (response.status === 429 || response.status >= 500) {
+          const raw = response.headers.get("retry-after");
+          const wait =
+            raw && /^\d+$/.test(raw) ? Number(raw) * 1000 : raw ? Date.parse(raw) - Date.now() : 0;
+          throw new PortalRetryError(
+            Number.isFinite(wait) ? Math.max(0, Math.min(wait, 24 * 60 * 60000)) : 0,
+          );
+        }
         throw new BusinessError(
           "Station portal rejected the request. Try later or sign in manually.",
         );
@@ -228,6 +243,46 @@ export async function portalSearch(
 }
 
 const blankCounts = (): Counts => ({ total: 0, passed: 0, failed: 0, aborted: 0, other: 0 });
+
+/** Owner-triggered historical collection uses the existing authenticated bulk-export path. */
+export async function portalHistoryExport(
+  start: string,
+  end: string,
+  config: { username: string; password: string; station: string },
+  session = new PortalSession(),
+) {
+  try {
+    const { parseHistoryExport } = await import("./history/parser");
+    const { page } = await portalSearch(start, config, session, end);
+    if (portalExplicitEmpty(page.html, start, end, config.station))
+      return { rows: [], sourceTotal: 0 };
+    const sourceTotal = expectedPortalTotal(page.html);
+    const form = portalForm(page.html);
+    const button = portalElements(form.document, "input")
+      .map(portalAttributes)
+      .find(
+        (a) =>
+          a.type === "image" &&
+          a.alt === "Export" &&
+          /^ctl00\$MainContent\$gvMain\$ctl\d+\$pgrApplus\$btnExport$/.test(a.name ?? ""),
+      );
+    if (!button)
+      throw new BusinessError(
+        "No verified historical export is available. Export the month manually as CSV or original .xls.",
+      );
+    form.body.set(`${button.name}.x`, "1");
+    form.body.set(`${button.name}.y`, "1");
+    const exported = await session.request(new URL(form.action, page.url).href, form.body);
+    const result = parseHistoryExport(exported.html, config.station);
+    if (result.start !== start || result.end !== end || result.rows.length !== sourceTotal)
+      throw new BusinessError(
+        "Historical bulk export does not match the requested dates and all-page source total. Use a complete manual export.",
+      );
+    return { rows: result.rows, sourceTotal };
+  } finally {
+    session.dispose();
+  }
+}
 
 /** Verified read-only provider response observed on a zero-test business date. */
 export function portalExplicitEmpty(html: string, start: string, end: string, station: string) {

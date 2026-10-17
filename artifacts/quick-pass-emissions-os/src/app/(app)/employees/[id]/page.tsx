@@ -50,8 +50,7 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
           </div>
           <p className="muted">
             Removing an employee makes their record inactive; it does not delete payroll, schedules
-            or operational history. Find them in Removed staff to restore them later. Removing
-            management access also revokes sessions and invitations.
+            or operational history. Find them in Removed staff to restore them later.
           </p>
         </section>
       ) : (

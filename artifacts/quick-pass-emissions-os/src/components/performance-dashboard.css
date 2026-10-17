@@ -1126,7 +1126,7 @@
 .pd-save-layout-button:focus-visible .pd-save-layout-tooltip {
   opacity: 1;
   visibility: visible;
-  transition-delay: 2s, 2s;
+  transition-delay: 1s, 1s;
 }
 .pd-employee-focus label {
   display: flex;

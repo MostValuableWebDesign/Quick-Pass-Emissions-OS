@@ -13,7 +13,6 @@ export function retestHistoryDates(query: DashboardQuery, today: string) {
 
 export function hasVinEvidence(day: PortalDay) {
   return (
-    !day.incompleteRows?.total &&
     (day.verifiedEmpty ||
       (day.testTimes?.length === day.total &&
         day.testTimes.every((test) => !!test.vinHash && !!test.recordKey && !!test.outcome)))
@@ -32,7 +31,8 @@ export function classifyDashboardRetests(snapshots: PortalDay[]): PortalDay[] {
     .map((source) => {
       const day: PortalDay = {
         ...source,
-        rawTotal: source.total + (source.incompleteRows?.total ?? 0),
+        // Incomplete source rows were deliberately excluded; only retained tests count.
+        rawTotal: source.total,
         freeRetests: 0,
         inspectors: source.inspectors.map((inspector) => ({
           ...inspector,

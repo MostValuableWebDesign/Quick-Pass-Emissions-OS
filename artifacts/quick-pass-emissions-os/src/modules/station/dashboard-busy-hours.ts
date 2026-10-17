@@ -12,7 +12,8 @@ export function busyHours(
   let untimedTests = 0;
   for (const date of dates) {
     const day = byDate.get(date);
-    if (!day || day.retestComplete === false || inspector === null) continue;
+    if (!day || day.retestComplete === false || day.incompleteRows?.total || inspector === null)
+      continue;
     const count =
       inspector === undefined
         ? day.total

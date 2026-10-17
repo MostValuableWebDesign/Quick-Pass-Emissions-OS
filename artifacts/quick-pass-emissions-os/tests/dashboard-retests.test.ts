@@ -167,20 +167,25 @@ describe("VIN-based free retests", () => {
     expect(data.series.at(-1)?.cars).toBeNull();
     expect(data.summary.inspectionCadence.medianMinutes).toBeNull();
   });
-  it("shows raw report rows without billing or bridging timing across incomplete evidence", () => {
+  it("excludes incomplete rows while retaining valid counts and warning on the affected date", () => {
     const partial = sourceDay(today, [{ vin: "valid" }]);
     partial.incompleteRows = { total: 1, vehicle: 1, inspector: 0, outcome: 0 };
     expect(dashboardDaySchema.safeParse(partial).success).toBe(true);
-    const data = dashboard([partial]);
-    expect(data.summary.reportedTests).toBe(2);
-    expect(data.summary.cars).toBeNull();
-    expect(data.summary.revenueCents).toBeNull();
-    expect(data.summary.commissionCents).toBeNull();
-    expect(data.summary.payCents).toBeNull();
+    const data = buildDashboard(
+      query,
+      today,
+      classifyDashboardRetests(history([partial])),
+      { ...plan, profiles: plan.profiles.filter((profile) => profile.inspector === "A") },
+    );
+    expect(data.summary.reportedTests).toBe(1);
+    expect(data.summary.cars).toBe(1);
+    expect(data.summary.revenueCents).toBe(2000);
+    expect(data.summary.commissionCents).toBe(0);
+    expect(data.summary.payCents).toBe(23000);
     expect(data.summary.inspectionCadence.medianMinutes).toBeNull();
     expect(data.busyHours.complete).toBe(false);
     expect(data.reportIssues).toEqual([
-      { date: today, reportedTests: 2, rows: 1, vehicle: 1, inspector: 0, outcome: 0 },
+      { date: today, sourceRows: 2, rows: 1, vehicle: 1, inspector: 0, outcome: 0 },
     ]);
     const laterQuery = { ...query, start: addDays(today, 1), end: addDays(today, 1) };
     const laterOnly = buildDashboard(
@@ -198,10 +203,10 @@ describe("VIN-based free retests", () => {
       plan,
     );
     expect(range.reportIssues).toHaveLength(1);
-    expect(dashboard([partial], inspectorKey("A")).summary.reportedTests).toBeNull();
+    expect(dashboard([partial], inspectorKey("A")).summary.reportedTests).toBe(1);
     const later = sourceDay(addDays(today, 1), [{ vin: "new" }]);
     const classified = classifyDashboardRetests(history([partial, later]));
-    expect(classified.find((day) => day.date === later.date)?.retestComplete).toBe(false);
+    expect(classified.find((day) => day.date === later.date)?.retestComplete).toBe(true);
   });
   it("does not turn a report containing only incomplete rows into a verified empty day", () => {
     const partial: PortalDay = {
@@ -211,7 +216,7 @@ describe("VIN-based free retests", () => {
     };
     expect(dashboardDaySchema.safeParse(partial).success).toBe(true);
     const data = dashboard([partial]);
-    expect(data.summary.reportedTests).toBe(2);
+    expect(data.summary.reportedTests).toBe(0);
     expect(data.summary.cars).toBeNull();
     expect(data.summary.revenueCents).toBeNull();
     expect(dashboardDaySchema.safeParse({ ...partial, verifiedEmpty: true }).success).toBe(false);

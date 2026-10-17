@@ -79,4 +79,4 @@ One incomplete source row must not make all otherwise verifiable Performance rep
 
 **Why:** A real export matched its portal total but contained a nonstandard-length VIN; all-or-nothing validation rejected the whole date and repeatedly triggered a station-wide failure cooldown.
 
-**How to apply:** Preserve station/date/format/total/duplicate checks and strict reviewed-import validation. Performance may cache raw row counts with explicit incomplete-evidence counts, but must not guess VIN corrections, paid cars, revenue or commissions. Do not repeatedly re-fetch known incomplete historical evidence on navigation; allow an explicit refresh to retry it.
+**How to apply:** Preserve station/date/format/total/duplicate checks and strict reviewed-import validation. In Performance, exclude incomplete rows from daily/employee counts and VIN lookback, calculate the remaining fully evidenced rows normally, and show a warning only for the affected selected date/range. A later repeat matching only an excluded row may be counted as paid. Do not guess VIN corrections or re-fetch known incomplete historical evidence on navigation; allow an explicit refresh to retry it.

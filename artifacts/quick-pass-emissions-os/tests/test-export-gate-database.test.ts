@@ -238,8 +238,8 @@ const daily = {
     const result = await dashboard.loadDashboard(owners[0], selectedQuery);
     expect(result.sourceStatus).toBe("partial");
     expect(result.error).toBeUndefined();
-    expect(result.summary.reportedTests).toBe(1);
-    expect(result.summary.cars).toBeNull();
+    expect(result.summary.reportedTests).toBe(0);
+    expect(result.summary.cars).toBe(0);
     const remaining =
       (
         await db.stationTestExportState.findUniqueOrThrow({ where: { stationHash: hash } })

@@ -35,12 +35,12 @@ An invalid supporting export does not erase an already verified selected-date ca
 
 A row with an invalid/missing VIN, inspector or result no longer rejects an otherwise
 complete Performance export. Station, date, table layout, duplicate and pager-total
-checks still apply to the whole export. Complete rows are retained as minimized test
-evidence; incomplete rows contribute only non-identifying date/reason counts. The
-headline can show the full raw report-row count, explicitly separate from paid cars.
-Paid-car/revenue/commission projections remain pending for affected dates and their
-required VIN-history windows. Reviewed imports and the separate daily-count export
-remain strict; no test identity, payroll input or VIN repair is fabricated.
+checks still apply to the whole export. Incomplete rows are excluded from daily and
+employee counts, revenue, commissions and the VIN lookback; remaining complete rows
+continue to be classified normally. A later repeat matching only an excluded row may be
+counted as paid. A warning gives the number of excluded rows and the source date.
+Reviewed imports and the separate daily-count export remain strict; no test identity,
+payroll input or VIN repair is fabricated.
 
 These partial Performance snapshots are cached with a visible warning rather than
 throwing an export failure and starting the five-minute failure cooldown. They observe

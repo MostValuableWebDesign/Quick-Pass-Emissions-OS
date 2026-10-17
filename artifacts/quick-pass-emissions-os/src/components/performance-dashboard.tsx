@@ -270,8 +270,8 @@ export function PerformanceDashboard({
         <div className="notice warning" role="status" style={{ margin: 0 }}>
           {data.reportIssues.map((issue) => (
             <div key={issue.date}>
-              {longDate(issue.date)}: {num(issue.reportedTests)} report rows loaded; {issue.rows}{" "}
-              {issue.rows === 1 ? "row needs" : "rows need"} verification (
+              {longDate(issue.date)}: skipped {issue.rows} of {num(issue.sourceRows)} report{" "}
+              {issue.sourceRows === 1 ? "row" : "rows"} (
               {[
                 issue.vehicle ? `${issue.vehicle} invalid or missing VIN` : null,
                 issue.inspector ? `${issue.inspector} missing inspector` : null,
@@ -282,7 +282,8 @@ export function PerformanceDashboard({
               ).
             </div>
           ))}
-          Paid totals remain pending for dates affected by incomplete report evidence.
+          Skipped rows are excluded from counts and 30-day retest matching. A later repeat
+          of an excluded VIN may be counted as paid.
         </div>
       )}
 

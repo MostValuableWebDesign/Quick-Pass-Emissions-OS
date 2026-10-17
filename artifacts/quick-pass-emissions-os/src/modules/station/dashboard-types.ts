@@ -151,7 +151,7 @@ export type DashboardData = {
   knownIncompleteDates?: string[];
   reportIssues?: {
     date: string;
-    reportedTests: number;
+    sourceRows: number;
     rows: number;
     vehicle: number;
     inspector: number;

@@ -278,8 +278,7 @@ export function buildDashboard(
     summary: {
       reportedTests:
         selectedDates.every((date) => byDate.has(date)) &&
-        (!query.employee ||
-          (!!selectedInspector && selectedSnapshots.every((day) => !day.incompleteRows?.total)))
+        (!query.employee || !!selectedInspector)
           ? selectedSnapshots.reduce((sum, day) => {
               const counts = query.employee
                 ? day.inspectors.find((person) => person.inspector === selectedInspector)
@@ -350,7 +349,7 @@ export function buildDashboard(
         ? [
             {
               date: day.date,
-              reportedTests: day.rawTotal ?? day.total + day.incompleteRows.total,
+              sourceRows: (day.rawTotal ?? day.total) + day.incompleteRows.total,
               rows: day.incompleteRows.total,
               vehicle: day.incompleteRows.vehicle,
               inspector: day.incompleteRows.inspector,

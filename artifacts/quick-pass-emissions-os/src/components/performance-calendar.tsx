@@ -270,18 +270,6 @@ export function PerformanceCalendar({ start, end, today, employee, trendDays }: 
               />
             </label>
             <div className="pd-cal-acts">
-              <button
-                type="button"
-                className="button button-outline button-sm"
-                onClick={() => {
-                  setSel({ start: today, end: today });
-                  setView({ y: t.y, m: t.m });
-                  setFocusDay(today);
-                }}
-                data-testid="button-cal-today"
-              >
-                Today
-              </button>
               <button className="button button-primary button-sm" data-testid="button-apply-range">
                 Apply dates
               </button>

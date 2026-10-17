@@ -39,7 +39,7 @@ describe("Performance calendar controls", () => {
     const markup = renderCalendar("2025-03-10", "2025-03-15");
     expect(markup).toContain(">From</span>");
     expect(markup).toContain(">Through</span>");
-    expect(markup).toContain(">Today</button>");
+    expect(markup).not.toContain(">Today</button>");
     expect(markup).toContain("Apply dates");
   });
 });

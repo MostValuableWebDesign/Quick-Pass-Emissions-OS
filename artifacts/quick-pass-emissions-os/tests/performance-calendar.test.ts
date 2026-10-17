@@ -41,6 +41,8 @@ describe("Performance calendar controls", () => {
     expect(markup).toContain(">Through</span>");
     expect(markup).not.toContain(">Today</button>");
     expect(markup).toContain("Apply dates");
+    expect(markup).not.toContain("Report period");
+    expect(markup).not.toContain("Mar 10, 2025 to Mar 15, 2025");
   });
 });
 

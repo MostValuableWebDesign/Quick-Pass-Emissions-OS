@@ -211,24 +211,16 @@ export function PerformanceCalendar({ start, end, today, employee, trendDays }: 
         <div className="pd-cal-scope-title">
           {mode === "single" ? "Selected date" : "Report scope"}
         </div>
-        <div className="pd-cal-sum" data-testid="text-cal-selection">
-          {mode === "single" ? (
-            <>
-              <span className="lab">Date</span>
-              <strong className="pd-num">{label(out.start)}</strong>
-            </>
-          ) : (
-            <>
-              <span className="lab">Report period</span>
-              <strong className="pd-num">
-                {pending
-                  ? `${label(sel.start)} to ...`
-                  : `${label(out.start)} to ${label(out.end)}`}
-              </strong>
-              {pending && <small>Pick an end date, or Apply for one day.</small>}
-            </>
-          )}
-        </div>
+        {mode === "single" ? (
+          <div className="pd-cal-sum" data-testid="text-cal-selection">
+            <span className="lab">Date</span>
+            <strong className="pd-num">{label(out.start)}</strong>
+          </div>
+        ) : (
+          pending && (
+            <small className="pd-cal-range-hint">Select an end date, or Apply for one day.</small>
+          )
+        )}
         <input type="hidden" name="employee" value={employee ?? ""} />
         <input type="hidden" name="trendDays" value={trendDays} />
         {mode === "single" ? (

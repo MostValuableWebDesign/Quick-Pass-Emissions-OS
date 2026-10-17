@@ -392,6 +392,10 @@
   font-size: 11px;
   color: var(--muted);
 }
+.pd-cal-range-hint {
+  color: var(--muted);
+  font-size: 11px;
+}
 .pd-cal-acts {
   display: flex;
   gap: 8px;

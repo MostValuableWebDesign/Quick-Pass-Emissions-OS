@@ -74,3 +74,9 @@ Selected-date retrieval takes priority over unrelated supporting trend and retes
 **Why:** A valid single-date export was unavailable in Performance because it was bundled with a neighboring date containing incomplete source evidence. A generic range error concealed the actual failing query.
 
 **How to apply:** Keep selected dates isolated from supporting batches, preserve successful caches when later requests fail, and expose controlled verification reasons with the actual query dates. Raw report rows are not paid-car totals while 30-day VIN history is incomplete.
+
+One incomplete source row must not make all otherwise verifiable Performance report rows unavailable.
+
+**Why:** A real export matched its portal total but contained a nonstandard-length VIN; all-or-nothing validation rejected the whole date and repeatedly triggered a station-wide failure cooldown.
+
+**How to apply:** Preserve station/date/format/total/duplicate checks and strict reviewed-import validation. Performance may cache raw row counts with explicit incomplete-evidence counts, but must not guess VIN corrections, paid cars, revenue or commissions. Do not repeatedly re-fetch known incomplete historical evidence on navigation; allow an explicit refresh to retry it.

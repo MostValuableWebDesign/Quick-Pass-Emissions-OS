@@ -167,6 +167,45 @@ describe("VIN-based free retests", () => {
     expect(data.series.at(-1)?.cars).toBeNull();
     expect(data.summary.inspectionCadence.medianMinutes).toBeNull();
   });
+  it("shows raw report rows without billing or bridging timing across incomplete evidence", () => {
+    const partial = sourceDay(today, [{ vin: "valid" }]);
+    partial.incompleteRows = { total: 1, vehicle: 1, inspector: 0, outcome: 0 };
+    expect(dashboardDaySchema.safeParse(partial).success).toBe(true);
+    const data = dashboard([partial]);
+    expect(data.summary.reportedTests).toBe(2);
+    expect(data.summary.cars).toBeNull();
+    expect(data.summary.revenueCents).toBeNull();
+    expect(data.summary.commissionCents).toBeNull();
+    expect(data.summary.payCents).toBeNull();
+    expect(data.summary.inspectionCadence.medianMinutes).toBeNull();
+    expect(data.busyHours.complete).toBe(false);
+    expect(data.reportIssues).toEqual([
+      { date: today, reportedTests: 2, rows: 1, vehicle: 1, inspector: 0, outcome: 0 },
+    ]);
+    expect(dashboard([partial], inspectorKey("A")).summary.reportedTests).toBeNull();
+    const later = sourceDay(addDays(today, 1), [{ vin: "new" }]);
+    const classified = classifyDashboardRetests(history([partial, later]));
+    expect(classified.find((day) => day.date === later.date)?.retestComplete).toBe(false);
+  });
+  it("does not turn a report containing only incomplete rows into a verified empty day", () => {
+    const partial: PortalDay = {
+      ...empty(today),
+      verifiedEmpty: false,
+      incompleteRows: { total: 2, vehicle: 2, inspector: 0, outcome: 0 },
+    };
+    expect(dashboardDaySchema.safeParse(partial).success).toBe(true);
+    const data = dashboard([partial]);
+    expect(data.summary.reportedTests).toBe(2);
+    expect(data.summary.cars).toBeNull();
+    expect(data.summary.revenueCents).toBeNull();
+    expect(dashboardDaySchema.safeParse({ ...partial, verifiedEmpty: true }).success).toBe(false);
+    expect(
+      dashboardDaySchema.safeParse({
+        ...partial,
+        incompleteRows: { total: 2, vehicle: 1, inspector: 0, outcome: 0 },
+      }).success,
+    ).toBe(false);
+  });
   it("includes free retests in pace while leaving revenue and commission counts unchanged", () => {
     const source = sourceDay(today, [
       { vin: "same", minute: 540 },

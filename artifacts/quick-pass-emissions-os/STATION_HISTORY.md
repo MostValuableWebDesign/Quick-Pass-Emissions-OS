@@ -33,6 +33,21 @@ When the selected report is verified but 30-day VIN history is incomplete, Perfo
 the raw report-row total separately while paid-car counts and revenue remain pending.
 An invalid supporting export does not erase an already verified selected-date cache.
 
+A row with an invalid/missing VIN, inspector or result no longer rejects an otherwise
+complete Performance export. Station, date, table layout, duplicate and pager-total
+checks still apply to the whole export. Complete rows are retained as minimized test
+evidence; incomplete rows contribute only non-identifying date/reason counts. The
+headline can show the full raw report-row count, explicitly separate from paid cars.
+Paid-car/revenue/commission projections remain pending for affected dates and their
+required VIN-history windows. Reviewed imports and the separate daily-count export
+remain strict; no test identity, payroll input or VIN repair is fabricated.
+
+These partial Performance snapshots are cached with a visible warning rather than
+throwing an export failure and starting the five-minute failure cooldown. They observe
+the normal successful-request cooldown. Historical incomplete rows are not retried on
+every page visit; manual Refresh can retry them, and stale current-day data can still
+refresh as normal.
+
 All test-export network requests share a 45-second operation deadline. The reservation
 expires after two minutes if a process disappears; token checks prevent an expired run
 from storing results or releasing a newer reservation. Network work runs outside database

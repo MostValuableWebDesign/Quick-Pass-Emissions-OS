@@ -215,6 +215,50 @@ const daily = {
     expect(state.cooldownUntil.getTime() - Date.now()).toBeGreaterThan(295_000);
   });
 
+  it("caches incomplete row evidence without a failure cooldown or automatic retry loop", async () => {
+    const date = addDays(today, -3);
+    const selectedQuery = { ...query, start: date, end: date };
+    const partial: PortalDay = {
+      ...empty(date),
+      verifiedEmpty: false,
+      incompleteRows: { total: 1, vehicle: 1, inspector: 0, outcome: 0 },
+    };
+    // Complete all surrounding history so this test isolates incomplete-row behavior.
+    await db.auditLog.createMany({
+      data: calendarDays(addDays(date, -36), today)
+        .filter((day) => day !== date)
+        .map((day) => ({
+          actorId: owners[0],
+          action: "STATION_PERFORMANCE_DAY_CACHED",
+          entityId: hash,
+          details: empty(day),
+        })),
+    });
+    portal.range.mockResolvedValue([partial]);
+    const result = await dashboard.loadDashboard(owners[0], selectedQuery);
+    expect(result.sourceStatus).toBe("partial");
+    expect(result.error).toBeUndefined();
+    expect(result.summary.reportedTests).toBe(1);
+    expect(result.summary.cars).toBeNull();
+    const remaining =
+      (
+        await db.stationTestExportState.findUniqueOrThrow({ where: { stationHash: hash } })
+      ).cooldownUntil.getTime() - Date.now();
+    expect(remaining).toBeGreaterThan(55_000);
+    expect(remaining).toBeLessThanOrEqual(60_000);
+    portal.range.mockClear();
+    const cached = await dashboard.loadDashboard(owners[1], selectedQuery);
+    expect(cached.sourceStatus).toBe("cached");
+    expect(cached.reportIssues).toEqual(result.reportIssues);
+    expect(portal.range).not.toHaveBeenCalled();
+    await expireCooldown();
+    portal.range.mockResolvedValue([empty(date)]);
+    const retry = await dashboard.loadDashboard(owners[0], selectedQuery, true);
+    expect(portal.range.mock.calls[0].slice(0, 2)).toEqual([date, date]);
+    expect(retry.reportIssues).toEqual([]);
+    expect(retry.summary.cars).toBe(0);
+  });
+
   it("counts single-day empty checks in the same request budget and never invents zeros", async () => {
     portal.range.mockImplementation(async (start: string, end: string) =>
       start === end ? [empty(start)] : [],

@@ -49,7 +49,11 @@ export function range(start: string, end: string) {
   return { start, end };
 }
 /** Parses the observed HTML-as-XLS report without executing markup or retaining its bytes. */
-export function parseReport(body: string, configuredStation: string) {
+function parseOriginalReport(
+  body: string,
+  configuredStation: string,
+  allowIncompleteEvidence = false,
+) {
   requireRule(
     Buffer.byteLength(body, "utf8") <= 2_000_000,
     "Report limit is 2 MB. Split the date range.",
@@ -93,22 +97,43 @@ export function parseReport(body: string, configuredStation: string) {
     data.length > 0 && data.length <= 10000,
     "No usable test rows, or report exceeds 10,000 rows. Empty reports require provider verification.",
   );
-  const parsed = data.map((r): ReportRow => {
+  const incompleteRows: {
+    businessDate: string;
+    vehicle: boolean;
+    inspector: boolean;
+    outcome: boolean;
+  }[] = [];
+  const fingerprints = new Set<string>();
+  const parsed: ReportRow[] = [];
+  for (const r of data) {
     requireRule(
       r.every((v) => v.length <= 160),
       "Unsupported report field length.",
-    );
-    requireRule(
-      /^[A-Za-z0-9]{17}$/.test(r[0]) && r[3] && r[5],
-      "Missing vehicle, inspector or outcome evidence.",
     );
     const date = sourceDate(r[2]);
     requireRule(
       date >= bounds.start && date <= bounds.end,
       "Test date is outside report metadata.",
     );
-    return {
-      fingerprint: digest(JSON.stringify(r.slice(0, 6))),
+    const fingerprint = digest(JSON.stringify(r.slice(0, 6)));
+    requireRule(
+      !fingerprints.has(fingerprint),
+      "Indistinguishable duplicate report rows. Obtain record-ID evidence before importing; do not guess their identity.",
+    );
+    fingerprints.add(fingerprint);
+    const issue = {
+      businessDate: date,
+      vehicle: !/^[A-Za-z0-9]{17}$/.test(r[0]),
+      inspector: !r[3],
+      outcome: !r[5],
+    };
+    if (issue.vehicle || issue.inspector || issue.outcome) {
+      requireRule(allowIncompleteEvidence, "Missing vehicle, inspector or outcome evidence.");
+      incompleteRows.push(issue);
+      continue;
+    }
+    parsed.push({
+      fingerprint,
       sourceDate: r[2],
       businessDate: date,
       inspector: r[3],
@@ -116,11 +141,18 @@ export function parseReport(body: string, configuredStation: string) {
       certificate: r[4],
       vehicleSuffix: r[0].slice(-4),
       vehicleHash: digest(r[0].toUpperCase()),
-    };
-  });
-  requireRule(
-    new Set(parsed.map((r) => r.fingerprint)).size === parsed.length,
-    "Indistinguishable duplicate report rows. Obtain record-ID evidence before importing; do not guess their identity.",
-  );
-  return { ...bounds, rows: parsed, digest: digest(body) };
+    });
+  }
+  return { ...bounds, rows: parsed, incompleteRows, digest: digest(body) };
+}
+
+/** Reviewed imports still require complete evidence for every source row. */
+export function parseReport(body: string, configuredStation: string) {
+  const report = parseOriginalReport(body, configuredStation);
+  return { start: report.start, end: report.end, rows: report.rows, digest: report.digest };
+}
+
+/** Performance may retain a verified raw row count without inventing missing test evidence. */
+export function parsePerformanceReport(body: string, configuredStation: string) {
+  return parseOriginalReport(body, configuredStation, true);
 }

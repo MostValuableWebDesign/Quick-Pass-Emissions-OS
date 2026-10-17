@@ -14,6 +14,8 @@ export type PortalDay = Counts & {
   inspectors: (Counts & { inspector: string })[];
   /** An explicit provider empty response, not an absence inferred from an import. */
   verifiedEmpty: boolean;
+  /** Rows counted against the portal total but not usable as verified test identities. */
+  incompleteRows?: { total: number; vehicle: number; inspector: number; outcome: number };
   /** Derived on read, never trusted from persisted aggregate snapshots. */
   retestComplete?: boolean;
   /** Source-local minute precision; absent in legacy count-only caches. */
@@ -146,6 +148,14 @@ export type DashboardData = {
   retestMissingDates: string[];
   syncedAt: string | null;
   sourceStatus?: SourceRefreshStatus;
+  reportIssues?: {
+    date: string;
+    reportedTests: number;
+    rows: number;
+    vehicle: number;
+    inspector: number;
+    outcome: number;
+  }[];
   error?: string;
 };
 export type DashboardState = {

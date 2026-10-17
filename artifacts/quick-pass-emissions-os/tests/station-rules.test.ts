@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { parseReport, sourceDate, range } from "../src/modules/station/report";
+import {
+  parseReport,
+  parsePerformanceReport,
+  sourceDate,
+  range,
+} from "../src/modules/station/report";
 import {
   weekBounds,
   operatingMinutes,
@@ -40,6 +45,27 @@ describe("Verified station-report format and conservative dates", () => {
       /Missing/,
     );
     expect(() => parseReport("x".repeat(2000001), fixtureStation)).toThrow(/2 MB/);
+  });
+  it("retains only non-identifying evidence counts for incomplete Performance rows", () => {
+    for (const [original, replacement, issue] of [
+      ["1SYNTHETIC0000001", "1SYNTHETIC000001", "vehicle"],
+      ["Fixture Inspector", "", "inspector"],
+      [">Pass<", "><", "outcome"],
+    ] as const) {
+      const body = reportFixture("2026-10-09").replace(original, replacement);
+      const parsed = parsePerformanceReport(body, fixtureStation);
+      expect(parsed.rows).toEqual([]);
+      expect(parsed.incompleteRows).toEqual([
+        {
+          businessDate: "2026-10-09",
+          vehicle: issue === "vehicle",
+          inspector: issue === "inspector",
+          outcome: issue === "outcome",
+        },
+      ]);
+      expect(JSON.stringify(parsed)).not.toMatch(/1SYNTHETIC|Fixture Inspector|SYN000/);
+      expect(() => parseReport(body, fixtureStation)).toThrow(/Missing/);
+    }
   });
   it("validates inclusive leap/DST ranges without inventing a portal timezone instant", () => {
     expect(range("2024-02-29", "2024-03-10")).toEqual({ start: "2024-02-29", end: "2024-03-10" });

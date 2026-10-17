@@ -79,7 +79,6 @@ describe("read-only station portal export totals", () => {
   it.each([
     ["station metadata", report(3, "OTHER"), "Report station does not match"],
     ["column layout", report().replace("Issued By", "Inspector ID"), "Report columns changed"],
-    ["vehicle evidence", report().replace("1HGCM82633A000000", ""), "Missing vehicle"],
   ])("explains a single-day %s failure without blaming the range", async (_, body, reason) => {
     for (const pull of [
       (session: PortalSession) => portalRangeDays(day, day, config, session),
@@ -95,6 +94,39 @@ describe("read-only station portal export totals", () => {
       );
       expect(transport).toHaveBeenCalledTimes(6);
     }
+  });
+
+  it.each([
+    ["a short VIN", report().replace("1HGCM82633A000000", "1HGCM82633A00000"), "vehicle"],
+    ["a missing VIN", report().replace("1HGCM82633A000000", ""), "vehicle"],
+    ["a missing inspector", report().replace("Fixture inspector", ""), "inspector"],
+    ["a missing outcome", report().replace(">Pass<", "><"), "outcome"],
+  ])(
+    "loads partial Performance evidence for %s without inventing paid records",
+    async (_, body, issue) => {
+      const days = await portalRangeDays(day, day, config, fixture(body).session);
+      expect(days).toHaveLength(1);
+      expect(days[0].total).toBe(2);
+      expect(days[0].testTimes).toHaveLength(2);
+      expect(days[0].incompleteRows).toEqual({
+        total: 1,
+        vehicle: issue === "vehicle" ? 1 : 0,
+        inspector: issue === "inspector" ? 1 : 0,
+        outcome: issue === "outcome" ? 1 : 0,
+      });
+      expect(days[0].total + days[0].incompleteRows!.total).toBe(3);
+      expect(JSON.stringify(days)).not.toContain("1HGCM");
+      await expect(portalDailyTotal(day, config, fixture(body).session)).rejects.toThrow(
+        "Missing vehicle, inspector or outcome evidence",
+      );
+    },
+  );
+
+  it("still rejects a partial report if its complete-plus-incomplete row total does not match the pager", async () => {
+    const { session } = fixture(report().replace("1HGCM82633A000000", ""), 4);
+    await expect(portalRangeDays(day, day, config, session)).rejects.toThrow(
+      "Station export totals or dates changed",
+    );
   });
 
   it("includes the actual background range when a supporting history export fails", async () => {

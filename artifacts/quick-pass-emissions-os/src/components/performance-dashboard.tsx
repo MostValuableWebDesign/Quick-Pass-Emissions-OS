@@ -266,6 +266,25 @@ export function PerformanceDashboard({
           {message ?? data.error}
         </div>
       )}
+      {!!data.reportIssues?.length && (
+        <div className="notice warning" role="status" style={{ margin: 0 }}>
+          {data.reportIssues.map((issue) => (
+            <div key={issue.date}>
+              {longDate(issue.date)}: {num(issue.reportedTests)} report rows loaded; {issue.rows}{" "}
+              {issue.rows === 1 ? "row needs" : "rows need"} verification (
+              {[
+                issue.vehicle ? `${issue.vehicle} invalid or missing VIN` : null,
+                issue.inspector ? `${issue.inspector} missing inspector` : null,
+                issue.outcome ? `${issue.outcome} missing result` : null,
+              ]
+                .filter(Boolean)
+                .join(", ")}
+              ).
+            </div>
+          ))}
+          Paid totals remain pending for dates affected by incomplete report evidence.
+        </div>
+      )}
 
       <section className="pd-hero" id="performance-headline" aria-label="Headline numbers">
         <div className="pd-today">
@@ -274,7 +293,7 @@ export function PerformanceDashboard({
             {filtered ? empName : "STATION"}
           </div>
           <strong className="pd-num" data-testid="text-today-total">
-            {num(s.cars)}
+            {num(s.cars ?? s.reportedTests)}
           </strong>
           {s.cars !== null ? (
             <>
@@ -313,7 +332,11 @@ export function PerformanceDashboard({
           ) : (
             <small>
               {s.reportedTests != null
-                ? `${num(s.reportedTests)} report rows loaded. Paid car count pending 30-day retest history.`
+                ? `${num(s.reportedTests)} report rows loaded. ${
+                    data.reportIssues?.length
+                      ? "Paid totals pending report verification."
+                      : "Paid car count pending 30-day retest history."
+                  }`
                 : loading
                   ? "Fetching selected counts..."
                   : "Selected counts not available yet."}

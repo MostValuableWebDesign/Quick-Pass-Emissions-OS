@@ -26,6 +26,14 @@ export const dashboardDaySchema = z
     retrievedAt: z.string().datetime(),
     inspectors: z.array(inspector).max(1000),
     verifiedEmpty: z.boolean(),
+    incompleteRows: z
+      .object({ total: count.min(1), vehicle: count, inspector: count, outcome: count })
+      .refine(
+        (rows) =>
+          [rows.vehicle, rows.inspector, rows.outcome].every((n) => n <= rows.total) &&
+          rows.vehicle + rows.inspector + rows.outcome >= rows.total,
+      )
+      .optional(),
     testTimes: z
       .array(
         z.object({
@@ -56,7 +64,8 @@ export const dashboardDaySchema = z
           d[field as keyof typeof counts] ===
           d.inspectors.reduce((n, i) => n + i[field as keyof typeof counts], 0),
       ) &&
-      (d.total > 0 ? !d.verifiedEmpty : d.verifiedEmpty) &&
+      d.total + (d.incompleteRows?.total ?? 0) <= 10000 &&
+      (d.total + (d.incompleteRows?.total ?? 0) > 0 ? !d.verifiedEmpty : d.verifiedEmpty) &&
       (!d.testTimes ||
         (d.testTimes.length === d.total &&
           d.inspectors.every(
@@ -270,10 +279,17 @@ export async function loadDashboard(
     ...initial.timingMissingDates,
     ...initial.retestMissingDates,
   ];
-  const needed =
+  const incompleteDates = new Set(initial.reportIssues?.map((issue) => issue.date));
+  const needed = (
     refresh && missingSources.length === 0
       ? dashboardDates(query, initial.today)
-      : [...missingSources, ...initial.staleDates];
+      : [...missingSources, ...initial.staleDates]
+  ).filter(
+    (date) =>
+      refresh ||
+      !incompleteDates.has(date) ||
+      (date === initial.today && initial.staleDates.includes(date)),
+  );
   if (!needed.length) return { ...initial, sourceStatus: "cached" };
   let sourceStarted = false;
   let sourceSaved = false;
@@ -344,7 +360,9 @@ export async function loadDashboard(
         : sourceBlocked
           ? "blocked"
           : "failed"
-      : "source",
+      : result.reportIssues?.length
+        ? "partial"
+        : "source",
   };
 }
 

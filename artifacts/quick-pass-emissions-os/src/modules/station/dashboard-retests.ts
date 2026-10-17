@@ -13,9 +13,10 @@ export function retestHistoryDates(query: DashboardQuery, today: string) {
 
 export function hasVinEvidence(day: PortalDay) {
   return (
-    day.verifiedEmpty ||
-    (day.testTimes?.length === day.total &&
-      day.testTimes.every((test) => !!test.vinHash && !!test.recordKey && !!test.outcome))
+    !day.incompleteRows?.total &&
+    (day.verifiedEmpty ||
+      (day.testTimes?.length === day.total &&
+        day.testTimes.every((test) => !!test.vinHash && !!test.recordKey && !!test.outcome)))
   );
 }
 
@@ -31,7 +32,7 @@ export function classifyDashboardRetests(snapshots: PortalDay[]): PortalDay[] {
     .map((source) => {
       const day: PortalDay = {
         ...source,
-        rawTotal: source.total,
+        rawTotal: source.total + (source.incompleteRows?.total ?? 0),
         freeRetests: 0,
         inspectors: source.inspectors.map((inspector) => ({
           ...inspector,
@@ -39,7 +40,8 @@ export function classifyDashboardRetests(snapshots: PortalDay[]): PortalDay[] {
           freeRetests: 0,
         })),
         testTimes: [],
-        paceTestTimes: source.testTimes,
+        // Unknown inspector/timing evidence must not bridge gaps between valid rows.
+        paceTestTimes: source.incompleteRows?.total ? [] : source.testTimes,
         retestComplete:
           source.verifiedEmpty ||
           (hasVinEvidence(source) &&

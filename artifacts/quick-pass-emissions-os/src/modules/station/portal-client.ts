@@ -1,7 +1,7 @@
 import { parse, type DefaultTreeAdapterMap } from "parse5";
 import { businessDate } from "@/lib/time";
 import { BusinessError } from "../phase2";
-import { parseReport } from "./report";
+import { parseReport, parsePerformanceReport } from "./report";
 import { reportMinute } from "./inspection-cadence";
 import { range } from "./report";
 import type { PortalDay, Counts } from "./dashboard-types";
@@ -259,9 +259,17 @@ export function portalExplicitEmpty(html: string, start: string, end: string, st
 }
 
 /** Only controlled parser errors may reach the UI; never echo source HTML or row values. */
-function parsePortalExport(body: string, station: string, start: string, end = start) {
+function parsePortalExport(
+  body: string,
+  station: string,
+  start: string,
+  end = start,
+  performance = false,
+) {
   try {
-    return parseReport(body, station);
+    return performance
+      ? parsePerformanceReport(body, station)
+      : { ...parseReport(body, station), incompleteRows: [] };
   } catch (error) {
     const scope = start === end ? start : `${start} to ${end}`;
     const reason =
@@ -308,24 +316,39 @@ export async function portalRangeDays(
     form.body.set(`${exportButton.name}.x`, "1");
     form.body.set(`${exportButton.name}.y`, "1");
     const exported = await session.request(new URL(form.action, page.url).href, form.body);
-    const report = parsePortalExport(exported.html, config.station, start, end);
-    if (report.start !== start || report.end !== end || report.rows.length !== expected)
+    const report = parsePortalExport(exported.html, config.station, start, end, true);
+    if (
+      report.start !== start ||
+      report.end !== end ||
+      report.rows.length + report.incompleteRows.length !== expected
+    )
       throw new BusinessError("Station export totals or dates changed. Refresh to try again.");
     const days = new Map<string, PortalDay>();
     const retrievedAt = new Date().toISOString();
-    for (const row of report.rows) {
-      let day = days.get(row.businessDate);
+    const dayFor = (date: string) => {
+      let day = days.get(date);
       if (!day) {
         day = {
-          date: row.businessDate,
+          date,
           ...blankCounts(),
           inspectors: [],
           testTimes: [],
           retrievedAt,
           verifiedEmpty: false,
         };
-        days.set(row.businessDate, day);
+        days.set(date, day);
       }
+      return day;
+    };
+    for (const row of report.incompleteRows) {
+      const day = dayFor(row.businessDate);
+      day.incompleteRows ??= { total: 0, vehicle: 0, inspector: 0, outcome: 0 };
+      day.incompleteRows.total++;
+      for (const field of ["vehicle", "inspector", "outcome"] as const)
+        if (row[field]) day.incompleteRows[field]++;
+    }
+    for (const row of report.rows) {
+      const day = dayFor(row.businessDate);
       let inspector = day.inspectors.find((g) => g.inspector === row.inspector);
       if (!inspector) {
         inspector = { inspector: row.inspector, ...blankCounts() };

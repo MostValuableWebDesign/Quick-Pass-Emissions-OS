@@ -277,7 +277,9 @@ export function buildDashboard(
         : null,
     summary: {
       reportedTests:
-        selectedDates.every((date) => byDate.has(date)) && (!query.employee || !!selectedInspector)
+        selectedDates.every((date) => byDate.has(date)) &&
+        (!query.employee ||
+          (!!selectedInspector && selectedSnapshots.every((day) => !day.incompleteRows?.total)))
           ? selectedSnapshots.reduce((sum, day) => {
               const counts = query.employee
                 ? day.inspectors.find((person) => person.inspector === selectedInspector)
@@ -340,6 +342,20 @@ export function buildDashboard(
       .filter((d) => d.total > 0 && !d.testTimes)
       .map((d) => d.date),
     retestMissingDates: [],
+    reportIssues: snapshots.flatMap((day) =>
+      day.incompleteRows
+        ? [
+            {
+              date: day.date,
+              reportedTests: day.rawTotal ?? day.total + day.incompleteRows.total,
+              rows: day.incompleteRows.total,
+              vehicle: day.incompleteRows.vehicle,
+              inspector: day.incompleteRows.inspector,
+              outcome: day.incompleteRows.outcome,
+            },
+          ]
+        : [],
+    ),
     syncedAt: snapshots.length
       ? snapshots
           .map((d) => d.retrievedAt)

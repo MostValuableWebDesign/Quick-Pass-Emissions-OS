@@ -258,6 +258,20 @@ export function portalExplicitEmpty(html: string, start: string, end: string, st
   );
 }
 
+/** Only controlled parser errors may reach the UI; never echo source HTML or row values. */
+function parsePortalExport(body: string, station: string, start: string, end = start) {
+  try {
+    return parseReport(body, station);
+  } catch (error) {
+    const scope = start === end ? start : `${start} to ${end}`;
+    const reason =
+      error instanceof BusinessError
+        ? error.message
+        : "The export format or a report date is invalid.";
+    throw new BusinessError(`Station export for ${scope} could not be verified. ${reason}`);
+  }
+}
+
 /** Bounded range export. Cache counts and hashed VIN/record evidence, never full VINs. */
 export async function portalRangeDays(
   start: string,
@@ -294,12 +308,7 @@ export async function portalRangeDays(
     form.body.set(`${exportButton.name}.x`, "1");
     form.body.set(`${exportButton.name}.y`, "1");
     const exported = await session.request(new URL(form.action, page.url).href, form.body);
-    let report: ReturnType<typeof parseReport>;
-    try {
-      report = parseReport(exported.html, config.station);
-    } catch {
-      throw new BusinessError("Station export could not be verified. Try a smaller date range.");
-    }
+    const report = parsePortalExport(exported.html, config.station, start, end);
     if (report.start !== start || report.end !== end || report.rows.length !== expected)
       throw new BusinessError("Station export totals or dates changed. Refresh to try again.");
     const days = new Map<string, PortalDay>();
@@ -402,14 +411,7 @@ export async function portalDailyTotal(
     form.body.set(`${exportButton.name}.x`, "1");
     form.body.set(`${exportButton.name}.y`, "1");
     const exported = await session.request(new URL(form.action, page.url).href, form.body);
-    let report: ReturnType<typeof parseReport>;
-    try {
-      report = parseReport(exported.html, config.station);
-    } catch {
-      throw new BusinessError(
-        "Portal export could not be verified. Use an original manual export.",
-      );
-    }
+    const report = parsePortalExport(exported.html, config.station, date);
     if (report.start !== date || report.end !== date)
       throw new BusinessError(
         "Portal report dates did not match the requested day. No total shown.",

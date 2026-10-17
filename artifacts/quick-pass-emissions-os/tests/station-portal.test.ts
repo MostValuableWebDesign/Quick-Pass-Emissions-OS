@@ -3,6 +3,7 @@ import {
   PortalSession,
   expectedPortalTotal,
   portalDailyTotal,
+  portalRangeDays,
   portalSearch,
 } from "../src/modules/station/portal-client";
 
@@ -68,6 +69,49 @@ function fixture(exported = report(), total = 3) {
 }
 
 describe("read-only station portal export totals", () => {
+  it("accepts a verified single-date Performance export", async () => {
+    const { session } = fixture();
+    const days = await portalRangeDays(day, day, config, session);
+    expect(days).toHaveLength(1);
+    expect(days[0]).toMatchObject({ date: day, total: 3, passed: 1, failed: 1, aborted: 1 });
+  });
+
+  it.each([
+    ["station metadata", report(3, "OTHER"), "Report station does not match"],
+    ["column layout", report().replace("Issued By", "Inspector ID"), "Report columns changed"],
+    ["vehicle evidence", report().replace("1HGCM82633A000000", ""), "Missing vehicle"],
+  ])("explains a single-day %s failure without blaming the range", async (_, body, reason) => {
+    for (const pull of [
+      (session: PortalSession) => portalRangeDays(day, day, config, session),
+      (session: PortalSession) => portalDailyTotal(day, config, session),
+    ]) {
+      const { session, transport } = fixture(body);
+      const error = await pull(session).catch((cause: Error) => cause);
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toContain(`Station export for ${day}`);
+      expect((error as Error).message).toContain(reason);
+      expect((error as Error).message).not.toMatch(
+        /smaller date range|fixture-user|fixture-only-password|1HGCM|OTHER|<table|private-fixture/,
+      );
+      expect(transport).toHaveBeenCalledTimes(6);
+    }
+  });
+
+  it("includes the actual background range when a supporting history export fails", async () => {
+    const { session } = fixture(report(3, "OTHER"));
+    await expect(portalRangeDays(day, "2026-01-16", config, session)).rejects.toThrow(
+      "Station export for 2026-01-15 to 2026-01-16 could not be verified. Report station does not match the configured station.",
+    );
+  });
+
+  it("keeps unexpected parser details private", async () => {
+    const body = report().replaceAll("01/15/2026 09:01 AM", "01/32/2026 09:01 AM");
+    const { session } = fixture(body);
+    await expect(portalRangeDays(day, day, config, session)).rejects.toThrow(
+      `Station export for ${day} could not be verified. The export format or a report date is invalid.`,
+    );
+  });
+
   it("counts the complete export, scoped to the configured station and one date", async () => {
     const { transport, session } = fixture();
     const total = await portalDailyTotal(day, config, session);

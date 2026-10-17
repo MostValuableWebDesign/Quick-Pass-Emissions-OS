@@ -15,14 +15,19 @@ test("retired finance screens are removed and Automation is independent of Setti
   await expect(nav.getByText("AUTOMATION", { exact: true })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Operational finance", exact: true })).toHaveCount(0);
   await expect(nav.getByRole("link", { name: "Finance reports", exact: true })).toHaveCount(0);
-  const automation = nav.getByRole("link", { name: "Automation settings", exact: true });
-  await expect(automation).toHaveAttribute("href", "/automation");
+  const automation = nav.getByRole("button", { name: "Automation settings", exact: true });
+  await expect(automation).toHaveAttribute("aria-expanded", "false");
+  await expect(nav.getByRole("link", { name: "Automation settings", exact: true })).toHaveCount(0);
   await automation.click();
-  await expect(
-    page.getByRole("heading", { name: "Automation configuration", exact: true }),
-  ).toBeVisible();
-  await expect(automation).toHaveAttribute("aria-current", "page");
-  await nav.getByRole("link", { name: "Daily owner email", exact: true }).click();
+  const schedules = page.getByRole("link", { name: "Schedules", exact: true });
+  await expect(schedules).toBeVisible();
+  await schedules.click();
+  await expect(page.getByRole("heading", { name: "Schedules", exact: true })).toBeVisible();
+  await automation.click();
+  await page.getByRole("link", { name: "Reminder policies", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Reminder policies", exact: true })).toBeVisible();
+  await automation.click();
+  await page.getByRole("link", { name: "Daily owner email", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Daily owner email", exact: true })).toBeVisible();
   for (const path of ["/finance", "/finance/reports?start=2026-01-01&end=2026-01-31"]) {
     await page.goto(path);

@@ -90,7 +90,7 @@ test("Phase 5 management reminder acknowledgement persists while private owner r
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(
       page.getByRole("heading", {
-        name: /Automation configuration|Live owner exceptions|Consolidated summary archive|Operational reports/,
+        name: /Schedules|Live owner exceptions|Consolidated summary archive|Operational reports/,
       }),
     ).toHaveCount(0);
   }

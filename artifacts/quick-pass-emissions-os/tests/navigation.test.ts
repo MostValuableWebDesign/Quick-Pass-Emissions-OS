@@ -28,13 +28,23 @@ describe("role-filtered navigation", () => {
     expect(matchRoute("/finance/reports")).toBeUndefined();
     const automation = navForRole("OWNER").find((section) => section.id === "automation")!;
     expect(automation.label).toBe("Automation");
-    expect(automation.items.map((item) => item.href)).toEqual([
+    expect(automation.items).toHaveLength(1);
+    const automationMenu = automation.items[0];
+    expect(automationMenu.label).toBe("Automation settings");
+    expect(automationMenu.menuOnly).toBe(true);
+    expect(automationMenu.children?.map((item) => item.href)).toEqual([
       "/automation",
+      "/automation/reminders",
       "/automation/daily-email",
     ]);
+    expect(matchRoute(automationMenu.href)).toBeUndefined();
     expect(navForRole("ADMIN").some((section) => section.id === "automation")).toBe(false);
     expect(matchRoute("/automation")?.section).toBe("Automation");
+    expect(matchRoute("/automation/reminders")?.section).toBe("Automation");
     expect(matchRoute("/automation/daily-email")?.section).toBe("Automation");
+    expect(activeNavHref("/automation", "OWNER")).toBe("/automation");
+    expect(activeNavHref("/automation/reminders", "OWNER")).toBe("/automation/reminders");
+    expect(activeNavHref("/automation/daily-email", "OWNER")).toBe("/automation/daily-email");
   });
   it.each(["EMPLOYEE", "BOOKKEEPER"])("%s has no application routes", (role) => {
     expect(navForRole(role)).toEqual([]);
@@ -57,7 +67,12 @@ describe("role-filtered navigation", () => {
     expect(hrefs("ADMIN")).not.toContain("/automation");
     expect(hrefs("ADMIN")).toContain("/settings");
     expect(hrefs("OWNER")).toEqual(
-      expect.arrayContaining(["/automation", "/automation/daily-email", "/overview"]),
+      expect.arrayContaining([
+        "/automation",
+        "/automation/reminders",
+        "/automation/daily-email",
+        "/overview",
+      ]),
     );
     expect(hrefs("OWNER")).not.toContain("/reports");
     expect(hrefs("OWNER")).not.toContain("/summaries");

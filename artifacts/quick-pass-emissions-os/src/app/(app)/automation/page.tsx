@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/require-role";
 import { automationSettings } from "@/modules/automation/service";
-import { reminderKinds } from "@/modules/automation/rules";
 import { Empty, PageHeader } from "@/components/shared";
 import { Badge, ExternalDisabled, fmtInstant, jobTone } from "@/components/phase5";
-import { ForecastForm, PolicyForm, RetryForm, ScheduleForm } from "@/components/phase5-forms";
+import { ForecastForm, RetryForm, ScheduleForm } from "@/components/phase5-forms";
 export default async function Automation() {
   const user = await requireRole(["OWNER"]);
   const s = await automationSettings(user.id);
@@ -13,8 +12,8 @@ export default async function Automation() {
   return (
     <>
       <PageHeader
-        title="Automation configuration"
-        description="Summary schedules, reminder policies, forecast windows, and durable job history."
+        title="Schedules"
+        description="Summary schedules, forecast windows, and durable job history."
       />
       <section className="card card-body">
         <h2>Daily owner email</h2>
@@ -47,10 +46,6 @@ export default async function Automation() {
             Open days only uses the configured operating days and closures; closed days produce no
             summary.
           </li>
-          <li>
-            Changing a reminder policy resolves existing open reminders of that kind; replacements
-            are created on the next run.
-          </li>
           <li>Numeric fields have no default. Enter each value deliberately.</li>
         </ul>
       </section>
@@ -66,26 +61,6 @@ export default async function Automation() {
                   : "Not configured. Revision 0."}
               </p>
               <ScheduleForm k={k} current={cur} />
-            </div>
-          );
-        })}
-      </section>
-      <h2 className="space-top">Reminder policies</h2>
-      <section className="two-columns space-top">
-        {reminderKinds.map((kind) => {
-          const cur = s.policies.find((p) => p.kind === kind);
-          return (
-            <div className="card card-body" key={kind}>
-              <h3>{kind.charAt(0) + kind.slice(1).toLowerCase()}</h3>
-              <p className="muted">
-                {cur
-                  ? `Revision ${cur.revision}, ${cur.active ? "enabled" : "disabled"}.`
-                  : "Not configured. Revision 0."}
-                {kind === "DEALER" || kind === "RENTAL"
-                  ? " Authorized recipients only."
-                  : " Bookkeepers cannot receive this."}
-              </p>
-              <PolicyForm kind={kind} current={cur} recipients={s.recipients} />
             </div>
           );
         })}

@@ -277,8 +277,7 @@ export function buildDashboard(
         : null,
     summary: {
       reportedTests:
-        selectedDates.every((date) => byDate.has(date)) &&
-        (!query.employee || !!selectedInspector)
+        selectedDates.every((date) => byDate.has(date)) && (!query.employee || !!selectedInspector)
           ? selectedSnapshots.reduce((sum, day) => {
               const counts = query.employee
                 ? day.inspectors.find((person) => person.inspector === selectedInspector)

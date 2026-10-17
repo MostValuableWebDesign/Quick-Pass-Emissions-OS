@@ -282,8 +282,8 @@ export function PerformanceDashboard({
               ).
             </div>
           ))}
-          Skipped rows are excluded from counts and 30-day retest matching. A later repeat
-          of an excluded VIN may be counted as paid.
+          Skipped rows are excluded from counts and 30-day retest matching. A later repeat of an
+          excluded VIN may be counted as paid.
         </div>
       )}
 

@@ -11,11 +11,12 @@ export function retestHistoryDates(query: DashboardQuery, today: string) {
   ].sort();
 }
 
+/** VIN coverage for retained rows; incomplete source rows are intentionally excluded. */
 export function hasVinEvidence(day: PortalDay) {
   return (
-    (day.verifiedEmpty ||
-      (day.testTimes?.length === day.total &&
-        day.testTimes.every((test) => !!test.vinHash && !!test.recordKey && !!test.outcome)))
+    day.verifiedEmpty ||
+    (day.testTimes?.length === day.total &&
+      day.testTimes.every((test) => !!test.vinHash && !!test.recordKey && !!test.outcome))
   );
 }
 

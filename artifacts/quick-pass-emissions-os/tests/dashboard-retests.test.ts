@@ -171,12 +171,10 @@ describe("VIN-based free retests", () => {
     const partial = sourceDay(today, [{ vin: "valid" }]);
     partial.incompleteRows = { total: 1, vehicle: 1, inspector: 0, outcome: 0 };
     expect(dashboardDaySchema.safeParse(partial).success).toBe(true);
-    const data = buildDashboard(
-      query,
-      today,
-      classifyDashboardRetests(history([partial])),
-      { ...plan, profiles: plan.profiles.filter((profile) => profile.inspector === "A") },
-    );
+    const data = buildDashboard(query, today, classifyDashboardRetests(history([partial])), {
+      ...plan,
+      profiles: plan.profiles.filter((profile) => profile.inspector === "A"),
+    });
     expect(data.summary.reportedTests).toBe(1);
     expect(data.summary.cars).toBe(1);
     expect(data.summary.revenueCents).toBe(2000);
@@ -204,11 +202,13 @@ describe("VIN-based free retests", () => {
     );
     expect(range.reportIssues).toHaveLength(1);
     expect(dashboard([partial], inspectorKey("A")).summary.reportedTests).toBe(1);
-    const later = sourceDay(addDays(today, 1), [{ vin: "new" }]);
+    const later = sourceDay(addDays(today, 1), [{ vin: "valid" }]);
     const classified = classifyDashboardRetests(history([partial, later]));
     expect(classified.find((day) => day.date === later.date)?.retestComplete).toBe(true);
+    expect(classified.find((day) => day.date === later.date)?.freeRetests).toBe(1);
+    expect(classified.find((day) => day.date === later.date)?.total).toBe(0);
   });
-  it("does not turn a report containing only incomplete rows into a verified empty day", () => {
+  it("excludes every incomplete row without relabeling the source as a verified empty report", () => {
     const partial: PortalDay = {
       ...empty(today),
       verifiedEmpty: false,
@@ -217,8 +217,8 @@ describe("VIN-based free retests", () => {
     expect(dashboardDaySchema.safeParse(partial).success).toBe(true);
     const data = dashboard([partial]);
     expect(data.summary.reportedTests).toBe(0);
-    expect(data.summary.cars).toBeNull();
-    expect(data.summary.revenueCents).toBeNull();
+    expect(data.summary.cars).toBe(0);
+    expect(data.summary.revenueCents).toBe(0);
     expect(dashboardDaySchema.safeParse({ ...partial, verifiedEmpty: true }).success).toBe(false);
     expect(
       dashboardDaySchema.safeParse({

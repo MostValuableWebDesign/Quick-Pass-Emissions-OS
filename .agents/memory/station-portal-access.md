@@ -75,8 +75,8 @@ Selected-date retrieval takes priority over unrelated supporting trend and retes
 
 **How to apply:** Keep selected dates isolated from supporting batches, preserve successful caches when later requests fail, and expose controlled verification reasons with the actual query dates. Raw report rows are not paid-car totals while 30-day VIN history is incomplete.
 
-One incomplete source row must not make all otherwise verifiable Performance report rows unavailable.
+Performance must skip and exclude inaccurate rows, warn only for their selected date/range, and keep other valid rows usable.
 
-**Why:** A real export matched its portal total but contained a nonstandard-length VIN; all-or-nothing validation rejected the whole date and repeatedly triggered a station-wide failure cooldown.
+**Why:** A real export matched its portal total but contained a nonstandard-length VIN; all-or-nothing validation rejected the whole date and repeatedly triggered a station-wide failure cooldown. The user explicitly asked to skip and exclude the invalid row and warn only for its specific date.
 
 **How to apply:** Preserve station/date/format/total/duplicate checks and strict reviewed-import validation. In Performance, exclude incomplete rows from daily/employee counts and VIN lookback, calculate the remaining fully evidenced rows normally, and show a warning only for the affected selected date/range. A later repeat matching only an excluded row may be counted as paid. Do not guess VIN corrections or re-fetch known incomplete historical evidence on navigation; allow an explicit refresh to retry it.

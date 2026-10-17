@@ -170,12 +170,21 @@ export function PerformanceDashboard({
           <div className="pd-toolbar-actions">
             <button
               type="button"
-              className="button button-outline button-sm"
+              className="button button-outline button-sm pd-save-layout-button"
+              aria-label="Save panel layout"
+              aria-describedby="save-panel-layout-tooltip"
               onClick={panelLayout.retrySave}
               disabled={panelLayout.saveStatus === "saving"}
               data-testid="button-save-panel-layout"
             >
-              <Save size={15} aria-hidden="true" /> Save layout
+              <Save size={15} aria-hidden="true" />
+              <span
+                className="pd-save-layout-tooltip"
+                id="save-panel-layout-tooltip"
+                role="tooltip"
+              >
+                Save your current panel layout.
+              </span>
             </button>
             <div
               className="pd-date-picker"

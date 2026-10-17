@@ -46,7 +46,9 @@ These partial Performance snapshots are cached with a visible warning rather tha
 throwing an export failure and starting the five-minute failure cooldown. They observe
 the normal successful-request cooldown. Historical incomplete rows are not retried on
 every page visit; manual Refresh can retry them, and stale current-day data can still
-refresh as normal.
+refresh as normal. Their warning appears only when the selected date or inclusive range
+contains that incomplete report date; known issue dates remain available internally to
+prevent repeated automatic export attempts for an out-of-range date.
 
 All test-export network requests share a 45-second operation deadline. The reservation
 expires after two minutes if a process disappears; token checks prevent an expired run

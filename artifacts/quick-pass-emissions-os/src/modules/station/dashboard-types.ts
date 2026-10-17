@@ -148,6 +148,7 @@ export type DashboardData = {
   retestMissingDates: string[];
   syncedAt: string | null;
   sourceStatus?: SourceRefreshStatus;
+  knownIncompleteDates?: string[];
   reportIssues?: {
     date: string;
     reportedTests: number;

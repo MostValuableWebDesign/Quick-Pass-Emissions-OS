@@ -182,6 +182,22 @@ describe("VIN-based free retests", () => {
     expect(data.reportIssues).toEqual([
       { date: today, reportedTests: 2, rows: 1, vehicle: 1, inspector: 0, outcome: 0 },
     ]);
+    const laterQuery = { ...query, start: addDays(today, 1), end: addDays(today, 1) };
+    const laterOnly = buildDashboard(
+      laterQuery,
+      today,
+      classifyDashboardRetests(history([partial])),
+      plan,
+    );
+    expect(laterOnly.reportIssues).toEqual([]);
+    expect(laterOnly.knownIncompleteDates).toEqual([today]);
+    const range = buildDashboard(
+      { ...query, end: addDays(today, 1) },
+      today,
+      classifyDashboardRetests(history([partial])),
+      plan,
+    );
+    expect(range.reportIssues).toHaveLength(1);
     expect(dashboard([partial], inspectorKey("A")).summary.reportedTests).toBeNull();
     const later = sourceDay(addDays(today, 1), [{ vin: "new" }]);
     const classified = classifyDashboardRetests(history([partial, later]));

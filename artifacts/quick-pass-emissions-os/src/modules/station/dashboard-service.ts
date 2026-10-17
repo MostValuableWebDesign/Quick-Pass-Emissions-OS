@@ -279,7 +279,7 @@ export async function loadDashboard(
     ...initial.timingMissingDates,
     ...initial.retestMissingDates,
   ];
-  const incompleteDates = new Set(initial.reportIssues?.map((issue) => issue.date));
+  const incompleteDates = new Set(initial.knownIncompleteDates ?? []);
   const needed = (
     refresh && missingSources.length === 0
       ? dashboardDates(query, initial.today)

@@ -342,8 +342,11 @@ export function buildDashboard(
       .filter((d) => d.total > 0 && !d.testTimes)
       .map((d) => d.date),
     retestMissingDates: [],
+    knownIncompleteDates: snapshots
+      .filter((day) => !!day.incompleteRows?.total)
+      .map((day) => day.date),
     reportIssues: snapshots.flatMap((day) =>
-      day.incompleteRows
+      day.incompleteRows?.total && day.date >= query.start && day.date <= query.end
         ? [
             {
               date: day.date,

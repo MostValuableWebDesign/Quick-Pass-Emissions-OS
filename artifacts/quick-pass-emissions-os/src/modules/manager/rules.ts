@@ -79,6 +79,45 @@ export const availabilityInput = z
     }
   });
 export type Availability = z.infer<typeof availabilityInput>;
+const operationsScheduleBlock = z
+  .object({
+    id: z.string().regex(/^[a-z0-9-]+$/).min(1).max(80),
+    title: text,
+    weekdays: z.array(requiredInteger(1, 6)).min(1).max(6),
+    start: timeString,
+    end: timeString,
+    area: z.enum(areas),
+    priority: z.enum(priorities),
+    description: note,
+  })
+  .refine((block) => block.start < block.end, "Each work block must end after it starts.")
+  .refine(
+    (block) => new Set(block.weekdays).size === block.weekdays.length,
+    "A recurring work block cannot list a weekday twice.",
+  );
+export const operationsScheduleInput = z
+  .object({
+    kind: z.literal("OPERATIONS_MANAGER_WEEK"),
+    revision: requiredInteger(0, 2147483647),
+    timezone: z.literal("America/New_York"),
+    blocks: z.array(operationsScheduleBlock).min(1).max(40),
+  })
+  .superRefine((schedule, ctx) => {
+    for (let i = 0; i < schedule.blocks.length; i++) {
+      for (let j = i + 1; j < schedule.blocks.length; j++) {
+        const a = schedule.blocks[i];
+        const b = schedule.blocks[j];
+        const sharesDay = a.weekdays.some((weekday) => b.weekdays.includes(weekday));
+        if (sharesDay && a.start < b.end && a.end > b.start)
+          ctx.addIssue({
+            code: "custom",
+            path: ["blocks", j, "start"],
+            message: `“${b.title}” overlaps “${a.title}” on a shared workday.`,
+          });
+      }
+    }
+  });
+export type OperationsSchedule = z.infer<typeof operationsScheduleInput>;
 export type PlannedTask = {
   id: string;
   version: number;

@@ -3,7 +3,7 @@ import { currentUser } from "@/lib/access";
 import { formatDate } from "@/lib/time";
 import { managerOverview, refreshWorkspace } from "@/modules/manager/service";
 import { areas } from "@/modules/manager/rules";
-import { weeklyStructure, vendorContacts } from "@/modules/manager/starter";
+import { vendorContacts } from "@/modules/manager/starter";
 import { PageHeader, TaskTable } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { managerAction } from "@/app/manager-actions";
@@ -36,7 +36,7 @@ export default async function Operations({
         description={`Emissions & tag renewal · 3 self-service wash bays · 3 rented detail bays · ${data.today} Eastern`}
       >
         <Link className="button button-primary" href="/operations/schedule">
-          Plan my week
+          View weekly schedule
         </Link>
         <Link className="button button-outline" href="/dashboard">
           Today’s business snapshot
@@ -256,41 +256,17 @@ export default async function Operations({
             <CreateManagerTask data={data} template={t} key={t.id} />
           ))}
       </details>
-      <details className="card card-body">
-        <summary>Suggested weekly duties & setup</summary>
+      <section className="card card-body">
+        <h2>My recurring schedule</h2>
         <p>
-          Editable suggestions, not your personal working hours. Durations and deadlines are
-          planning estimates. Creating these duties does not approve a schedule.
+          A proposed Monday–Saturday schedule is populated automatically from your responsibilities.
+          Review it or adjust recurring times; these are management work blocks, not payroll time
+          records. Add inventory, bank, service-call or event tasks only when needed.
         </p>
-        {weeklyStructure.map(([day, title]) => (
-          <p key={day}>
-            <strong>{day}</strong> · {title}
-          </p>
-        ))}
-        <ActionForm action={managerAction} submit="Add editable starter duties">
-          <Command name="STARTER" />
-          <Field label="Start date">
-            <input type="date" name="date" required defaultValue={data.today} />
-          </Field>
-          <Field label="Suggested opening deadline · Eastern">
-            <input type="time" name="time" required defaultValue="08:00" />
-          </Field>
-          <Field label="Execution assigned to">
-            <select name="employeeId" defaultValue={actor.employee?.id}>
-              {data.people.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.user.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </ActionForm>
-        <p>
-          Existing starter duties are kept; repeating this action does not duplicate them.
-          Edit/pause their recurrence in <Link href="/tasks/templates">Recurring duties</Link>;
-          existing occurrences retain their history.
-        </p>
-      </details>
+        <Link className="button button-outline" href="/operations/schedule">
+          Review or adjust schedule
+        </Link>
+      </section>
       <details className="card card-body">
         <summary>Pay guide · unverified reference</summary>
         <p>

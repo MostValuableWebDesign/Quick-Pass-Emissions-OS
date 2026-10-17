@@ -16,9 +16,10 @@ import {
   checklistInput,
   proposeSchedule,
   taskReady,
+  operationsScheduleInput,
   type Plan,
 } from "./rules";
-import { starterDuties, vendorContacts } from "./starter";
+import { operationsScheduleBlocks, starterDuties, vendorContacts } from "./starter";
 
 export async function managerTransaction<T>(
   actorId: string,
@@ -590,6 +591,130 @@ export async function approveSchedule(actorId: string, input: unknown, now = new
     await audit(tx, actorId, "MANAGER_SCHEDULE_APPROVED", key, {
       unscheduled: original.unscheduled.length,
       slots: original.slots.length,
+    });
+  });
+}
+function isOperationsSchedule(payload: Prisma.JsonValue) {
+  return (
+    payload !== null &&
+    typeof payload === "object" &&
+    !Array.isArray(payload) &&
+    (payload as Prisma.JsonObject).kind === "OPERATIONS_MANAGER_WEEK"
+  );
+}
+export async function ensureOperationsSchedule(actorId: string, now = new Date()) {
+  const today = businessDate(now);
+  const weekday = Temporal.PlainDate.from(today).dayOfWeek;
+  const startDate = addDays(today, 1 - weekday);
+  return managerTransaction(actorId, async (tx) => {
+    const history = await tx.managerSchedule.findMany({
+      where: { userId: actorId },
+      orderBy: [{ startDate: "desc" }, { createdAt: "desc" }],
+      take: 100,
+    });
+    const current = history.find(
+      (row) =>
+        row.startDate === startDate &&
+        row.status !== "SUPERSEDED" &&
+        isOperationsSchedule(row.payload),
+    );
+    if (current) return current;
+
+    const prior = history.find(
+      (row) => row.status !== "SUPERSEDED" && isOperationsSchedule(row.payload),
+    );
+    const priorBlocks = prior ? operationsScheduleInput.parse(prior.payload).blocks : null;
+    const payload = operationsScheduleInput.parse({
+      kind: "OPERATIONS_MANAGER_WEEK",
+      revision: 0,
+      timezone: "America/New_York",
+      blocks: priorBlocks ?? operationsScheduleBlocks,
+    });
+    const row = await tx.managerSchedule.create({
+      data: {
+        userId: actorId,
+        startDate,
+        status: "DRAFT",
+        availabilityVersion: null,
+        payload: payload as unknown as Prisma.InputJsonValue,
+      },
+    });
+    await audit(tx, actorId, "MANAGER_WEEKLY_SCHEDULE_PREPOPULATED", row.id, {
+      startDate,
+      recurringBlocks: payload.blocks.length,
+    });
+    return row;
+  });
+}
+export async function updateOperationsScheduleBlock(actorId: string, input: unknown) {
+  const data = z
+    .object({
+      scheduleId: id,
+      revision: requiredInteger(0, 2147483647),
+      blockId: z.string().regex(/^[a-z0-9-]+$/).min(1).max(80),
+      start: timeString,
+      end: timeString,
+    })
+    .parse(input);
+  return managerTransaction(actorId, async (tx) => {
+    const row = await tx.managerSchedule.findFirst({
+      where: { id: data.scheduleId, userId: actorId, status: "DRAFT" },
+    });
+    requireRule(row, "Only a proposed weekly schedule can be adjusted.");
+    const current = operationsScheduleInput.parse(row.payload);
+    requireRule(current.revision === data.revision, "Schedule changed; refresh before saving.");
+    requireRule(
+      current.blocks.some((block) => block.id === data.blockId),
+      "Work block not found.",
+    );
+    const payload = operationsScheduleInput.parse({
+      ...current,
+      revision: current.revision + 1,
+      blocks: current.blocks.map((block) =>
+        block.id === data.blockId ? { ...block, start: data.start, end: data.end } : block,
+      ),
+    });
+    await tx.managerSchedule.update({
+      where: { id: row.id },
+      data: { payload: payload as unknown as Prisma.InputJsonValue },
+    });
+    await audit(tx, actorId, "MANAGER_WEEKLY_SCHEDULE_BLOCK_ADJUSTED", row.id, {
+      blockId: data.blockId,
+      start: data.start,
+      end: data.end,
+      revision: payload.revision,
+    });
+    return payload;
+  });
+}
+export async function approveOperationsSchedule(actorId: string, input: unknown, now = new Date()) {
+  const data = z
+    .object({ scheduleId: id, revision: requiredInteger(0, 2147483647) })
+    .parse(input);
+  return managerTransaction(actorId, async (tx) => {
+    const row = await tx.managerSchedule.findFirst({
+      where: { id: data.scheduleId, userId: actorId, status: "DRAFT" },
+    });
+    requireRule(row, "Proposed weekly schedule not found.");
+    const payload = operationsScheduleInput.parse(row.payload);
+    requireRule(payload.revision === data.revision, "Schedule changed; refresh before approving.");
+    await tx.managerSchedule.updateMany({
+      where: {
+        userId: actorId,
+        startDate: row.startDate,
+        status: "APPROVED",
+        id: { not: row.id },
+      },
+      data: { status: "SUPERSEDED" },
+    });
+    await tx.managerSchedule.update({
+      where: { id: row.id },
+      data: { status: "APPROVED", approvedAt: now },
+    });
+    await audit(tx, actorId, "MANAGER_WEEKLY_SCHEDULE_APPROVED", row.id, {
+      startDate: row.startDate,
+      revision: payload.revision,
+      recurringBlocks: payload.blocks.length,
     });
   });
 }

@@ -208,74 +208,86 @@ export function PerformanceCalendar({ start, end, today, employee, trendDays }: 
       </div>
 
       <div className="pd-cal-side">
-        <div className="pd-cal-scope-title">Report scope</div>
+        <div className="pd-cal-scope-title">
+          {mode === "single" ? "Selected date" : "Report scope"}
+        </div>
         <div className="pd-cal-sum" data-testid="text-cal-selection">
-          <span className="lab">Report period</span>
-          <strong className="pd-num">
-            {mode === "single" || (out.start === out.end && !pending)
-              ? label(out.start)
-              : pending
-                ? `${label(sel.start)} to ...`
-                : `${label(out.start)} to ${label(out.end)}`}
-          </strong>
-          {pending && <small>Pick an end date, or Apply for one day.</small>}
+          {mode === "single" ? (
+            <>
+              <span className="lab">Date</span>
+              <strong className="pd-num">{label(out.start)}</strong>
+            </>
+          ) : (
+            <>
+              <span className="lab">Report period</span>
+              <strong className="pd-num">
+                {pending
+                  ? `${label(sel.start)} to ...`
+                  : `${label(out.start)} to ${label(out.end)}`}
+              </strong>
+              {pending && <small>Pick an end date, or Apply for one day.</small>}
+            </>
+          )}
         </div>
         <input type="hidden" name="employee" value={employee ?? ""} />
         <input type="hidden" name="trendDays" value={trendDays} />
-        <label className="field">
-          <span>From</span>
-          <input
-            type="date"
-            name="start"
-            value={out.start}
-            max={today}
-            required
-            data-testid="input-start"
-            onChange={(e) => {
-              const next = selectStartDate(mode, sel, e.target.value);
-              setSel(next);
-              if (shouldAutoSearchSingleDay(mode, next)) submit(next);
-            }}
-          />
-        </label>
-        <label className="field">
-          <span>Through</span>
-          <input
-            type="date"
-            name="end"
-            value={out.end}
-            min={out.start}
-            max={today}
-            required
-            data-testid="input-end"
-            onChange={(e) => {
-              const next = { ...sel, end: e.target.value };
-              setSel(next);
-              if (mode === "single") {
-                const nextMode = modeForDates(next.start, next.end ?? next.start);
-                setMode(nextMode);
-                if (shouldAutoSearchSingleDay(nextMode, next)) submit(next);
-              }
-            }}
-          />
-        </label>
-        <div className="pd-cal-acts">
-          <button
-            type="button"
-            className="button button-outline button-sm"
-            onClick={() => {
-              setSel({ start: today, end: today });
-              setView({ y: t.y, m: t.m });
-              setFocusDay(today);
-            }}
-            data-testid="button-cal-today"
-          >
-            Today
-          </button>
-          <button className="button button-primary button-sm" data-testid="button-apply-range">
-            Apply dates
-          </button>
-        </div>
+        {mode === "single" ? (
+          <>
+            <input type="hidden" name="start" value={out.start} data-testid="input-start" />
+            <input type="hidden" name="end" value={out.end} data-testid="input-end" />
+          </>
+        ) : (
+          <>
+            <label className="field">
+              <span>From</span>
+              <input
+                type="date"
+                name="start"
+                value={out.start}
+                max={today}
+                required
+                data-testid="input-start"
+                onChange={(e) => {
+                  const next = selectStartDate(mode, sel, e.target.value);
+                  setSel(next);
+                  if (shouldAutoSearchSingleDay(mode, next)) submit(next);
+                }}
+              />
+            </label>
+            <label className="field">
+              <span>Through</span>
+              <input
+                type="date"
+                name="end"
+                value={out.end}
+                min={out.start}
+                max={today}
+                required
+                data-testid="input-end"
+                onChange={(e) => {
+                  setSel({ ...sel, end: e.target.value });
+                }}
+              />
+            </label>
+            <div className="pd-cal-acts">
+              <button
+                type="button"
+                className="button button-outline button-sm"
+                onClick={() => {
+                  setSel({ start: today, end: today });
+                  setView({ y: t.y, m: t.m });
+                  setFocusDay(today);
+                }}
+                data-testid="button-cal-today"
+              >
+                Today
+              </button>
+              <button className="button button-primary button-sm" data-testid="button-apply-range">
+                Apply dates
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </form>
   );

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { PerformanceCalendar } from "@/components/performance-calendar";
 import {
   dayState,
   finalize,
-  modeForDates,
   monthGrid,
   pickDay,
   selectStartDate,
@@ -11,6 +13,36 @@ import {
 } from "@/components/performance-calendar-utils";
 
 const max = "2025-03-20";
+
+describe("Performance calendar controls", () => {
+  const renderCalendar = (start: string, end: string) =>
+    renderToStaticMarkup(
+      createElement(PerformanceCalendar, {
+        start,
+        end,
+        today: max,
+        trendDays: 7,
+      }),
+    );
+
+  it("shows one date and hides range controls in single-day mode", () => {
+    const markup = renderCalendar("2025-03-10", "2025-03-10");
+    expect(markup).toContain("Selected date");
+    expect(markup).toContain("Mar 10, 2025");
+    expect(markup).not.toContain(">From</span>");
+    expect(markup).not.toContain(">Through</span>");
+    expect(markup).not.toContain(">Today</button>");
+    expect(markup).not.toContain("Apply dates");
+  });
+
+  it("shows date fields and actions in date-range mode", () => {
+    const markup = renderCalendar("2025-03-10", "2025-03-15");
+    expect(markup).toContain(">From</span>");
+    expect(markup).toContain(">Through</span>");
+    expect(markup).toContain(">Today</button>");
+    expect(markup).toContain("Apply dates");
+  });
+});
 
 describe("performance calendar helpers", () => {
   it("builds month grid with leading padding", () => {
@@ -30,15 +62,14 @@ describe("performance calendar helpers", () => {
     ).toEqual({ start: "2025-03-10", end: "2025-03-10" });
   });
   it("auto-searches a past date selected through From in single-day mode", () => {
-    const selection = selectStartDate(
+    const selection = pickDay(
       "single",
       { start: "2025-03-15", end: "2025-03-15" },
       "2025-03-10",
+      max,
     );
     expect(selection).toEqual({ start: "2025-03-10", end: "2025-03-10" });
-    expect(
-      shouldAutoSearchSingleDay(modeForDates(selection.start, selection.end!), selection),
-    ).toBe(true);
+    expect(shouldAutoSearchSingleDay("single", selection)).toBe(true);
   });
   it("keeps From changes in date-range mode pending until Apply", () => {
     const existingRange = selectStartDate(

@@ -289,12 +289,11 @@ export function PerformanceDashboard({
 
       <section className="pd-hero" id="performance-headline" aria-label="Headline numbers">
         <div className="pd-today">
-          <div className="lab" data-testid="text-headline-period">
-            {single ? longDate(q.start) : `${longDate(q.start)} to ${longDate(q.end)}`} ·{" "}
-            {filtered ? empName : "STATION"}
+          <div className="lab" data-testid="text-headline-label">
+            Cars tested
           </div>
-          <strong className="pd-num" data-testid="text-today-total">
-            {num(s.cars ?? s.reportedTests)}
+          <strong className="pd-num" data-testid="text-cars-tested-total">
+            {num(s.cars)}
           </strong>
           {s.cars !== null ? (
             <>

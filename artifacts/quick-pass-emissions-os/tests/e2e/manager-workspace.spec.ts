@@ -59,6 +59,9 @@ test("manager task checklist, independent review, schedule and supplies persist"
   await page.reload();
   await expect(page.getByText(/^Manager reviewed /).first()).toBeVisible();
   await page.goto("/operations/schedule");
+  await expect(page.getByLabel("Proposed weekly operations schedule")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Opening review", exact: true })).toHaveCount(6);
+  await page.getByText("Optional availability-aware task planner", { exact: true }).click();
   const weekday = Temporal.PlainDate.from(future).dayOfWeek,
     label = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][
       weekday - 1

@@ -92,6 +92,162 @@ if (enabled) {
       reorderLevel: 3,
       preferredVendor: "Walmart",
     });
+  it("populates one persistent proposed week without creating a payroll-facing profile", async () => {
+    const user = await db.user.create({
+      data: {
+        name: "Manager without profile",
+        email: `${randomUUID()}@example.test`,
+        role: "OWNER",
+      },
+    });
+    const [first, repeated] = await Promise.all([
+      s.ensureOperationsSchedule(user.id, now),
+      s.ensureOperationsSchedule(user.id, now),
+    ]);
+    expect(first.id).toBe(repeated.id);
+    expect(first.status).toBe("DRAFT");
+    expect((first.payload as { blocks: unknown[] }).blocks).toHaveLength(23);
+    expect(await db.managerSchedule.count({ where: { userId: user.id } })).toBe(1);
+    expect(await db.employee.count({ where: { userId: user.id } })).toBe(0);
+    expect(await db.taskTemplate.count()).toBe(0);
+    await expect(
+      s.updateOperationsScheduleBlock(admin, {
+        scheduleId: first.id,
+        revision: 0,
+        blockId: "opening-review",
+        start: "08:00",
+        end: "08:15",
+      }),
+    ).rejects.toThrow(/proposed weekly schedule/);
+    await s.approveOperationsSchedule(user.id, { scheduleId: first.id, revision: 0 }, now);
+    expect(await db.employee.count({ where: { userId: user.id } })).toBe(1);
+    expect((await db.user.findUniqueOrThrow({ where: { id: user.id } })).role).toBe("OWNER");
+    expect(
+      await db.taskTemplate.count({
+        where: { workspaceKey: { startsWith: `schedule-duty:${user.id}:` } },
+      }),
+    ).toBe(23);
+    const duties = await db.taskInstance.findMany({ where: { oversightId: user.id } });
+    expect(duties.length).toBeGreaterThan(23);
+    expect(
+      duties.every((duty) => Temporal.PlainDate.from(duty.occurrenceDate).dayOfWeek !== 7),
+    ).toBe(true);
+    expect(duties.every((duty) => Array.isArray(duty.checklist) && duty.checklist.length > 0)).toBe(
+      true,
+    );
+  });
+  it("saves time edits, rejects stale/overlapping edits, and preserves an approved snapshot on revision", async () => {
+    const week = await s.ensureOperationsSchedule(owner, now);
+    const input = {
+      scheduleId: week.id,
+      revision: 0,
+      blockId: "opening-review",
+      start: "08:00",
+      end: "08:15",
+    };
+    await s.updateOperationsScheduleBlock(owner, input);
+    await expect(s.updateOperationsScheduleBlock(owner, input)).rejects.toThrow(/changed/);
+    await expect(
+      s.updateOperationsScheduleBlock(owner, {
+        ...input,
+        revision: 1,
+        end: "08:30",
+      }),
+    ).rejects.toThrow(/overlaps/);
+    await s.approveOperationsSchedule(owner, { scheduleId: week.id, revision: 1 }, now);
+    await expect(
+      s.approveOperationsSchedule(
+        owner,
+        {
+          scheduleId: week.id,
+          revision: 1,
+        },
+        now,
+      ),
+    ).rejects.toThrow(/not found/);
+    await s.reviseOperationsSchedule(owner, week.id);
+    const revised = await s.ensureOperationsSchedule(owner, now);
+    expect(revised.id).not.toBe(week.id);
+    expect(revised.status).toBe("DRAFT");
+    expect(
+      (revised.payload as { blocks: { id: string; end: string }[] }).blocks.find(
+        (block) => block.id === "opening-review",
+      )?.end,
+    ).toBe("08:15");
+    expect((await db.managerSchedule.findUniqueOrThrow({ where: { id: week.id } })).status).toBe(
+      "APPROVED",
+    );
+    await s.approveOperationsSchedule(owner, { scheduleId: revised.id, revision: 0 }, now);
+    expect(
+      await db.taskTemplate.count({
+        where: { workspaceKey: { startsWith: `schedule-duty:${owner}:` } },
+      }),
+    ).toBe(23);
+    const duplicates = await db.taskInstance.groupBy({
+      by: ["templateId", "occurrenceDate"],
+      _count: true,
+    });
+    expect(duplicates.every((item) => item._count === 1)).toBe(true);
+  });
+  it("blocks approval on a real fixed commitment before creating duties", async () => {
+    const week = await s.ensureOperationsSchedule(owner, now);
+    const mondayMorning = new Date(`${week.startDate}T12:00:00Z`);
+    await db.managerCommitment.create({
+      data: {
+        userId: owner,
+        title: "Confirmed service appointment",
+        date: week.startDate,
+        startTime: "08:05",
+        endTime: "08:15",
+      },
+    });
+    await expect(
+      s.approveOperationsSchedule(
+        owner,
+        {
+          scheduleId: week.id,
+          revision: 0,
+        },
+        mondayMorning,
+      ),
+    ).rejects.toThrow(/overlaps/);
+    expect(await db.taskTemplate.count()).toBe(0);
+    expect((await db.managerSchedule.findUniqueOrThrow({ where: { id: week.id } })).status).toBe(
+      "DRAFT",
+    );
+  });
+  it("replaces only unmodified unused starter work and preserves activity and custom duties", async () => {
+    await s.installStarter(owner, { date, time: "08:00", employeeId: person });
+    const old = await db.taskInstance.findMany({
+      where: { occurrenceDate: { gte: date } },
+      take: 3,
+      orderBy: { id: "asc" },
+    });
+    expect(old).toHaveLength(3);
+    await db.taskInstance.update({ where: { id: old[0].id }, data: { status: "IN_PROGRESS" } });
+    await db.taskInstance.update({ where: { id: old[1].id }, data: { status: "COMPLETED" } });
+    const custom = await db.taskTemplate.findFirstOrThrow();
+    await db.taskTemplate.update({ where: { id: custom.id }, data: { version: 1 } });
+    const week = await s.ensureOperationsSchedule(owner, now);
+    await s.approveOperationsSchedule(owner, { scheduleId: week.id, revision: 0 }, now);
+    expect((await db.taskInstance.findUniqueOrThrow({ where: { id: old[0].id } })).status).toBe(
+      "IN_PROGRESS",
+    );
+    expect((await db.taskInstance.findUniqueOrThrow({ where: { id: old[1].id } })).status).toBe(
+      "COMPLETED",
+    );
+    expect((await db.taskTemplate.findUniqueOrThrow({ where: { id: custom.id } })).active).toBe(
+      true,
+    );
+    expect(
+      await db.taskInstance.count({
+        where: {
+          status: "CANCELLED",
+          template: { workspaceKey: { startsWith: `starter:${owner}:` } },
+        },
+      }),
+    ).toBeGreaterThan(0);
+  });
   it("rejects staff and stale deactivated management for reads and writes", async () => {
     await expect(s.managerOverview(staff)).rejects.toThrow(/Management/);
     await db.user.update({ where: { id: admin }, data: { active: false } });

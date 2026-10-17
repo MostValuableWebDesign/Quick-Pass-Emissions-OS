@@ -81,7 +81,11 @@ export const availabilityInput = z
 export type Availability = z.infer<typeof availabilityInput>;
 const operationsScheduleBlock = z
   .object({
-    id: z.string().regex(/^[a-z0-9-]+$/).min(1).max(80),
+    id: z
+      .string()
+      .regex(/^[a-z0-9-]+$/)
+      .min(1)
+      .max(80),
     title: text,
     weekdays: z.array(requiredInteger(1, 6)).min(1).max(6),
     start: timeString,
@@ -91,6 +95,11 @@ const operationsScheduleBlock = z
     description: note,
   })
   .refine((block) => block.start < block.end, "Each work block must end after it starts.")
+  .refine((block) => {
+    const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+    const duration = minutes(block.end) - minutes(block.start);
+    return duration >= 5 && duration <= 480;
+  }, "Work blocks must be between 5 minutes and 8 hours.")
   .refine(
     (block) => new Set(block.weekdays).size === block.weekdays.length,
     "A recurring work block cannot list a weekday twice.",
@@ -118,6 +127,33 @@ export const operationsScheduleInput = z
     }
   });
 export type OperationsSchedule = z.infer<typeof operationsScheduleInput>;
+export function operationsScheduleExceptions(
+  schedule: OperationsSchedule,
+  start: string,
+  availability: Availability | null,
+  commitments: Commitment[],
+) {
+  const exceptions: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const date = addDays(start, i);
+    const weekday = Temporal.PlainDate.from(date).dayOfWeek;
+    const day = availability?.days.find((item) => item.weekday === weekday);
+    for (const block of schedule.blocks.filter((item) => item.weekdays.includes(weekday))) {
+      if (
+        availability?.days.length &&
+        (!day ||
+          block.start < day.start ||
+          block.end > day.end ||
+          day.breaks.some((pause) => pause.start < block.end && pause.end > block.start))
+      )
+        exceptions.push(`${date}: ${block.title} conflicts with your configured availability.`);
+      for (const commitment of commitments.filter((item) => item.date === date))
+        if (commitment.startTime < block.end && commitment.endTime > block.start)
+          exceptions.push(`${date}: ${block.title} overlaps ${commitment.title}.`);
+    }
+  }
+  return exceptions;
+}
 export type PlannedTask = {
   id: string;
   version: number;

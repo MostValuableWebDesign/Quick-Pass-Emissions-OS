@@ -4,10 +4,12 @@ import {
   proposeSchedule,
   taskInput,
   taskReady,
+  operationsScheduleInput,
+  operationsScheduleExceptions,
   type PlannedTask,
 } from "../src/modules/manager/rules";
 import { dueInstant } from "../src/lib/time";
-import { starterDuties } from "../src/modules/manager/starter";
+import { operationsScheduleBlocks, starterDuties } from "../src/modules/manager/starter";
 const start = "2026-10-19",
   now = new Date("2026-10-18T12:00:00Z");
 const availability = availabilityInput.parse({
@@ -26,6 +28,63 @@ const task = (id: string, extra: Partial<PlannedTask> = {}): PlannedTask => ({
   ...extra,
 });
 describe("Manager schedule rules", () => {
+  const proposed = operationsScheduleInput.parse({
+    kind: "OPERATIONS_MANAGER_WEEK",
+    revision: 0,
+    timezone: "America/New_York",
+    blocks: operationsScheduleBlocks,
+  });
+  it("prepopulates the supplied Monday–Saturday schedule without Sunday or overlaps", () => {
+    expect(proposed.blocks.length).toBe(23);
+    for (let day = 1; day <= 6; day++)
+      expect(
+        proposed.blocks.filter((block) => block.weekdays.includes(day)).length,
+      ).toBeGreaterThan(6);
+    expect(proposed.blocks.some((block) => block.weekdays.includes(7))).toBe(false);
+    expect(proposed.blocks.find((block) => block.id === "opening-review")).toMatchObject({
+      start: "08:00",
+      end: "08:20",
+    });
+    expect(proposed.blocks.find((block) => block.id === "weekday-closing-review")).toMatchObject({
+      start: "17:30",
+      end: "17:45",
+      weekdays: [1, 2, 3, 4, 5],
+    });
+    expect(proposed.blocks.find((block) => block.id === "saturday-closeout")).toMatchObject({
+      start: "16:15",
+      end: "16:45",
+      weekdays: [6],
+    });
+  });
+  it("rejects a time edit that overlaps another recurring block", () => {
+    expect(() =>
+      operationsScheduleInput.parse({
+        ...proposed,
+        blocks: proposed.blocks.map((block) =>
+          block.id === "opening-review" ? { ...block, end: "08:30" } : block,
+        ),
+      }),
+    ).toThrow(/overlaps/);
+  });
+  it("flags fixed commitments and configured availability without requiring initial setup", () => {
+    expect(operationsScheduleExceptions(proposed, start, null, [])).toEqual([]);
+    expect(
+      operationsScheduleExceptions(proposed, start, null, [
+        {
+          id: "meeting",
+          title: "Service visit",
+          date: start,
+          startTime: "09:30",
+          endTime: "10:15",
+        },
+      ]).some((message) => message.includes("Service visit")),
+    ).toBe(true);
+    expect(
+      operationsScheduleExceptions(proposed, start, availability, []).some((message) =>
+        message.includes("availability"),
+      ),
+    ).toBe(true);
+  });
   it("leaves everything in a draft until personal availability is configured", () => {
     const p = proposeSchedule(start, null, [task("a")], [], now);
     expect(p.slots).toHaveLength(0);

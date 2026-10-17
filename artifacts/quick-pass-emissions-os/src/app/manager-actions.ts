@@ -105,6 +105,9 @@ export async function managerAction(_: ActionState, form: FormData): Promise<Act
       case "APPROVE_OPERATIONS_SCHEDULE":
         await manager.approveOperationsSchedule(actor.id, values);
         break;
+      case "REVISE_OPERATIONS_SCHEDULE":
+        await manager.reviseOperationsSchedule(actor.id, values.scheduleId);
+        break;
       case "CONTACTS":
         await manager.importVendorContacts(actor.id);
         break;

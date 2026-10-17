@@ -112,7 +112,8 @@ export const operationsScheduleBlocks = [
     end: "15:00",
     area: "MARKETING",
     priority: "NORMAL",
-    description: "Plan marketing content and local partnership work. Do not publish or send automatically.",
+    description:
+      "Plan marketing content and local partnership work. Do not publish or send automatically.",
   },
   {
     id: "wednesday-property",
@@ -198,7 +199,8 @@ export const operationsScheduleBlocks = [
     end: "14:00",
     area: "PAYROLL",
     priority: "HIGH",
-    description: "Prepare Monday payroll, review hours and commissions, and flag missing information.",
+    description:
+      "Prepare Monday payroll, review hours and commissions, and flag missing information.",
   },
   {
     id: "friday-planning",
@@ -252,6 +254,50 @@ export const operationsScheduleBlocks = [
     description: "Review unresolved issues and tomorrow's needs before close.",
   },
 ] as const;
+
+export const operationsDutyChecklists: Record<string, string[]> = {
+  "opening-review": [
+    "Confirm staffing and employee coverage",
+    "Check analyzer and kiosk availability",
+    "Check cameras",
+    "Review certificate balance",
+    "Check wash chemicals, leaks and bay condition",
+  ],
+  "previous-day-exceptions": [
+    "Review missing reports and vehicle totals",
+    "Review commission records",
+    "Review deposits",
+    "Follow up on unresolved customer issues",
+  ],
+  "operations-check": [
+    "Check queues and coverage",
+    "Check equipment and chemicals",
+    "Identify urgent supplies",
+  ],
+  "follow-up-review": [
+    "Review delegated work and vendor responses",
+    "Follow up on repairs",
+    "Prepare tomorrow's needs",
+  ],
+  "monday-payroll": [
+    "Review payroll, hours and commissions",
+    "Use the existing payroll approval and payment controls",
+    "Verify Sabino's Monday payment",
+    "Verify completed grass cutting before its additional payment",
+  ],
+  "wednesday-property": [
+    "Check drain pits",
+    "Inspect hoses, guns, brushes, nozzles and spray tips",
+    "Review rented-bay issues",
+    "Create repair tasks for issues found",
+  ],
+  "weekday-closing-review": ["Review unresolved issues", "Confirm tomorrow's needs and handoff"],
+  "saturday-closeout": [
+    "Complete the Saturday closing review",
+    "Review the week's unresolved issues",
+    "Prepare the Monday handoff",
+  ],
+};
 
 export const starterDuties = [
   {

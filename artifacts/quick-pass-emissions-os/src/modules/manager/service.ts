@@ -17,9 +17,15 @@ import {
   proposeSchedule,
   taskReady,
   operationsScheduleInput,
+  operationsScheduleExceptions,
   type Plan,
 } from "./rules";
-import { operationsScheduleBlocks, starterDuties, vendorContacts } from "./starter";
+import {
+  operationsScheduleBlocks,
+  operationsDutyChecklists,
+  starterDuties,
+  vendorContacts,
+} from "./starter";
 
 export async function managerTransaction<T>(
   actorId: string,
@@ -651,7 +657,11 @@ export async function updateOperationsScheduleBlock(actorId: string, input: unkn
     .object({
       scheduleId: id,
       revision: requiredInteger(0, 2147483647),
-      blockId: z.string().regex(/^[a-z0-9-]+$/).min(1).max(80),
+      blockId: z
+        .string()
+        .regex(/^[a-z0-9-]+$/)
+        .min(1)
+        .max(80),
       start: timeString,
       end: timeString,
     })
@@ -688,16 +698,147 @@ export async function updateOperationsScheduleBlock(actorId: string, input: unkn
   });
 }
 export async function approveOperationsSchedule(actorId: string, input: unknown, now = new Date()) {
-  const data = z
-    .object({ scheduleId: id, revision: requiredInteger(0, 2147483647) })
-    .parse(input);
-  return managerTransaction(actorId, async (tx) => {
+  const data = z.object({ scheduleId: id, revision: requiredInteger(0, 2147483647) }).parse(input);
+  return managerTransaction(actorId, async (tx, actor) => {
     const row = await tx.managerSchedule.findFirst({
       where: { id: data.scheduleId, userId: actorId, status: "DRAFT" },
     });
     requireRule(row, "Proposed weekly schedule not found.");
     const payload = operationsScheduleInput.parse(row.payload);
     requireRule(payload.revision === data.revision, "Schedule changed; refresh before approving.");
+    const today = businessDate(now);
+    const currentWeek = addDays(today, 1 - Temporal.PlainDate.from(today).dayOfWeek);
+    requireRule(
+      row.startDate === currentWeek,
+      "This proposal belongs to an earlier week. Refresh to review the current schedule.",
+    );
+    const from = today > row.startDate ? today : row.startDate;
+    const [availability, commitments] = await Promise.all([
+      tx.managerAvailability.findUnique({ where: { userId: actorId } }),
+      tx.managerCommitment.findMany({
+        where: {
+          userId: actorId,
+          date: { gte: from, lte: addDays(row.startDate, 6) },
+          cancelledAt: null,
+        },
+      }),
+    ]);
+    const exceptions = operationsScheduleExceptions(
+      payload,
+      row.startDate,
+      availability ? availabilityInput.parse(availability) : null,
+      commitments,
+    );
+    requireRule(!exceptions.length, exceptions[0] ?? "Resolve schedule conflicts first.");
+    let employeeId = actor.employee?.id;
+    if (!employeeId) {
+      const profile = await tx.employee.create({
+        data: { userId: actorId, jobRole: "Management", duties: "Operations management" },
+      });
+      employeeId = profile.id;
+      await audit(tx, actorId, "MANAGER_RESPONSIBILITY_PROFILE_CREATED", profile.id, {
+        payConfigured: false,
+        scheduleApproval: row.id,
+      });
+    }
+    // Retire only untouched defaults. Individually created/customized duties and work with
+    // activity remain intact; the approving user is told about this replacement in the UI.
+    const legacy = await tx.taskTemplate.findMany({
+      where: {
+        workspaceKey: { startsWith: `starter:${actorId}:` },
+        managerTask: true,
+        active: true,
+        version: 0,
+      },
+      select: { id: true },
+    });
+    for (const template of legacy) {
+      await tx.taskTemplate.update({
+        where: { id: template.id },
+        data: { active: false, version: { increment: 1 } },
+      });
+      const untouched = await tx.taskInstance.findMany({
+        where: {
+          templateId: template.id,
+          occurrenceDate: { gte: from },
+          status: "PENDING",
+          events: { none: {} },
+        },
+        select: { id: true },
+      });
+      for (const task of untouched) {
+        await tx.taskInstance.update({
+          where: { id: task.id },
+          data: { status: "CANCELLED", version: { increment: 1 } },
+        });
+        await event(
+          tx,
+          actorId,
+          task.id,
+          "CANCELLED",
+          "Unmodified starter duty replaced by the approved operations schedule.",
+        );
+      }
+    }
+    for (const block of payload.blocks) {
+      const checklist = (operationsDutyChecklists[block.id] ?? [block.description]).map(
+        (label) => ({ label, done: false }),
+      );
+      const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+      const values = {
+        title: block.title,
+        description: block.description,
+        area: block.area,
+        weekdays: block.weekdays,
+        dueTime: block.end,
+        durationMinutes: minutes(block.end) - minutes(block.start),
+        checklist,
+      };
+      const workspaceKey = `schedule-duty:${actorId}:${block.id}`;
+      const template = await tx.taskTemplate.upsert({
+        where: { workspaceKey },
+        create: {
+          ...values,
+          workspaceKey,
+          managerTask: true,
+          frequency: "WEEKLY",
+          startDate: from,
+          employeeId,
+          oversightId: actorId,
+          priority: block.priority,
+          reviewRequired: ["PAYROLL", "BILLING"].includes(block.area),
+        },
+        update: {
+          ...values,
+          generatedThrough: from,
+          active: true,
+          version: { increment: 1 },
+        },
+      });
+      const untouched = await tx.taskInstance.findMany({
+        where: {
+          templateId: template.id,
+          occurrenceDate: { gte: from },
+          status: "PENDING",
+          events: { none: {} },
+        },
+        select: { id: true, occurrenceDate: true },
+      });
+      for (const task of untouched)
+        await tx.taskInstance.update({
+          where: { id: task.id },
+          data: {
+            title: block.title,
+            description: block.description,
+            area: block.area,
+            dueAt: dueInstant(task.occurrenceDate, block.end),
+            durationMinutes: values.durationMinutes,
+            checklist,
+            version: { increment: 1 },
+          },
+        });
+    }
+    await generateOccurrences(tx, today, actorId);
     await tx.managerSchedule.updateMany({
       where: {
         userId: actorId,
@@ -715,6 +856,33 @@ export async function approveOperationsSchedule(actorId: string, input: unknown,
       startDate: row.startDate,
       revision: payload.revision,
       recurringBlocks: payload.blocks.length,
+      replacedUnmodifiedStarterTemplates: legacy.length,
+      employeeId,
+    });
+  });
+}
+export async function reviseOperationsSchedule(actorId: string, input: unknown) {
+  const scheduleId = id.parse(input);
+  return managerTransaction(actorId, async (tx) => {
+    const row = await tx.managerSchedule.findFirst({
+      where: { id: scheduleId, userId: actorId, status: "APPROVED" },
+    });
+    requireRule(row, "Approved weekly schedule not found.");
+    const current = operationsScheduleInput.parse(row.payload);
+    const existing = await tx.managerSchedule.findMany({
+      where: { userId: actorId, startDate: row.startDate, status: "DRAFT" },
+    });
+    if (existing.some((draft) => isOperationsSchedule(draft.payload))) return;
+    const payload = { ...current, revision: 0 };
+    const draft = await tx.managerSchedule.create({
+      data: {
+        userId: actorId,
+        startDate: row.startDate,
+        payload: payload as unknown as Prisma.InputJsonValue,
+      },
+    });
+    await audit(tx, actorId, "MANAGER_WEEKLY_SCHEDULE_REVISION_CREATED", draft.id, {
+      previousScheduleId: row.id,
     });
   });
 }

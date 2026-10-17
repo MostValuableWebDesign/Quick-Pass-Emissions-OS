@@ -5,7 +5,7 @@ import { managerOverview, refreshWorkspace } from "@/modules/manager/service";
 import { areas } from "@/modules/manager/rules";
 import { vendorContacts } from "@/modules/manager/starter";
 import { PageHeader, TaskTable } from "@/components/shared";
-import { ActionForm, Field } from "@/components/action-form";
+import { ActionForm } from "@/components/action-form";
 import { managerAction } from "@/app/manager-actions";
 import {
   WorkspaceTabs,

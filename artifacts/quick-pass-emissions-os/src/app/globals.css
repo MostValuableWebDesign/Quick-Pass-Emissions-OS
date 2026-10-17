@@ -157,6 +157,7 @@ svg {
   inset: 0 auto 0 0;
   width: 244px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--nav-bg);
   color: var(--nav-muted);
   padding: 31px 20px 20px;
@@ -400,6 +401,7 @@ svg {
   width: 236px;
   max-height: calc(100vh - 24px);
   overflow-y: auto;
+  overscroll-behavior: contain;
   margin: 0;
   border: 1px solid var(--nav-line);
   border-radius: 10px;
@@ -1475,6 +1477,7 @@ td small {
   border-bottom: 1px solid var(--line);
   margin-bottom: 24px;
   overflow: auto;
+  overscroll-behavior: contain;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -2198,7 +2201,6 @@ summary {
   .sidebar.open {
     bottom: 0;
     max-width: calc(100vw - 48px);
-    overscroll-behavior: contain;
   }
   .topbar-right .avatar {
     display: none;

@@ -1,8 +1,14 @@
 # Station history and performance
 
-## Two-year owner-controlled import and returning vehicles
+## Owner-controlled VIR retrieval and returning vehicles
 
-The newer **Performance → Historical import** workflow extends canonical inspection evidence with persistent monthly windows, explicit Start/Pause/Resume, source-total reconciliation, row decisions and conservative VIN/plate matching. It uses the existing bulk-export reader and shared cooldown, with CSV/original `.xls` fallback. It does not schedule background collection or infer payment from outcomes. See [INSPECTION_HISTORY.md](INSPECTION_HISTORY.md). This extends the historical manual-import scope described below; earlier live-verification notes remain historical evidence, not proof of a new two-year collection.
+**Performance → Refresh panels → Retrieve historical VIRs** now uses the existing authenticated
+VIR Reprint structured report rather than a CSV/Excel upload workflow. Defaults to 24 months;
+monthly windows, source snapshots, retrieval/extraction progress and row checkpoints persist.
+Ordinary refreshes grow the same VIR history. No scheduler or always-on worker is added.
+Known retests are excluded from this rate, and missing payment classification stays unknown.
+See [INSPECTION_HISTORY.md](INSPECTION_HISTORY.md). Prior discovery below documents earlier
+observations; it does not establish current two-year retention, individual PDF retrieval or OCR.
 
 ## Owner-triggered daily portal lookup
 

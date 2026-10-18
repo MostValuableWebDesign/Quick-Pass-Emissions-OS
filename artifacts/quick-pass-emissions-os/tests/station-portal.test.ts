@@ -5,6 +5,7 @@ import {
   portalDailyTotal,
   portalRangeDays,
   portalSearch,
+  portalHistoryExport,
 } from "../src/modules/station/portal-client";
 
 const day = "2026-01-15";
@@ -69,6 +70,37 @@ function fixture(exported = report(), total = 3) {
 }
 
 describe("read-only station portal export totals", () => {
+  it("retrieves the full VIR export across pagination and retains the original structured source", async () => {
+    const source = report(26);
+    const { session, transport } = fixture(source, 26);
+    const result = await portalHistoryExport(day, day, config, session);
+    expect(result.sourceTotal).toBe(26);
+    expect(result.rows).toHaveLength(26);
+    expect(result.original).toBe(source);
+    expect(transport).toHaveBeenCalledTimes(6);
+    expect(result.rows[25].fields["Cert Number"]).toBe("FIXTURE25");
+  });
+  it("never accepts first-page or truncated VIR history as the all-page export", async () => {
+    await expect(
+      portalHistoryExport(day, day, config, fixture(report(3), 26).session),
+    ).rejects.toThrow(/all-page source total/);
+  });
+  it("normal refresh captures every original VIR row, including incomplete Performance identities", async () => {
+    const source = report().replace("1HGCM82633A000000", "UNREADABLE");
+    const save = vi.fn(async () => {});
+    const days = await portalRangeDays(day, day, config, fixture(source).session, save);
+    expect(days[0].total).toBe(2);
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceTotal: 3,
+        original: source,
+        rows: expect.arrayContaining([
+          expect.objectContaining({ fields: expect.objectContaining({ VIN: "UNREADABLE" }) }),
+        ]),
+      }),
+    );
+  });
+
   it("accepts a verified single-date Performance export", async () => {
     const { session } = fixture();
     const days = await portalRangeDays(day, day, config, session);

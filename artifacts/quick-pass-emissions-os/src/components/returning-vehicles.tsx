@@ -14,7 +14,7 @@ export function ReturningVehicles({ report }: { report: ReturningVehicleReport }
           className="button button-outline button-sm"
           href={`/performance/history?start=${report.start}&end=${report.end}`}
         >
-          Historical import
+          Retrieve historical VIRs
         </a>
       </div>
       <p className="muted">
@@ -26,12 +26,12 @@ export function ReturningVehicles({ report }: { report: ReturningVehicleReport }
           <strong data-testid="returning-count">{report.returning}</strong>
         </div>
         <div>
-          <span>First-observed vehicles</span>
+          <span>First observed in available history</span>
           <strong data-testid="first-observed-count">{report.firstObserved}</strong>
         </div>
         <div>
-          <span>Unknown/unmatched vehicle records</span>
-          <strong>{report.unmatchedRecords}</strong>
+          <span>Unknown classification / unmatched records</span>
+          <strong>{report.unmatchedRecords + report.unknownStatusRecords}</strong>
         </div>
         <div>
           <span>Returning-vehicle rate</span>
@@ -43,31 +43,51 @@ export function ReturningVehicles({ report }: { report: ReturningVehicleReport }
         </div>
       </div>
       <p
-        className={report.coverage.pending || report.coverage.partial ? "notice warning" : "muted"}
+        className={
+          report.coverage.pending || report.coverage.partial || report.coverage.missingMonths
+            ? "notice warning"
+            : "muted"
+        }
         role="status"
       >
         {report.coverage.label}
       </p>
       <p>
-        Available imported dates:{" "}
+        Available VIR dates:{" "}
         {report.historyStart
           ? `${report.historyStart} – ${report.historyEnd}`
           : "No inspection history"}
         . {report.coverage.completed}/{report.coverage.windows} windows reconciled;{" "}
-        {report.coverage.unverified} without source totals. Gaps outside imported windows remain
-        unknown.
+        {report.coverage.unverified} without source totals. Unverified station/months:{" "}
+        {report.coverage.missingMonths}. Gaps remain unknown.
       </p>
       <p className="muted">
         {report.identifiableVehicles} distinct identifiable vehicles had completed, explicitly paid
-        non-free inspections. {report.unknownStatusRecords} records have unknown payment, retest, or
-        completion status; {report.excludedRecords} records were excluded as unpaid, refunded, free
+        initial inspections. {report.unknownStatusRecords} records have unknown payment, retest, or
+        completion status; {report.excludedRecords} records were excluded as unpaid, refunded, known
         retests, voided, cancelled, or incomplete.
       </p>
       <p className="muted">
-        Import review: {report.coverage.unresolvedRecords} unresolved and{" "}
-        {report.coverage.rejectedRecords} rejected rows in the available lookback scope are not
-        included in canonical metrics.
+        Extraction review: {report.coverage.unresolvedRecords} unresolved and{" "}
+        {report.coverage.rejectedRecords} failed rows; {report.coverage.identityReview} identifier
+        reviews in the available lookback scope are kept separate from confirmed identity matches.
       </p>
+      {report.coverage.gaps.length > 0 && (
+        <details>
+          <summary>Unverified station/month coverage ({report.coverage.gaps.length})</summary>
+          <p className="muted">
+            Each listed month contains unretrieved dates or unfinished extraction. Missing months
+            are not zero inspections.
+          </p>
+          <ul>
+            {report.coverage.gaps.map((g) => (
+              <li key={`${g.stationHash}:${g.start}`}>
+                {g.start} – {g.end} · station {g.stationHash.slice(0, 8)}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       <details>
         <summary>How this rate is calculated</summary>
         <p className="muted">

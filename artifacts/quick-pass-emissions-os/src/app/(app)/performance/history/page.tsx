@@ -28,13 +28,13 @@ export default async function HistoryPage({
     try {
       report = await readReturningVehicles(actor.id, { start, end, stations: selected });
     } catch {
-      error = "Choose valid dates in the last two years and authorized stations.";
+      error = "Choose valid dates through today and authorized stations.";
     }
   return (
     <>
       <PageHeader
         title="Inspection history"
-        description="Owner-controlled historical imports and returning-vehicle evidence. No paid scheduler or background worker."
+        description="Refresh historical VIRs and review persisted returning-vehicle evidence. Processing runs while the Refresh screen is open."
       />
       <form
         method="get"
@@ -48,14 +48,14 @@ export default async function HistoryPage({
             type="date"
             name="start"
             defaultValue={start}
-            min={earliest}
+            min="2000-01-01"
             max={today}
             required
           />
         </label>
         <label>
           Through
-          <input type="date" name="end" defaultValue={end} min={earliest} max={today} required />
+          <input type="date" name="end" defaultValue={end} min="2000-01-01" max={today} required />
         </label>
         <fieldset>
           <legend>Reporting stations</legend>

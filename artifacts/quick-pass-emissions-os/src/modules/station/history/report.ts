@@ -1,9 +1,10 @@
+import { Temporal } from "@js-temporal/polyfill";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { dateString } from "@/lib/validation";
 import { requireRule, type Tx } from "../../phase2";
 import { historyTransaction, checkStations } from "./transaction";
-import { historyRange, qualifies } from "./rules";
+import { historyRange, qualifies, monthWindows } from "./rules";
 
 export type IdentityRow = { vinHash: string | null; plateHash: string | null; invalidVin: boolean };
 export function plateBindings(rows: { plateHash: string; vinHash: string }[]) {
@@ -48,6 +49,9 @@ export type ReturningVehicleReport = {
     unresolvedRecords: number;
     rejectedRecords: number;
     label: string;
+    missingMonths: number;
+    identityReview: number;
+    gaps: { stationHash: string; start: string; end: string }[];
   };
 };
 const reportInput = z.object({
@@ -59,8 +63,11 @@ const reportInput = z.object({
 type Group = IdentityRow & { payment: string; retest: string; completion: string; count: number };
 async function lookupBindings(tx: Tx, scopes: Prisma.Sql, plates: string[], vins: string[]) {
   return tx.$queryRaw<{ plateHash: string; vinHash: string }[]>`
-    SELECT DISTINCT p."plateHash", p."vinHash" FROM "StationVehiclePlate" p
-    WHERE p."stationHash" IN (${scopes}) AND (p."plateHash" = ANY(${plates}::text[]) OR p."vinHash" = ANY(${vins}::text[]))`;
+    SELECT DISTINCT e."plateHash", coalesce(e."vinHash", 'INVALID') AS "vinHash"
+    FROM "StationInspectionEvidence" e JOIN "StationRecord" r ON r.id = e."recordId"
+    WHERE e."stationHash" IN (${scopes}) AND e."sourceKind" = 'VIR' AND e."plateHash" IS NOT NULL
+      AND (e."vinHash" IS NOT NULL OR e."invalidVin") AND r."currentRevisionId" = e."revisionId" AND r.state <> 'SUPERSEDED'
+      AND (e."plateHash" = ANY(${plates}::text[]) OR e."vinHash" = ANY(${vins}::text[]))`;
 }
 
 /** Groups just the requested period, then performs indexed lookbacks for its candidate identifiers. */
@@ -71,7 +78,7 @@ export async function returningInTransaction(
 ): Promise<ReturningVehicleReport> {
   requireRule(hashes.length > 0, "Choose an authorized station.");
   const scopes = Prisma.join(hashes);
-  const currentOnly = Prisma.sql`r."state" <> 'SUPERSEDED' AND r."currentRevisionId" = e."revisionId"`;
+  const currentOnly = Prisma.sql`e."sourceKind" = 'VIR' AND r."state" <> 'SUPERSEDED' AND r."currentRevisionId" = e."revisionId"`;
   const groups = await tx.$queryRaw<Group[]>`
     SELECT e."vinHash", e."plateHash", e."invalidVin", e."payment", e."retest", e."completion", count(*)::int AS count
     FROM "StationInspectionEvidence" e JOIN "StationRecord" r ON r.id = e."recordId"
@@ -116,7 +123,7 @@ export async function returningInTransaction(
         group.completion !== "INCOMPLETE" &&
         group.payment !== "UNPAID" &&
         group.payment !== "REFUNDED" &&
-        group.retest !== "FREE_RETEST" &&
+        !["FREE_RETEST", "PAID_RETEST"].includes(group.retest) &&
         [group.payment, group.retest, group.completion].includes("UNKNOWN")
       )
         unknownStatusRecords += group.count;
@@ -138,7 +145,7 @@ export async function returningInTransaction(
     SELECT DISTINCT e."vinHash", e."plateHash", e."invalidVin"
     FROM "StationInspectionEvidence" e JOIN "StationRecord" r ON r.id = e."recordId"
     WHERE e."stationHash" IN (${scopes}) AND e."businessDate" < ${query.start}
-      AND ${currentOnly} AND e."payment" = 'PAID' AND e."completion" = 'COMPLETED' AND e."retest" IN ('INITIAL', 'PAID_RETEST')
+      AND ${currentOnly} AND e."payment" = 'PAID' AND e."completion" = 'COMPLETED' AND e."retest" = 'INITIAL'
       AND (e."vinHash" = ANY(${candidateVins}::text[]) OR e."plateHash" = ANY(${candidatePlates}::text[]))`
     : [];
   const previous = new Set(
@@ -147,18 +154,52 @@ export async function returningInTransaction(
   const returning = [...current].filter((k) => previous.has(k)).length;
   const [range, windows] = await Promise.all([
     tx.stationInspectionEvidence.aggregate({
-      where: { stationHash: { in: hashes } },
+      where: { stationHash: { in: hashes }, sourceKind: "VIR" },
       _min: { businessDate: true },
       _max: { businessDate: true },
     }),
     tx.inspectionHistoryWindow.findMany({
-      where: { stationHash: { in: hashes }, superseded: false, startDate: { lte: query.end } },
-      select: { status: true, sourceTotal: true, unresolved: true, rejected: true },
+      where: {
+        stationHash: { in: hashes },
+        superseded: false,
+        startDate: { lte: query.end },
+        job: { mode: { in: ["PORTAL", "REFRESH"] } },
+      },
+      select: {
+        stationHash: true,
+        startDate: true,
+        endDate: true,
+        status: true,
+        sourceTotal: true,
+        unresolved: true,
+        rejected: true,
+        identityReview: true,
+      },
     }),
   ]);
+  const coverageStart = Temporal.PlainDate.from(query.end).subtract({ months: 24 }).toString();
+  const gaps: { stationHash: string; start: string; end: string }[] = [];
+  for (const stationHash of hashes)
+    for (const month of monthWindows(coverageStart, query.end)) {
+      let cursor = month.start;
+      for (const w of windows
+        .filter(
+          (w) =>
+            w.stationHash === stationHash && w.status === "COMPLETED" && w.sourceTotal !== null,
+        )
+        .sort((a, b) => a.startDate.localeCompare(b.startDate))) {
+        if (w.endDate < cursor || w.startDate > cursor) continue;
+        cursor = Temporal.PlainDate.from(w.endDate).add({ days: 1 }).toString();
+        if (cursor > month.end) break;
+      }
+      if (cursor <= month.end) gaps.push({ stationHash, start: month.start, end: month.end });
+    }
   const pending = windows.filter((w) => activeWindow(w.status)).length,
-    partial = windows.filter((w) => ["PARTIAL", "FAILED"].includes(w.status)).length;
+    partial = windows.filter((w) => ["PARTIAL", "FAILED", "UNAVAILABLE"].includes(w.status)).length;
   const coverage = {
+    gaps,
+    missingMonths: gaps.length,
+    identityReview: windows.reduce((n, w) => n + w.identityReview, 0),
     windows: windows.length,
     completed: windows.filter((w) => w.status === "COMPLETED").length,
     partial,
@@ -167,11 +208,11 @@ export async function returningInTransaction(
     unresolvedRecords: windows.reduce((n, w) => n + w.unresolved, 0),
     rejectedRecords: windows.reduce((n, w) => n + w.rejected, 0),
     label:
-      pending || partial
-        ? "Historical import in progress—partial coverage"
+      pending || partial || gaps.length
+        ? "VIR history has partial coverage—retrieval, extraction or station/month gaps remain"
         : !windows.length
-          ? "No reconciled historical import scope; available records only"
-          : "Selected import windows processed; see source-total reconciliation and available dates",
+          ? "No reconciled VIR scope; available records only"
+          : "Requested 24-month lookback windows reconciled; provider retention outside this scope is unverified",
   };
   return {
     start: query.start,

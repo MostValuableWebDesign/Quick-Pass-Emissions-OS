@@ -39,6 +39,7 @@ export function PerformanceDashboard({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [sourceStatus, setSourceStatus] = useState<SourceRefreshStatus>("cached");
+  const [historyMessage, setHistoryMessage] = useState<string | null>(null);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const dateTrigger = useRef<HTMLButtonElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
@@ -72,6 +73,56 @@ export function PerformanceDashboard({
     },
     [q],
   );
+
+  // Extraction continues only while Performance is open, using one bounded request at a time.
+  useEffect(() => {
+    if (loading) return;
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        while (!controller.signal.aborted) {
+          const response = await fetch("/api/inspection-history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ command: "DRAIN_REFRESH", query: q }),
+            signal: controller.signal,
+          });
+          if (!response.ok) {
+            setHistoryMessage(
+              "VIR extraction paused. Open Retrieve historical VIRs to review saved progress.",
+            );
+            break;
+          }
+          const result = await response.json();
+          if (controller.signal.aborted) break;
+          if (result.batch?.state === "WAIT") {
+            setHistoryMessage(
+              "VIR extraction is waiting for the current batch. Saved data remains visible.",
+            );
+            await new Promise((resolve) =>
+              setTimeout(
+                resolve,
+                Math.min(30000, Math.max(1000, Date.parse(result.batch.nextAt) - Date.now())),
+              ),
+            );
+            continue;
+          }
+          if (result.batch?.state !== "PROGRESSED") {
+            if (result.dashboard) setData(result.dashboard);
+            setHistoryMessage(null);
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      } catch {
+        if (!controller.signal.aborted)
+          setHistoryMessage(
+            "VIR extraction interrupted. Saved checkpoints remain available under Retrieve historical VIRs.",
+          );
+      }
+    })();
+    return () => controller.abort();
+  }, [loading, q]);
 
   useEffect(() => {
     let mounted = true;
@@ -244,6 +295,17 @@ export function PerformanceDashboard({
                   {loading ? "Refreshing…" : "Refresh panels"}
                 </button>
                 <SourceRefreshIndicator status={sourceStatus} source="Georgia I/M" />
+                <a
+                  className="button button-outline button-sm"
+                  href="/performance/history#retrieve-virs"
+                >
+                  Retrieve historical VIRs
+                </a>
+                {historyMessage && (
+                  <span role="status" className="muted">
+                    {historyMessage}
+                  </span>
+                )}
               </div>
             </div>
           </div>

@@ -99,12 +99,15 @@ export function parseHistoryExport(body: string, station: string) {
   const index = rows.findIndex(
     (r) => r.slice(0, 6).join("|") === "VIN|License Plate|Test Date|Issued By|Cert Number|Result",
   );
-  requireRule(index >= 0, "Provider export columns changed; use a reviewed CSV export.");
+  requireRule(
+    index >= 0,
+    "Provider VIR columns changed. Check portal access and retry after verifying the report layout.",
+  );
   const header = rows[index];
   const data = rows.slice(index + 1).filter((r) => r.length > 0 && r[2] !== "Test Date");
   requireRule(
     data.every((r) => r.length === header.length),
-    "Unexpected export rows or columns; use a complete reviewed CSV export rather than dropping source rows.",
+    "Unexpected VIR rows or columns. No rows were silently dropped; verify the report layout and retry.",
   );
   requireRule(
     data.length > 0 && data.length <= 10000,

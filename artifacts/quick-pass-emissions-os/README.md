@@ -50,7 +50,7 @@ from business-contact verification. `E2E_ADDRESSES_ONLY=1 npm run test:e2e` veri
 
 ## Quick start
 
-**Historical inspections:** owners can open **Performance → Historical import** to collect up to two years through the existing portal export or CSV/original `.xls` files. Start/Pause/Resume uses bounded foreground requests with PostgreSQL checkpoints, duplicate/conflict review and monthly source-total reconciliation. Returning-vehicle reporting shares Performance dates/employee focus and separates unknown statuses and incomplete coverage. No scheduling subscription or unattended worker is added. Read [INSPECTION_HISTORY.md](INSPECTION_HISTORY.md) for operation, required evidence and limitations.
+**Historical inspections:** **Performance → Refresh panels → Retrieve historical VIRs** collects structured VIR history through the existing station portal. Defaults to 24 months, with authorized scope, bounded foreground processing, persistent checkpoints, source downloads and separate retrieval/extraction coverage. Normal refreshes retain incremental VIR history. No CSV/Excel upload workflow or paid scheduler is used. Returning-vehicle reporting excludes all known retests, separates unknown classifications and requires explicit payment evidence. Live two-year availability is unverified. Read [INSPECTION_HISTORY.md](INSPECTION_HISTORY.md).
 
 Use Node.js 22.12+ (22 or 24 LTS recommended), npm, and PostgreSQL 16+. Actual validation for this delivery is recorded in [VERIFICATION.md](VERIFICATION.md).
 

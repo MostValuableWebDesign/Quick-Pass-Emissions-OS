@@ -8,7 +8,12 @@ export async function GET(request: Request) {
     const rows = await windowErrorReport(actor.id, q.get("jobId") || "", q.get("windowId") || "");
     const body = [
       ["Source row", "Decision", "Reason", "Canonical inspection"],
-      ...rows.map((r) => [String(r.rowNumber), r.status, r.reason || "", r.recordId || ""]),
+      ...rows.map((r) => [
+        String(r.rowNumber),
+        r.identityReview ? "IDENTIFIER_REVIEW" : r.status,
+        r.reason || "",
+        r.recordId || "",
+      ]),
     ]
       .map((row) => row.map(csvCell).join(","))
       .join("\r\n");

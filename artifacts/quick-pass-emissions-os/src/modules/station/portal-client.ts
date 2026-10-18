@@ -57,7 +57,7 @@ export function portalForm(html: string) {
   return { document, body, action: portalAttributes(form).action ?? REPORT_PATH };
 }
 
-/** Short-lived, same-origin session. Cookies, credentials and source HTML never leave the server. */
+/** Short-lived same-origin session. Cookies/credentials stay server-side; original reports may be retained encrypted for authorized owner review. */
 export class PortalSession {
   private cookies = new Map<string, string>();
   private deadline = Date.now() + 60_000;
@@ -244,6 +244,12 @@ export async function portalSearch(
 
 const blankCounts = (): Counts => ({ total: 0, passed: 0, failed: 0, aborted: 0, other: 0 });
 
+export type VirExport = {
+  rows: import("./history/rules").RawInspection[];
+  sourceTotal: number;
+  original?: string;
+};
+
 /** Owner-triggered historical collection uses the existing authenticated bulk-export path. */
 export async function portalHistoryExport(
   start: string,
@@ -255,7 +261,7 @@ export async function portalHistoryExport(
     const { parseHistoryExport } = await import("./history/parser");
     const { page } = await portalSearch(start, config, session, end);
     if (portalExplicitEmpty(page.html, start, end, config.station))
-      return { rows: [], sourceTotal: 0 };
+      return { rows: [], sourceTotal: 0, original: page.html };
     const sourceTotal = expectedPortalTotal(page.html);
     const form = portalForm(page.html);
     const button = portalElements(form.document, "input")
@@ -268,7 +274,7 @@ export async function portalHistoryExport(
       );
     if (!button)
       throw new BusinessError(
-        "No verified historical export is available. Export the month manually as CSV or original .xls.",
+        "No verified VIR export is available. Retry a smaller date window or check station portal access.",
       );
     form.body.set(`${button.name}.x`, "1");
     form.body.set(`${button.name}.y`, "1");
@@ -276,9 +282,9 @@ export async function portalHistoryExport(
     const result = parseHistoryExport(exported.html, config.station);
     if (result.start !== start || result.end !== end || result.rows.length !== sourceTotal)
       throw new BusinessError(
-        "Historical bulk export does not match the requested dates and all-page source total. Use a complete manual export.",
+        "Historical VIR export does not match the requested dates and all-page source total. Split the window and retry; no complete coverage was recorded.",
       );
-    return { rows: result.rows, sourceTotal };
+    return { rows: result.rows, sourceTotal, original: exported.html };
   } finally {
     session.dispose();
   }
@@ -341,10 +347,12 @@ export async function portalRangeDays(
   end: string,
   config: { username: string; password: string; station: string },
   session = new PortalSession(),
+  saveHistory?: (report: VirExport) => Promise<void>,
 ): Promise<PortalDay[]> {
   try {
     const { page } = await portalSearch(start, config, session, end);
-    if (portalExplicitEmpty(page.html, start, end, config.station))
+    if (portalExplicitEmpty(page.html, start, end, config.station)) {
+      await saveHistory?.({ rows: [], sourceTotal: 0, original: page.html });
       return start === end
         ? [
             {
@@ -357,6 +365,7 @@ export async function portalRangeDays(
             },
           ]
         : [];
+    }
     const expected = expectedPortalTotal(page.html);
     const form = portalForm(page.html);
     const exportButton = portalElements(form.document, "input")
@@ -378,6 +387,11 @@ export async function portalRangeDays(
       report.rows.length + report.incompleteRows.length !== expected
     )
       throw new BusinessError("Station export totals or dates changed. Refresh to try again.");
+    if (saveHistory) {
+      const { parseHistoryExport } = await import("./history/parser");
+      const history = parseHistoryExport(exported.html, config.station);
+      await saveHistory({ rows: history.rows, sourceTotal: expected, original: exported.html });
+    }
     const days = new Map<string, PortalDay>();
     const retrievedAt = new Date().toISOString();
     const dayFor = (date: string) => {

@@ -1,3 +1,46 @@
+# VIR-derived history — October 18, 2026
+
+Pulled shared main first, fast-forwarding `6aad6ff` to `dd2808c`. Reused the existing station
+VIR Reprint/export reader. Added the **Retrieve historical VIRs** shortcut in Performance's
+refresh toolbar, 24-month defaults, authorized portal-only station selection, encrypted original
+source retention/downloads, incremental collection during ordinary refreshes and bounded
+foreground extraction. The history API no longer accepts uploads. Legacy source data remains
+stored, with a separate provenance flag; it cannot supply VIR identities or plate associations.
+Both paid and free known retests are excluded from the returning rate. Unknown payment/retest
+classification is not inferred from a VIR. See [INSPECTION_HISTORY.md](INSPECTION_HISTORY.md).
+
+- **Full isolated suite: 884 tests across 88 files passed, no skips.** A final focused rerun
+  passed **84 tests across five files** after source-review/status refinements. Coverage includes
+  all-page export reconciliation/truncation, immutable source retention, source ID/fingerprint
+  duplication, interrupted/resumed extraction, concurrent tabs, fresh actor/station permissions,
+  oversized-window splitting, OCR uncertainty, conflicting VINs, plate changes/state fallback,
+  known retests, unknown classifications, missing months, legacy-source exclusion, incremental
+  refresh and retained history beyond two years. Existing payroll, financial, certificate and
+  unrelated automation regressions passed in the full suite. The initial full run found a new
+  test's incorrect assumption of empty finance tables; it now compares before/after counts.
+- **Two isolated history browser workflows passed, no skips**, using an explicitly guarded
+  synthetic portal transport. They exercise portal-only job creation, 26 rows spanning a
+  three-page provider total, pause/reload/resume at row 25, partial identifier extraction,
+  original-source plain-text downloads, report refresh after extraction, retired-upload
+  rejection, owner/manager/anonymous/origin permissions, the Performance refresh shortcut,
+  and desktop/phone fit. Viewport screenshots were inspected. This does not establish live
+  portal availability. The broader browser suite was not rerun; earlier unrelated failures
+  recorded below remain unresolved. The strict workflow manifest was preserved.
+- **TypeScript, ESLint and production webpack build passed.** The build used an unreachable
+  build-only database URL and did not migrate business data. **80 build-trace manifests**
+  contained zero paths into private verification directories. Generated Next paths were
+  restored. Changed-file formatting/whitespace checks pass; whole-repository format:check
+  reports **42 untouched baseline files**. No dependencies were added or dependency audit rerun.
+- Additive migration `202610180001_vir_history` passed isolated upgrade checks while preserving
+  approved payroll/invoice and signed reversal sentinels. Old imports, rows and decisions are
+  retained. No real business database, scheduler, payroll approval, certificate balance or
+  financial posting was changed.
+- **Live authorization/older retrieval/matching: not verified.** GA station credentials are
+  absent locally. Synthetic older/current matching proves the code path, not real retention.
+  The observed bulk report lacks payment/retest classifications, plate state and stable IDs;
+  no OCR or individual PDF reader exists here. Real two-year availability, source limits and
+  completed/paid classification remain external acceptance checks. **Not deployed.**
+
 # Operations Manager workspace — October 17, 2026
 
 Pulled shared `main` first (already current at `becd9eb`). Added the management-only Operations manager overview, enriched existing responsibilities, delegated completion review, configurable personal availability and saved preview/approved schedules. Reused certificates, chemicals, payroll, maintenance, vendors, invoices, rentals, financial reporting and marketing. Added general-supply purchase stages, non-posting payment/deposit evidence, and explicit owner-approved eligibility/minimum-price policies on existing promotions. See [OPERATIONS_MANAGER.md](OPERATIONS_MANAGER.md) for setup and exact scope.
@@ -20,10 +63,10 @@ Implemented owner-only two-year historical import scopes on existing canonical i
 - **Two isolated browser workflows passed**, no skips. Owners created/uploaded/started an import, paused/reopened/resumed it, reviewed partial errors and a synthetic 50% returning rate, and used desktop/phone layouts without document overflow. Managers, anonymous users and cross-origin requests were rejected. Captures use only synthetic fixture data. The default browser manifest now includes these workflows and its strict coverage guard was updated; a full default browser run was not repeated.
 - Full isolated suite: **818 passed, 2 failed, none skipped** across 85 files. Remaining existing assertions are `account-ui.test.ts` rejecting the unchanged logo's accessible brand label and `marketing-database.test.ts` expecting a cancelled redemption where the current report returns RECORDED. No overall green-suite claim is made. The new portal retry-error mock and the expanded browser-count guard were updated and pass.
 - TypeScript, ESLint, whitespace checks and the **production webpack build passed**. The build used an unreachable build-only database and synthetic authentication configuration. Database migration verification retained existing approved payroll, invoice and receipt/reversal sentinels. Only runner-created temporary databases were migrated/truncated and removed.
-- Changed files are formatted. Repository-wide `format:check` still reports **43 untouched baseline files**; that limitation is separate from changed-file formatting success. No dependency changes were required.
+- Changed files are formatted. Repository-wide `format:check` still reports **42 untouched baseline files**; that limitation is separate from changed-file formatting success. No dependency changes were required.
 - The importer is absent from unrelated automation enqueue/worker paths. No Replit schedule, paid scheduling service or history worker was created. Processing does not continue after a response; the open, explicitly started screen requests subsequent bounded batches.
 
-**Not live-verified or deployed:** no real two-year collection, provider retention/completeness guarantee, real payment/retest supplementation or production migration/deployment was performed. The original provider export omits payment/retest status and stable IDs, so it can supply inspection history while the paid returning rate remains Insufficient data. Missing facts are not synthesized. CSV and original HTML `.xls` are supported; binary Excel requires saving as UTF-8 CSV. Source/setup and immutable-record conflicts remain explicit owner review tasks. Preserve the existing stable BETTER_AUTH_SECRET for encrypted source evidence across builds.
+**Not live-verified or deployed:** no real two-year collection, provider retention/completeness guarantee, real payment/retest supplementation or production migration/deployment was performed. The original provider export omits payment/retest status and stable IDs, so it can supply inspection history while the paid returning rate remains Insufficient data. Missing facts are not synthesized. That older release supported file ingestion; its upload UI/API are retired by the October 18 VIR workflow above. Source/setup and immutable-record conflicts remain explicit owner review tasks. Preserve the existing stable BETTER_AUTH_SECRET for encrypted source evidence across builds.
 
 # Quick Pass website theme alignment — October 17, 2026
 

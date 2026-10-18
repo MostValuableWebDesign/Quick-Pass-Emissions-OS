@@ -13,6 +13,7 @@ import { PACE_SETTINGS_ACTION, paceSettingsSchema } from "./pace-settings";
 import { withStationTestExport, requireActiveTestExport } from "./test-export-gate";
 import { testExportBatches, TEST_EXPORT_MAX_REQUESTS } from "./test-export-batches";
 import { returningInTransaction } from "./history/report";
+import { captureRefreshHistory } from "./history/service";
 
 const SNAPSHOT = "STATION_PERFORMANCE_DAY_CACHED";
 const PLAN = "STATION_PERFORMANCE_PAY_PLAN";
@@ -314,6 +315,7 @@ export async function loadDashboard(
           end,
           credentials,
           new PortalSession(fetch, false, false, run.signal),
+          (report) => captureRefreshHistory(actorId, run, start, end, report),
         );
         const valid = days.map((day) => dashboardDaySchema.parse(day));
         await stationTransaction(actorId, async (tx, hash) => {

@@ -141,8 +141,12 @@ const row = (key: string, date: string, overrides: Fixture = {}): Fixture => ({
     }
     throw new Error("Fixture import did not finish its bounded batches");
   }
-  const report = (stations = [hash], begin = start, end = today) =>
-    reports.readReturningVehicles(owner, { start: begin, end, stations });
+  const report = async (stations = [hash], begin = start, end = today) => {
+    // These legacy fixture builders isolate identity/projection rules. This is test-only provenance,
+    // not a production promotion path; real ingress is covered in vir-history-database.test.ts.
+    await db.stationInspectionEvidence.updateMany({ data: { sourceKind: "VIR" } });
+    return reports.readReturningVehicles(owner, { start: begin, end, stations });
+  };
 
   it("enforces fresh owner access, authorized station selection, and no page-triggered work", async () => {
     const jobsBefore = await db.automationJob.count();
@@ -395,7 +399,7 @@ const row = (key: string, date: string, overrides: Fixture = {}): Fixture => ({
     const jobId = await create([hash], "FILE", start);
     const windowId = await upload(jobId, start, [row("x", start)], hash, null);
     await drain(jobId);
-    expect((await report()).coverage.unverified).toBe(1);
+    expect((await report()).coverage.unverified).toBe(0); // Legacy file windows do not establish VIR coverage.
     const w = await db.inspectionHistoryWindow.findUniqueOrThrow({ where: { id: windowId } });
     expect(w.status).toBe("PARTIAL");
     await service.retryHistoryWindow(owner, jobId, windowId);
@@ -452,7 +456,10 @@ const row = (key: string, date: string, overrides: Fixture = {}): Fixture => ({
     await started;
     expect((await service.nextHistoryBatch(owner, jobId)).state).toBe("WAIT");
     expect(portal.export).toHaveBeenCalledTimes(1);
-    release({ rows: [], sourceTotal: 0 });
+    release({ rows: [], sourceTotal: 0, original: "fixture empty VIR response" } as {
+      rows: [];
+      sourceTotal: number;
+    });
     await first;
     expect((await service.listHistory(owner, jobId)).windows[0].status).toBe("COMPLETED");
     const otherJob = await create([hash], "FILE", start);
@@ -610,7 +617,10 @@ const row = (key: string, date: string, overrides: Fixture = {}): Fixture => ({
     const pending = service.nextHistoryBatch(owner, jobId);
     await started;
     await db.user.update({ where: { id: owner }, data: { active: false } });
-    release({ rows: [], sourceTotal: 0 });
+    release({ rows: [], sourceTotal: 0, original: "fixture empty VIR response" } as {
+      rows: [];
+      sourceTotal: number;
+    });
     await expect(pending).rejects.toThrow(/owner/);
     expect(await db.stationInspectionEvidence.count()).toBe(0);
     expect(await db.stationImport.count()).toBe(0);

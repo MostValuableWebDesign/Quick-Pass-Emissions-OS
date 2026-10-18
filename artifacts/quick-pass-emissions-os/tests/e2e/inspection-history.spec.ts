@@ -5,69 +5,52 @@ import path from "node:path";
 import { businessDate } from "../../src/lib/time";
 const today = businessDate(),
   month = Temporal.PlainDate.from(today).with({ day: 1 }).toString();
-const earlier = Temporal.PlainDate.from(month).subtract({ months: 1 }).toString();
-const csv = (prior: boolean) =>
-  [
-    "Inspection ID,VIN,Test Date,Result,Payment Status,Retest Status,Status",
-    `${prior ? "prior" : "current"},1HGCM82633A004352,${prior ? earlier : month}T10:00:00,Pass,PAID,INITIAL,COMPLETED`,
-    ...(prior
-      ? []
-      : [
-          `first,1M8GDM9AXKP042788,${month}T11:00:00,Fail,PAID,INITIAL,COMPLETED`,
-          `bad,,not-a-date,Pass,UNKNOWN,UNKNOWN,UNKNOWN`,
-        ]),
-  ].join("\n");
-
-test("owner imports bounded history, pauses/reopens, resumes, and reviews returning vehicles", async ({
+test("owner retrieves structured VIRs, resumes checkpoints, and reviews extraction coverage", async ({
   page,
+  baseURL,
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/performance/history");
-  await expect(
-    page.getByRole("heading", { name: "Inspection history", exact: true }),
-  ).toBeVisible();
-  const form = page.getByRole("form", { name: "Create historical import" });
-  await form.getByLabel("From", { exact: true }).fill(earlier);
+  const form = page.getByRole("form", { name: "Retrieve historical VIRs" });
+  await expect(form.getByLabel("From", { exact: true })).toHaveValue(
+    Temporal.PlainDate.from(today).subtract({ months: 24 }).toString(),
+  );
+  await expect(page.locator('input[type="file"]')).toHaveCount(0);
+  await form.getByLabel("From", { exact: true }).fill(month);
   await form.getByLabel("Through", { exact: true }).fill(today);
+  await form.getByLabel("Records per batch").fill("25");
   await form.getByRole("checkbox", { name: /I confirm source-local/ }).check();
-  await form.getByRole("button", { name: "Create import", exact: true }).click();
-  const upload = page.getByRole("form", { name: "Upload monthly source" });
-  await expect(upload).toBeVisible();
-  const uploadFile = async (prior: boolean) => {
-    await upload.getByLabel("Station and window").selectOption({ index: prior ? 0 : 1 });
-    await upload.getByLabel("Export file").setInputFiles({
-      name: "synthetic-inspection-history.csv",
-      mimeType: "text/csv",
-      buffer: Buffer.from(csv(prior)),
-    });
-    await upload.getByLabel("Source total", { exact: false }).fill(prior ? "1" : "3");
-    await upload
-      .getByLabel("Source / total evidence reference")
-      .fill("Synthetic browser fixture; not business data");
-    await upload.getByRole("button", { name: "Save source & checkpoint" }).click();
-    await expect(page.getByRole("button", { name: "Start / Resume" })).toBeEnabled();
-  };
-  await uploadFile(true);
-  await page.getByRole("button", { name: "Start / Resume" }).click();
-  await expect(page.getByText(/Upload a source file for the pending windows/)).toBeVisible();
-  await expect(page.getByText(/Fetched 1 · Imported 1/)).toBeVisible();
-  await page.getByRole("button", { name: "Pause", exact: true }).click();
-  await page.reload();
-  await expect(page.getByText(/Fetched 1 · Imported 1/)).toBeVisible();
-  await expect(page.getByText(/Not processing in this browser/)).toBeVisible();
-  await uploadFile(false);
-  await page.getByRole("button", { name: "Start / Resume" }).click();
-  await expect(page.getByText(/Fetched 4 · Imported 3 · Duplicates 0 · Rejected 1/)).toBeVisible();
+  await form.getByRole("button", { name: "Save retrieval job", exact: true }).click();
   await expect(page.getByRole("button", { name: "Start / Resume" })).toBeEnabled();
+  const jobId = new URL(page.url()).searchParams.get("job")!;
+  const command = async (command: string) => {
+    const res = await page.request.post("/api/inspection-history", {
+      headers: { Origin: baseURL! },
+      data: { command, jobId },
+    });
+    expect(res.ok()).toBe(true);
+    return res.json();
+  };
+  await command("START");
+  await command("NEXT");
+  const batch = await command("NEXT");
+  expect(batch.data.windows[0].cursor).toBe(25);
+  await command("PAUSE");
+  await page.reload();
+  await expect(page.getByText(/Not processing in this browser/)).toBeVisible();
+  await expect(page.getByText("25/26 extraction decisions saved")).toBeVisible();
+  await page.getByRole("button", { name: "Start / Resume" }).click();
+  await expect(page.getByText("26/26 extraction decisions saved")).toBeVisible();
+  await expect(page.getByText("All-page retrieval reconciled")).toBeVisible();
+  await expect(page.getByText("0 failed · 1 needing review")).toBeVisible();
   await page
     .getByRole("form", { name: "Returning vehicle report filters" })
     .getByRole("button", { name: "Apply report filters" })
     .click();
-  await expect(page.getByTestId("returning-count")).toHaveText("1");
+  await expect(page.getByTestId("returning-count")).toHaveText("0");
   await expect(page.getByTestId("first-observed-count")).toHaveText("1");
-  await expect(page.getByTestId("returning-rate")).toHaveText("50.0%");
-  await expect(page.getByRole("link", { name: "Download row errors" })).toBeVisible();
+  await expect(page.getByTestId("returning-rate")).toHaveText("0.0%");
   await expect(page.getByRole("region", { name: "Returning vehicles" })).toContainText(
     "partial coverage",
   );
@@ -79,15 +62,38 @@ test("owner imports bounded history, pauses/reopens, resumes, and reviews return
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
       .toBe(true);
+    await page
+      .getByRole("heading", { name: "Retrieve historical VIRs", exact: true })
+      .scrollIntoViewIfNeeded();
     if (process.env.E2E_HISTORY_CAPTURE_DIR) {
       await mkdir(process.env.E2E_HISTORY_CAPTURE_DIR, { recursive: true });
       await page.screenshot({
         path: path.join(process.env.E2E_HISTORY_CAPTURE_DIR, `${name}.png`),
-        fullPage: true,
+        fullPage: false,
         animations: "disabled",
       });
     }
   }
+  const source = await page.request.get(
+    (await page.getByRole("link", { name: "Original VIR source" }).getAttribute("href")) || "",
+  );
+  expect(source.headers()["content-type"]).toContain("text/plain");
+  expect(source.headers()["content-disposition"]).toContain("attachment");
+  expect(await source.text()).toContain("1HGCM82633A004352");
+  const final = await page.request.post("/api/inspection-history", {
+    headers: { Origin: baseURL! },
+    data: { command: "DRAIN_REFRESH", query: { start: month, end: today, trendDays: 30 } },
+  });
+  expect(final.ok()).toBe(true);
+  expect((await final.json()).dashboard.returningVehicles.firstObserved).toBe(1);
+  const retired = await page.request.post("/api/inspection-history", {
+    headers: { Origin: baseURL! },
+    data: { command: "UPLOAD", jobId },
+  });
+  expect(retired.status()).toBe(400);
+  await page.goto("/performance");
+  await expect(page.locator('a[href="/performance/history#retrieve-virs"]')).toBeVisible();
+  await expect(page.getByTestId("button-refresh")).toBeVisible();
   expect(errors).toEqual([]);
 });
 

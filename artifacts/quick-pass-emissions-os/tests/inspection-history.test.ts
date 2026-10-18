@@ -22,7 +22,7 @@ describe("historical inspection source and identity rules", () => {
       { start: "2024-03-01", end: "2024-03-02" },
     ]);
     expect(historyRange("2024-10-17", "2026-10-17", "2026-10-17")).toBeTruthy();
-    expect(() => historyRange("2024-10-16", "2026-10-17", "2026-10-17")).toThrow();
+    expect(historyRange("2020-01-01", "2026-10-17", "2026-10-17")).toBeTruthy();
     expect(() => historyRange("2026-10-18", "2026-10-18", "2026-10-17")).toThrow();
   });
   it("validates VIN characters and check digit and preserves leading zeroes", () => {
@@ -95,10 +95,10 @@ describe("historical inspection source and identity rules", () => {
     );
     expect(() => parseHistoryExport(body, digest("B"))).toThrow();
   });
-  it("qualifies only explicitly paid completed non-free tests", () => {
+  it("qualifies only explicitly paid completed initial tests", () => {
     const base = { payment: "PAID", completion: "COMPLETED", retest: "INITIAL" };
     expect(qualifies(base)).toBe(true);
-    expect(qualifies({ ...base, retest: "PAID_RETEST" })).toBe(true);
+    expect(qualifies({ ...base, retest: "PAID_RETEST" })).toBe(false);
     for (const [key, values] of Object.entries({
       payment: ["UNKNOWN", "UNPAID", "REFUNDED"],
       retest: ["UNKNOWN", "FREE_RETEST"],

@@ -1,71 +1,123 @@
-# Historical imports and returning vehicles
+# VIR history and returning vehicles
 
-Open **Performance → Historical import** (`/performance/history`) as an active owner. This extends the existing canonical StationRecord/StationRevision system. It needs no scheduling subscription, Replit Scheduled Deployment, new credentials system, or always-on worker. No deployment or live two-year collection was performed.
+## Owner workflow
 
-## Start and resume
+In **Performance → Refresh panels**, choose **Retrieve historical VIRs**. The retrieval screen
+(`/performance/history`) defaults to the previous 24 calendar months through today in
+America/New_York. Select an authorized station and dates, save the job, then Start / Resume.
+The report filters at the top independently select the reporting period and station scope.
+There is no file picker, CSV/Excel upload command, paid scheduler, or always-on worker.
+Retained legacy imports are preserved but are not counted as authenticated VIR history.
 
-1. Choose inclusive dates within the last two years, authorized stations, source system, and **25–200 records per batch** (default 100). Confirm source-local dates mean America/New_York. **Create import** saves a station/month window, including partial boundary months.
-2. Choose the existing portal bulk export or upload each window's CSV/original HTML-based `.xls`. File uploads require a source reference; the checked source total is optional and explicitly owner-supplied. Other registered stations require their own authorized exports because only the existing configured station has portal credentials.
-3. Click **Start / Resume** and keep the screen open. Each completed request performs one source fetch or one bounded record batch before the browser requests another. Progress, source rows, decisions, retry times and checkpoints live in PostgreSQL.
-4. **Pause**, closing, reloading or navigating away stops further requests from this browser. An in-flight bounded batch can finish and save its checkpoint. Reopening the saved import and clicking **Start / Resume** continues; the created job ID stays in the URL for direct reopening. A ready job does not imply work is running without an open processing screen.
-5. **Retry window** revisits only a partial/failed window. Successful months remain untouched. **Split window** divides a pending/partial/failed range into two contiguous smaller windows and retains the original attempt. **Replace source** retains old rows/decisions and creates another source attempt. It never deletes omitted canonical inspections or silently overwrites conflicts. **Download row errors** includes all rejected/unresolved rows for that window. Window lists use 15 items per page.
+The current integration has server credentials for **one station**, the existing
+`GA_STATION_ID`, `GA_DASHBOARD_USERNAME`, and `GA_DASHBOARD_PASSWORD`. Other registered stations
+are shown as unavailable until supported authorized portal access is configured. Registration
+alone does not grant provider access. Only active owners may read or mutate this workspace;
+roles and station scope are rechecked on the server under the personnel/station/history locks.
 
-The report refreshes when foreground processing stops. Manual report refresh preserves selected dates/stations. Performance's common dates and employee focus apply to its panel: employee focus filters current-period records with existing inspector mappings; earlier visits are searched across the selected station scope. Missing attribution is not guessed.
+A job spans at most 24 months, split into monthly windows. Older dates can be requested in
+separate jobs; the date picker does not assert provider retention. No age-based cleanup deletes
+records, encrypted reports, or decisions. Reporting can continue using retained older history.
+Jobs/windows are shown 15 per page. Start/Pause/Resume, targeted retry, and smaller-window split
+retain checkpoints and prior decisions. Oversized provider responses automatically split their
+window and continue after the shared cooldown; a single oversized day remains a visible failure.
 
-## Source availability and setup
+## Actual source and limits
 
-The existing `GA_STATION_ID`, `GA_DASHBOARD_USERNAME` and `GA_DASHBOARD_PASSWORD` stay server-side. The adapter reuses the authenticated Test History / VIR Reprint bulk export, validates station/date metadata and reconciles exported rows against the provider's **all-page** total. It does not import only the first visible page. Portal cookies remain short-lived and are discarded. No browser cookies, new OAuth flow, scheduled scraper or analyzer calls are added.
+The adapter reuses the existing authenticated **Test History / VIR Reprint** report at
+`/Applications/TestHistoryVirReprint.aspx`. It searches the exact station/date window and
+requests the original structured bulk export. The screen's pager states the **all-page** total;
+the complete export must have that many rows and match station and date metadata. An export
+containing only the first page is rejected. This avoids crawling or stopping at the first
+screen page. Each verified export is saved encrypted with its digest, requested scope, retrieval
+time, row checkpoints and original fields; every visit links to its window/source and canonical
+revision. **Original VIR source** downloads owner-authorized, non-executable plain text, with a
+read audit entry. Original HTML is never inserted into the application DOM.
 
-Live two-year availability, retention and every monthly export remain **unverified**. The observed original report supplies VIN, plate, local time, inspector, certificate and result, but omits stable inspection IDs, plate state and payment/free-retest evidence. Those fields remain missing. A Pass/Fail can establish completion, never payment. Portal-only imports may correctly show **Insufficient data** for the paid returning rate. Supply an authorized inspection-level export with explicit payment and retest evidence before interpreting it. Existing Performance/Marketing 30-day paid estimates are not promoted into confirmed paid facts.
+The observed provider fields are VIN, license plate, local Test Date/time, Issued By, Cert Number,
+and Result. The observed export omits stable inspection IDs, plate state, payment and retest
+classification. If supported report columns supply them, the parser retains them. Source IDs
+are station/source-scoped; absent IDs remain absent and use conservative six-field fingerprints
+and ambiguity checks, never invented provider IDs. Original report content also preserves any
+embedded references. On-screen detail-link identifiers were seen in earlier discovery, but
+individual PDF/detail retrieval has **not** been implemented or live verified.
 
-Source totals distinguish provider all-page totals, owner-supplied totals and unavailable totals. Completion requires no rejected/unresolved rows and agreement between fetched rows, current canonical source inspections and the provided total. Missing totals remain unverified. Reconciliation describes the exported scope; it does not prove that the provider retains all older history. Unprocessed/unrequested dates remain unknown.
+There is **no OCR engine or PDF scanning integration in this checkout**. Structured fields take
+priority. Extraction method and qualitative identity status are stored; uncertainty metadata
+from a future scanner is retained and cannot produce confirmed VIN/plate identities. Image-only
+reports are unsupported rather than silently guessed. This implementation does not claim to
+retrieve unavailable individual PDFs or manufacture OCR results.
 
-## File format
+Safety bounds are 2 MB and 10,000 rows per export, 25–200 extraction decisions per request
+(default 100), a 45-second shared export operation and 120-second recoverable lease. Historical,
+manual Performance and daily-count requests share the same station gate: one active export,
+60-second success cooldown, five-minute failure cooldown. Rate-limit Retry-After and bounded
+exponential backoff are persisted, with five attempts before failure. No network runs under a
+database transaction. No cookies, raw VINs, source HTML or passwords appear in public status,
+audit error text or logs.
 
-Maximum **2 MB / 10,000 rows per window**. Supports UTF-8 CSV and the provider's original HTML-based `.xls`. Save binary `.xls` / `.xlsx` as UTF-8 CSV first. No macros or formulas execute. Split oversized ranges; an oversized single day needs a smaller complete export or supported provider access.
+## Foreground processing and incremental refresh
 
-Supported headers: `Inspection ID` (also `Test ID`, `Record ID`, `Source ID`), `Station ID`, `VIN`, `License Plate`, `Plate State`, **`Test Date`** (required), `Issued By`, `Cert Number`, `Result`, `Payment Status`, `Retest Status`, `Status`. Extra columns and original identifiers/leading zeroes remain encrypted in source evidence. Duplicate/ambiguous headers, malformed quoting and unsupported export layouts fail with a saved diagnostic.
+Keeping the retrieval screen open sends consecutive bounded requests. Pause/close/reload stops
+new requests; an already-running bounded request may finish. Reopen the saved job and Start /
+Resume. A RUNNING database status is intent/checkpoint state, not evidence of a live worker.
+Leases prevent two tabs from processing the same batch, overlapping historical jobs are rejected,
+and expired leases recover after restart without losing committed decisions.
 
-- Dates: ISO dates/date-times, offset/Z timestamps, or original `MM/DD/YYYY hh:mm AM/PM`. Explicit offsets convert to Eastern dates. Local times remain local evidence with recorded owner confirmation; no unobserved UTC instant is invented.
-- Payment: `PAID`, `UNPAID`, `REFUNDED`, `UNKNOWN`.
-- Retest: `INITIAL`, `PAID_RETEST`, `FREE_RETEST`, `UNKNOWN`.
-- Status: `COMPLETED`, `VOIDED`, `CANCELLED`, `INCOMPLETE`, `UNKNOWN`. Without an explicit status, Pass/Fail means completed; other outcomes remain unknown.
-- Blank payment/retest remains unknown. Unsupported values reject the row. A supplied Station ID must match; otherwise the explicitly selected upload window supplies station provenance. Original `.xls` date/station metadata must match exactly.
+Ordinary Performance refreshes now persist the original structured VIR report as well as the
+existing aggregate cache. Each capture processes at most 100 rows; any remaining extraction
+continues through bounded foreground requests while Performance is open. Closing the screen
+stops those requests. Saved incremental jobs can also be resumed from the retrieval screen.
+Repeated unchanged reports reuse the checkpoint; changed/overlapping reports deduplicate against
+canonical identities and source IDs. A user-paused job is never silently resumed by refresh.
+None of these steps approves counts or posts payroll, commissions, certificates or revenue.
 
-Header-only CSV with a checked source total of zero can record an owner-reported empty scope. A missing file/total or failed request never becomes zero.
+## Coverage and classifications
 
-## Identity and returning rules
+Each window shows pending/running/partial/completed/failed/unavailable, source rows retrieved,
+extraction cursor, parsed/duplicate/rejected/unresolved/identifier-review counts, provider total,
+fetch time and next retry. Retrieval completion is separate from successful extraction. A source
+can reconcile its all-page count while invalid identifiers still make extraction partial.
+A verified explicit echoed empty portal reply supports zero; failed/missing responses do not.
 
-Saved imports and their monthly windows both have 15-item pagination, so older checkpoints remain reachable. A supplemental export using the same inspection source system and matching canonical identity may fill previously unknown status/plate-state fields. Known facts cannot be replaced by a contradictory value. The prior encrypted source snapshot is preserved in the transactional audit, in addition to original staged rows and decisions. Keep the source reference specific about where supplemental payment/retest evidence came from. Imported counts include this evidence enrichment, not just newly created canonical inspections.
+The Returning-vehicle panel shows earliest/latest saved VIR dates and unverified station/months
+in its 24-month lookback through the reporting end date. Adjacent successful windows may jointly
+cover a month. A month with any unverified date, incomplete extraction or failed window is not
+presented as a confirmed empty month. Coverage is partial until reconciled; provider retention
+outside successful requests remains unverified. Fetched time is distinct from inspection dates.
 
-Stable IDs are scoped by station and source system. Unchanged repeats are duplicates; conflicts remain unresolved. Existing original-report fingerprints link to canonical records. Without IDs, valid identification, precise time and a result are required. Indistinguishable or normalized vehicle/minute/inspector/certificate/outcome matches that cannot establish unique identity go to review rather than creating duplicates. Every decision is retained.
+Valid VIN is primary (17 characters, permitted characters, check digit). VINs are never silently
+corrected. Plate + issuing state is fallback only for missing VIN, with unambiguous associations
+across the selected authorized stations. No state means no plate match; invalid/uncertain VINs
+cannot fall back. Different valid VINs remain separate despite shared plates. Plate changes do
+not split a valid VIN identity. Original and normalized values remain encrypted.
 
-VIN is primary: trim/uppercase, 17 permitted characters and a valid check digit, rejecting repeated placeholders. This is structural validation, not registry/ownership verification ([NHTSA VIN guidance](https://www.nhtsa.gov/document/final-rule-vehicle-identification-number-requirements)). Plate fallback normalizes spaces/hyphens/case and requires a supplied recognized state/territory. It is lower confidence and only used for missing VINs with unambiguous observed associations. Conflicting VINs never merge through a shared plate; a nonblank invalid VIN cannot fall back. Names, phones and emails never identify vehicles.
+Each qualifying identifiable vehicle counts once in the reporting period. Returning requires
+an earlier qualifying visit **before** the period start in the same station scope. Employee
+focus filters current-period attribution; prior visits are checked across the selected scope.
+First observed means **in available history**, never first-ever.
 
-Only **completed, explicitly paid, non-free inspections** qualify. The rate is **distinct returning vehicles / distinct identifiable qualifying vehicles**. A prior qualifying inspection must precede the reporting period at a selected authorized station. Repeat visits within the period count once and cannot make a first-observed vehicle returning. Free retests, voided/cancelled/incomplete/unpaid/refunded inspections are excluded; unknown statuses are separate.
+Qualification requires completed, explicitly paid **initial** tests. Both paid and free known
+retests are excluded. Unknown payment/retest/completion remains separately reported. A VIR,
+certificate, Pass/Fail result, or repeated VIN alone is not payment evidence. In the currently
+observed export payment and retest classifications are missing, so the paid returning rate can
+correctly remain **Insufficient data** even after retrieval. Unmatched records and unknown
+classifications are outside the rate denominator. Identification coverage is explicitly based
+on qualifying inspection records, not an invented distinct count for unidentifiable rows.
 
-First observed means first observed **in available history**, never a first-ever visit. Zero denominator shows **Insufficient data**. Unmatched records are excluded from the denominator and cannot honestly be deduplicated into exact vehicles, so the UI labels them vehicle records. Identification coverage is identifiable qualifying inspection records / all qualifying inspection records. Available dates, quarantined rows and partial coverage remain visible. Superseded/non-current canonical revisions are excluded.
+## Setup and honest verification
 
-## Persistence and isolation
+Keep the same persistent DATABASE_URL and stable BETTER_AUTH_SECRET across builds. Apply additive
+migration `202610180001_vir_history` with the guarded startup procedure; never reset business data.
+The earlier history migration and all legacy records remain. Source encryption uses the existing
+AES-256-GCM/HKDF scheme. See DATA_PERSISTENCE.md.
 
-Additive migration `202610170001_inspection_history` adds database jobs, windows, staged rows, append-only decisions, evidence linked to canonical records, plate associations and indexes. Existing records default to `historicalOnly=false`; new history stays outside operational/Marketing count queries. An explicitly requested original-report review import can promote matching history into the existing review workflow. Collecting history itself never does.
-
-No payment, payroll, commission approval, stock movement, notification or automation enqueue runs from this importer. Existing independent workers/schedules remain intact. Apply the migration through the existing guarded startup/migration procedure, not a reset; builds never migrate business databases. See [DATA_PERSISTENCE.md](DATA_PERSISTENCE.md).
-
-Source rows and normalized originals use AES-256-GCM with context binding and an HKDF-separated key derived from the existing stable `BETTER_AUTH_SECRET`. Preserve that secret across releases and secure backups; deliberate rotation requires re-encryption. Raw VINs/plates never appear in status/error responses, audit diagnostics or synthetic previews. Matching uses hashed keys.
-
-Fresh owner/station checks run under personnel → station → history locks. A 120-second database lease fences repeated clicks, tabs and stale processes. Source calls run outside locks with the existing 45-second deadline and shared export cooldown. Normal cooldowns do not consume failure attempts. Temporary failures persist exponential retry due times, honor Retry-After, and stop after five attempts. Row decisions and checkpoints commit together; interrupted batches roll back together. Indexed period grouping and candidate-identifier lookbacks avoid loading all history or rebuilding reports after every row.
-
-## Verify
-
-Use the existing runner-owned disposable database workflow, never business data:
-
-```sh
-pnpm --filter @workspace/quick-pass-emissions-os typecheck
-pnpm --filter @workspace/quick-pass-emissions-os lint
-pnpm --filter @workspace/quick-pass-emissions-os format:check
-E2E_DIRECT=1 pnpm --filter @workspace/quick-pass-emissions-os test:isolated
-E2E_DIRECT=1 E2E_HISTORY_ONLY=1 pnpm --filter @workspace/quick-pass-emissions-os test:e2e
-```
-
-Optional `E2E_CHROMIUM_PATH` selects an installed browser; `E2E_HISTORY_CAPTURE_DIR` saves synthetic desktop/phone previews. Actual checks and limitations are recorded in [VERIFICATION.md](VERIFICATION.md).
+This change is verified with isolated PostgreSQL and synthetic portal/browser fixtures; those
+fixtures are test-only and cannot establish real provider availability. The local environment
+has no GA portal credentials, so no live older VIRs or two-year coverage were verified for this
+change. Required live acceptance: configure the existing station secrets privately, retrieve
+an older bounded window, inspect its provider total/source fields, resume the remaining windows,
+and review the actual earliest/latest dates and gaps. Stable IDs, payment classification,
+plate-state availability, date retention, empty-month behavior and provider time semantics must
+be verified from those authorized results. Do not call the two-year history complete merely
+because its job exists or its interface is implemented. No deployment is authorized here.

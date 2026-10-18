@@ -10,7 +10,12 @@ import { id, requiredInteger } from "@/lib/validation";
 import { audit, requireRule, BusinessError, type Tx } from "../../phase2";
 import { digest } from "../report";
 import { withStationTestExport, requireActiveTestExport } from "../test-export-gate";
-import { portalHistoryExport, PortalSession, PortalRetryError } from "../portal-client";
+import {
+  portalHistoryExport,
+  PortalSession,
+  PortalRetryError,
+  type VirExport,
+} from "../portal-client";
 import {
   historyTransaction,
   authorizedStations,
@@ -70,12 +75,14 @@ export function listHistory(actorId: string, jobId?: string, requestedPage = 1) 
         })
       : [];
     const snapshotTime = await databaseNow(tx);
-    const publicWindow = windows.map(({ leaseToken: _token, ...w }) => {
+    const publicWindow = windows.map(({ leaseToken: _token, reportPayload: _payload, ...w }) => {
       void _token;
+      void _payload;
       return {
         ...w,
         leaseExpired: !!w.leaseUntil && w.leaseUntil <= snapshotTime,
         stagedAt: w.stagedAt?.toISOString() || null,
+        retrievedAt: w.retrievedAt?.toISOString() || null,
         nextAttemptAt: w.nextAttemptAt?.toISOString() || null,
         leaseUntil: w.leaseUntil?.toISOString() || null,
         checkpointAt: w.checkpointAt?.toISOString() || null,
@@ -99,20 +106,39 @@ export function listHistory(actorId: string, jobId?: string, requestedPage = 1) 
 export function createHistory(actorId: string, input: unknown) {
   const data = jobInput.parse(input);
   historyRange(data.start, data.end);
+  requireRule(
+    data.start >= Temporal.PlainDate.from(data.end).subtract({ months: 24 }).toString(),
+    "Retrieve at most 24 months per job; saved older history remains available.",
+  );
   return historyTransaction(actorId, async (tx) => {
     await checkStations(tx, data.stations);
     if (data.mode === "PORTAL") {
       requireRule(
         data.stations.every((h) => h === configuredStation()?.hash),
-        "Live exports are configured for one station only. Use file imports for other registered stations.",
+        "Live VIR retrieval is configured for one station only. Configure authorized portal access before collecting other registered stations.",
       );
       requireRule(
         process.env.GA_DASHBOARD_USERNAME && process.env.GA_DASHBOARD_PASSWORD,
-        "Configure the existing GA_DASHBOARD_USERNAME and GA_DASHBOARD_PASSWORD or choose a file import.",
+        "Configure the existing GA_DASHBOARD_USERNAME and GA_DASHBOARD_PASSWORD on the server.",
       );
       requireRule(
         data.source === "GA_DASHBOARD",
         "Use GA_DASHBOARD for the existing portal integration.",
+      );
+    }
+    if (data.mode === "PORTAL") {
+      const overlap = await tx.inspectionHistoryJob.findFirst({
+        where: {
+          mode: "PORTAL",
+          status: { in: ["PAUSED", "RUNNING"] },
+          stationHashes: { hasSome: data.stations },
+          startDate: { lte: data.end },
+          endDate: { gte: data.start },
+        },
+      });
+      requireRule(
+        !overlap,
+        "An overlapping VIR retrieval is already saved. Select that job and Start / Resume instead.",
       );
     }
     const job = await tx.inspectionHistoryJob.create({
@@ -171,6 +197,7 @@ async function stage(
   total: number | null,
   totalBasis: string,
   provenance: string,
+  original?: string,
 ) {
   requireRule(
     !window.stagedAt,
@@ -219,6 +246,14 @@ async function stage(
       importId: canonicalImport.id,
       stagedAt: new Date(),
       fetched: rows.length,
+      ...(original !== undefined
+        ? {
+            reportPayload: seal({ body: original }, `report:${window.id}`),
+            reportDigest: digest(original),
+            retrievedAt: new Date(),
+            retrievalComplete: total !== null && total === rows.length,
+          }
+        : {}),
       sourceTotal: total,
       totalBasis,
       status: "PENDING",
@@ -353,6 +388,7 @@ async function mergeEvidence(
   windowId: string,
   old: StationInspectionEvidence,
   n: ReturnType<typeof normalizeInspection>,
+  sourceKind: string,
 ) {
   const result = (status: string, reason: string) => ({ status, reason, recordId: old.recordId });
   const revision = await tx.stationRevision.findUniqueOrThrow({
@@ -370,8 +406,23 @@ async function mergeEvidence(
       "UNRESOLVED",
       "Source conflicts with canonical identity or a corrected revision. Original evidence was not overwritten.",
     );
-  if (old.signature === n.signature)
+  if (old.signature === n.signature) {
+    if (sourceKind === "VIR" && old.sourceKind !== "VIR")
+      await tx.stationInspectionEvidence.update({
+        where: { id: old.id },
+        data: {
+          sourceKind,
+          extractionMethod: n.extractionMethod,
+          identityStatus: n.identityStatus,
+        },
+      });
     return result("DUPLICATE", "Existing station/source inspection evidence matched.");
+  }
+  if (sourceKind === "VIR" && old.sourceKind !== "VIR")
+    return result(
+      "UNRESOLVED",
+      "Retrieved VIR differs from retained legacy evidence. Review required; legacy classifications were not adopted as VIR facts.",
+    );
   for (const key of ["payment", "retest", "completion"] as const)
     if (old[key] !== "UNKNOWN" && n[key] !== "UNKNOWN" && old[key] !== n[key])
       return result(
@@ -498,7 +549,15 @@ async function persistRow(
         },
       })
     : null;
-  if (existingId) return mergeEvidence(tx, actorId, window.id, existingId, n);
+  if (existingId)
+    return mergeEvidence(
+      tx,
+      actorId,
+      window.id,
+      existingId,
+      n,
+      window.reportPayload ? "VIR" : "LEGACY",
+    );
   const legacy = await tx.stationRevision.findUnique({
     where: {
       stationHash_fingerprint: { stationHash: window.stationHash, fingerprint: n.fingerprint },
@@ -513,7 +572,15 @@ async function persistRow(
         recordId: legacy.recordId,
       };
     const evidence = legacy.record.inspectionEvidence;
-    if (evidence) return mergeEvidence(tx, actorId, window.id, evidence, n);
+    if (evidence)
+      return mergeEvidence(
+        tx,
+        actorId,
+        window.id,
+        evidence,
+        n,
+        window.reportPayload ? "VIR" : "LEGACY",
+      );
   }
   if (!legacy && !n.sourceId && !n.conservativeIdentity)
     return {
@@ -613,6 +680,9 @@ async function persistRow(
       source,
       sourceId: n.sourceId,
       signature: n.signature,
+      sourceKind: window.reportPayload ? "VIR" : "LEGACY",
+      extractionMethod: n.extractionMethod,
+      identityStatus: n.identityStatus,
       businessDate: n.businessDate,
       vinHash: n.vinHash,
       plateHash: n.plateHash,
@@ -658,6 +728,9 @@ async function summarize(tx: Tx, jobId: string, windowId: string, cursor: number
     _count: true,
   });
   const count = (status: string) => counts.find((c) => c.status === status)?._count || 0;
+  const identityReview = await tx.inspectionHistoryRow.count({
+    where: { windowId, identityReview: true },
+  });
   const pending = count("PENDING"),
     rejected = count("REJECTED"),
     unresolved = count("UNRESOLVED");
@@ -673,18 +746,21 @@ async function summarize(tx: Tx, jobId: string, windowId: string, cursor: number
         AND (e."source" = ${job.source} OR (e.id IS NULL AND ${job.source} = 'GA_DASHBOARD'))`;
     canonicalTotal = total.count;
   }
+  const job = await tx.inspectionHistoryJob.findUniqueOrThrow({ where: { id: jobId } });
   const reconciled =
+    (job.mode === "FILE" || window.retrievalComplete) &&
     window.sourceTotal !== null &&
     window.sourceTotal === window.fetched &&
     canonicalTotal === window.sourceTotal;
   const status = pending
     ? "PENDING"
-    : rejected || unresolved || !reconciled
+    : rejected || unresolved || identityReview || !reconciled
       ? "PARTIAL"
       : "COMPLETED";
   await tx.inspectionHistoryWindow.update({
     where: { id: windowId },
     data: {
+      identityReview,
       imported: count("IMPORTED"),
       duplicates: count("DUPLICATE"),
       rejected,
@@ -701,7 +777,7 @@ async function summarize(tx: Tx, jobId: string, windowId: string, cursor: number
           ? window.sourceTotal === null
             ? "Source totals unavailable; completeness is unverified."
             : `Source reconciliation: ${window.fetched} fetched, ${canonicalTotal} canonical inspections, ${window.sourceTotal} reported by source. Review prior records; no history was overwritten.`
-          : rejected || unresolved
+          : rejected || unresolved || identityReview
             ? "Review rejected or unresolved rows before claiming completeness."
             : null,
     },
@@ -715,6 +791,143 @@ async function summarize(tx: Tx, jobId: string, windowId: string, cursor: number
       where: { id: jobId },
       data: { status: all.every((w) => w.status === "COMPLETED") ? "COMPLETED" : "PARTIAL" },
     });
+}
+
+async function processRows(
+  tx: Tx,
+  actorId: string,
+  job: InspectionHistoryJob,
+  current: InspectionHistoryWindow,
+) {
+  const jobId = job.id;
+  const rows = await tx.inspectionHistoryRow.findMany({
+    where: { windowId: current.id, status: "PENDING" },
+    orderBy: { rowNumber: "asc" },
+    take: job.recordLimit,
+  });
+  let cursor = current.cursor;
+  for (const row of rows) {
+    let result: { status: string; reason: string; recordId: string | null };
+    try {
+      result = await persistRow(
+        tx,
+        actorId,
+        current,
+        job.source,
+        unseal<Staged>(row.payload, `window:${current.id}:${row.rowNumber}`),
+      );
+    } catch (error) {
+      // Never convert a database/runtime failure into a rejection after partial row writes.
+      if (!(
+        error instanceof BusinessError ||
+        error instanceof z.ZodError ||
+        error instanceof RangeError
+      ))
+        throw error;
+      result = {
+        status: "REJECTED",
+        reason:
+          error instanceof BusinessError
+            ? error.message
+            : "Invalid inspection fields or calendar date. Correct the source and replace this window.",
+        recordId: null,
+      };
+    }
+    const evidence = result.recordId
+      ? await tx.stationInspectionEvidence.findUnique({
+          where: { recordId: result.recordId },
+          select: { identityStatus: true },
+        })
+      : null;
+    await tx.inspectionHistoryRow.update({
+      where: { id: row.id },
+      data: { ...result, identityReview: evidence?.identityStatus === "NEEDS_REVIEW" },
+    });
+    await tx.inspectionHistoryDecision.create({ data: { rowId: row.id, ...result } });
+    cursor = Math.max(cursor, row.rowNumber);
+  }
+  await summarize(tx, jobId, current.id, cursor);
+  await audit(tx, actorId, "INSPECTION_HISTORY_CHECKPOINT", current.id, {
+    cursor,
+    processed: rows.length,
+  });
+}
+
+/** Persist the authenticated structured source during ordinary Performance refreshes.
+ * This never approves counts or posts money, payroll or certificates. */
+export async function captureRefreshHistory(
+  actorId: string,
+  run: import("../test-export-gate").TestExportRun,
+  start: string,
+  end: string,
+  report: VirExport,
+) {
+  return historyTransaction(actorId, async (tx) => {
+    await requireActiveTestExport(tx, run.hash, run);
+    requireRule(
+      report.original !== undefined,
+      "Original VIR source is required for persistent history.",
+    );
+    const fingerprint = digest(report.original);
+    let window = await tx.inspectionHistoryWindow.findFirst({
+      where: {
+        stationHash: run.hash,
+        startDate: start,
+        endDate: end,
+        reportDigest: fingerprint,
+        superseded: false,
+      },
+    });
+    let job;
+    if (!window) {
+      job = await tx.inspectionHistoryJob.create({
+        data: {
+          createdBy: actorId,
+          startDate: start,
+          endDate: end,
+          stationHashes: [run.hash],
+          mode: "REFRESH",
+          source: "GA_DASHBOARD",
+          recordLimit: 100,
+          status: "RUNNING",
+        },
+      });
+      window = await tx.inspectionHistoryWindow.create({
+        data: { jobId: job.id, stationHash: run.hash, startDate: start, endDate: end },
+      });
+      await stage(
+        tx,
+        actorId,
+        window,
+        job.source,
+        report.rows,
+        report.sourceTotal,
+        "PROVIDER_ALL_PAGE_TOTAL",
+        "Normal refresh: authenticated VIR report, requested scope and all-page total verified.",
+        report.original,
+      );
+      window = await tx.inspectionHistoryWindow.findUniqueOrThrow({ where: { id: window.id } });
+    } else job = await tx.inspectionHistoryJob.findUniqueOrThrow({ where: { id: window.jobId } });
+    // Respect a user's pause and an in-flight lease, including another tab.
+    if (
+      job.status === "RUNNING" &&
+      (!window.leaseUntil || window.leaseUntil <= (await databaseNow(tx)))
+    )
+      await processRows(tx, actorId, job, window);
+  });
+}
+
+export async function drainRefreshHistory(actorId: string) {
+  const jobId = await historyTransaction(actorId, async (tx) => {
+    const hashes = (await authorizedStations(tx)).map((s) => s.stationHash);
+    return (
+      await tx.inspectionHistoryJob.findFirst({
+        where: { mode: "REFRESH", status: "RUNNING", stationHashes: { hasSome: hashes } },
+        orderBy: { createdAt: "asc" },
+      })
+    )?.id;
+  });
+  return jobId ? nextHistoryBatch(actorId, jobId) : { state: "STOPPED" as const };
 }
 
 /** One request performs one source fetch OR at most recordLimit row decisions. Nothing continues after return. */
@@ -770,7 +983,7 @@ export async function nextHistoryBatch(actorId: string, jobId: string) {
       await withStationTestExport(actorId, "HISTORY", async (run) => {
         requireRule(
           run.hash === window.stationHash,
-          "This station has no configured export credentials. Upload an authorized export instead.",
+          "This station has no configured VIR access. Check server station credentials.",
         );
         providerStarted = true;
         const exported = await portalHistoryExport(
@@ -794,7 +1007,8 @@ export async function nextHistoryBatch(actorId: string, jobId: string) {
             exported.rows,
             exported.sourceTotal,
             "PROVIDER_ALL_PAGE_TOTAL",
-            "Existing portal bulk export; all-page count and requested dates verified.",
+            "Existing portal VIR report; structured rows, all-page count and requested dates verified.",
+            exported.original,
           );
           await summarize(tx, jobId, window.id, 0);
         });
@@ -802,48 +1016,7 @@ export async function nextHistoryBatch(actorId: string, jobId: string) {
     } else
       await historyTransaction(actorId, async (tx) => {
         const current = await valid(tx);
-        const rows = await tx.inspectionHistoryRow.findMany({
-          where: { windowId: window.id, status: "PENDING" },
-          orderBy: { rowNumber: "asc" },
-          take: job.recordLimit,
-        });
-        let cursor = current.cursor;
-        for (const row of rows) {
-          let result: { status: string; reason: string; recordId: string | null };
-          try {
-            result = await persistRow(
-              tx,
-              actorId,
-              current,
-              job.source,
-              unseal<Staged>(row.payload, `window:${window.id}:${row.rowNumber}`),
-            );
-          } catch (error) {
-            // Never convert a database/runtime failure into a rejection after partial row writes.
-            if (!(
-              error instanceof BusinessError ||
-              error instanceof z.ZodError ||
-              error instanceof RangeError
-            ))
-              throw error;
-            result = {
-              status: "REJECTED",
-              reason:
-                error instanceof BusinessError
-                  ? error.message
-                  : "Invalid inspection fields or calendar date. Correct the source and replace this window.",
-              recordId: null,
-            };
-          }
-          await tx.inspectionHistoryRow.update({ where: { id: row.id }, data: result });
-          await tx.inspectionHistoryDecision.create({ data: { rowId: row.id, ...result } });
-          cursor = Math.max(cursor, row.rowNumber);
-        }
-        await summarize(tx, jobId, window.id, cursor);
-        await audit(tx, actorId, "INSPECTION_HISTORY_CHECKPOINT", window.id, {
-          cursor,
-          processed: rows.length,
-        });
+        await processRows(tx, actorId, job, current);
       });
     return { state: "PROGRESSED" as const };
   } catch (error) {
@@ -870,7 +1043,13 @@ export async function nextHistoryBatch(actorId: string, jobId: string) {
         data: {
           leaseToken: null,
           leaseUntil: null,
-          status: retry ? "PENDING" : "FAILED",
+          status: retry
+            ? "PENDING"
+            : /No verified VIR export|Secrets are missing|no configured VIR access/i.test(
+                  error instanceof Error ? error.message : "",
+                )
+              ? "UNAVAILABLE"
+              : "FAILED",
           attempts,
           nextAttemptAt: retry
             ? blockedUntil ||
@@ -882,7 +1061,9 @@ export async function nextHistoryBatch(actorId: string, jobId: string) {
             : null,
           error: retry
             ? "Temporary source/batch failure. Retry time is saved; keep this screen open or resume later."
-            : "Batch could not be completed. Check source access, report format and size; upload an authorized export or retry this window.",
+            : error instanceof BusinessError
+              ? error.message
+              : "Batch could not be completed. Check portal access or retry a smaller window. Prior source evidence is retained.",
         },
       });
       await audit(tx, actorId, "INSPECTION_HISTORY_BATCH_FAILED", window.id, { attempts, retry });
@@ -897,6 +1078,14 @@ export async function nextHistoryBatch(actorId: string, jobId: string) {
           });
       }
     });
+    if (
+      !temporary &&
+      window.startDate < window.endDate &&
+      /2 MB|10,000|10000|exceeds.*limit|total could not be verified/i.test(
+        error instanceof Error ? error.message : "",
+      )
+    )
+      await splitHistoryWindow(actorId, jobId, window.id, true);
     return { state: "PROGRESSED" as const };
   }
 }
@@ -910,7 +1099,7 @@ export function retryHistoryWindow(actorId: string, jobId: string, windowId: str
       "Wait for the running batch before retrying.",
     );
     requireRule(
-      ["PARTIAL", "FAILED"].includes(window.status),
+      ["PARTIAL", "FAILED", "UNAVAILABLE"].includes(window.status),
       "Retry only a partial or failed window.",
     );
     await tx.inspectionHistoryRow.updateMany({
@@ -935,7 +1124,12 @@ export function retryHistoryWindow(actorId: string, jobId: string, windowId: str
   });
 }
 
-export function splitHistoryWindow(actorId: string, jobId: string, windowId: string) {
+export function splitHistoryWindow(
+  actorId: string,
+  jobId: string,
+  windowId: string,
+  resume = false,
+) {
   return historyTransaction(actorId, async (tx) => {
     const { window } = await ownedWindow(tx, jobId, windowId),
       now = await databaseNow(tx);
@@ -975,7 +1169,10 @@ export function splitHistoryWindow(actorId: string, jobId: string, windowId: str
         },
       });
     }
-    await tx.inspectionHistoryJob.update({ where: { id: jobId }, data: { status: "PAUSED" } });
+    await tx.inspectionHistoryJob.update({
+      where: { id: jobId },
+      data: { status: resume ? "RUNNING" : "PAUSED" },
+    });
     await audit(tx, actorId, "INSPECTION_HISTORY_WINDOW_SPLIT", window.id, {
       start: window.startDate,
       end: window.endDate,
@@ -987,7 +1184,10 @@ export function historyErrors(actorId: string, jobId: string, page = 1) {
   return historyTransaction(actorId, async (tx) => {
     await findJob(tx, jobId);
     return tx.inspectionHistoryRow.findMany({
-      where: { window: { jobId }, status: { in: ["REJECTED", "UNRESOLVED"] } },
+      where: {
+        window: { jobId },
+        OR: [{ status: { in: ["REJECTED", "UNRESOLVED"] } }, { identityReview: true }],
+      },
       orderBy: [{ windowId: "asc" }, { rowNumber: "asc" }],
       skip: (page - 1) * 15,
       take: 15,
@@ -1007,10 +1207,22 @@ export function windowErrorReport(actorId: string, jobId: string, windowId: stri
     await ownedWindow(tx, jobId, windowId);
     await audit(tx, actorId, "INSPECTION_HISTORY_ERRORS_EXPORTED", windowId, {});
     return tx.inspectionHistoryRow.findMany({
-      where: { windowId, status: { in: ["REJECTED", "UNRESOLVED"] } },
+      where: {
+        windowId,
+        OR: [{ status: { in: ["REJECTED", "UNRESOLVED"] } }, { identityReview: true }],
+      },
       orderBy: { rowNumber: "asc" },
-      select: { rowNumber: true, status: true, reason: true, recordId: true },
+      select: { rowNumber: true, status: true, reason: true, recordId: true, identityReview: true },
     });
   });
 }
 export type HistoryView = Awaited<ReturnType<typeof listHistory>>;
+
+export function historySourceReport(actorId: string, jobId: string, windowId: string) {
+  return historyTransaction(actorId, async (tx) => {
+    const { window } = await ownedWindow(tx, jobId, windowId);
+    requireRule(window.reportPayload, "No original VIR report is saved for this window.");
+    await audit(tx, actorId, "INSPECTION_HISTORY_SOURCE_VIEWED", window.id, {});
+    return unseal<{ body: string }>(window.reportPayload, `report:${window.id}`).body;
+  });
+}

@@ -243,6 +243,13 @@ async function main() {
       process.env.E2E_TREND_ONLY === "1",
     );
   }
+  if (suite["inspection-history.spec.ts"]) {
+    env.E2E_VIR_FIXTURE = "1";
+    env.GA_DASHBOARD_USERNAME = "synthetic-vir-owner";
+    env.GA_DASHBOARD_PASSWORD = "synthetic-vir-only";
+    const preload = pathToFileURL(path.join(app, "scripts/vir-browser-provider.mjs")).href;
+    env.NODE_OPTIONS = `${env.NODE_OPTIONS || ""} --import=${preload}`.trim();
+  }
   if (process.env.E2E_CERTIFICATE_UX === "1") {
     stage = "owned synthetic certificate portal cache fixture";
     await certificatePortalBrowserFixture(db, user.id);
@@ -593,7 +600,7 @@ async function main() {
                                                 ? "Passed: 1 targeted station lifecycle check; no skips."
                                                 : process.env.E2E_DEALERSHIPS_ONLY === "1"
                                                   ? "Passed: 1 dealership add flow, including right alignment and save behavior; no skips."
-                                                  : `Passed: ${Object.values(suite).reduce((sum, n) => sum + n, 0)} browser checks across navigation, operations, payroll, certificates, maintenance, rentals, finance and Phase 5 automation${process.env.E2E_STATION_HISTORY === "1" ? ", plus station history" : ""}; no skips.`,
+                                                  : `Passed: ${Object.values(suite).reduce((sum, n) => sum + n, 0)} browser checks in ${Object.keys(suite).join(", ")}; no skips.`,
   );
   if (process.env.E2E_MANUAL_TEST === "1") {
     console.log("Private browser checks completed; preview remains available for visual review.");

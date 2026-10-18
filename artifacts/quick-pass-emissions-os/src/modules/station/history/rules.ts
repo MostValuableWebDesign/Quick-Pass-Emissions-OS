@@ -22,10 +22,9 @@ export const jobInput = z.object({
 export function historyRange(start: string, end: string, today = businessDate()) {
   dateString.parse(start);
   dateString.parse(end);
-  const earliest = Temporal.PlainDate.from(today).subtract({ years: 2 }).toString();
   requireRule(
-    start >= earliest && end >= start && end <= today,
-    "Select dates within the last two years, ending by today (America/New_York).",
+    start >= "2000-01-01" && end >= start && end <= today,
+    "Select dates from 2000 onward, ending by today (America/New_York).",
   );
   return { start, end };
 }
@@ -39,7 +38,14 @@ export function monthWindows(start: string, end: string) {
   }
   return windows;
 }
-export type RawInspection = { fields: Record<string, string>; fingerprint?: string };
+export type RawInspection = {
+  fields: Record<string, string>;
+  fingerprint?: string;
+  extraction?: {
+    method: "STRUCTURED" | "EMBEDDED_TEXT" | "OCR";
+    confidence: "CONFIRMED" | "UNCERTAIN";
+  };
+};
 const aliases: Record<string, string> = {
   vin: "vin",
   licenseplate: "plate",
@@ -139,7 +145,8 @@ export function normalizeInspection(raw: RawInspection, stationHash: string, sou
   const date = inspectionDate(c.date),
     vin = normalizeVin(c.vin || ""),
     plate = normalizePlate(c.plate || "", c.state || "");
-  const invalidVin = !!c.vin && !vin;
+  const uncertain = raw.extraction?.confidence === "UNCERTAIN";
+  const invalidVin = (!!c.vin && !vin) || uncertain;
   const payment = supplied(c.payment, ["UNKNOWN", "PAID", "UNPAID", "REFUNDED"], "payment status");
   const retest = supplied(
     c.retest,
@@ -175,8 +182,16 @@ export function normalizeInspection(raw: RawInspection, stationHash: string, sou
     inspector: c.inspector || "",
     outcome: c.outcome || "",
     certificate: c.certificate || "",
-    vinHash: vin ? digest(vin) : null,
-    plateHash: plate ? digest(plate) : null,
+    vinHash: vin && !uncertain ? digest(vin) : null,
+    plateHash: plate && !uncertain ? digest(plate) : null,
+    extractionMethod: raw.extraction?.method || "STRUCTURED",
+    identityStatus:
+      uncertain || invalidVin || (!vin && !plate)
+        ? "NEEDS_REVIEW"
+        : vin
+          ? "VALID_VIN"
+          : "PLATE_STATE",
+
     invalidVin,
     payment,
     retest,
@@ -188,11 +203,7 @@ export function normalizeInspection(raw: RawInspection, stationHash: string, sou
   };
 }
 export function qualifies(row: { payment: string; retest: string; completion: string }) {
-  return (
-    row.completion === "COMPLETED" &&
-    row.payment === "PAID" &&
-    ["INITIAL", "PAID_RETEST"].includes(row.retest)
-  );
+  return row.completion === "COMPLETED" && row.payment === "PAID" && row.retest === "INITIAL";
 }
 export function inspectionMatchKey(row: {
   vinHash: string | null;

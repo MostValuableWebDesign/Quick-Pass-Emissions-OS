@@ -34,6 +34,7 @@ export function PerformanceTrend({
   employeeId,
   today,
   employeeName,
+  trendStart,
 }: {
   series: DashboardData["series"];
   filtered: boolean;
@@ -44,6 +45,7 @@ export function PerformanceTrend({
   employeeId?: string;
   today: string;
   employeeName?: string;
+  trendStart?: string;
 }) {
   const [metric, setMetric] = useState<Metric>("cars");
   const weekdays = excludeSundayTrendDays(series);
@@ -60,7 +62,7 @@ export function PerformanceTrend({
   const rows = yearly
     ? monthlyTrendPoints(dailyRows, year, today).filter((row) => row.status !== "upcoming")
     : trendYears > 0 || allTime
-      ? monthlyTrendRangePoints(dailyRows, allTime ? "2000-01-01" : (dailyRows[0]?.date ?? endDate), endDate)
+      ? monthlyTrendRangePoints(dailyRows, trendStart ?? dailyRows[0]?.date ?? endDate, endDate)
       : dailyRows;
   const has = rows.some((r) => r.value !== null);
   const scope = employeeName ?? "All employees";
@@ -74,10 +76,10 @@ export function PerformanceTrend({
             {yearly
               ? `${year} · monthly totals`
               : allTime
-                ? `All time · monthly totals through ${shortDate(endDate)}`
+                ? `All time · monthly totals through ${shortDate(endDate)}${trendStart ? ` · from ${trendStart}` : ""}`
                 : trendYears > 0
-                ? `${trendYears} years · monthly totals through ${shortDate(endDate)}`
-                : `Daily · ${trendDays} days through ${shortDate(endDate)}`}
+                  ? `${trendYears} years · monthly totals through ${shortDate(endDate)}`
+                  : `Daily · ${trendDays} days through ${shortDate(endDate)}`}
             {` · ${scope}`}
             {!monthly && dailyGaps > 0
               ? ` · ${dailyGaps} ${dailyGaps === 1 ? "day" : "days"} without data`
@@ -157,7 +159,7 @@ export function PerformanceTrend({
                       <b>
                         {yearly
                           ? `${String(label)} ${year}`
-                          : trendYears > 0
+                          : monthly
                             ? String(label)
                             : longDate(String(label))}
                       </b>

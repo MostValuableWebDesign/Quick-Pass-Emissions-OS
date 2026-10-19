@@ -9,11 +9,11 @@ The user authorized efficient read-only, owner-triggered portal lookup: “you m
 
 **How to apply:** Read the station operating documentation before extending ingestion. Keep on-demand aggregate portal snapshots separate from reviewed test identities and payroll. Do not turn certificates, names or vehicle/time similarities into automatic identity, payment claims or complete live coverage. Unattended access still needs separate authorization and source guarantees; do not bypass challenges.
 
-The owner explicitly approved a visible, resumable historical backfill through Performance's Refresh button, including All Time from the app's earliest supported station date (January 1, 2000). It may advance bounded batches while the page stays open, with progress and Pause, honoring the shared source cooldowns. App date validation does not prove provider retention that far back. This is not permission for an unattended server worker or provider-limit bypass.
+The owner explicitly approved a visible, resumable historical backfill through Performance's Refresh button, including All Time from the configured station's actual earliest available source activity. Do not use the app's arbitrary date floor as the station's start: the user insisted that the source must be checked. It may advance bounded batches while the page stays open, with progress and Pause, honoring the shared source cooldowns. This is not permission for an unattended server worker or provider-limit bypass.
 
-**Why:** The user selected “Add the visible, resumable backfill to Refresh” rather than managing separate historical VIR jobs, then expanded the request from six years to All Time.
+**Why:** The user expanded retrieval from six years to All Time, then clarified “I only want history to how far the station id has history so you have to check.”
 
-**How to apply:** Start the multi-year source loop only on an explicit Refresh click; calculate each preset from January 1 of its first selected calendar year through the report end date; stop new requests on Pause/navigation/close, preserve cached progress, and stop on source failures rather than endlessly retrying.
+**How to apply:** Start the multi-year source loop only on an explicit Refresh click. Use a station-scoped verified earliest activity boundary for All Time; do not infer it from the earliest partially cached row or a single empty window. Keep January 1 starts for the numbered year presets. Stop new requests on Pause/navigation/close, preserve cached progress, and stop on source failures rather than endlessly retrying.
 
 Range coverage is not evidence of an empty station day. The separately verified explicit, echoed single-date portal empty reply supports an aggregate Performance cache zero only; it does not authorize zero-count source completeness or payroll reconciliation. A historical nonempty report must never establish station-day zero through missing or moved records.
 

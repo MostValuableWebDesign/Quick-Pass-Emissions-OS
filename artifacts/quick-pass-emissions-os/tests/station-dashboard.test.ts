@@ -313,6 +313,29 @@ describe("Performance financial projections", () => {
   });
 });
 
+describe("All Time station extent", () => {
+  it("keeps report totals independent while starting the chart at verified source activity", () => {
+    const normal = buildDashboard(query, today, [day], plan);
+    const all = buildDashboard(
+      { ...query, trendDays: "all" },
+      today,
+      [day],
+      plan,
+      undefined,
+      "2026-01-12",
+    );
+    expect(all.summary).toEqual(normal.summary);
+    expect(all.trendStart).toBe("2026-01-12");
+    expect(all.series.map((row) => row.date)).toEqual([
+      "2026-01-12",
+      "2026-01-13",
+      "2026-01-14",
+      "2026-01-15",
+    ]);
+    expect(all.series[0].cars).toBeNull();
+  });
+});
+
 describe("verified provider empty response", () => {
   const fields = [
     ["txtStationId", "SYNTHETIC"],

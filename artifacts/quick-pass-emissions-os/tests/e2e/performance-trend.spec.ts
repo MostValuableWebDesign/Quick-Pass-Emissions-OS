@@ -71,8 +71,10 @@ test("report scope stays stable when switching daily and yearly trends", async (
   }
   await trend.getByTestId("select-trend").selectOption("all");
   await expect(page).toHaveURL(/trendDays=all/);
-  await expect(trend).toContainText("All time · monthly totals through");
-  await expect(trend.getByTestId("trend-backfill-progress")).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText(
+    "oldest available report has not been verified",
+  );
+  await page.getByRole("link", { name: "Return to a shorter trend" }).click();
   await expect(page.getByTestId("text-cars")).toHaveText(originalCars!);
   await expect(page.getByTestId("text-pay")).toHaveText(originalPay!);
   await trend.getByTestId("select-trend").selectOption("730");

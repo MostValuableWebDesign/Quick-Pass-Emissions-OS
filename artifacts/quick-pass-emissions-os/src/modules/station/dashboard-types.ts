@@ -114,6 +114,8 @@ export type CommissionProgress = {
 export type DashboardData = {
   query: DashboardQuery;
   today: string;
+  /** Server-resolved chart boundary; All Time never trusts a client-supplied start. */
+  trendStart?: string;
   current: (Counts & { date: string; retrievedAt: string }) | null;
   summary: {
     inspectionCadence: InspectionCadence;

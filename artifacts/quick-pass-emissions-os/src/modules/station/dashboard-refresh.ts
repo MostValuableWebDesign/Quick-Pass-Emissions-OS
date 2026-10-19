@@ -8,7 +8,7 @@ export function pendingDashboardSourceDates(data: DashboardData, refresh = false
   return [
     ...new Set(
       refresh && !missing.length
-        ? dashboardDates(data.query, data.today)
+        ? dashboardDates(data.query, data.today, data.trendStart)
         : [...missing, ...data.staleDates],
     ),
   ].filter(

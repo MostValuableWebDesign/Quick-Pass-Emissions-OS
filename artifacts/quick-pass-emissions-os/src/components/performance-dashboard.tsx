@@ -494,6 +494,7 @@ export function PerformanceDashboard({
               employeeId={q.employee}
               today={data.today}
               employeeName={empName}
+              trendStart={data.trendStart}
             />
           ) : id === "busy-hours" ? (
             <PerformanceBusyHours

@@ -22,8 +22,11 @@ export function calendarDays(start: string, end: string) {
   for (let date = start; date <= end; date = addDays(date, 1)) days.push(date);
   return days;
 }
-export function dashboardTrendRange(query: DashboardQuery, today: string) {
-  if (query.trendDays === "all") return { start: "2000-01-01", end: query.end };
+export function dashboardTrendRange(query: DashboardQuery, today: string, allTimeStart?: string) {
+  if (query.trendDays === "all") {
+    if (!allTimeStart) throw new Error("All Time requires a verified station-history start.");
+    return { start: allTimeStart, end: query.end };
+  }
   if (query.trendDays >= 730) {
     const years = query.trendDays / 365;
     const firstYear = Number(query.end.slice(0, 4)) - years + 1;
@@ -37,8 +40,8 @@ export function dashboardTrendRange(query: DashboardQuery, today: string) {
   }
   return { start: addDays(query.end, 1 - query.trendDays), end: query.end };
 }
-export function dashboardDates(query: DashboardQuery, today: string) {
-  const trend = dashboardTrendRange(query, today);
+export function dashboardDates(query: DashboardQuery, today: string, allTimeStart?: string) {
+  const trend = dashboardTrendRange(query, today, allTimeStart);
   return [
     ...new Set([
       ...calendarDays(query.start, query.end),
@@ -118,6 +121,7 @@ export function buildDashboard(
   snapshots: PortalDay[],
   payPlan: PayPlan,
   paceSettings: PaceSettings = { revision: 0, longGapMinutes: null },
+  allTimeStart?: string,
 ): DashboardData {
   const byDate = new Map(snapshots.map((d) => [d.date, d]));
   const selectedDates = calendarDays(query.start, query.end);
@@ -125,7 +129,7 @@ export function buildDashboard(
   const selectedComplete = selectedDates.every(
     (date) => byDate.has(date) && byDate.get(date)!.retestComplete !== false,
   );
-  const needed = dashboardDates(query, today);
+  const needed = dashboardDates(query, today, allTimeStart);
   const allInspectors = [
     ...new Set(snapshots.flatMap((d) => d.inspectors.map((i) => i.inspector))),
   ].sort();
@@ -226,7 +230,7 @@ export function buildDashboard(
       return day.total === 0 || selected[0]?.cars !== null ? emptyCounts() : null;
     return day.inspectors.find((i) => i.inspector === selectedInspector) ?? emptyCounts();
   };
-  const trendRange = dashboardTrendRange(query, today);
+  const trendRange = dashboardTrendRange(query, today, allTimeStart);
   const seriesDates = calendarDays(trendRange.start, trendRange.end);
   const series = seriesDates.map((date) => {
     const day = byDate.get(date);
@@ -270,6 +274,7 @@ export function buildDashboard(
   return {
     query,
     today,
+    trendStart: trendRange.start,
     current:
       current && current.retestComplete !== false
         ? {

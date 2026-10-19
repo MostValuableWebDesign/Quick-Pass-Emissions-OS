@@ -9,6 +9,7 @@ import { buildDashboard, calendarDays } from "./dashboard-calculations";
 import { pendingDashboardSourceDates } from "./dashboard-refresh";
 import type { DashboardData, DashboardQuery, PayPlan } from "./dashboard-types";
 import { supportsTrendBackfill } from "./dashboard-types";
+import { HISTORY_START_ACTION, historyStartSchema } from "./history-boundary";
 import { classifyDashboardRetests, hasVinEvidence, retestHistoryDates } from "./dashboard-retests";
 import { PACE_SETTINGS_ACTION, paceSettingsSchema } from "./pace-settings";
 
@@ -211,8 +212,21 @@ export function resolveDashboardQuery(
 export async function readDashboard(actorId: string, input: unknown, now = new Date()) {
   const query = validateQuery(input);
   const today = businessDate(now);
-  const needed = retestHistoryDates(query, today);
   return stationTransaction(actorId, async (tx, hash) => {
+    let allTimeStart: string | undefined;
+    if (query.trendDays === "all") {
+      const boundary = await tx.auditLog.findFirst({
+        where: { entityId: hash, action: HISTORY_START_ACTION },
+        orderBy: { createdAt: "desc" },
+      });
+      const verified = historyStartSchema.safeParse(boundary?.details);
+      requireRule(
+        verified.success,
+        "The station's oldest available report has not been verified yet. Choose a shorter trend until the history check is complete.",
+      );
+      allTimeStart = verified.data.earliestDate;
+    }
+    const needed = retestHistoryDates(query, today, allTimeStart);
     const logs = await tx.auditLog.findMany({
       where: {
         entityId: hash,
@@ -251,6 +265,7 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
       classifyDashboardRetests(rawDays),
       payPlan,
       paceSettings,
+      allTimeStart,
     );
     data.retestMissingDates = needed.filter((date) => {
       const day = snapshots.get(date);

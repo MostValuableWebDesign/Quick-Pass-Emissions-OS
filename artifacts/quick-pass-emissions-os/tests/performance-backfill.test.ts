@@ -168,6 +168,21 @@ describe("Source backlog checkpoints", () => {
     expect(dates[0]).toBe("2026-10-12");
     expect(dates.at(-1)).toBe("2026-10-18");
   });
+  it("uses the server-resolved All Time boundary when explicitly refreshing a fully cached range", () => {
+    const dates = pendingDashboardSourceDates(
+      {
+        ...data,
+        query: { ...data.query, trendDays: "all" },
+        trendStart: "2026-10-16",
+        missingDates: [],
+        timingMissingDates: [],
+        retestMissingDates: [],
+        staleDates: [],
+      },
+      true,
+    );
+    expect(dates).toEqual(["2026-10-16", "2026-10-17", "2026-10-18"]);
+  });
 });
 
 describe("Multi-year trend controls", () => {
@@ -193,6 +208,7 @@ describe("Multi-year trend controls", () => {
         series: [],
         filtered: false,
         trendDays: "all",
+        trendStart: "2012-06-18",
         startDate: "2026-06-01",
         endDate: "2026-06-30",
         today: "2026-10-18",
@@ -211,6 +227,7 @@ describe("Multi-year trend controls", () => {
       "All Time",
     ]);
     expect(markup).toContain("All time · monthly totals through");
+    expect(markup).toContain("from 2012-06-18");
     expect(markup).toContain('name="start" value="2026-06-01"');
     expect(markup).toContain('name="end" value="2026-06-30"');
     expect(markup).toContain("No complete monthly totals are loaded for this period yet.");
@@ -220,9 +237,9 @@ describe("Multi-year trend controls", () => {
     expect(rows).toHaveLength(70);
     expect(rows.every((row) => row.value === null)).toBe(true);
   });
-  it("keeps missing months unknown across the full supported all-time chart", () => {
-    const rows = monthlyTrendRangePoints([], "2000-01-01", "2026-10-19");
-    expect(rows).toHaveLength(322);
+  it("keeps missing months unknown from the station's verified all-time start", () => {
+    const rows = monthlyTrendRangePoints([], "2012-06-18", "2026-10-19");
+    expect(rows).toHaveLength(173);
     expect(rows.every((row) => row.value === null)).toBe(true);
   });
 });

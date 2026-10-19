@@ -43,7 +43,7 @@ import type { SourceRefreshStatus } from "@/lib/source-refresh";
 export type DashboardQuery = {
   start: string;
   end: string;
-  trendDays: 7 | 30 | 365 | 730;
+  trendDays: 7 | 30 | 365 | 730 | "since2023";
   employee?: string;
 };
 export type PayProfile = {
@@ -148,6 +148,13 @@ export type DashboardData = {
   retestMissingDates: string[];
   syncedAt: string | null;
   sourceStatus?: SourceRefreshStatus;
+  backfill?: {
+    totalDates: number;
+    pendingDates: number;
+    incompleteDates: number;
+    retryAfterMs: number;
+    interrupted?: boolean;
+  };
   knownIncompleteDates?: string[];
   reportIssues?: {
     date: string;

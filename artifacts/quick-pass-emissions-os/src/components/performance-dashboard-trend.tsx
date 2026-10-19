@@ -38,7 +38,7 @@ export function PerformanceTrend({
   series: DashboardData["series"];
   filtered: boolean;
   panelActions?: ReactNode;
-  trendDays: 7 | 30 | 365 | 730;
+  trendDays: DashboardData["query"]["trendDays"];
   endDate: string;
   startDate: string;
   employeeId?: string;
@@ -55,12 +55,15 @@ export function PerformanceTrend({
   const year = Number(endDate.slice(0, 4));
   const yearly = trendDays === 365;
   const twoYears = trendDays === 730;
-  const monthly = yearly || twoYears;
+  const since2023 = trendDays === "since2023";
+  const monthly = yearly || twoYears || since2023;
   const rows = yearly
     ? monthlyTrendPoints(dailyRows, year, today)
-    : twoYears
-      ? monthlyTrendRangePoints(dailyRows, dailyRows[0]?.date ?? endDate, endDate)
-      : dailyRows;
+    : since2023
+      ? monthlyTrendRangePoints(dailyRows, "2023-01-01", today)
+      : twoYears
+        ? monthlyTrendRangePoints(dailyRows, dailyRows[0]?.date ?? endDate, endDate)
+        : dailyRows;
   const has = rows.some((r) => r.value !== null);
   const scope = employeeName ?? "All employees";
   const dailyGaps = dailyRows.filter((row) => row.value === null).length;
@@ -72,9 +75,11 @@ export function PerformanceTrend({
           <p data-testid="text-trend-period">
             {yearly
               ? `${year} · monthly totals`
-              : twoYears
-                ? `2 years · monthly totals through ${shortDate(endDate)}`
-                : `Daily · ${trendDays} days through ${shortDate(endDate)}`}
+              : since2023
+                ? `Jan 2023 through ${shortDate(today)} · monthly totals`
+                : twoYears
+                  ? `2 years · monthly totals through ${shortDate(endDate)}`
+                  : `Daily · ${trendDays} days through ${shortDate(endDate)}`}
             {` · ${scope}`}
             {!monthly && dailyGaps > 0
               ? ` · ${dailyGaps} ${dailyGaps === 1 ? "day" : "days"} without data`
@@ -99,6 +104,7 @@ export function PerformanceTrend({
                 <option value="30">Daily · 30 days</option>
                 <option value="365">Yearly · monthly totals</option>
                 <option value="730">2 years · monthly totals</option>
+                <option value="since2023">Jan 2023–today · monthly totals</option>
               </select>
             </label>
           </form>
@@ -149,7 +155,7 @@ export function PerformanceTrend({
                       <b>
                         {yearly
                           ? `${String(label)} ${year}`
-                          : twoYears
+                          : twoYears || since2023
                             ? String(label)
                             : longDate(String(label))}
                       </b>
@@ -204,8 +210,8 @@ export function PerformanceTrend({
         </div>
       ) : (
         <div className="pd-empty">
-          {yearly
-            ? "No complete monthly totals are loaded for this year yet."
+          {monthly
+            ? "No complete monthly totals are loaded for this period yet."
             : "No daily totals are loaded for this trend window yet."}
         </div>
       )}

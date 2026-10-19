@@ -5,7 +5,8 @@ import { audit, requireRule, BusinessError } from "../phase2";
 import { range } from "./report";
 import { stationTransaction } from "./service";
 import { portalRangeDays, PortalSession } from "./portal-client";
-import { buildDashboard, dashboardDates, calendarDays } from "./dashboard-calculations";
+import { buildDashboard, calendarDays } from "./dashboard-calculations";
+import { pendingDashboardSourceDates } from "./dashboard-refresh";
 import type { DashboardData, DashboardQuery, PayPlan } from "./dashboard-types";
 import { classifyDashboardRetests, hasVinEvidence, retestHistoryDates } from "./dashboard-retests";
 import { PACE_SETTINGS_ACTION, paceSettingsSchema } from "./pace-settings";
@@ -141,7 +142,13 @@ export const dashboardPayPlanSchema = z
 const querySchema = z.object({
   start: dateString,
   end: dateString,
-  trendDays: z.union([z.literal(7), z.literal(30), z.literal(365), z.literal(730)]),
+  trendDays: z.union([
+    z.literal(7),
+    z.literal(30),
+    z.literal(365),
+    z.literal(730),
+    z.literal("since2023"),
+  ]),
   employee: z.string().min(1).max(1000).optional(),
 });
 function validateQuery(input: unknown): DashboardQuery {
@@ -178,13 +185,15 @@ export function resolveDashboardQuery(
     start,
     end,
     trendDays:
-      field("trendDays") === "730"
-        ? 730
-        : field("trendDays") === "365"
-          ? 365
-          : field("trendDays") === "30"
-            ? 30
-            : 7,
+      field("trendDays") === "since2023"
+        ? "since2023"
+        : field("trendDays") === "730"
+          ? 730
+          : field("trendDays") === "365"
+            ? 365
+            : field("trendDays") === "30"
+              ? 30
+              : 7,
     ...(field("employee") ? { employee: field("employee") } : {}),
   });
 }
@@ -250,6 +259,20 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
       )
       .map((d) => d.date);
     data.returningVehicles = await returningInTransaction(tx, [hash], query);
+    if (query.trendDays === "since2023") {
+      const gate = await tx.stationTestExportState.findUnique({ where: { stationHash: hash } });
+      const gateNow = Date.now();
+      data.backfill = {
+        totalDates: needed.length,
+        pendingDates: pendingDashboardSourceDates(data).length,
+        incompleteDates: new Set(data.knownIncompleteDates ?? []).size,
+        retryAfterMs: Math.max(
+          0,
+          (gate?.cooldownUntil.getTime() ?? 0) - gateNow,
+          (gate?.activeUntil?.getTime() ?? 0) - gateNow,
+        ),
+      };
+    }
     return data;
   });
 }
@@ -283,28 +306,14 @@ export async function loadDashboard(
 ): Promise<DashboardData> {
   const query = validateQuery(input);
   const initial = await readDashboard(actorId, query);
-  // Continue a bounded partial backfill before re-fetching already cached days.
-  const missingSources = [
-    ...initial.missingDates,
-    ...initial.timingMissingDates,
-    ...initial.retestMissingDates,
-  ];
-  const incompleteDates = new Set(initial.knownIncompleteDates ?? []);
-  const needed = (
-    refresh && missingSources.length === 0
-      ? dashboardDates(query, initial.today)
-      : [...missingSources, ...initial.staleDates]
-  ).filter(
-    (date) =>
-      refresh ||
-      !incompleteDates.has(date) ||
-      (date === initial.today && initial.staleDates.includes(date)),
-  );
+  // Continue missing history before re-fetching cached days. Foreground backfill uses refresh=false.
+  const needed = pendingDashboardSourceDates(initial, refresh);
   if (!needed.length) return { ...initial, sourceStatus: "cached" };
   let sourceStarted = false;
   let sourceSaved = false;
   let sourceBlocked = false;
   let sourceError: string | undefined;
+  let batchLimited = false;
   try {
     await withStationTestExport(actorId, "PERFORMANCE", async (run) => {
       sourceStarted = true;
@@ -333,7 +342,7 @@ export async function loadDashboard(
         return valid;
       };
       const partial = () => {
-        sourceError = "History is partially loaded. Continue after the station cooldown.";
+        batchLimited = true;
       };
       for (const chunk of testExportBatches(needed, initial.today, query)) {
         if (requests >= TEST_EXPORT_MAX_REQUESTS || run.signal.aborted) {
@@ -364,14 +373,21 @@ export async function loadDashboard(
   const result = await readDashboard(actorId, query);
   return {
     ...result,
-    ...(sourceError ? { error: sourceError } : {}),
+    ...(result.backfill
+      ? { backfill: { ...result.backfill, interrupted: !!sourceError && sourceStarted } }
+      : {}),
+    ...(sourceError
+      ? { error: sourceError }
+      : batchLimited && query.trendDays !== "since2023"
+        ? { error: "History is partially loaded. Continue after the station cooldown." }
+        : {}),
     sourceStatus: sourceError
       ? sourceSaved
         ? "partial"
         : sourceBlocked
           ? "blocked"
           : "failed"
-      : result.reportIssues?.length
+      : batchLimited || result.reportIssues?.length
         ? "partial"
         : "source",
   };

@@ -58,6 +58,18 @@ audit error text or logs.
 
 ## Foreground processing and incremental refresh
 
+The Performance trend also offers **Jan 2023–today · monthly totals**. In that view,
+**Refresh panels** starts a foreground, resumable source backfill from January 1, 2023
+through the current Eastern business date, plus the preceding 30-day VIN evidence needed
+for free-retest classification. It uses the existing Performance three-request/three-day
+batch limits and shared station gate—not one oversized export. The progress count includes
+those supporting source dates. Saved historical dates are reused rather than exported again.
+The interface shows cooldown waits and Pause; closing/navigating away stops new requests,
+though the in-flight bounded batch may finish. Reopen the view and Refresh to resume.
+Known incomplete rows remain excluded without automatic historical retries. An export or
+authorization failure pauses the run; no-progress detection prevents endless retry loops.
+No independent worker, unattended polling, limit bypass, or financial posting is added.
+
 Keeping the retrieval screen open sends consecutive bounded requests. Pause/close/reload stops
 new requests; an already-running bounded request may finish. Reopen the saved job and Start /
 Resume. A RUNNING database status is intent/checkpoint state, not evidence of a live worker.

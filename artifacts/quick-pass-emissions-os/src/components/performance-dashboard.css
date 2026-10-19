@@ -1228,3 +1228,20 @@
     white-space: normal;
   }
 }
+
+.pd-backfill-status {
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-backfill-status progress {
+  width: 130px;
+  height: 7px;
+  accent-color: var(--chart-blue);
+}

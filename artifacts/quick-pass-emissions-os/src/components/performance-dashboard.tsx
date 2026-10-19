@@ -1,10 +1,10 @@
 "use client";
 
 import "./performance-dashboard.css";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, RefreshCw, RotateCcw, Save } from "lucide-react";
-import type { DashboardData, DashboardState } from "@/modules/station/dashboard-types";
-import { getPerformanceDashboardAction } from "@/modules/station/dashboard-actions";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CalendarDays, Pause, RefreshCw, RotateCcw, Save } from "lucide-react";
+import type { DashboardData } from "@/modules/station/dashboard-types";
+import { usePerformanceRefresh } from "./use-performance-refresh";
 import type { DashboardLayout } from "./performance-dashboard-layout";
 import { PerformanceBusyHours } from "./performance-dashboard-busy-hours";
 import { PerformanceCommissionProgress } from "./performance-dashboard-commission-progress";
@@ -17,7 +17,6 @@ import {
   usePerformanceDashboardLayout,
 } from "./performance-dashboard-panels";
 import type { DashboardPanelId } from "./performance-dashboard-layout";
-import type { SourceRefreshStatus } from "@/lib/source-refresh";
 import { SourceRefreshIndicator } from "./source-refresh-indicator";
 import { ReturningVehicles } from "./returning-vehicles";
 
@@ -36,43 +35,16 @@ export function PerformanceDashboard({
       (employee) => !initial.query.employee || employee.id === initial.query.employee,
     ).length,
   );
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [sourceStatus, setSourceStatus] = useState<SourceRefreshStatus>("cached");
   const [historyMessage, setHistoryMessage] = useState<string | null>(null);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const dateTrigger = useRef<HTMLButtonElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
-  const busy = useRef(false);
   const { start, end, trendDays, employee } = initial.query;
   const q = useMemo(() => ({ start, end, trendDays, employee }), [start, end, trendDays, employee]);
   const panelLayout = usePerformanceDashboardLayout(initialLayout, layoutAccountId);
 
-  const load = useCallback(
-    async (refresh: boolean) => {
-      if (busy.current) return;
-      busy.current = true;
-      setLoading(true);
-      setSourceStatus("checking");
-      try {
-        const res: DashboardState = await getPerformanceDashboardAction(q, refresh);
-        if (res.data) setData(res.data);
-        setSourceStatus(res.data?.sourceStatus ?? (res.ok === false ? "failed" : "cached"));
-        setMessage(
-          res.ok === false || !res.data
-            ? (res.message ?? "Could not reach the station portal.")
-            : null,
-        );
-      } catch {
-        setSourceStatus("failed");
-        setMessage("Could not reach the station portal. Showing last saved numbers.");
-      } finally {
-        busy.current = false;
-        setLoading(false);
-      }
-    },
-    [q],
-  );
+  const { loading, message, sourceStatus, refresh, pause, phase, backfillActive, waitSeconds } =
+    usePerformanceRefresh(q, setData);
 
   // Extraction continues only while Performance is open, using one bounded request at a time.
   useEffect(() => {
@@ -123,16 +95,6 @@ export function PerformanceDashboard({
     })();
     return () => controller.abort();
   }, [loading, q]);
-
-  useEffect(() => {
-    let mounted = true;
-    queueMicrotask(() => {
-      if (mounted) void load(false);
-    });
-    return () => {
-      mounted = false;
-    };
-  }, [load]);
 
   useEffect(() => {
     if (!datePickerOpen) return;
@@ -283,8 +245,8 @@ export function PerformanceDashboard({
                 <button
                   type="button"
                   className="button dashboard-refresh-button"
-                  onClick={() => load(true)}
-                  disabled={loading}
+                  onClick={() => void refresh()}
+                  disabled={loading || backfillActive}
                   data-testid="button-refresh"
                 >
                   <RefreshCw
@@ -292,8 +254,28 @@ export function PerformanceDashboard({
                     aria-hidden="true"
                     className={loading ? "dashboard-refresh-icon--busy" : undefined}
                   />{" "}
-                  {loading ? "Refreshing…" : "Refresh panels"}
+                  {backfillActive
+                    ? waitSeconds !== null
+                      ? "Waiting for source…"
+                      : "Retrieving history…"
+                    : loading
+                      ? "Refreshing…"
+                      : phase === "paused"
+                        ? "Resume refresh"
+                        : "Refresh panels"}
                 </button>
+                {backfillActive && (
+                  <button
+                    type="button"
+                    className="button button-outline button-sm"
+                    onClick={pause}
+                    disabled={phase === "pausing"}
+                    data-testid="button-pause-refresh"
+                  >
+                    <Pause size={14} aria-hidden="true" />{" "}
+                    {phase === "pausing" ? "Pausing…" : "Pause"}
+                  </button>
+                )}
                 <SourceRefreshIndicator status={sourceStatus} source="Georgia I/M" />
                 <a
                   className="button button-outline button-sm"
@@ -305,6 +287,40 @@ export function PerformanceDashboard({
                   <span role="status" className="muted">
                     {historyMessage}
                   </span>
+                )}
+                {q.trendDays === "since2023" && data.backfill && (
+                  <div
+                    className="pd-backfill-status"
+                    role="status"
+                    data-testid="trend-backfill-progress"
+                  >
+                    <span title="Includes the preceding 30-day VIN history needed to classify free retests.">
+                      {num(data.backfill.totalDates - data.backfill.pendingDates)} /{" "}
+                      {num(data.backfill.totalDates)} source dates saved
+                    </span>
+                    <progress
+                      max={data.backfill.totalDates}
+                      value={data.backfill.totalDates - data.backfill.pendingDates}
+                      aria-label="Historical trend retrieval progress"
+                    />
+                    <span>
+                      {phase === "pausing"
+                        ? "Pausing after current batch"
+                        : backfillActive && waitSeconds !== null
+                          ? `Next batch in ${waitSeconds}s`
+                          : backfillActive
+                            ? "Retrieving missing dates"
+                            : phase === "paused"
+                              ? "Paused · Refresh to resume"
+                              : phase === "failed" || phase === "stalled"
+                                ? "Paused · Refresh to retry"
+                                : data.backfill.pendingDates === 0
+                                  ? "Up to date"
+                                  : "Ready · Refresh to retrieve"}
+                      {data.backfill.incompleteDates > 0 &&
+                        ` · ${num(data.backfill.incompleteDates)} dates with excluded rows`}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>

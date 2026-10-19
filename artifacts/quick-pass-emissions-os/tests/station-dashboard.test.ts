@@ -300,6 +300,15 @@ describe("Performance financial projections", () => {
       trendDays: 730,
     });
   });
+  it("accepts Jan 2023–today without changing the report's dates", () => {
+    expect(
+      resolveDashboardQuery({ start: today, end: today, trendDays: "since2023" }),
+    ).toMatchObject({
+      start: today,
+      end: today,
+      trendDays: "since2023",
+    });
+  });
 });
 
 describe("verified provider empty response", () => {

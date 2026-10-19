@@ -61,7 +61,7 @@ audit error text or logs.
 The Performance trend offers **Past 2 Years**, **Past 3 Years**, **Past 4 Years** and
 **Past 5 Years**, with monthly chart totals. In those views, **Refresh panels** starts a
 foreground, resumable source backfill for the selected calendar-year lookback ending at
-the report's end date, plus the preceding 30-day VIN evidence needed
+January 1 of the first selected year through the report's end date, plus the preceding 30-day VIN evidence needed
 for free-retest classification. It uses the existing Performance three-request/three-day
 batch limits and shared station gate—not one oversized export. The progress count includes
 those supporting source dates. Saved historical dates are reused rather than exported again.

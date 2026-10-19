@@ -24,10 +24,10 @@ export function calendarDays(start: string, end: string) {
 }
 export function dashboardTrendRange(query: DashboardQuery, today: string) {
   if (query.trendDays >= 730) {
+    const years = query.trendDays / 365;
+    const firstYear = Number(query.end.slice(0, 4)) - years + 1;
     return {
-      start: Temporal.PlainDate.from(query.end)
-        .subtract({ years: query.trendDays / 365 })
-        .toString(),
+      start: `${firstYear}-01-01`,
       end: query.end,
     };
   }

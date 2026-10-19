@@ -28,29 +28,32 @@ describe("Independent report and trend periods", () => {
     ).toEqual({ start: "2026-01-01", end: "2026-10-13" });
   });
 
-  it("handles a leap-day report date in a five-year calendar lookback", () => {
+  it("starts a five-calendar-year lookback on January 1, including a leap-day end date", () => {
     expect(
       dashboardTrendRange(
         { start: "2024-02-29", end: "2024-02-29", trendDays: 1825 },
         "2026-10-19",
       ),
-    ).toEqual({ start: "2019-02-28", end: "2024-02-29" });
+    ).toEqual({ start: "2020-01-01", end: "2024-02-29" });
   });
 
   it.each([
-    [2, 730, "2024-10-19"],
-    [3, 1095, "2023-10-19"],
-    [4, 1460, "2022-10-19"],
-    [5, 1825, "2021-10-19"],
-  ] as const)("loads the past %s years through the report date", (years, days, expectedStart) => {
-    const query = { start: "2026-10-19", end: "2026-10-19", trendDays: days };
-    expect(dashboardTrendRange(query, "2026-10-19")).toEqual({
-      start: expectedStart,
-      end: "2026-10-19",
-    });
-    const dates = dashboardDates(query, "2026-10-19");
-    expect(dates[0]).toBe(expectedStart);
-    expect(dates.at(-1)).toBe("2026-10-19");
-    if (years >= 3) expect(dates).toContain("2024-02-29");
-  });
+    [2, 730, "2025-01-01"],
+    [3, 1095, "2024-01-01"],
+    [4, 1460, "2023-01-01"],
+    [5, 1825, "2022-01-01"],
+  ] as const)(
+    "loads %s calendar years from January 1 through the report date",
+    (years, days, expectedStart) => {
+      const query = { start: "2026-10-19", end: "2026-10-19", trendDays: days };
+      expect(dashboardTrendRange(query, "2026-10-19")).toEqual({
+        start: expectedStart,
+        end: "2026-10-19",
+      });
+      const dates = dashboardDates(query, "2026-10-19");
+      expect(dates[0]).toBe(expectedStart);
+      expect(dates.at(-1)).toBe("2026-10-19");
+      if (years >= 3) expect(dates).toContain("2024-02-29");
+    },
+  );
 });

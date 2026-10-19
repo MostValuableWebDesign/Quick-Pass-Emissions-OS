@@ -130,7 +130,7 @@ export function PerformanceTrend({
                 axisLine={false}
                 tickLine={false}
                 minTickGap={18}
-                interval={monthly ? 0 : "preserveEnd"}
+                interval={yearly ? 0 : "preserveEnd"}
               />
               <YAxis
                 width={52}

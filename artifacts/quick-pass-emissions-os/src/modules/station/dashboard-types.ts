@@ -43,7 +43,7 @@ import type { SourceRefreshStatus } from "@/lib/source-refresh";
 export type DashboardQuery = {
   start: string;
   end: string;
-  trendDays: 7 | 30 | 365;
+  trendDays: 7 | 30 | 365 | 730;
   employee?: string;
 };
 export type PayProfile = {

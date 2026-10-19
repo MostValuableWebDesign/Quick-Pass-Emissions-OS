@@ -141,7 +141,7 @@ export const dashboardPayPlanSchema = z
 const querySchema = z.object({
   start: dateString,
   end: dateString,
-  trendDays: z.union([z.literal(7), z.literal(30), z.literal(365)]),
+  trendDays: z.union([z.literal(7), z.literal(30), z.literal(365), z.literal(730)]),
   employee: z.string().min(1).max(1000).optional(),
 });
 function validateQuery(input: unknown): DashboardQuery {
@@ -177,7 +177,14 @@ export function resolveDashboardQuery(
   return validateQuery({
     start,
     end,
-    trendDays: field("trendDays") === "365" ? 365 : field("trendDays") === "30" ? 30 : 7,
+    trendDays:
+      field("trendDays") === "730"
+        ? 730
+        : field("trendDays") === "365"
+          ? 365
+          : field("trendDays") === "30"
+            ? 30
+            : 7,
     ...(field("employee") ? { employee: field("employee") } : {}),
   });
 }

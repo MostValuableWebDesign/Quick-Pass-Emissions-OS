@@ -27,4 +27,16 @@ describe("Independent report and trend periods", () => {
       dashboardTrendRange({ start: "2024-06-01", end: "2024-06-01", trendDays: 365 }, "2026-10-13"),
     ).toEqual({ start: "2024-01-01", end: "2024-12-31" });
   });
+
+  it("loads a two-calendar-year trend ending at the report date", () => {
+    const query = { start: "2026-10-18", end: "2026-10-18", trendDays: 730 as const };
+    expect(dashboardTrendRange(query, "2026-10-19")).toEqual({
+      start: "2024-10-18",
+      end: "2026-10-18",
+    });
+    const dates = dashboardDates(query, "2026-10-19");
+    expect(dates).toContain("2024-10-18");
+    expect(dates).toContain("2026-10-18");
+    expect(dates).toContain("2026-10-19");
+  });
 });

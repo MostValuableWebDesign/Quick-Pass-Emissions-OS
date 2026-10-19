@@ -293,6 +293,13 @@ describe("Performance financial projections", () => {
       end: today,
     });
   });
+  it("accepts the two-year monthly trend selection", () => {
+    expect(resolveDashboardQuery({ start: today, end: today, trendDays: "730" })).toMatchObject({
+      start: today,
+      end: today,
+      trendDays: 730,
+    });
+  });
 });
 
 describe("verified provider empty response", () => {

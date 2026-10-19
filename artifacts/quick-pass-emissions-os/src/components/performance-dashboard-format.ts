@@ -75,6 +75,59 @@ export function monthlyTrendPoints(
     };
   });
 }
+
+/** Monthly totals for an arbitrary inclusive date window, with years in labels. */
+export function monthlyTrendRangePoints(
+  days: readonly DailyTrendPoint[],
+  startDate: string,
+  endDate: string,
+): MonthlyTrendPoint[] {
+  const byDate = new Map(days.map((day) => [day.date, day]));
+  const startMonth = new Date(`${startDate}T12:00:00Z`);
+  startMonth.setUTCDate(1);
+  const endMonth = new Date(`${endDate}T12:00:00Z`);
+  endMonth.setUTCDate(1);
+  const months: MonthlyTrendPoint[] = [];
+
+  for (
+    const cursor = new Date(startMonth);
+    cursor <= endMonth;
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1)
+  ) {
+    const year = cursor.getUTCFullYear();
+    const month = cursor.getUTCMonth();
+    const monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+    const monthEnd = new Date(Date.UTC(year, month + 1, 0)).toISOString().slice(0, 10);
+    const segmentStart = startDate > monthStart ? startDate : monthStart;
+    const segmentEnd = endDate < monthEnd ? endDate : monthEnd;
+    const expected: DailyTrendPoint[] = [];
+
+    for (let date = segmentStart; date <= segmentEnd;) {
+      if (new Date(`${date}T12:00:00Z`).getUTCDay() !== 0)
+        expected.push(byDate.get(date) ?? { date, value: null, station: null });
+      const next = new Date(`${date}T12:00:00Z`);
+      next.setUTCDate(next.getUTCDate() + 1);
+      date = next.toISOString().slice(0, 10);
+    }
+
+    const complete = expected.length > 0 && expected.every((day) => day.value !== null);
+    const stationComplete = expected.length > 0 && expected.every((day) => day.station !== null);
+    const label = new Date(Date.UTC(year, month, 1)).toLocaleDateString("en-US", {
+      month: "short",
+      timeZone: "UTC",
+    });
+    months.push({
+      date: monthStart,
+      label: `${label} '${String(year).slice(-2)}`,
+      monthToDate: segmentStart > monthStart || segmentEnd < monthEnd,
+      value: complete ? expected.reduce((sum, day) => sum + (day.value ?? 0), 0) : null,
+      station: stationComplete ? expected.reduce((sum, day) => sum + (day.station ?? 0), 0) : null,
+      status: complete ? "complete" : "incomplete",
+    });
+  }
+  return months;
+}
+
 export const longDate = (d: string) =>
   new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", {
     weekday: "short",

@@ -37,7 +37,7 @@ type Props = {
   end: string;
   today: string;
   employee?: string | null;
-  trendDays: 7 | 30 | 365;
+  trendDays: 7 | 30 | 365 | 730;
 };
 
 export function PerformanceCalendar({ start, end, today, employee, trendDays }: Props) {

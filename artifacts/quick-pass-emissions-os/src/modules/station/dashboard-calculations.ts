@@ -23,6 +23,12 @@ export function calendarDays(start: string, end: string) {
   return days;
 }
 export function dashboardTrendRange(query: DashboardQuery, today: string) {
+  if (query.trendDays === 730) {
+    return {
+      start: Temporal.PlainDate.from(query.end).subtract({ years: 2 }).toString(),
+      end: query.end,
+    };
+  }
   if (query.trendDays === 365) {
     const year = query.end.slice(0, 4);
     const yearEnd = `${year}-12-31`;

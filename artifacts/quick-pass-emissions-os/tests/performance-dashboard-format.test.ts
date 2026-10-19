@@ -3,6 +3,7 @@ import {
   excludeSundayTrendDays,
   longDate,
   monthlyTrendPoints,
+  monthlyTrendRangePoints,
   shortDate,
 } from "../src/components/performance-dashboard-format";
 
@@ -75,5 +76,40 @@ describe("Yearly monthly totals", () => {
       status: "complete",
     });
     expect(monthlyTrendPoints(february.slice(0, -1), 2024, "2024-12-31")[1].value).toBeNull();
+  });
+});
+
+describe("Two-year monthly totals", () => {
+  it("labels months with their year and sums only the selected weekdays", () => {
+    const days = Array.from({ length: 19 }, (_, index) => {
+      const date = new Date(Date.UTC(2024, 9, 18 + index)).toISOString().slice(0, 10);
+      return { date, value: 1, station: 2 };
+    });
+    const months = monthlyTrendRangePoints(days, "2024-10-18", "2024-11-05");
+    expect(months).toHaveLength(2);
+    expect(months[0]).toMatchObject({
+      label: "Oct '24",
+      value: 12,
+      station: 24,
+      monthToDate: true,
+      status: "complete",
+    });
+    expect(months[1]).toMatchObject({
+      label: "Nov '24",
+      value: 4,
+      station: 8,
+      monthToDate: true,
+      status: "complete",
+    });
+  });
+
+  it("does not treat sparse cached days as a complete monthly total", () => {
+    const months = monthlyTrendRangePoints(
+      [{ date: "2024-10-18", value: 1, station: 2 }],
+      "2024-10-18",
+      "2024-11-05",
+    );
+    expect(months[0]).toMatchObject({ value: null, station: null, status: "incomplete" });
+    expect(months[1]).toMatchObject({ value: null, station: null, status: "incomplete" });
   });
 });

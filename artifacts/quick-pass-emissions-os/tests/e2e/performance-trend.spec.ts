@@ -37,8 +37,16 @@ test("report scope stays stable when switching daily and yearly trends", async (
   await expect(trend.locator(".recharts-wrapper")).toBeVisible();
   await expect(trend.locator(".recharts-wrapper").getByText("Jan", { exact: true })).toBeVisible();
 
+  await trend.getByTestId("select-trend").selectOption("730");
+  await expect(page).toHaveURL(/trendDays=730/);
+  expect(new URL(page.url()).searchParams.get("start")).toBe(reportDate);
+  expect(new URL(page.url()).searchParams.get("end")).toBe(reportDate);
+  await expect(trend).toContainText(`2 years · monthly totals through`);
+  await expect(page.getByTestId("text-cars")).toHaveText(originalCars!);
+  await expect(page.getByTestId("text-pay")).toHaveText(originalPay!);
+
   await employeeFocus.getByTestId("select-employee").selectOption({ label: "Fixture Two" });
-  await expect(page).toHaveURL(/trendDays=365/);
+  await expect(page).toHaveURL(/trendDays=730/);
   expect(new URL(page.url()).searchParams.get("start")).toBe(reportDate);
   expect(new URL(page.url()).searchParams.get("end")).toBe(reportDate);
   await expect(page.getByTestId("text-cars")).toHaveText("25");

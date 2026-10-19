@@ -17,6 +17,7 @@ import {
   excludeSundayTrendDays,
   longDate,
   monthlyTrendPoints,
+  monthlyTrendRangePoints,
   shortDate,
   usd,
 } from "./performance-dashboard-format";
@@ -37,7 +38,7 @@ export function PerformanceTrend({
   series: DashboardData["series"];
   filtered: boolean;
   panelActions?: ReactNode;
-  trendDays: 7 | 30 | 365;
+  trendDays: 7 | 30 | 365 | 730;
   endDate: string;
   startDate: string;
   employeeId?: string;
@@ -53,7 +54,13 @@ export function PerformanceTrend({
   }));
   const year = Number(endDate.slice(0, 4));
   const yearly = trendDays === 365;
-  const rows = yearly ? monthlyTrendPoints(dailyRows, year, today) : dailyRows;
+  const twoYears = trendDays === 730;
+  const monthly = yearly || twoYears;
+  const rows = yearly
+    ? monthlyTrendPoints(dailyRows, year, today)
+    : twoYears
+      ? monthlyTrendRangePoints(dailyRows, dailyRows[0]?.date ?? endDate, endDate)
+      : dailyRows;
   const has = rows.some((r) => r.value !== null);
   const scope = employeeName ?? "All employees";
   const dailyGaps = dailyRows.filter((row) => row.value === null).length;
@@ -65,9 +72,11 @@ export function PerformanceTrend({
           <p data-testid="text-trend-period">
             {yearly
               ? `${year} · monthly totals`
-              : `Daily · ${trendDays} days through ${shortDate(endDate)}`}
+              : twoYears
+                ? `2 years · monthly totals through ${shortDate(endDate)}`
+                : `Daily · ${trendDays} days through ${shortDate(endDate)}`}
             {` · ${scope}`}
-            {!yearly && dailyGaps > 0
+            {!monthly && dailyGaps > 0
               ? ` · ${dailyGaps} ${dailyGaps === 1 ? "day" : "days"} without data`
               : ""}
             {filtered && metric === "cars" ? " · line is station total" : ""}
@@ -89,6 +98,7 @@ export function PerformanceTrend({
                 <option value="7">Daily · 7 days</option>
                 <option value="30">Daily · 30 days</option>
                 <option value="365">Yearly · monthly totals</option>
+                <option value="730">2 years · monthly totals</option>
               </select>
             </label>
           </form>
@@ -114,13 +124,13 @@ export function PerformanceTrend({
             <ComposedChart data={rows} margin={{ left: 0, right: 8, top: 6, bottom: 0 }}>
               <CartesianGrid vertical={false} stroke="var(--line)" />
               <XAxis
-                dataKey={yearly ? "label" : "date"}
-                tickFormatter={yearly ? undefined : shortDate}
+                dataKey={monthly ? "label" : "date"}
+                tickFormatter={monthly ? undefined : shortDate}
                 tick={{ fontSize: 11, fill: "var(--muted)" }}
                 axisLine={false}
                 tickLine={false}
                 minTickGap={18}
-                interval={yearly ? 0 : "preserveEnd"}
+                interval={monthly ? 0 : "preserveEnd"}
               />
               <YAxis
                 width={52}
@@ -136,8 +146,16 @@ export function PerformanceTrend({
                 content={({ active, payload, label }) =>
                   active && payload?.length ? (
                     <div className="pd-tip">
-                      <b>{yearly ? `${String(label)} ${year}` : longDate(String(label))}</b>
-                      {yearly && payload[0]?.payload?.monthToDate && <div>Month to date</div>}
+                      <b>
+                        {yearly
+                          ? `${String(label)} ${year}`
+                          : twoYears
+                            ? String(label)
+                            : longDate(String(label))}
+                      </b>
+                      {monthly && payload[0]?.payload?.monthToDate && (
+                        <div>{yearly ? "Month to date" : "Partial month"}</div>
+                      )}
                       {payload.map((p) => (
                         <div key={String(p.dataKey)}>
                           {p.dataKey === "station"
@@ -147,9 +165,9 @@ export function PerformanceTrend({
                               : "Revenue"}
                           :{" "}
                           {p.value === null || p.value === undefined
-                            ? yearly && p.payload?.status === "upcoming"
+                            ? monthly && p.payload?.status === "upcoming"
                               ? "Upcoming"
-                              : yearly && p.payload?.status === "incomplete"
+                              : monthly && p.payload?.status === "incomplete"
                                 ? "Incomplete data"
                                 : "No data"
                             : metric === "revenue"

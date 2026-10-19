@@ -43,11 +43,11 @@ import type { SourceRefreshStatus } from "@/lib/source-refresh";
 export type DashboardQuery = {
   start: string;
   end: string;
-  trendDays: 7 | 30 | 365 | 730 | 1095 | 1460 | 1825 | 2190;
+  trendDays: 7 | 30 | 365 | 730 | 1095 | 1460 | 1825 | 2190 | "all";
   employee?: string;
 };
 export function supportsTrendBackfill(trendDays: DashboardQuery["trendDays"]) {
-  return trendDays >= 730;
+  return trendDays === "all" || trendDays >= 730;
 }
 export type PayProfile = {
   id: string;

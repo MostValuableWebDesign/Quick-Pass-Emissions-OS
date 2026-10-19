@@ -31,6 +31,7 @@ test("report scope stays stable when switching daily and yearly trends", async (
     "Past 4 Years",
     "Past 5 Years",
     "Past 6 Years",
+    "All Time",
   ]);
   const originalCars = await page.getByTestId("text-cars").textContent();
   const originalPay = await page.getByTestId("text-pay").textContent();
@@ -68,6 +69,12 @@ test("report scope stays stable when switching daily and yearly trends", async (
     await expect(page.getByTestId("text-cars")).toHaveText(originalCars!);
     await expect(page.getByTestId("text-pay")).toHaveText(originalPay!);
   }
+  await trend.getByTestId("select-trend").selectOption("all");
+  await expect(page).toHaveURL(/trendDays=all/);
+  await expect(trend).toContainText("All time · monthly totals through");
+  await expect(trend.getByTestId("trend-backfill-progress")).toBeVisible();
+  await expect(page.getByTestId("text-cars")).toHaveText(originalCars!);
+  await expect(page.getByTestId("text-pay")).toHaveText(originalPay!);
   await trend.getByTestId("select-trend").selectOption("730");
 
   await employeeFocus.getByTestId("select-employee").selectOption({ label: "Fixture Two" });

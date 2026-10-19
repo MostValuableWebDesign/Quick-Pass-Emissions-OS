@@ -293,7 +293,7 @@ describe("Performance financial projections", () => {
       end: today,
     });
   });
-  it.each([730, 1095, 1460, 1825, 2190])("accepts multi-year trend %s", (days) => {
+  it.each([730, 1095, 1460, 1825, 2190, "all"] as const)("accepts multi-year trend %s", (days) => {
     expect(
       resolveDashboardQuery({ start: today, end: today, trendDays: String(days) }),
     ).toMatchObject({

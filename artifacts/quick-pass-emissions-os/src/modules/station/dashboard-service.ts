@@ -152,6 +152,7 @@ const querySchema = z.object({
     z.literal(1460),
     z.literal(1825),
     z.literal(2190),
+    z.literal("all"),
   ]),
   employee: z.string().min(1).max(1000).optional(),
 });
@@ -195,6 +196,7 @@ export function resolveDashboardQuery(
     "1460": 1460,
     "1825": 1825,
     "2190": 2190,
+    all: "all",
     since2023: 1825,
   };
   return validateQuery({

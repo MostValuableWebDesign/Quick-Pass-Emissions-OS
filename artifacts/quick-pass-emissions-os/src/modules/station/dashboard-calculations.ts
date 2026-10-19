@@ -23,6 +23,7 @@ export function calendarDays(start: string, end: string) {
   return days;
 }
 export function dashboardTrendRange(query: DashboardQuery, today: string) {
+  if (query.trendDays === "all") return { start: "2000-01-01", end: query.end };
   if (query.trendDays >= 730) {
     const years = query.trendDays / 365;
     const firstYear = Number(query.end.slice(0, 4)) - years + 1;

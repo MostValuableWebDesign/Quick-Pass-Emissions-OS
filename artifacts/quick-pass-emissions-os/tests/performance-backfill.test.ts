@@ -207,6 +207,7 @@ describe("Multi-year trend controls", () => {
       "Past 4 Years",
       "Past 5 Years",
       "Past 6 Years",
+      "All Time",
     ]);
     expect(markup).toContain("6 years · monthly totals through");
     expect(markup).toContain('value="2190" selected="">Past 6 Years</option>');

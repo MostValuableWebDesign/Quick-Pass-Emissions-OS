@@ -54,12 +54,13 @@ export function PerformanceTrend({
   }));
   const year = Number(today.slice(0, 4));
   const yearly = trendDays === 365;
-  const trendYears = trendDays >= 730 ? trendDays / 365 : 0;
-  const monthly = yearly || trendYears > 0;
+  const allTime = trendDays === "all";
+  const trendYears = typeof trendDays === "number" && trendDays >= 730 ? trendDays / 365 : 0;
+  const monthly = yearly || trendYears > 0 || allTime;
   const rows = yearly
     ? monthlyTrendPoints(dailyRows, year, today).filter((row) => row.status !== "upcoming")
-    : trendYears > 0
-      ? monthlyTrendRangePoints(dailyRows, dailyRows[0]?.date ?? endDate, endDate)
+    : trendYears > 0 || allTime
+      ? monthlyTrendRangePoints(dailyRows, allTime ? "2000-01-01" : (dailyRows[0]?.date ?? endDate), endDate)
       : dailyRows;
   const has = rows.some((r) => r.value !== null);
   const scope = employeeName ?? "All employees";
@@ -72,7 +73,9 @@ export function PerformanceTrend({
           <p data-testid="text-trend-period">
             {yearly
               ? `${year} · monthly totals`
-              : trendYears > 0
+              : allTime
+                ? `All time · monthly totals through ${shortDate(endDate)}`
+                : trendYears > 0
                 ? `${trendYears} years · monthly totals through ${shortDate(endDate)}`
                 : `Daily · ${trendDays} days through ${shortDate(endDate)}`}
             {` · ${scope}`}
@@ -103,6 +106,7 @@ export function PerformanceTrend({
                 <option value="1460">Past 4 Years</option>
                 <option value="1825">Past 5 Years</option>
                 <option value="2190">Past 6 Years</option>
+                <option value="all">All Time</option>
               </select>
             </label>
           </form>

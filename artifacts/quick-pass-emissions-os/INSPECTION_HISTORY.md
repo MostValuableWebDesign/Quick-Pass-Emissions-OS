@@ -59,10 +59,12 @@ audit error text or logs.
 ## Foreground processing and incremental refresh
 
 The Performance trend offers **Past 2 Years**, **Past 3 Years**, **Past 4 Years**,
-**Past 5 Years** and **Past 6 Years**, with monthly chart totals. In those views, **Refresh panels**
-starts a foreground, resumable source backfill from January 1 of the first selected calendar year
-through the report's end date, plus the preceding 30-day VIN evidence needed for free-retest
-classification. It uses the existing Performance three-request/three-day
+**Past 5 Years**, **Past 6 Years** and **All Time**, with monthly chart totals. All Time starts at
+the application's earliest supported station date, January 1, 2000; this is not a guarantee that
+the provider retains data back to that date. In those views, **Refresh panels** starts a foreground,
+resumable source backfill from January 1 of the first selected calendar year through the report's
+end date, plus the preceding 30-day VIN evidence needed for free-retest classification. It uses
+the existing Performance three-request/three-day
 batch limits and shared station gate—not one oversized export. The progress count includes
 those supporting source dates. Saved historical dates are reused rather than exported again.
 Selecting a multi-year view reads the cache only; source retrieval starts on Refresh.

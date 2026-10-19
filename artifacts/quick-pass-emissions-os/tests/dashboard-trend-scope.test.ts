@@ -37,6 +37,17 @@ describe("Independent report and trend periods", () => {
     ).toEqual({ start: "2020-01-01", end: "2024-02-29" });
   });
 
+  it("starts the all-time trend at the earliest supported station date", () => {
+    const query = { start: "2026-10-19", end: "2026-10-19", trendDays: "all" as const };
+    expect(dashboardTrendRange(query, "2026-10-19")).toEqual({
+      start: "2000-01-01",
+      end: "2026-10-19",
+    });
+    const dates = dashboardDates(query, "2026-10-19");
+    expect(dates[0]).toBe("2000-01-01");
+    expect(dates.at(-1)).toBe("2026-10-19");
+  });
+
   it.each([
     [2, 730, "2025-01-01"],
     [3, 1095, "2024-01-01"],

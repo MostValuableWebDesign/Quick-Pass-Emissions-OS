@@ -30,6 +30,7 @@ test("report scope stays stable when switching daily and yearly trends", async (
     "Past 3 Years",
     "Past 4 Years",
     "Past 5 Years",
+    "Past 6 Years",
   ]);
   const originalCars = await page.getByTestId("text-cars").textContent();
   const originalPay = await page.getByTestId("text-pay").textContent();
@@ -58,6 +59,7 @@ test("report scope stays stable when switching daily and yearly trends", async (
     ["1095", 3],
     ["1460", 4],
     ["1825", 5],
+    ["2190", 6],
   ] as const) {
     await trend.getByTestId("select-trend").selectOption(value);
     await expect(page).toHaveURL(new RegExp(`trendDays=${value}`));

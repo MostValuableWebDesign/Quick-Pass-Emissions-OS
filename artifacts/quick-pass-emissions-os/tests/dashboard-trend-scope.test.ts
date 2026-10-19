@@ -42,6 +42,7 @@ describe("Independent report and trend periods", () => {
     [3, 1095, "2024-01-01"],
     [4, 1460, "2023-01-01"],
     [5, 1825, "2022-01-01"],
+    [6, 2190, "2021-01-01"],
   ] as const)(
     "loads %s calendar years from January 1 through the report date",
     (years, days, expectedStart) => {

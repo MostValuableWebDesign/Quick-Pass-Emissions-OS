@@ -102,6 +102,7 @@ export function PerformanceTrend({
                 <option value="1095">Past 3 Years</option>
                 <option value="1460">Past 4 Years</option>
                 <option value="1825">Past 5 Years</option>
+                <option value="2190">Past 6 Years</option>
               </select>
             </label>
           </form>

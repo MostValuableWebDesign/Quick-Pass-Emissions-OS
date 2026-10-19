@@ -176,6 +176,7 @@ describe("Multi-year trend controls", () => {
     expect(supportsTrendBackfill(1095)).toBe(true);
     expect(supportsTrendBackfill(1460)).toBe(true);
     expect(supportsTrendBackfill(1825)).toBe(true);
+    expect(supportsTrendBackfill(2190)).toBe(true);
     expect(supportsTrendBackfill(365)).toBe(false);
   });
   it("routes saved VIR processing to the Next app, not the scaffold API server", () => {
@@ -185,18 +186,18 @@ describe("Multi-year trend controls", () => {
     );
     expect(manifest).toMatch(/paths\s*=\s*\[[^\]]*"\/api\/inspection-history"/);
   });
-  it("shows the five-year option while preserving independent report dates", () => {
+  it("shows the six-year option while preserving independent report dates", () => {
     const markup = renderToStaticMarkup(
       createElement(PerformanceTrend, {
         series: [],
         filtered: false,
-        trendDays: 1825,
+        trendDays: 2190,
         startDate: "2026-06-01",
         endDate: "2026-06-30",
         today: "2026-10-18",
       }),
     );
-    expect(markup).toContain('value="1825" selected=""');
+    expect(markup).toContain('value="2190" selected=""');
     expect([...markup.matchAll(/<option[^>]*>(.*?)<\/option>/g)].map((match) => match[1])).toEqual([
       "Past 7 Days",
       "Past 30 Days",
@@ -205,15 +206,17 @@ describe("Multi-year trend controls", () => {
       "Past 3 Years",
       "Past 4 Years",
       "Past 5 Years",
+      "Past 6 Years",
     ]);
-    expect(markup).toContain("5 years · monthly totals through");
+    expect(markup).toContain("6 years · monthly totals through");
+    expect(markup).toContain('value="2190" selected="">Past 6 Years</option>');
     expect(markup).toContain('name="start" value="2026-06-01"');
     expect(markup).toContain('name="end" value="2026-06-30"');
     expect(markup).toContain("No complete monthly totals are loaded for this period yet.");
   });
-  it("keeps missing months unknown across a full five-year chart", () => {
-    const rows = monthlyTrendRangePoints([], "2021-10-19", "2026-10-19");
-    expect(rows).toHaveLength(61);
+  it("keeps missing months unknown across a full six-calendar-year chart", () => {
+    const rows = monthlyTrendRangePoints([], "2021-01-01", "2026-10-19");
+    expect(rows).toHaveLength(70);
     expect(rows.every((row) => row.value === null)).toBe(true);
   });
 });

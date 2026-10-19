@@ -46,6 +46,9 @@ export type DashboardQuery = {
   trendDays: 7 | 30 | 365 | 730 | "since2023";
   employee?: string;
 };
+export function supportsTrendBackfill(trendDays: DashboardQuery["trendDays"]) {
+  return trendDays === 730 || trendDays === "since2023";
+}
 export type PayProfile = {
   id: string;
   name: string;

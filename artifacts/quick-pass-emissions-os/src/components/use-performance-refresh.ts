@@ -6,6 +6,7 @@ import type {
   DashboardQuery,
   DashboardState,
 } from "@/modules/station/dashboard-types";
+import { supportsTrendBackfill } from "@/modules/station/dashboard-types";
 import { getPerformanceDashboardAction } from "@/modules/station/dashboard-actions";
 import type { SourceRefreshStatus } from "@/lib/source-refresh";
 import { runPerformanceBackfill } from "@/lib/performance-backfill";
@@ -66,7 +67,7 @@ export function usePerformanceRefresh(
   );
 
   const refresh = useCallback(async () => {
-    if (query.trendDays !== "since2023") return loadOnce(true);
+    if (!supportsTrendBackfill(query.trendDays)) return loadOnce(true);
     if (busy.current) return;
     busy.current = true;
     const controller = new AbortController();

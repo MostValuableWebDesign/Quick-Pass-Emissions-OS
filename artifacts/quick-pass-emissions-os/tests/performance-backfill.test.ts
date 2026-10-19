@@ -6,6 +6,7 @@ import { PerformanceTrend } from "../src/components/performance-dashboard-trend"
 import { runPerformanceBackfill, waitForBackfill } from "../src/lib/performance-backfill";
 import { pendingDashboardSourceDates } from "../src/modules/station/dashboard-refresh";
 import type { DashboardData, DashboardState } from "../src/modules/station/dashboard-types";
+import { supportsTrendBackfill } from "../src/modules/station/dashboard-types";
 
 function batch(
   pendingDates: number,
@@ -169,6 +170,11 @@ describe("Source backlog checkpoints", () => {
 });
 
 describe("Multi-year trend controls", () => {
+  it("enables saved-source-date progress for both the two-year and 2023-to-today trends", () => {
+    expect(supportsTrendBackfill(730)).toBe(true);
+    expect(supportsTrendBackfill("since2023")).toBe(true);
+    expect(supportsTrendBackfill(365)).toBe(false);
+  });
   it("routes saved VIR processing to the Next app, not the scaffold API server", () => {
     const manifest = readFileSync(
       new URL("../.replit-artifact/artifact.toml", import.meta.url),

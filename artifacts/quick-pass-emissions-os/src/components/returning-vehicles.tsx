@@ -10,12 +10,6 @@ export function ReturningVehicles({ report }: { report: ReturningVehicleReport }
           <p className="eyebrow">VEHICLE HISTORY</p>
           <h2>Returning-vehicle rate</h2>
         </div>
-        <a
-          className="button button-outline button-sm"
-          href={`/performance/history?start=${report.start}&end=${report.end}`}
-        >
-          Retrieve historical VIRs
-        </a>
       </div>
       <p className="muted">
         {report.start} – {report.end} · America/New_York · selected station scope

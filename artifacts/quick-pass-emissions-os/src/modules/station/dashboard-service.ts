@@ -8,6 +8,7 @@ import { portalRangeDays, PortalSession } from "./portal-client";
 import { buildDashboard, calendarDays } from "./dashboard-calculations";
 import { pendingDashboardSourceDates } from "./dashboard-refresh";
 import type { DashboardData, DashboardQuery, PayPlan } from "./dashboard-types";
+import { supportsTrendBackfill } from "./dashboard-types";
 import { classifyDashboardRetests, hasVinEvidence, retestHistoryDates } from "./dashboard-retests";
 import { PACE_SETTINGS_ACTION, paceSettingsSchema } from "./pace-settings";
 
@@ -259,7 +260,7 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
       )
       .map((d) => d.date);
     data.returningVehicles = await returningInTransaction(tx, [hash], query);
-    if (query.trendDays === "since2023") {
+    if (supportsTrendBackfill(query.trendDays)) {
       const gate = await tx.stationTestExportState.findUnique({ where: { stationHash: hash } });
       const gateNow = Date.now();
       data.backfill = {
@@ -305,6 +306,7 @@ export async function loadDashboard(
   refresh = false,
 ): Promise<DashboardData> {
   const query = validateQuery(input);
+  const resumableTrend = supportsTrendBackfill(query.trendDays);
   const initial = await readDashboard(actorId, query);
   // Continue missing history before re-fetching cached days. Foreground backfill uses refresh=false.
   const needed = pendingDashboardSourceDates(initial, refresh);
@@ -378,7 +380,7 @@ export async function loadDashboard(
       : {}),
     ...(sourceError
       ? { error: sourceError }
-      : batchLimited && query.trendDays !== "since2023"
+      : batchLimited && !resumableTrend
         ? { error: "History is partially loaded. Continue after the station cooldown." }
         : {}),
     sourceStatus: sourceError

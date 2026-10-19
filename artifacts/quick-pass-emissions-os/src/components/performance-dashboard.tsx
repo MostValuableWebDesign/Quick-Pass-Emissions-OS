@@ -4,6 +4,7 @@ import "./performance-dashboard.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, Pause, RefreshCw, RotateCcw, Save } from "lucide-react";
 import type { DashboardData } from "@/modules/station/dashboard-types";
+import { supportsTrendBackfill } from "@/modules/station/dashboard-types";
 import { usePerformanceRefresh } from "./use-performance-refresh";
 import type { DashboardLayout } from "./performance-dashboard-layout";
 import { PerformanceBusyHours } from "./performance-dashboard-busy-hours";
@@ -61,7 +62,7 @@ export function PerformanceDashboard({
           });
           if (!response.ok) {
             setHistoryMessage(
-              "VIR extraction paused. Open Retrieve historical VIRs to review saved progress.",
+              "VIR extraction paused. Saved report progress is retained; Refresh to resume.",
             );
             break;
           }
@@ -89,7 +90,7 @@ export function PerformanceDashboard({
       } catch {
         if (!controller.signal.aborted)
           setHistoryMessage(
-            "VIR extraction interrupted. Saved checkpoints remain available under Retrieve historical VIRs.",
+            "VIR extraction interrupted. Saved report progress is retained; Refresh to resume.",
           );
       }
     })();
@@ -277,18 +278,12 @@ export function PerformanceDashboard({
                   </button>
                 )}
                 <SourceRefreshIndicator status={sourceStatus} source="Georgia I/M" />
-                <a
-                  className="button button-outline button-sm"
-                  href="/performance/history#retrieve-virs"
-                >
-                  Retrieve historical VIRs
-                </a>
                 {historyMessage && (
                   <span role="status" className="muted">
                     {historyMessage}
                   </span>
                 )}
-                {q.trendDays === "since2023" && data.backfill && (
+                {supportsTrendBackfill(q.trendDays) && data.backfill && (
                   <div
                     className="pd-backfill-status"
                     role="status"

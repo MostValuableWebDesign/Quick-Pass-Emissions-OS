@@ -92,7 +92,7 @@ test("owner retrieves structured VIRs, resumes checkpoints, and reviews extracti
   });
   expect(retired.status()).toBe(400);
   await page.goto("/performance");
-  await expect(page.locator('a[href="/performance/history#retrieve-virs"]')).toBeVisible();
+  await expect(page.getByRole("link", { name: "Retrieve historical VIRs" })).toHaveCount(0);
   await expect(page.getByTestId("button-refresh")).toBeVisible();
   expect(errors).toEqual([]);
 });

@@ -148,7 +148,9 @@ const querySchema = z.object({
     z.literal(30),
     z.literal(365),
     z.literal(730),
-    z.literal("since2023"),
+    z.literal(1095),
+    z.literal(1460),
+    z.literal(1825),
   ]),
   employee: z.string().min(1).max(1000).optional(),
 });
@@ -182,19 +184,21 @@ export function resolveDashboardQuery(
     start = addDays(today, -29);
     end = today;
   }
+  const trendDays = field("trendDays");
+  const trendValues: Record<string, DashboardQuery["trendDays"]> = {
+    "7": 7,
+    "30": 30,
+    "365": 365,
+    "730": 730,
+    "1095": 1095,
+    "1460": 1460,
+    "1825": 1825,
+    since2023: 1825,
+  };
   return validateQuery({
     start,
     end,
-    trendDays:
-      field("trendDays") === "since2023"
-        ? "since2023"
-        : field("trendDays") === "730"
-          ? 730
-          : field("trendDays") === "365"
-            ? 365
-            : field("trendDays") === "30"
-              ? 30
-              : 7,
+    trendDays: trendValues[trendDays ?? ""] ?? 7,
     ...(field("employee") ? { employee: field("employee") } : {}),
   });
 }

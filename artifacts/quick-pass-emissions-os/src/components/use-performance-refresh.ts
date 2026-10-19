@@ -127,7 +127,7 @@ export function usePerformanceRefresh(
 
   useEffect(() => {
     // The multi-year source backfill starts only from the owner's Refresh click.
-    if (query.trendDays === "since2023") return;
+    if (supportsTrendBackfill(query.trendDays)) return;
     let mounted = true;
     queueMicrotask(() => {
       if (mounted) void loadOnce(false);

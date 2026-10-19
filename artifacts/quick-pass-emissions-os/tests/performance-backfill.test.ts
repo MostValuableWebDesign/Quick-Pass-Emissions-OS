@@ -129,7 +129,7 @@ describe("Foreground Performance backfill", () => {
 
 describe("Source backlog checkpoints", () => {
   const data = {
-    query: { start: "2026-10-18", end: "2026-10-18", trendDays: "since2023" },
+    query: { start: "2026-10-18", end: "2026-10-18", trendDays: 1825 },
     today: "2026-10-18",
     missingDates: ["2023-01-02", "2023-01-03"],
     timingMissingDates: ["2023-01-02"],
@@ -170,9 +170,11 @@ describe("Source backlog checkpoints", () => {
 });
 
 describe("Multi-year trend controls", () => {
-  it("enables saved-source-date progress for both the two-year and 2023-to-today trends", () => {
+  it("enables saved-source-date progress for all multi-year trends", () => {
     expect(supportsTrendBackfill(730)).toBe(true);
-    expect(supportsTrendBackfill("since2023")).toBe(true);
+    expect(supportsTrendBackfill(1095)).toBe(true);
+    expect(supportsTrendBackfill(1460)).toBe(true);
+    expect(supportsTrendBackfill(1825)).toBe(true);
     expect(supportsTrendBackfill(365)).toBe(false);
   });
   it("routes saved VIR processing to the Next app, not the scaffold API server", () => {
@@ -182,20 +184,29 @@ describe("Multi-year trend controls", () => {
     );
     expect(manifest).toMatch(/paths\s*=\s*\[[^\]]*"\/api\/inspection-history"/);
   });
-  it("shows the exact 2023–today period while preserving independent report dates", () => {
+  it("shows the five-year option while preserving independent report dates", () => {
     const markup = renderToStaticMarkup(
       createElement(PerformanceTrend, {
         series: [],
         filtered: false,
-        trendDays: "since2023",
+        trendDays: 1825,
         startDate: "2026-06-01",
         endDate: "2026-06-30",
         today: "2026-10-18",
       }),
     );
-    expect(markup).toContain('value="since2023" selected=""');
-    expect(markup).toContain("Jan 2023–today · monthly totals");
-    expect(markup).toMatch(/Jan 2023 through .*monthly totals/);
+    expect(markup).toContain('value="1825" selected=""');
+    for (const label of [
+      "Past 7 Days",
+      "Past 30 Days",
+      "Year to Date",
+      "Past 2 Years",
+      "Past 3 Years",
+      "Past 4 Years",
+      "Past 5 Years",
+    ])
+      expect(markup).toContain(label);
+    expect(markup).toContain("5 years · monthly totals through");
     expect(markup).toContain('name="start" value="2026-06-01"');
     expect(markup).toContain('name="end" value="2026-06-30"');
     expect(markup).toContain("No complete monthly totals are loaded for this period yet.");

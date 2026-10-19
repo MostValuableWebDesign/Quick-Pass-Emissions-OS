@@ -300,13 +300,13 @@ describe("Performance financial projections", () => {
       trendDays: 730,
     });
   });
-  it("accepts Jan 2023–today without changing the report's dates", () => {
+  it("accepts the legacy trend URL as the five-year view without changing report dates", () => {
     expect(
       resolveDashboardQuery({ start: today, end: today, trendDays: "since2023" }),
     ).toMatchObject({
       start: today,
       end: today,
-      trendDays: "since2023",
+      trendDays: 1825,
     });
   });
 });

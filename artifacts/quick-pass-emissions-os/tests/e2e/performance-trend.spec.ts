@@ -22,6 +22,15 @@ test("report scope stays stable when switching daily and yearly trends", async (
   await expect(scope).toContainText("From");
   await expect(scope.getByTestId("select-trend")).toHaveCount(0);
   await expect(trend.getByTestId("select-trend")).toBeVisible();
+  await expect(trend.getByTestId("select-trend").locator("option")).toHaveText([
+    "Past 7 Days",
+    "Past 30 Days",
+    "Year to Date",
+    "Past 2 Years",
+    "Past 3 Years",
+    "Past 4 Years",
+    "Past 5 Years",
+  ]);
   const originalCars = await page.getByTestId("text-cars").textContent();
   const originalPay = await page.getByTestId("text-pay").textContent();
   await page.keyboard.press("Escape");
@@ -44,6 +53,20 @@ test("report scope stays stable when switching daily and yearly trends", async (
   await expect(trend).toContainText(`2 years · monthly totals through`);
   await expect(page.getByTestId("text-cars")).toHaveText(originalCars!);
   await expect(page.getByTestId("text-pay")).toHaveText(originalPay!);
+
+  for (const [value, years] of [
+    ["1095", 3],
+    ["1460", 4],
+    ["1825", 5],
+  ] as const) {
+    await trend.getByTestId("select-trend").selectOption(value);
+    await expect(page).toHaveURL(new RegExp(`trendDays=${value}`));
+    await expect(trend).toContainText(`${years} years · monthly totals through`);
+    await expect(page.getByTestId("trend-backfill-progress")).toBeVisible();
+    await expect(page.getByTestId("text-cars")).toHaveText(originalCars!);
+    await expect(page.getByTestId("text-pay")).toHaveText(originalPay!);
+  }
+  await trend.getByTestId("select-trend").selectOption("730");
 
   await employeeFocus.getByTestId("select-employee").selectOption({ label: "Fixture Two" });
   await expect(page).toHaveURL(/trendDays=730/);

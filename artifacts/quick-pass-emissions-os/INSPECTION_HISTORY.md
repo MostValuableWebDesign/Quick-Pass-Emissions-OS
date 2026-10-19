@@ -58,12 +58,16 @@ audit error text or logs.
 
 ## Foreground processing and incremental refresh
 
-The Performance trend also offers **Jan 2023–today · monthly totals**. In that view,
-**Refresh panels** starts a foreground, resumable source backfill from January 1, 2023
-through the current Eastern business date, plus the preceding 30-day VIN evidence needed
+The Performance trend offers **Past 2 Years**, **Past 3 Years**, **Past 4 Years** and
+**Past 5 Years**, with monthly chart totals. In those views, **Refresh panels** starts a
+foreground, resumable source backfill for the selected calendar-year lookback ending at
+the report's end date, plus the preceding 30-day VIN evidence needed
 for free-retest classification. It uses the existing Performance three-request/three-day
 batch limits and shared station gate—not one oversized export. The progress count includes
 those supporting source dates. Saved historical dates are reused rather than exported again.
+Selecting a multi-year view reads the cache only; source retrieval starts on Refresh.
+Year to Date uses January 1 through the current Eastern business date, regardless of the
+selected report dates, and omits future months.
 The interface shows cooldown waits and Pause; closing/navigating away stops new requests,
 though the in-flight bounded batch may finish. Reopen the view and Refresh to resume.
 Known incomplete rows remain excluded without automatic historical retries. An export or

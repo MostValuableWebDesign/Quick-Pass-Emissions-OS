@@ -52,12 +52,12 @@ export function PerformanceTrend({
     value: metric === "cars" ? s.cars : s.revenueCents === null ? null : s.revenueCents / 100,
     station: metric === "cars" && filtered ? s.stationCars : null,
   }));
-  const year = Number(endDate.slice(0, 4));
+  const year = Number(today.slice(0, 4));
   const yearly = trendDays === 365;
   const trendYears = trendDays >= 730 ? trendDays / 365 : 0;
   const monthly = yearly || trendYears > 0;
   const rows = yearly
-    ? monthlyTrendPoints(dailyRows, year, today)
+    ? monthlyTrendPoints(dailyRows, year, today).filter((row) => row.status !== "upcoming")
     : trendYears > 0
       ? monthlyTrendRangePoints(dailyRows, dailyRows[0]?.date ?? endDate, endDate)
       : dailyRows;
@@ -74,7 +74,7 @@ export function PerformanceTrend({
               ? `${year} · monthly totals`
               : trendYears > 0
                 ? `${trendYears} years · monthly totals through ${shortDate(endDate)}`
-                  : `Daily · ${trendDays} days through ${shortDate(endDate)}`}
+                : `Daily · ${trendDays} days through ${shortDate(endDate)}`}
             {` · ${scope}`}
             {!monthly && dailyGaps > 0
               ? ` · ${dailyGaps} ${dailyGaps === 1 ? "day" : "days"} without data`

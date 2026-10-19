@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PerformanceTrend } from "../src/components/performance-dashboard-trend";
+import { monthlyTrendRangePoints } from "../src/components/performance-dashboard-format";
 import { runPerformanceBackfill, waitForBackfill } from "../src/lib/performance-backfill";
 import { pendingDashboardSourceDates } from "../src/modules/station/dashboard-refresh";
 import type { DashboardData, DashboardState } from "../src/modules/station/dashboard-types";
@@ -196,7 +197,7 @@ describe("Multi-year trend controls", () => {
       }),
     );
     expect(markup).toContain('value="1825" selected=""');
-    for (const label of [
+    expect([...markup.matchAll(/<option[^>]*>(.*?)<\/option>/g)].map((match) => match[1])).toEqual([
       "Past 7 Days",
       "Past 30 Days",
       "Year to Date",
@@ -204,11 +205,15 @@ describe("Multi-year trend controls", () => {
       "Past 3 Years",
       "Past 4 Years",
       "Past 5 Years",
-    ])
-      expect(markup).toContain(label);
+    ]);
     expect(markup).toContain("5 years · monthly totals through");
     expect(markup).toContain('name="start" value="2026-06-01"');
     expect(markup).toContain('name="end" value="2026-06-30"');
     expect(markup).toContain("No complete monthly totals are loaded for this period yet.");
+  });
+  it("keeps missing months unknown across a full five-year chart", () => {
+    const rows = monthlyTrendRangePoints([], "2021-10-19", "2026-10-19");
+    expect(rows).toHaveLength(61);
+    expect(rows.every((row) => row.value === null)).toBe(true);
   });
 });

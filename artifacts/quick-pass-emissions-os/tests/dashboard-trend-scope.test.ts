@@ -13,7 +13,7 @@ describe("Independent report and trend periods", () => {
     expect(dates).toContain("2026-10-13");
   });
 
-  it("loads the selected calendar year only through today", () => {
+  it("loads year to date only through today", () => {
     const query = { start: "2026-10-12", end: "2026-10-12", trendDays: 365 as const };
     expect(dashboardTrendRange(query, "2026-10-13")).toEqual({
       start: "2026-01-01",
@@ -22,10 +22,19 @@ describe("Independent report and trend periods", () => {
     expect(dashboardDates(query, "2026-10-13")).not.toContain("2026-10-14");
   });
 
-  it("uses the full selected year for past years", () => {
+  it("keeps year to date in the current year when the report date is historical", () => {
     expect(
       dashboardTrendRange({ start: "2024-06-01", end: "2024-06-01", trendDays: 365 }, "2026-10-13"),
-    ).toEqual({ start: "2024-01-01", end: "2024-12-31" });
+    ).toEqual({ start: "2026-01-01", end: "2026-10-13" });
+  });
+
+  it("handles a leap-day report date in a five-year calendar lookback", () => {
+    expect(
+      dashboardTrendRange(
+        { start: "2024-02-29", end: "2024-02-29", trendDays: 1825 },
+        "2026-10-19",
+      ),
+    ).toEqual({ start: "2019-02-28", end: "2024-02-29" });
   });
 
   it.each([
@@ -42,6 +51,6 @@ describe("Independent report and trend periods", () => {
     const dates = dashboardDates(query, "2026-10-19");
     expect(dates[0]).toBe(expectedStart);
     expect(dates.at(-1)).toBe("2026-10-19");
-    expect(dates).toContain("2024-02-29");
+    if (years >= 3) expect(dates).toContain("2024-02-29");
   });
 });

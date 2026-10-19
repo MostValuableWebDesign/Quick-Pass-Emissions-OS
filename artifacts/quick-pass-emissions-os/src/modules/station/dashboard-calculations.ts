@@ -32,9 +32,7 @@ export function dashboardTrendRange(query: DashboardQuery, today: string) {
     };
   }
   if (query.trendDays === 365) {
-    const year = query.end.slice(0, 4);
-    const yearEnd = `${year}-12-31`;
-    return { start: `${year}-01-01`, end: yearEnd < today ? yearEnd : today };
+    return { start: `${today.slice(0, 4)}-01-01`, end: today };
   }
   return { start: addDays(query.end, 1 - query.trendDays), end: query.end };
 }

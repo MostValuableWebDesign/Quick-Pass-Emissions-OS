@@ -1,4 +1,5 @@
 "use client";
+import type { DashboardQuery } from "@/modules/station/dashboard-types";
 
 import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -37,7 +38,7 @@ type Props = {
   end: string;
   today: string;
   employee?: string | null;
-  trendDays: 7 | 30 | 365 | 730 | 1095 | 1460 | 1825;
+  trendDays: DashboardQuery["trendDays"];
 };
 
 export function PerformanceCalendar({ start, end, today, employee, trendDays }: Props) {

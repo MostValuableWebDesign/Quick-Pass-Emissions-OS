@@ -293,11 +293,13 @@ describe("Performance financial projections", () => {
       end: today,
     });
   });
-  it("accepts the two-year monthly trend selection", () => {
-    expect(resolveDashboardQuery({ start: today, end: today, trendDays: "730" })).toMatchObject({
+  it.each([730, 1095, 1460, 1825])("accepts multi-year trend %s", (days) => {
+    expect(
+      resolveDashboardQuery({ start: today, end: today, trendDays: String(days) }),
+    ).toMatchObject({
       start: today,
       end: today,
-      trendDays: 730,
+      trendDays: days,
     });
   });
   it("accepts the legacy trend URL as the five-year view without changing report dates", () => {

@@ -9,9 +9,9 @@ The user authorized efficient read-only, owner-triggered portal lookup: “you m
 
 **How to apply:** Read the station operating documentation before extending ingestion. Keep on-demand aggregate portal snapshots separate from reviewed test identities and payroll. Do not turn certificates, names or vehicle/time similarities into automatic identity, payment claims or complete live coverage. Unattended access still needs separate authorization and source guarantees; do not bypass challenges.
 
-The owner explicitly approved a visible, resumable Jan 1, 2023–today backfill started through Performance's Refresh button. It may advance bounded batches while the page stays open, with progress and Pause, honoring the shared source cooldowns. This is not permission for an unattended server worker or provider-limit bypass.
+The owner explicitly approved a visible, resumable historical backfill through Performance's Refresh button, later extending the selectable lookback to five years. It may advance bounded batches while the page stays open, with progress and Pause, honoring the shared source cooldowns. This is not permission for an unattended server worker or provider-limit bypass.
 
-**Why:** The user selected “Add the visible, resumable backfill to Refresh” rather than managing separate historical VIR jobs.
+**Why:** The user selected “Add the visible, resumable backfill to Refresh” rather than managing separate historical VIR jobs, then requested retrieval up to five years.
 
 **How to apply:** Start the multi-year source loop only on an explicit Refresh click; stop new requests on Pause/navigation/close, preserve cached progress, and stop on source failures rather than endlessly retrying.
 

@@ -36,7 +36,9 @@ export function RepeatVehicleAnalysis({
     >
       <div className="history-heading">
         <div>
-          <p className="eyebrow">VEHICLE HISTORY · ALL TIME</p>
+          <p className="eyebrow">
+            VEHICLE HISTORY · {query?.trendDays === "all" ? "ALL TIME" : "TREND TIMEFRAME"}
+          </p>
           <h2>Repeat-vehicle analysis</h2>
         </div>
       </div>
@@ -45,7 +47,7 @@ export function RepeatVehicleAnalysis({
       </p>
       {noHistory ? (
         <p role="status">
-          No vehicle history is loaded yet. Use Refresh panels above to retrieve the All Time source
+          No vehicle history is loaded yet. Use Refresh panels above to retrieve the selected source
           history.
         </p>
       ) : (

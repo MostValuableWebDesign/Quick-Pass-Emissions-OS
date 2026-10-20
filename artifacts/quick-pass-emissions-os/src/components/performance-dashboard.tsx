@@ -467,14 +467,6 @@ export function PerformanceDashboard({
         </div>
       </section>
 
-      {data.repeatVehicleAnalysis && (
-        <RepeatVehicleAnalysis
-          report={data.repeatVehicleAnalysis}
-          query={data.query}
-          pendingDates={data.backfill?.pendingDates ?? 0}
-          incompleteDates={data.backfill?.incompleteDates ?? 0}
-        />
-      )}
       {data.returningVehicles && <ReturningVehicles report={data.returningVehicles} />}
       <PerformanceDashboardPanels
         layout={panelLayout.layout}
@@ -485,6 +477,21 @@ export function PerformanceDashboard({
           const targetIndex = panelLayout.layout.findIndex((panel) => panel.id === target);
           panelLayout.move(id, targetIndex);
         }}
+        afterPanel={(id) =>
+          id === "trend" && data.repeatVehicleAnalysis ? (
+            <RepeatVehicleAnalysis
+              key={`${data.query.trendDays}:${data.repeatVehicleAnalysis.start}:${data.repeatVehicleAnalysis.end}:${data.query.employee ?? ""}`}
+              report={data.repeatVehicleAnalysis}
+              query={data.query}
+              pendingDates={
+                data.repeatVehicleAnalysis.retention?.coverage.missingPeriods.length ?? 0
+              }
+              incompleteDates={
+                data.repeatVehicleAnalysis.retention?.coverage.incompletePeriods.length ?? 0
+              }
+            />
+          ) : null
+        }
         renderPanel={(id, controls) =>
           id === "trend" ? (
             <PerformanceTrend

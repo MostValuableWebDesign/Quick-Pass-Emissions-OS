@@ -60,6 +60,35 @@ function model(
 }
 
 describe("vehicle retention definitions and reconciliation", () => {
+  it("scopes repeat totals and timing to the trend window while using prior visits for returning status", () => {
+    const m = model(
+      [
+        visit("prior", "2025-10-01", "A", { inspector: "Inspector B" }),
+        visit("current", "2026-10-18", "A"),
+        visit("new", "2026-10-19", "B"),
+        visit("outside", "2026-10-01", "C"),
+      ],
+      coverage({ start: "2026-10-13", totalDates: 7, loadedDates: 7 }),
+      all,
+      { start: "2026-10-13", end: "2026-10-19" },
+    );
+    expect(m.report).toMatchObject({
+      repeatVehicles: 0,
+      identifiableVehicles: 2,
+      qualifyingInspections: 2,
+      repeatInspections: 0,
+      medianIntervalDays: null,
+      selectedPeriod: { returning: 1, firstObserved: 1, vehicles: 2, rate: 0.5 },
+      returningMonth: { start: "2026-10-13", returning: 1, vehicles: 2 },
+      returningYear: { start: "2026-10-13", returning: 1, vehicles: 2 },
+      coverage: { sourceRecords: 2, vinMatchedRecords: 2, reviewableVisits: 2 },
+    });
+    expect(retentionDetails(m, { metric: "selected" }).total).toBe(1);
+    expect(
+      retentionDetails(m, { metric: "selected", vehicleId: "current" }).visits.map((v) => v.date),
+    ).toEqual(["2025-10-01", "2026-10-18"]);
+    expect(retentionDetails(m, { metric: "review" }).total).toBe(2);
+  });
   it("does not call an earlier known retest a first-observed vehicle in a later period", () => {
     const m = model([
       visit("prior", "2025-01-01", "A", { retest: "FREE_RETEST" }),

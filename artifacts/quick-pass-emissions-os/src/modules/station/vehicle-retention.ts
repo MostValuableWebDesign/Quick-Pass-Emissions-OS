@@ -182,9 +182,11 @@ export function createRetentionModel(
   selected: DatePeriod,
 ) {
   const prepared = prepareRetentionVisits(input);
-  const visits = prepared.visits.filter((v) => v.date >= coverage.start && v.date <= coverage.end);
-  const focused = (v: RetentionVisit) =>
+  const visits = prepared.visits.filter((v) => v.date <= coverage.end);
+  const inWindow = (v: RetentionVisit) => v.date >= coverage.start && v.date <= coverage.end;
+  const inspectorMatches = (v: RetentionVisit) =>
     !scope.id || (scope.inspector !== null && v.inspector === scope.inspector);
+  const focused = (v: RetentionVisit) => inWindow(v) && inspectorMatches(v);
   const focusedVisits = visits.filter(focused);
   const bindings = new Map<string, Set<string>>();
   for (const v of visits)
@@ -210,7 +212,9 @@ export function createRetentionModel(
     } else if (fallback(v)) byPlate.set(v.plateHash!, [...(byPlate.get(v.plateHash!) ?? []), v]);
   }
   const focusedVins = new Set(focusedVisits.filter(validVin).map((v) => v.vinHash!));
-  const repeat = new Set([...focusedVins].filter((vin) => (byVin.get(vin)?.length ?? 0) >= 2));
+  const repeat = new Set(
+    [...focusedVins].filter((vin) => (byVin.get(vin)?.filter(inWindow).length ?? 0) >= 2),
+  );
   const period = (range: DatePeriod) => {
     const current = new Set<string>(),
       returned = new Set<string>();
@@ -236,8 +240,16 @@ export function createRetentionModel(
     };
   };
   const anchor = Temporal.PlainDate.from(coverage.end);
-  const month = period({ start: anchor.with({ day: 1 }).toString(), end: coverage.end });
-  const year = period({ start: `${anchor.year}-01-01`, end: coverage.end });
+  const monthStart = anchor.with({ day: 1 }).toString();
+  const yearStart = `${anchor.year}-01-01`;
+  const month = period({
+    start: monthStart < coverage.start ? coverage.start : monthStart,
+    end: coverage.end,
+  });
+  const year = period({
+    start: yearStart < coverage.start ? coverage.start : yearStart,
+    end: coverage.end,
+  });
   const selectedPeriod = period(selected);
   const partial = !!(
     coverage.missingPeriods.length ||
@@ -291,7 +303,7 @@ export function createRetentionModel(
   const gaps: { visit: RetentionVisit; previousDate: string; days: number }[] = [];
   for (const rows of byVin.values())
     for (let i = 1; i < rows.length; i++)
-      if (focused(rows[i]))
+      if (focused(rows[i]) && inWindow(rows[i - 1]))
         gaps.push({
           visit: rows[i],
           previousDate: rows[i - 1].date,
@@ -468,7 +480,9 @@ export function retentionDetails(
           request.metric === "plate" ? ("Plate/state fallback" as const) : ("VIN" as const),
         firstObserved: rows[0].date,
         lastObserved: rows.at(-1)!.date,
-        qualifyingVisits: rows.filter(isQualifyingVisit).length,
+        qualifyingVisits: rows.filter(
+          (v) => isQualifyingVisit(v) && v.date >= model.report.start && v.date <= model.report.end,
+        ).length,
         ...(cohort ? { returned: cohort.returned.has(key) } : {}),
       }))
       .sort((a, b) => b.lastObserved.localeCompare(a.lastObserved) || a.id.localeCompare(b.id));

@@ -2,21 +2,16 @@
 
 import { z } from "zod";
 import { currentUser } from "@/lib/access";
-import { dateString } from "@/lib/validation";
 import { BusinessError } from "../phase2";
-import { readDashboard } from "./dashboard-service";
+import { readDashboard, dashboardQuerySchema } from "./dashboard-service";
 import { readRetentionDetails } from "./vehicle-retention-service";
 import type { DashboardQuery } from "./dashboard-types";
 import type { RetentionDetailRequest, RetentionDetails } from "./vehicle-retention";
 
-const querySchema = z
-  .object({
-    start: dateString,
-    end: dateString,
-    trendDays: z.literal("all"),
-    employee: z.string().max(100).optional(),
-  })
-  .refine((q) => q.start <= q.end, "Choose a valid date range.");
+const querySchema = dashboardQuerySchema.refine(
+  (q) => q.start <= q.end,
+  "Choose a valid date range.",
+);
 const detailSchema = z.object({
   metric: z.enum(["repeat", "selected", "month", "year", "cohort", "intervals", "review", "plate"]),
   year: z.number().int().min(2000).max(9998).optional(),

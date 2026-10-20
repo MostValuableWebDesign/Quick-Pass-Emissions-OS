@@ -101,6 +101,33 @@ beforeEach(() => {
 });
 
 describe("retention server aggregation and protected drilldowns", () => {
+  it("supports every trend timeframe and keeps differently scoped cached models separate", async () => {
+    const tx = setup([
+      evidence({ id: "prior", key: "prior", sourceId: "prior", date: "2025-12-01" }),
+      evidence(),
+    ]);
+    const timeframes = [7, 30, 365, 730, 1095, 1460, 1825, 2190, "all"] as const;
+    for (const trendDays of timeframes) {
+      const q = { ...query, trendDays };
+      const start = trendDays === 7 ? "2025-12-25" : "2025-12-01";
+      const report = await retentionInTransaction(tx as unknown as Tx, state.hash, {
+        start,
+        end: day.date,
+        days: [day],
+        query: q,
+        scope,
+      });
+      expect(report.start).toBe(start);
+      expect(report.qualifyingInspections).toBe(trendDays === 7 ? 1 : 2);
+      if (trendDays === 7) {
+        expect(report.selectedPeriod.returning).toBe(1);
+        expect(report.repeatVehicles).toBe(0);
+      }
+      const details = await readRetentionDetails("active-owner", q, { metric: "repeat" });
+      expect(details?.total).toBe(trendDays === 7 ? 0 : 1);
+    }
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+  });
   it("merges the cache and canonical VIR once, and reuses aggregation without scanning history again", async () => {
     const tx = setup(),
       input = { start: day.date, end: day.date, days: [day], query, scope };

@@ -414,8 +414,8 @@ export function VehicleRetentionMetrics({
             ? "Selected inspector sets which vehicles count; "
             : "No source inspector is mapped to the selected employee; "
           : ""}
-        prior and follow-up visits are checked across all inspectors at this station. Vehicle
-        retention, not customer identity.
+        totals follow the trend timeframe; earlier saved visits across all inspectors are used to
+        identify returning vehicles. Vehicle retention, not customer identity.
       </p>
       <p className="muted vr-scope" data-testid="text-vin-coverage">
         Validated VIN identity: {n(c.vinMatchedRecords)} of {n(c.sourceRecords)} loaded inspections{" "}
@@ -426,15 +426,19 @@ export function VehicleRetentionMetrics({
       <div className="vr-grid">
         <Metric
           id="repeat-pct"
-          label="Repeat vehicles · all time"
+          label={
+            query.trendDays === "all"
+              ? "Repeat vehicles · all time"
+              : "Repeat vehicles · trend timeframe"
+          }
           value={pct(report.repeatPercentage)}
           sub={`${n(report.repeatVehicles)} of ${n(report.identifiableVehicles)} VIN-matched vehicles`}
-          tip="Distinct VIN vehicles with at least two qualifying inspections, divided by all distinct identifiable VIN vehicles in loaded history. The denominator also includes vehicles with only excluded observations. Qualifying visits are completed inspections not explicitly classified as retests."
+          tip="Distinct VIN vehicles with at least two qualifying inspections within this trend timeframe, divided by its distinct identifiable VIN vehicles. The denominator also includes vehicles with only excluded observations. Qualifying visits are completed inspections not explicitly classified as retests."
           onOpen={() => open("Repeat vehicles", { metric: "repeat" })}
         />
         <Metric
           id="selected"
-          label="Returning · selected period"
+          label="Returning · trend timeframe"
           value={pct(report.selectedPeriod.rate)}
           sub={period(report.selectedPeriod)}
           tip={`${report.selectedPeriod.start} – ${report.selectedPeriod.end}. Returning means a qualifying inspection before the period began. First observed in available history does not mean a first-ever visit.`}
@@ -445,7 +449,7 @@ export function VehicleRetentionMetrics({
           label={`Returning · ${report.end.slice(0, 7)}`}
           value={pct(report.returningMonth.rate)}
           sub={period(report.returningMonth)}
-          tip={`${report.returningMonth.start} – ${report.returningMonth.end}, month to date through the report end date.`}
+          tip={`${report.returningMonth.start} – ${report.returningMonth.end}, within the selected trend timeframe. Earlier saved visits identify returning vehicles.`}
           onOpen={() => open(`Returning in ${report.end.slice(0, 7)}`, { metric: "month" })}
         />
         <Metric
@@ -453,7 +457,7 @@ export function VehicleRetentionMetrics({
           label={`Returning · ${report.end.slice(0, 4)}`}
           value={pct(report.returningYear.rate)}
           sub={period(report.returningYear)}
-          tip={`${report.returningYear.start} – ${report.returningYear.end}, year to date of the latest loaded date.`}
+          tip={`${report.returningYear.start} – ${report.returningYear.end}, within the selected trend timeframe. Earlier saved visits identify returning vehicles.`}
           onOpen={() => open(`Returning in ${report.end.slice(0, 4)}`, { metric: "year" })}
         />
       </div>

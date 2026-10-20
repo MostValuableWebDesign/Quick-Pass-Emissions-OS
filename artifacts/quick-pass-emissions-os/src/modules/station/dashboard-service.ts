@@ -5,7 +5,7 @@ import { audit, requireRule, BusinessError } from "../phase2";
 import { range } from "./report";
 import { stationTransaction } from "./service";
 import { portalRangeDays, PortalSession } from "./portal-client";
-import { buildDashboard, calendarDays } from "./dashboard-calculations";
+import { buildDashboard, calendarDays, dashboardTrendRange } from "./dashboard-calculations";
 import { pendingDashboardSourceDates } from "./dashboard-refresh";
 import type { DashboardData, DashboardQuery, PayPlan } from "./dashboard-types";
 import { supportsTrendBackfill } from "./dashboard-types";
@@ -143,7 +143,7 @@ export const dashboardPayPlanSchema = z
       p.adjustments.every((a) => p.profiles.some((r) => r.id === a.profileId)) &&
       new Set(p.adjustments.map((a) => `${a.profileId}:${a.date}`)).size === p.adjustments.length,
   );
-const querySchema = z.object({
+export const dashboardQuerySchema = z.object({
   start: dateString,
   end: dateString,
   trendDays: z.union([
@@ -160,7 +160,7 @@ const querySchema = z.object({
   employee: z.string().min(1).max(1000).optional(),
 });
 function validateQuery(input: unknown): DashboardQuery {
-  const query = querySchema.parse(input);
+  const query = dashboardQuerySchema.parse(input);
   range(query.start, query.end);
   requireRule(query.end <= businessDate(), "Choose today or an earlier date.");
   if (query.employee?.startsWith("inspector:")) {
@@ -293,22 +293,26 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
         ),
       };
     }
-    if (query.trendDays === "all" && allTimeStart) {
+    {
+      const trendRange = dashboardTrendRange(query, today, allTimeStart);
       data.repeatVehicleAnalysis = analyzeRepeatVehicleHistory(
         classifiedDays,
-        allTimeStart,
-        query.end,
+        trendRange.start,
+        trendRange.end,
       );
       const profile = payPlan.profiles.find((p) => p.id === query.employee);
       data.repeatVehicleAnalysis.retention = await retentionInTransaction(tx, hash, {
-        start: allTimeStart,
-        end: query.end,
+        start: trendRange.start,
+        end: trendRange.end,
         days: rawDays,
         query,
         scope: {
           id: query.employee || undefined,
           label: profile?.name ?? "All inspectors",
-          inspector: profile?.inspector ?? null,
+          inspector:
+            profile?.inspector ??
+            data.employees.find((e) => e.id === query.employee)?.inspector ??
+            null,
         },
       });
     }

@@ -5,6 +5,11 @@ vi.mock("../src/modules/station/vehicle-retention-actions", () => ({
   getVehicleRetentionDetailsAction: vi.fn(),
 }));
 import { RepeatVehicleAnalysis } from "../src/components/repeat-vehicle-analysis";
+vi.mock("../src/app/performance-layout-actions", () => ({
+  savePerformancePanelLayoutAction: vi.fn(),
+}));
+import { PerformanceDashboardPanels } from "../src/components/performance-dashboard-panels";
+import { DEFAULT_DASHBOARD_LAYOUT } from "../src/components/performance-dashboard-layout";
 import {
   createRetentionModel,
   type RetentionVisit,
@@ -70,6 +75,30 @@ function render(visits = rows) {
   );
 }
 describe("retention presentation", () => {
+  it("places the analysis directly after Trend, including when the panel order changes", () => {
+    const layout = [
+      DEFAULT_DASHBOARD_LAYOUT[1],
+      DEFAULT_DASHBOARD_LAYOUT[0],
+      ...DEFAULT_DASHBOARD_LAYOUT.slice(2),
+    ];
+    const html = renderToStaticMarkup(
+      createElement(PerformanceDashboardPanels, {
+        layout,
+        employeeRowCount: 0,
+        onMove: vi.fn(),
+        onResize: vi.fn(),
+        onDrop: vi.fn(),
+        renderPanel: (id) => createElement("div", null, `${id} content`),
+        afterPanel: (id) =>
+          id === "trend" ? createElement("section", null, "Repeat analysis content") : null,
+      }),
+    );
+    expect(html.indexOf("trend content")).toBeLessThan(html.indexOf("Repeat analysis content"));
+    expect(html.indexOf("Repeat analysis content")).toBeLessThan(
+      html.indexOf("busy-hours content"),
+    );
+    expect(html).toContain('data-testid="after-panel-trend"');
+  });
   it("preserves the recorded summary, adds defined retention, and discloses provisional matching", () => {
     const html = render();
     expect(html).toContain("Vehicles tested more than once");

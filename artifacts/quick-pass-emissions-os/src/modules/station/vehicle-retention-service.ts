@@ -45,8 +45,8 @@ async function generation(tx: Tx) {
   const value = await tx.auditLog.aggregate({ _count: true, _max: { createdAt: true } });
   return `${value._count}:${value._max.createdAt?.toISOString() ?? ""}`;
 }
-const modelKey = (q: Pick<DashboardQuery, "start" | "end" | "employee">) =>
-  JSON.stringify([q.start, q.end, q.employee || ""]);
+const modelKey = (q: DashboardQuery) =>
+  JSON.stringify([q.start, q.end, q.employee || "", q.trendDays]);
 
 export async function retentionInTransaction(
   tx: Tx,
@@ -61,7 +61,7 @@ export async function retentionInTransaction(
 ) {
   const version = await generation(tx),
     end = input.end < businessDate() ? input.end : businessDate();
-  const key = `${hash}:${input.start}:${end}`;
+  const key = `${hash}:${end}`;
   let saved = cache.get(key);
   if (!saved || saved.version !== version || saved.expires < Date.now()) {
     const scopes = Prisma.sql`${hash}`;
@@ -77,14 +77,13 @@ export async function retentionInTransaction(
         JOIN "StationRecord" r ON r.id = e."recordId" AND r."currentRevisionId" = e."revisionId" AND r.state <> 'SUPERSEDED'
         JOIN "StationRevision" v ON v.id = e."revisionId"
         WHERE e."stationHash" = ${scopes} AND e."sourceKind" = 'VIR'
-          AND e."businessDate" >= ${input.start} AND e."businessDate" <= ${end}
+          AND e."businessDate" <= ${end}
         ORDER BY e."businessDate", r.id`,
       tx.inspectionHistoryWindow.findMany({
         where: {
           stationHash: hash,
           superseded: false,
           startDate: { lte: end },
-          endDate: { gte: input.start },
           job: { mode: { in: ["PORTAL", "REFRESH"] } },
         },
         select: {
@@ -103,32 +102,6 @@ export async function retentionInTransaction(
     ]);
     const sourceWindows = new Map(windows.map((w) => [w.id, w]));
     const visits = new Map<string, RetentionVisit>();
-    for (const day of input.days)
-      for (const row of day.testTimes ?? []) {
-        if (!row.recordKey || day.date < input.start || day.date > end) continue;
-        visits.set(row.recordKey, {
-          id: `cache-row:${visits.size + 1}`,
-          key: row.recordKey,
-          source: "GA_DASHBOARD",
-          sourceId: null,
-          date: day.date,
-          minute: row.minute,
-          inspector: row.inspector,
-          outcome: row.outcome ?? "UNKNOWN",
-          // A cache hash alone does not prove a valid normalized VIN. Canonical
-          // evidence below supplies validated identity and authoritative statuses.
-          vinHash: null,
-          plateHash: null,
-          invalidVin: false,
-          identityStatus: "UNREVIEWED",
-          suffix: "",
-          payment: "UNKNOWN",
-          retest: "UNKNOWN",
-          completion: ["passed", "failed"].includes(row.outcome ?? "") ? "COMPLETED" : "INCOMPLETE",
-          sourceKind: "PERFORMANCE",
-          sourceUrl: null,
-        });
-      }
     for (const row of evidence) {
       const windowId = /^history-window:(.+)$/.exec(row.provenance)?.[1];
       const window = windowId ? sourceWindows.get(windowId) : undefined;
@@ -155,14 +128,48 @@ export async function retentionInTransaction(
   const mKey = modelKey(input.query);
   const existing = saved.models.get(mKey);
   if (existing) return existing.report;
+  // Keep source evidence reusable across timeframe changes. Merge only the
+  // current window's raw cache rows; never promote its hashes to validated VINs.
+  const visits = new Map(saved.visits.map((v) => [v.key, v]));
+  for (const day of input.days)
+    for (const row of day.testTimes ?? []) {
+      if (!row.recordKey || visits.has(row.recordKey) || day.date < input.start || day.date > end)
+        continue;
+      visits.set(row.recordKey, {
+        id: `cache-row:${visits.size + 1}`,
+        key: row.recordKey,
+        source: "GA_DASHBOARD",
+        sourceId: null,
+        date: day.date,
+        minute: row.minute,
+        inspector: row.inspector,
+        outcome: row.outcome ?? "UNKNOWN",
+        // A cache hash alone does not prove a valid normalized VIN. Canonical
+        // evidence below supplies validated identity and authoritative statuses.
+        vinHash: null,
+        plateHash: null,
+        invalidVin: false,
+        identityStatus: "UNREVIEWED",
+        suffix: "",
+        payment: "UNKNOWN",
+        retest: "UNKNOWN",
+        completion: ["passed", "failed"].includes(row.outcome ?? "") ? "COMPLETED" : "INCOMPLETE",
+        sourceKind: "PERFORMANCE",
+        sourceUrl: null,
+      });
+    }
   const days = input.days.filter((d) => d.date >= input.start && d.date <= end);
   const dates = new Set(days.map((d) => d.date));
-  for (const visit of saved.visits) if (visit.sourceKind === "VIR") dates.add(visit.date);
+  for (const visit of saved.visits)
+    if (visit.sourceKind === "VIR" && visit.date >= input.start && visit.date <= end)
+      dates.add(visit.date);
   const expected = calendarDays(input.start, end);
   const focus = (v: RetentionVisit) =>
     !input.scope.id || (input.scope.inspector !== null && v.inspector === input.scope.inspector);
   const represented = new Map<string, number>();
-  for (const v of saved.visits.filter(focus))
+  for (const v of [...visits.values()].filter(
+    (v) => focus(v) && v.date >= input.start && v.date <= end,
+  ))
     represented.set(v.date, (represented.get(v.date) ?? 0) + 1);
   const unrepresentedRecords = days.reduce((sum, d) => {
     const total = input.scope.id
@@ -172,11 +179,13 @@ export async function retentionInTransaction(
   }, 0);
   const unprocessed = saved.windows.filter(
     (w) =>
-      w.status !== "COMPLETED" ||
-      w.sourceTotal === null ||
-      w.unresolved ||
-      w.rejected ||
-      w.identityReview,
+      w.endDate >= input.start &&
+      w.startDate <= end &&
+      (w.status !== "COMPLETED" ||
+        w.sourceTotal === null ||
+        w.unresolved ||
+        w.rejected ||
+        w.identityReview),
   );
   const coverage: RetentionCoverage = {
     start: input.start,
@@ -188,8 +197,8 @@ export async function retentionInTransaction(
       days.filter((d) => !!d.incompleteRows?.total).map((d) => d.date),
     ),
     unprocessedPeriods: unprocessed.map((w) => ({
-      start: w.startDate,
-      end: w.endDate,
+      start: w.startDate < input.start ? input.start : w.startDate,
+      end: w.endDate > end ? end : w.endDate,
       status: w.status,
       review: w.unresolved + w.rejected + w.identityReview,
     })),
@@ -199,9 +208,9 @@ export async function retentionInTransaction(
     ),
     unrepresentedRecords,
   };
-  const model = createRetentionModel(saved.visits, coverage, input.scope, {
-    start: input.query.start,
-    end: input.query.end,
+  const model = createRetentionModel([...visits.values()], coverage, input.scope, {
+    start: input.start,
+    end,
   });
   saved.models.set(mKey, model);
   while (saved.models.size > 3) saved.models.delete(saved.models.keys().next().value!);
@@ -214,7 +223,6 @@ export function readRetentionDetails(
   request: RetentionDetailRequest,
 ) {
   return stationTransaction(actorId, async (tx, hash) => {
-    requireRule(query.trendDays === "all", "Open the All Time vehicle history first.");
     const version = await generation(tx),
       key = modelKey(query);
     const model = [...cache.values()]

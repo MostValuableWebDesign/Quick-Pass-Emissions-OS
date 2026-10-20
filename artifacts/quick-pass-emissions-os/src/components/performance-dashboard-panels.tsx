@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { GripVertical, MoveDown, MoveUp } from "lucide-react";
 import { savePerformancePanelLayoutAction } from "@/app/performance-layout-actions";
 import { PanelResizeHandle } from "./performance-panel-resize-handle";
@@ -238,6 +238,7 @@ export function PerformanceDashboardPanels({
   onResize,
   onDrop,
   renderPanel,
+  afterPanel,
 }: {
   layout: DashboardLayout;
   employeeRowCount: number;
@@ -245,6 +246,7 @@ export function PerformanceDashboardPanels({
   onResize: (id: DashboardPanelId, columns: number, height: number) => void;
   onDrop: (id: DashboardPanelId, target: DashboardPanelId) => void;
   renderPanel: (id: DashboardPanelId, controls: ReactNode) => ReactNode;
+  afterPanel?: (id: DashboardPanelId) => ReactNode;
 }) {
   const controls = (id: DashboardPanelId) => {
     const index = layout.findIndex((panel) => panel.id === id);
@@ -266,30 +268,40 @@ export function PerformanceDashboardPanels({
             panel.id === "employees"
               ? employeePanelDisplayHeight(panel.height, employeeRowCount)
               : panel.height;
+          const following = afterPanel?.(panel.id);
           return (
-            <div
-              key={panel.id}
-              className="pd-widget"
-              data-panel-id={panel.id}
-              data-testid={`panel-${panel.id}`}
-              style={{ gridColumn: `span ${panel.columns}`, height }}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => {
-                event.preventDefault();
-                const dragged = event.dataTransfer.getData("text/plain");
-                if (isDashboardPanelId(dragged)) onDrop(dragged, panel.id);
-              }}
-            >
-              {renderPanel(panel.id, controls(panel.id))}
-              <PanelResizeHandle
-                label={titles[panel.id]}
-                columns={panel.columns}
-                height={height}
-                onResize={(columns, heightDelta) =>
-                  onResize(panel.id, columns, heightDelta + height - panel.height)
-                }
-              />
-            </div>
+            <Fragment key={panel.id}>
+              <div
+                className="pd-widget"
+                data-panel-id={panel.id}
+                data-testid={`panel-${panel.id}`}
+                style={{ gridColumn: `span ${panel.columns}`, height }}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  const dragged = event.dataTransfer.getData("text/plain");
+                  if (isDashboardPanelId(dragged)) onDrop(dragged, panel.id);
+                }}
+              >
+                {renderPanel(panel.id, controls(panel.id))}
+                <PanelResizeHandle
+                  label={titles[panel.id]}
+                  columns={panel.columns}
+                  height={height}
+                  onResize={(columns, heightDelta) =>
+                    onResize(panel.id, columns, heightDelta + height - panel.height)
+                  }
+                />
+              </div>
+              {following && (
+                <div
+                  style={{ gridColumn: "1 / -1", minWidth: 0 }}
+                  data-testid={`after-panel-${panel.id}`}
+                >
+                  {following}
+                </div>
+              )}
+            </Fragment>
           );
         })(),
       )}

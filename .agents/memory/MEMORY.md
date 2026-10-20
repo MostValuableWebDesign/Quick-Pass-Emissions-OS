@@ -6,7 +6,7 @@
 - [Station portal access](station-portal-access.md) — successful login does not authorize unattended automation or establish stable report identities, payments or coverage.
 - [Private build traces](private-build-traces.md) — Git/deployment ignores do not govern Next dependency tracing; dynamic backup paths require separate privacy checks.
 - [Support contact trust](support-directory-boundaries.md) — document-sourced contacts can be useful to staff without qualifying as verified assignments or confirmed conversations.
-- [Performance business rules](performance-business-rules.md) — $20 revenue, VIN/30-day free retests, shop-wide commissions and five-shift pay assumptions.
+- [Performance business rules](performance-business-rules.md) — Revenue/payroll assumptions differ from evidence-based vehicle-retention rules; keep definitions distinct.
 - [Cold preview startup](cold-preview-startup.md) — framework “Ready” did not establish reachability after a workspace restart; Webpack restored the imported Next preview.
 - [Performance panel interactions](dashboard-panel-interactions.md) — layouts are per-account; preserve pointer/keyboard controls and keep date-driven business alerts separate from personal dismissal.
 - [Business-area separation](business-area-separation.md) — Emissions and Car Wash have different employees and duties; keep their navigation distinct.

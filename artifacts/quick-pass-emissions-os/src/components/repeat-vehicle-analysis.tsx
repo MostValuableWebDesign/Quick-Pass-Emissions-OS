@@ -1,10 +1,15 @@
 import type { RepeatVehicleAnalysis as Analysis } from "@/modules/station/repeat-vehicle-analysis";
+import type { DashboardQuery } from "@/modules/station/dashboard-types";
+import { VehicleRetentionMetrics } from "./vehicle-retention-metrics";
 import "./inspection-history.css";
 
-function NumberMetric({ label, value }: { label: string; value: number }) {
+function NumberMetric({ label, value, tip }: { label: string; value: number; tip?: string }) {
   return (
     <div>
-      <span>{label}</span>
+      <span title={tip}>
+        {label}
+        {tip && <span className="sr-only"> ({tip})</span>}
+      </span>
       <strong>{value.toLocaleString()}</strong>
     </div>
   );
@@ -14,10 +19,12 @@ export function RepeatVehicleAnalysis({
   report,
   pendingDates,
   incompleteDates,
+  query,
 }: {
   report: Analysis;
   pendingDates: number;
   incompleteDates: number;
+  query?: DashboardQuery;
 }) {
   const pending = pendingDates > 0 || incompleteDates > 0 || report.classificationUnknownDates > 0;
   const noHistory = report.identifiedInspections === 0 && pending;
@@ -46,7 +53,11 @@ export function RepeatVehicleAnalysis({
           <div className="history-metrics">
             <NumberMetric label="Vehicles tested more than once" value={report.repeatVehicles} />
             <NumberMetric label="Distinct VIN-matched vehicles" value={report.distinctVehicles} />
-            <NumberMetric label="Repeat inspections" value={report.repeatVisits} />
+            <NumberMetric
+              label="Repeat inspections"
+              value={report.repeatVisits}
+              tip="Recorded physical inspections beyond each vehicle's first, including retests. Distinct from the qualifying retention metrics below, which exclude known retests."
+            />
           </div>
           <p className={pending ? "notice warning" : "muted"} role="status">
             {pending
@@ -55,9 +66,14 @@ export function RepeatVehicleAnalysis({
           </p>
         </>
       )}
+      {report.retention && query && (
+        <VehicleRetentionMetrics report={report.retention} query={query} />
+      )}
       <p className="muted">
         Vehicles are matched using privacy-protected VIN hashes; this does not identify customer
-        names. Repeat classification follows the 30-day free-retest rule.
+        names. The recorded-report summary includes retests. Qualifying retention uses explicit
+        source retest and completion classifications only; short time gaps are never treated as
+        retests.
       </p>
     </section>
   );

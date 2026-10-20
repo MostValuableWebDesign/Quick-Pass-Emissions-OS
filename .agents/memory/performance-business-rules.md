@@ -82,3 +82,9 @@ Payroll date selection needs a visible in-page calendar for both single days and
 **Why:** The owner repeatedly could not select a date despite native picker controls. Browser checks of the native-input flow failed repeatedly, while clicking dates in the in-page calendar passed the signed-in check.
 
 **How to apply:** Keep month navigation and selectable day buttons, make an incomplete range obvious, and apply the chosen dates to the overview without relying on the browser's native date popup.
+
+Vehicle-retention analysis uses completed visits and excludes explicitly classified free or paid retests. A short interval alone must not classify a retention visit as a retest. Unknown retest status is included provisionally and disclosed; payment evidence is not required and unknown payment never proves money collected.
+
+**Why:** The owner requested evidence-based vehicle retention without inferring retests from timing or payment from VIRs. This is different from the owner's existing Performance revenue/payroll estimation rule and the older paid-initial returning-vehicle rate.
+
+**How to apply:** Keep those definitions separate. Preserve the recorded-report summary, use validated VIN identities for new retention rates, show plate/state fallback separately, and disclose missing processing/coverage. Describe first observations as “First observed in available history,” not new customers.

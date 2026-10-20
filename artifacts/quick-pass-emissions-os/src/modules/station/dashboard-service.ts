@@ -18,6 +18,7 @@ import { withStationTestExport, requireActiveTestExport } from "./test-export-ga
 import { testExportBatches, TEST_EXPORT_MAX_REQUESTS } from "./test-export-batches";
 import { returningInTransaction } from "./history/report";
 import { captureRefreshHistory } from "./history/service";
+import { retentionInTransaction } from "./vehicle-retention-service";
 
 const SNAPSHOT = "STATION_PERFORMANCE_DAY_CACHED";
 const PLAN = "STATION_PERFORMANCE_PAY_PLAN";
@@ -292,12 +293,25 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
         ),
       };
     }
-    if (query.trendDays === "all" && allTimeStart)
+    if (query.trendDays === "all" && allTimeStart) {
       data.repeatVehicleAnalysis = analyzeRepeatVehicleHistory(
         classifiedDays,
         allTimeStart,
         query.end,
       );
+      const profile = payPlan.profiles.find((p) => p.id === query.employee);
+      data.repeatVehicleAnalysis.retention = await retentionInTransaction(tx, hash, {
+        start: allTimeStart,
+        end: query.end,
+        days: rawDays,
+        query,
+        scope: {
+          id: query.employee || undefined,
+          label: profile?.name ?? "All inspectors",
+          inspector: profile?.inspector ?? null,
+        },
+      });
+    }
     return data;
   });
 }

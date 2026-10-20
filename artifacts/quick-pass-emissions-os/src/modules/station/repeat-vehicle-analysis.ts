@@ -12,6 +12,7 @@ export type RepeatVehicleAnalysis = {
   freeRetests: number;
   paidRepeatInspections: number;
   classificationUnknownDates: number;
+  retention?: import("./vehicle-retention").VehicleRetentionReport;
 };
 
 /** Aggregate only verified VIN hashes. Never return or render raw vehicle identifiers. */

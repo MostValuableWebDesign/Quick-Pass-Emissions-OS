@@ -470,6 +470,7 @@ export function PerformanceDashboard({
       {data.repeatVehicleAnalysis && (
         <RepeatVehicleAnalysis
           report={data.repeatVehicleAnalysis}
+          query={data.query}
           pendingDates={data.backfill?.pendingDates ?? 0}
           incompleteDates={data.backfill?.incompleteDates ?? 0}
         />

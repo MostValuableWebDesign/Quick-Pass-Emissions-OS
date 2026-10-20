@@ -13,12 +13,12 @@ export function retestHistoryDates(query: DashboardQuery, today: string, allTime
   ].sort();
 }
 
-/** VIN coverage for retained rows; incomplete source rows are intentionally excluded. */
-export function hasVinEvidence(day: PortalDay) {
+/** Distinct provider reports establish test counts; VIN certification is not required. */
+export function hasReportEvidence(day: PortalDay) {
   return (
     day.verifiedEmpty ||
     (day.testTimes?.length === day.total &&
-      day.testTimes.every((test) => !!test.vinHash && !!test.recordKey && !!test.outcome))
+      day.testTimes.every((test) => !!test.recordKey && !!test.outcome))
   );
 }
 
@@ -47,10 +47,10 @@ export function classifyDashboardRetests(snapshots: PortalDay[]): PortalDay[] {
         paceTestTimes: source.incompleteRows?.total ? [] : source.testTimes,
         retestComplete:
           source.verifiedEmpty ||
-          (hasVinEvidence(source) &&
+          (hasReportEvidence(source) &&
             calendarDays(addDays(source.date, -30), addDays(source.date, -1)).every((date) => {
               const prior = byDate.get(date);
-              return prior && hasVinEvidence(prior);
+              return prior && hasReportEvidence(prior);
             })),
       };
       const rows = [...(source.testTimes ?? [])].sort(
@@ -60,8 +60,14 @@ export function classifyDashboardRetests(snapshots: PortalDay[]): PortalDay[] {
       );
       const seenMinutes = new Map<string, number | null>();
       for (const test of rows) {
-        if (!test.vinHash || !test.recordKey || !test.outcome) {
+        if (!test.recordKey || !test.outcome) {
           day.retestComplete = false;
+          continue;
+        }
+        if (!test.vinHash) {
+          // Count a known source inspection without inventing a vehicle match
+          // or assuming that unrelated placeholder VINs are free retests.
+          day.testTimes!.push(test);
           continue;
         }
         const previous = latest.get(test.vinHash);

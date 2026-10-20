@@ -5,7 +5,9 @@ import { googleConfigured, googleCallbackUrl } from "@/lib/google-business/clien
 import { decrypt } from "@/lib/google-business/crypto";
 import { audit, requireRule, type Tx } from "../phase2";
 import { dashboardDaySchema } from "../station/dashboard-service";
-import { classifyDashboardRetests, hasVinEvidence } from "../station/dashboard-retests";
+import { classifyDashboardRetests, hasReportEvidence } from "../station/dashboard-retests";
+import { sourceVisits } from "../station/source-visits";
+import { includeReportedInspections } from "../station/report-counts";
 import { analytics, stationAccess } from "./transaction";
 import { discovered } from "./connection";
 import { cacheContext } from "./sync";
@@ -45,10 +47,12 @@ async function stationBusiness(
     const p = dashboardDaySchema.safeParse(log.details);
     if (p.success && !raw.has(p.data.date)) raw.set(p.data.date, p.data);
   }
-  const all = classifyDashboardRetests([...raw.values()]),
+  const all = classifyDashboardRetests(
+      includeReportedInspections([...raw.values()], await sourceVisits(tx, [station.stationHash])),
+    ),
     requested = dates(start, end);
   const usable = all.filter(
-    (d) => d.date >= start && d.date <= end && d.retestComplete && hasVinEvidence(d),
+    (d) => d.date >= start && d.date <= end && d.retestComplete && hasReportEvidence(d),
   );
   const byDate = new Map(usable.map((d) => [d.date, d]));
   const missing = requested.filter((d) => !byDate.has(d));

@@ -116,11 +116,12 @@ describe("retention presentation", () => {
     expect(html).not.toContain("<details");
     expect(html).not.toContain("More details");
     expect(html).toContain("30-day free-retest rule");
-    expect(html).toContain("Payment not verified");
+    expect(html).not.toContain("Payment not verified");
+    expect(html).not.toContain("inspections need review");
     expect(html).toContain('data-testid="value-repeat-pct">1</strong>');
     expect(html).toContain("100.0% of 1 vehicle · 2+ qualifying visits in saved history");
     expect(html).toContain("Incomplete data");
-    expect(html).toContain("VIN match:");
+    expect(html).toContain("VIN available:");
     expect(html).toContain("656 / 657 dates loaded");
     expect(html).toContain('data-testid="button-drill-repeat-pct">View vehicles');
     expect(html).not.toContain("Repeat inspections");

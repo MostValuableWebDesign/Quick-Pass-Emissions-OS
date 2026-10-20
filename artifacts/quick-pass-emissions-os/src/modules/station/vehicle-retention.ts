@@ -88,7 +88,6 @@ export type VehicleRetentionReport = {
   };
   classifications: {
     unknownRetestIncluded: number;
-    unknownPayment: number;
     knownRetestsExcluded: number;
     inferredFreeRetestsExcluded: number;
     incompleteInspectionsExcluded: number;
@@ -135,13 +134,21 @@ export type RetentionDetails = {
   visits: RetentionVisitView[];
 };
 
-export function isQualifyingVisit(v: RetentionVisit) {
+export function isQualifyingVisit(v: Pick<RetentionVisit, "completion" | "retest">) {
   // Payment is deliberately not a qualifier. Explicit free retests are excluded;
   // the rolling 30-day same-VIN rule is applied in the chronological model below.
   return v.completion === "COMPLETED" && v.retest !== "FREE_RETEST";
 }
-function validVin(v: RetentionVisit) {
-  return !!v.vinHash && !v.invalidVin && v.identityStatus === "VALID_VIN";
+function hasReportedVin(v: RetentionVisit) {
+  // Source-confirmed reported VINs are matching identifiers, not locally
+  // certified vehicle identities. A checksum/format flag cannot exclude a test.
+  return !!v.vinHash;
+}
+function needsReview(v: RetentionVisit) {
+  return (
+    v.completion === "UNKNOWN" ||
+    (!v.vinHash && (!v.plateHash || v.identityStatus === "NEEDS_REVIEW"))
+  );
 }
 function ordered(a: RetentionVisit, b: RetentionVisit) {
   return (
@@ -192,7 +199,7 @@ export function createRetentionModel(
   for (const v of visits)
     if (v.plateHash && (v.vinHash || v.invalidVin)) {
       const values = bindings.get(v.plateHash) ?? new Set<string>();
-      values.add(validVin(v) ? v.vinHash! : "INVALID");
+      values.add(hasReportedVin(v) ? v.vinHash! : "INVALID");
       bindings.set(v.plateHash, values);
     }
   const fallback = (v: RetentionVisit) =>
@@ -208,7 +215,7 @@ export function createRetentionModel(
   const inferredFreeRetestIds = new Set<string>();
   const byPlate = new Map<string, RetentionVisit[]>();
   for (const v of visits) {
-    if (validVin(v)) {
+    if (hasReportedVin(v)) {
       allByVin.set(v.vinHash!, [...(allByVin.get(v.vinHash!) ?? []), v]);
     } else if (fallback(v)) byPlate.set(v.plateHash!, [...(byPlate.get(v.plateHash!) ?? []), v]);
   }
@@ -226,7 +233,11 @@ export function createRetentionModel(
       previous = v;
     }
   }
-  const focusedVins = new Set(focusedVisits.filter(validVin).map((v) => v.vinHash!));
+  // Known inspections without a matchable VIN still count as inspections.
+  // They cannot establish a unique returning vehicle or a date-based free retest.
+  for (const v of visits)
+    if (!hasReportedVin(v) && isQualifyingVisit(v)) qualifyingVisitIds.add(v.id);
+  const focusedVins = new Set(focusedVisits.filter(hasReportedVin).map((v) => v.vinHash!));
   const repeat = new Set(
     [...focusedVins].filter((vin) => (byVin.get(vin)?.filter(inWindow).length ?? 0) >= 2),
   );
@@ -327,11 +338,11 @@ export function createRetentionModel(
   const sorted = gaps.map((g) => g.days).sort((a, b) => a - b),
     middle = Math.floor(sorted.length / 2);
   const qualifying = focusedVisits.filter((v) => qualifyingVisitIds.has(v.id));
-  const vinMatchedRecords = focusedVisits.filter(validVin).length;
+  const vinMatchedRecords = focusedVisits.filter(hasReportedVin).length;
   const plateRecords = focusedVisits.filter(fallback);
   const ambiguous = focusedVisits.filter(
     (v) =>
-      !validVin(v) &&
+      !hasReportedVin(v) &&
       !fallback(v) &&
       (v.invalidVin || !!v.plateHash || v.identityStatus === "NEEDS_REVIEW"),
   );
@@ -342,7 +353,7 @@ export function createRetentionModel(
     repeatPercentage: focusedVins.size ? repeat.size / focusedVins.size : null,
     repeatVehicles: repeat.size,
     identifiableVehicles: focusedVins.size,
-    qualifyingInspections: qualifying.filter(validVin).length,
+    qualifyingInspections: qualifying.length,
     repeatInspections: gaps.length,
     selectedPeriod: selectedPeriod.report,
     returningMonth: month.report,
@@ -378,17 +389,10 @@ export function createRetentionModel(
         ambiguous.length +
         coverage.unrepresentedRecords,
       duplicateRecordsExcluded: prepared.duplicates,
-      reviewableVisits: focusedVisits.filter(
-        (v) =>
-          !validVin(v) ||
-          v.retest === "UNKNOWN" ||
-          v.payment === "UNKNOWN" ||
-          !qualifyingVisitIds.has(v.id),
-      ).length,
+      reviewableVisits: focusedVisits.filter(needsReview).length,
     },
     classifications: {
-      unknownRetestIncluded: qualifying.filter((v) => validVin(v) && v.retest === "UNKNOWN").length,
-      unknownPayment: focusedVisits.filter((v) => v.payment === "UNKNOWN").length,
+      unknownRetestIncluded: qualifying.filter((v) => v.retest === "UNKNOWN").length,
       knownRetestsExcluded: focusedVisits.filter((v) => v.retest === "FREE_RETEST").length,
       inferredFreeRetestsExcluded: focusedVisits.filter((v) => inferredFreeRetestIds.has(v.id))
         .length,
@@ -436,7 +440,7 @@ export function retentionDetails(
     completion: v.completion,
     sourceKind: v.sourceKind,
     sourceUrl: v.sourceUrl,
-    qualifying: validVin(v) && model.qualifyingVisitIds.has(v.id),
+    qualifying: model.qualifyingVisitIds.has(v.id),
     freeRetestByDateRule: model.inferredFreeRetestIds.has(v.id),
   });
   let vehicles: RetentionVehicleView[] = [],
@@ -444,7 +448,7 @@ export function retentionDetails(
   if (request.vehicleId) {
     const seed = model.visits.find((v) => v.id === request.vehicleId);
     const rows =
-      seed && validVin(seed)
+      seed && hasReportedVin(seed)
         ? model.allByVin.get(seed.vinHash!)
         : seed && model.fallback(seed)
           ? model.byPlate.get(seed.plateHash!)
@@ -456,16 +460,7 @@ export function retentionDetails(
       .filter((g) => !band || (g.days >= band.min && g.days <= band.max))
       .map((g) => ({ ...visitView(g.visit), intervalDays: g.days, previousDate: g.previousDate }));
   } else if (request.metric === "review") {
-    visits = model.visits
-      .filter(
-        (v) =>
-          model.focused(v) &&
-          (!validVin(v) ||
-            v.retest === "UNKNOWN" ||
-            v.payment === "UNKNOWN" ||
-            !model.qualifyingVisitIds.has(v.id)),
-      )
-      .map(visitView);
+    visits = model.visits.filter((v) => model.focused(v) && needsReview(v)).map(visitView);
   } else {
     const cohort = request.metric === "cohort" ? model.cohorts.get(request.year ?? -1) : undefined;
     const keys =

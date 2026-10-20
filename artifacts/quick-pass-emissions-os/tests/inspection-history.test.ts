@@ -3,7 +3,6 @@ import {
   normalizeVin,
   normalizePlate,
   normalizeInspection,
-  qualifies,
   monthWindows,
   historyRange,
   inspectionDate,
@@ -13,6 +12,7 @@ import { parseCsv, parseHistoryExport } from "../src/modules/station/history/par
 import { digest, parseReport } from "../src/modules/station/report";
 import { plateBindings, vehicleIdentity } from "../src/modules/station/history/report";
 import { seal, unseal } from "../src/modules/station/history/crypto";
+import { isQualifyingVisit } from "../src/modules/station/vehicle-retention";
 
 describe("historical inspection source and identity rules", () => {
   it("splits inclusive ranges into months across leap years without gaps", () => {
@@ -48,7 +48,7 @@ describe("historical inspection source and identity rules", () => {
     const row = normalizeInspection(raw, digest("A"), "GA_DASHBOARD");
     expect(row.payment).toBe("UNKNOWN");
     expect(row.retest).toBe("UNKNOWN");
-    expect(qualifies(row)).toBe(false);
+    expect(isQualifyingVisit(row)).toBe(true);
     expect(row.normalized.vin).toBe("1HGCM82633A004352");
     expect(row.original).toEqual(raw);
     expect(row.conservativeIdentity).toBe(true);
@@ -95,16 +95,17 @@ describe("historical inspection source and identity rules", () => {
     );
     expect(() => parseHistoryExport(body, digest("B"))).toThrow();
   });
-  it("qualifies only explicitly paid completed initial tests", () => {
+  it("counts completed inspections without using payment status as validation", () => {
     const base = { payment: "PAID", completion: "COMPLETED", retest: "INITIAL" };
-    expect(qualifies(base)).toBe(true);
-    expect(qualifies({ ...base, retest: "PAID_RETEST" })).toBe(false);
-    for (const [key, values] of Object.entries({
-      payment: ["UNKNOWN", "UNPAID", "REFUNDED"],
-      retest: ["UNKNOWN", "FREE_RETEST"],
-      completion: ["UNKNOWN", "VOIDED", "CANCELLED", "INCOMPLETE"],
-    }))
-      for (const value of values) expect(qualifies({ ...base, [key]: value })).toBe(false);
+    for (const payment of ["PAID", "UNKNOWN", "UNPAID", "REFUNDED"]) {
+      const report = { ...base, payment };
+      expect(isQualifyingVisit(report)).toBe(true);
+    }
+    expect(isQualifyingVisit({ ...base, retest: "PAID_RETEST" })).toBe(true);
+    expect(isQualifyingVisit({ ...base, retest: "UNKNOWN" })).toBe(true);
+    expect(isQualifyingVisit({ ...base, retest: "FREE_RETEST" })).toBe(false);
+    for (const completion of ["UNKNOWN", "VOIDED", "CANCELLED", "INCOMPLETE"])
+      expect(isQualifyingVisit({ ...base, completion })).toBe(false);
   });
   it("never merges conflicting VINs through a shared plate", () => {
     const bindings = plateBindings([

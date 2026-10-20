@@ -202,9 +202,6 @@ export function normalizeInspection(raw: RawInspection, stationHash: string, sou
     original: raw,
   };
 }
-export function qualifies(row: { payment: string; retest: string; completion: string }) {
-  return row.completion === "COMPLETED" && row.payment === "PAID" && row.retest === "INITIAL";
-}
 export function inspectionMatchKey(row: {
   vinHash: string | null;
   plateHash: string | null;

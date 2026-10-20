@@ -1,10 +1,9 @@
-import { Prisma } from "@prisma/client";
 import type { Tx } from "../phase2";
 import { requireRule } from "../phase2";
 import { businessDate } from "@/lib/time";
 import { calendarDays } from "./dashboard-calculations";
 import type { DashboardQuery, PortalDay } from "./dashboard-types";
-import { reportMinute } from "./inspection-cadence";
+import { sourceVisits } from "./source-visits";
 import { stationTransaction } from "./service";
 import {
   createRetentionModel,
@@ -17,10 +16,6 @@ import {
   type RetentionCoverage,
 } from "./vehicle-retention";
 
-type EvidenceRow = Omit<RetentionVisit, "minute" | "sourceUrl"> & {
-  sourceDate: string;
-  provenance: string;
-};
 type Cached = {
   hash: string;
   version: string;
@@ -64,21 +59,8 @@ export async function retentionInTransaction(
   const key = `${hash}:${end}`;
   let saved = cache.get(key);
   if (!saved || saved.version !== version || saved.expires < Date.now()) {
-    const scopes = Prisma.sql`${hash}`;
-    // Existing station/date and VIN/date indexes constrain this canonical read.
-    // Do not load/decrypt original report payloads for aggregation.
     const [evidence, windows] = await Promise.all([
-      tx.$queryRaw<EvidenceRow[]>`
-        SELECT r.id, v.fingerprint AS key, e.source, e."sourceId", e."businessDate" AS date,
-          v.inspector, v.outcome, e."vinHash", e."plateHash", e."invalidVin", e."identityStatus",
-          v."vehicleSuffix" AS suffix, e.payment, e.retest, e.completion, e."sourceKind",
-          v."sourceDate", e.provenance
-        FROM "StationInspectionEvidence" e
-        JOIN "StationRecord" r ON r.id = e."recordId" AND r."currentRevisionId" = e."revisionId" AND r.state <> 'SUPERSEDED'
-        JOIN "StationRevision" v ON v.id = e."revisionId"
-        WHERE e."stationHash" = ${scopes} AND e."sourceKind" = 'VIR'
-          AND e."businessDate" <= ${end}
-        ORDER BY e."businessDate", r.id`,
+      sourceVisits(tx, [hash]),
       tx.inspectionHistoryWindow.findMany({
         where: {
           stationHash: hash,
@@ -107,7 +89,6 @@ export async function retentionInTransaction(
       const window = windowId ? sourceWindows.get(windowId) : undefined;
       visits.set(row.key, {
         ...row,
-        minute: reportMinute(row.sourceDate),
         sourceUrl: window?.reportDigest
           ? `/api/inspection-history/source?jobId=${encodeURIComponent(window.jobId)}&windowId=${encodeURIComponent(window.id)}`
           : null,
@@ -129,7 +110,8 @@ export async function retentionInTransaction(
   const existing = saved.models.get(mKey);
   if (existing) return existing.report;
   // Keep source evidence reusable across timeframe changes. Merge only the
-  // current window's raw cache rows; never promote its hashes to validated VINs.
+  // current window's verified provider rows. A reported VIN need not pass the
+  // local format/check-digit validator to participate in exact source matching.
   const visits = new Map(saved.visits.map((v) => [v.key, v]));
   for (const day of input.days)
     for (const row of day.testTimes ?? []) {
@@ -144,12 +126,10 @@ export async function retentionInTransaction(
         minute: row.minute,
         inspector: row.inspector,
         outcome: row.outcome ?? "UNKNOWN",
-        // A cache hash alone does not prove a valid normalized VIN. Canonical
-        // evidence below supplies validated identity and authoritative statuses.
-        vinHash: null,
+        vinHash: row.vinHash ?? null,
         plateHash: null,
         invalidVin: false,
-        identityStatus: "UNREVIEWED",
+        identityStatus: row.vinHash ? "REPORTED_VIN" : "UNREVIEWED",
         suffix: "",
         payment: "UNKNOWN",
         retest: "UNKNOWN",

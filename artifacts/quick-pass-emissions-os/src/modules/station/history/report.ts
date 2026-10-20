@@ -1,10 +1,11 @@
 import { Temporal } from "@js-temporal/polyfill";
-import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { dateString } from "@/lib/validation";
 import { requireRule, type Tx } from "../../phase2";
 import { historyTransaction, checkStations } from "./transaction";
-import { historyRange, qualifies, monthWindows } from "./rules";
+import { historyRange, monthWindows } from "./rules";
+import { sourceVisits } from "../source-visits";
+import { createRetentionModel } from "../vehicle-retention";
 
 export type IdentityRow = { vinHash: string | null; plateHash: string | null; invalidVin: boolean };
 export function plateBindings(rows: { plateHash: string; vinHash: string }[]) {
@@ -60,98 +61,48 @@ const reportInput = z.object({
   stations: z.array(z.string().min(1).max(100)).min(1).max(20),
   employee: z.string().max(100).optional(),
 });
-type Group = IdentityRow & { payment: string; retest: string; completion: string; count: number };
-async function lookupBindings(tx: Tx, scopes: Prisma.Sql, plates: string[], vins: string[]) {
-  return tx.$queryRaw<{ plateHash: string; vinHash: string }[]>`
-    SELECT DISTINCT e."plateHash", coalesce(e."vinHash", 'INVALID') AS "vinHash"
-    FROM "StationInspectionEvidence" e JOIN "StationRecord" r ON r.id = e."recordId"
-    WHERE e."stationHash" IN (${scopes}) AND e."sourceKind" = 'VIR' AND e."plateHash" IS NOT NULL
-      AND (e."vinHash" IS NOT NULL OR e."invalidVin") AND r."currentRevisionId" = e."revisionId" AND r.state <> 'SUPERSEDED'
-      AND (e."plateHash" = ANY(${plates}::text[]) OR e."vinHash" = ANY(${vins}::text[]))`;
-}
-
-/** Groups just the requested period, then performs indexed lookbacks for its candidate identifiers. */
+/** Use the same reported-identifier and free-retest policy as the trend panels. */
 export async function returningInTransaction(
   tx: Tx,
   hashes: string[],
-  query: { start: string; end: string; employee?: string },
+  query: { start: string; end: string; employee?: string; inspector?: string | null },
 ): Promise<ReturningVehicleReport> {
   requireRule(hashes.length > 0, "Choose an authorized station.");
-  const scopes = Prisma.join(hashes);
-  const currentOnly = Prisma.sql`e."sourceKind" = 'VIR' AND r."state" <> 'SUPERSEDED' AND r."currentRevisionId" = e."revisionId"`;
-  const groups = await tx.$queryRaw<Group[]>`
-    SELECT e."vinHash", e."plateHash", e."invalidVin", e."payment", e."retest", e."completion", count(*)::int AS count
-    FROM "StationInspectionEvidence" e JOIN "StationRecord" r ON r.id = e."recordId"
-    WHERE e."stationHash" IN (${scopes}) AND e."businessDate" >= ${query.start} AND e."businessDate" <= ${query.end}
-      AND ${currentOnly} ${query.employee ? Prisma.sql`AND r."employeeId" = ${query.employee}` : Prisma.empty}
-    GROUP BY e."vinHash", e."plateHash", e."invalidVin", e."payment", e."retest", e."completion"`;
-  const vins = [...new Set(groups.flatMap((g) => (g.vinHash ? [g.vinHash] : [])))];
-  const plates = [...new Set(groups.flatMap((g) => (g.plateHash ? [g.plateHash] : [])))];
-  const associations =
-    vins.length || plates.length ? await lookupBindings(tx, scopes, plates, vins) : [];
-  // Include conflicting VINs on all candidate aliases, even if those VINs are outside the period.
-  const candidateVins = [
-    ...new Set([
-      ...vins,
-      ...associations.filter((p) => p.vinHash !== "INVALID").map((p) => p.vinHash),
-    ]),
-  ];
-  const aliases = candidateVins.length ? await lookupBindings(tx, scopes, [], candidateVins) : [];
-  const candidatePlates = [
-    ...new Set([
-      ...plates,
-      ...associations.map((p) => p.plateHash),
-      ...aliases.map((p) => p.plateHash),
-    ]),
-  ];
-  const allBindings = candidatePlates.length
-    ? await lookupBindings(tx, scopes, candidatePlates, [])
-    : [];
-  const bindings = plateBindings(allBindings);
-  const current = new Set<string>();
-  let qualifyingRecords = 0,
-    identifiedRecords = 0,
-    unmatchedRecords = 0,
-    unknownStatusRecords = 0,
-    excludedRecords = 0,
-    plateMatchedRecords = 0;
-  for (const group of groups) {
-    if (!qualifies(group)) {
-      if (
-        group.completion !== "VOIDED" &&
-        group.completion !== "CANCELLED" &&
-        group.completion !== "INCOMPLETE" &&
-        group.payment !== "UNPAID" &&
-        group.payment !== "REFUNDED" &&
-        !["FREE_RETEST", "PAID_RETEST"].includes(group.retest) &&
-        [group.payment, group.retest, group.completion].includes("UNKNOWN")
-      )
-        unknownStatusRecords += group.count;
-      else excludedRecords += group.count;
-      continue;
-    }
-    qualifyingRecords += group.count;
-    const identity = vehicleIdentity(group, bindings);
-    if (!identity) unmatchedRecords += group.count;
-    else {
-      current.add(identity);
-      identifiedRecords += group.count;
-      if (!group.vinHash) plateMatchedRecords += group.count;
-    }
-  }
-  // Indexes constrain prior reads to candidate VINs/plates, rather than loading all history.
-  const prior = current.size
-    ? await tx.$queryRaw<IdentityRow[]>`
-    SELECT DISTINCT e."vinHash", e."plateHash", e."invalidVin"
-    FROM "StationInspectionEvidence" e JOIN "StationRecord" r ON r.id = e."recordId"
-    WHERE e."stationHash" IN (${scopes}) AND e."businessDate" < ${query.start}
-      AND ${currentOnly} AND e."payment" = 'PAID' AND e."completion" = 'COMPLETED' AND e."retest" = 'INITIAL'
-      AND (e."vinHash" = ANY(${candidateVins}::text[]) OR e."plateHash" = ANY(${candidatePlates}::text[]))`
-    : [];
-  const previous = new Set(
-    prior.map((row) => vehicleIdentity(row, bindings)).filter((k): k is string => !!k),
+  const records = await sourceVisits(tx, hashes);
+  const model = createRetentionModel(
+    records.map((row) => ({
+      ...row,
+      // Current-period employee attribution remains distinct from the shared
+      // station-wide history used to classify free retests.
+      inspector: query.inspector !== undefined ? row.inspector : (row.employeeId ?? ""),
+      sourceUrl: null,
+    })),
+    {
+      ...query,
+      totalDates: 0,
+      loadedDates: 0,
+      missingPeriods: [],
+      incompletePeriods: [],
+      unprocessedPeriods: [],
+      recordsNeedingReview: 0,
+      unrepresentedRecords: 0,
+    },
+    {
+      id: query.employee,
+      inspector: query.inspector !== undefined ? query.inspector : (query.employee ?? null),
+      label: "Selected station scope",
+    },
+    query,
   );
-  const returning = [...current].filter((k) => previous.has(k)).length;
+  const selected = model.report.selectedPeriod;
+  const focused = model.visits.filter(model.focused);
+  const qualifyingRecords = model.report.qualifyingInspections;
+  const identifiedRecords = focused.filter(
+    (row) => !!row.vinHash && model.qualifyingVisitIds.has(row.id),
+  ).length;
+  const unmatchedRecords = qualifyingRecords - identifiedRecords;
+  const unknownStatusRecords = focused.filter((row) => row.completion === "UNKNOWN").length;
+  const excludedRecords = focused.length - qualifyingRecords - unknownStatusRecords;
   const [range, windows] = await Promise.all([
     tx.stationInspectionEvidence.aggregate({
       where: { stationHash: { in: hashes }, sourceKind: "VIR" },
@@ -217,17 +168,17 @@ export async function returningInTransaction(
   return {
     start: query.start,
     end: query.end,
-    returning,
-    firstObserved: current.size - returning,
+    returning: selected.returning,
+    firstObserved: selected.firstObserved,
     unmatchedRecords,
-    identifiableVehicles: current.size,
+    identifiableVehicles: selected.vehicles,
     qualifyingRecords,
     identifiedRecords,
     unknownStatusRecords,
     excludedRecords,
-    rate: current.size ? returning / current.size : null,
+    rate: selected.rate,
     identificationCoverage: qualifyingRecords ? identifiedRecords / qualifyingRecords : null,
-    plateMatchedRecords,
+    plateMatchedRecords: 0,
     historyStart: range._min.businessDate,
     historyEnd: range._max.businessDate,
     coverage,

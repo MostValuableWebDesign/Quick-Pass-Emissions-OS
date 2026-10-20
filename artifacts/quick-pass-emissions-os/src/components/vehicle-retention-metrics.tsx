@@ -438,7 +438,7 @@ export function VehicleRetentionMetrics({
         />
       </div>
 
-      <p className="muted vr-policy">Free retests within 30 days excluded · Payment not verified</p>
+      <p className="muted vr-policy">Free retests within 30 days excluded</p>
       {k.unknownRetestIncluded > 0 && (
         <p
           className="notice warning vr-provisional"
@@ -545,7 +545,7 @@ export function VehicleRetentionMetrics({
         <span>
           {n(c.loadedDates)} / {n(c.totalDates)} dates loaded
         </span>
-        <span>VIN match: {pct(c.identifierCoverage)}</span>
+        <span>VIN available: {pct(c.identifierCoverage)}</span>
         {c.plateFallbackVehicles > 0 && (
           <button
             type="button"

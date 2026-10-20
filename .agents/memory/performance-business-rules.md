@@ -83,11 +83,23 @@ Payroll date selection needs a visible in-page calendar for both single days and
 
 **How to apply:** Keep month navigation and selectable day buttons, make an incomplete range obvious, and apply the chosen dates to the overview without relying on the browser's native date popup.
 
-Vehicle-retention analysis excludes free retests from returning-vehicle rates, repeat metrics, annual cohorts and intervals. Apply the owner's same-VIN rule: an inspection within 30 calendar days of the previous occurrence is a free retest, including across selected periods or inspector changes. Returns after 30 days can qualify, including paid retests; explicitly free retests remain excluded even without an earlier loaded occurrence. Unknown source status and unverified payment remain disclosed.
+Vehicle-retention analysis excludes free retests from returning-vehicle rates, repeat metrics, annual cohorts and intervals. Apply the owner's same-VIN rule: an inspection within 30 calendar days of the previous occurrence is a free retest, including across selected periods or inspector changes. Returns after 30 days can qualify, including paid retests; explicitly free retests remain excluded even without an earlier loaded occurrence. Unknown payment is not an exclusion or a review issue by itself.
 
 **Why:** The owner clarified that a free retest is an obligatory follow-up, not a returning customer. This supersedes the earlier retention-only restriction against using the 30-day rule. VIRs still do not prove money collected.
 
-**How to apply:** Use validated VIN histories and calendar-day comparisons before filtering to the selected timeframe or employee. Keep physical report repeats visibly separate from qualifying retention, preserve source classifications alongside derived exclusions, show plate/state fallback separately, and disclose missing processing/coverage. Describe first observations as “First observed in available history,” not new customers.
+**How to apply:** Use source-reported VIN histories and calendar-day comparisons before filtering to the selected timeframe or employee. Keep physical report repeats visibly separate from qualifying retention, preserve source classifications alongside derived exclusions, show plate/state fallback separately, and disclose missing processing/coverage. Describe first observations as “First observed in available history,” not new customers.
+
+A GCAF-generated report must count in panel calculations even when its VIN fails local format or check-digit validation. This applies across panels, not just Vehicle History.
+
+**Why:** The owner explicitly said that a report generated for an invalid VIN should still count because it exists in the GCAF system. This supersedes the earlier validated-VIN eligibility requirement.
+
+**How to apply:** Treat local VIN checks as diagnostics, not inspection-existence or calculation gates. Match the reported identifier consistently without certifying its validity. Blank or placeholder identifiers still represent inspections but cannot establish a unique returning vehicle or an inferred free retest. Preserve completion/outcome rules and known free-retest exclusions; a generated report is not proof of payment or approval of financial history.
+
+Unknown payment status must not exclude GCAF inspections or create payment-review flags in any panel calculation, including report-based revenue and employee-pay estimates.
+
+**Why:** The owner explicitly requested removing unknown-payment flag validation from all panel calculations.
+
+**How to apply:** Do not require a paid status for report-based estimates or vehicle matching. Keep source payment evidence unchanged; counting an inspection does not mark an invoice paid, create a receipt or change approved payroll. Preserve outcome, completion and free-retest rules.
 
 Repeat-vehicle analysis belongs directly below Trend and is available for every trend timeframe, not only All Time. Its repeat totals and intervals follow the trend window, rather than the separate headline report day/range. Earlier saved station visits remain comparison context for returning status, not extra visits counted inside that window.
 

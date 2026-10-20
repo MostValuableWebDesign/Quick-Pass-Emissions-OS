@@ -81,13 +81,13 @@ describe("vehicle retention definitions and reconciliation", () => {
       selectedPeriod: { returning: 1, firstObserved: 1, vehicles: 2, rate: 0.5 },
       returningMonth: { start: "2026-10-13", returning: 1, vehicles: 2 },
       returningYear: { start: "2026-10-13", returning: 1, vehicles: 2 },
-      coverage: { sourceRecords: 2, vinMatchedRecords: 2, reviewableVisits: 2 },
+      coverage: { sourceRecords: 2, vinMatchedRecords: 2, reviewableVisits: 0 },
     });
     expect(retentionDetails(m, { metric: "selected" }).total).toBe(1);
     expect(
       retentionDetails(m, { metric: "selected", vehicleId: "current" }).visits.map((v) => v.date),
     ).toEqual(["2025-10-01", "2026-10-18"]);
-    expect(retentionDetails(m, { metric: "review" }).total).toBe(2);
+    expect(retentionDetails(m, { metric: "review" }).total).toBe(0);
   });
   it("does not call an earlier known retest a first-observed vehicle in a later period", () => {
     const m = model([
@@ -166,7 +166,8 @@ describe("vehicle retention definitions and reconciliation", () => {
       visit("2", "2026-01-01", "A", { payment: "UNPAID" }),
     ]);
     expect(m.report.repeatVehicles).toBe(1);
-    expect(m.report.classifications.unknownPayment).toBe(1);
+    expect(m.report.classifications).not.toHaveProperty("unknownPayment");
+    expect(m.report.coverage.reviewableVisits).toBe(0);
     expect(
       retentionDetails(m, { metric: "repeat", vehicleId: "1" }).visits.map((v) => v.payment),
     ).toEqual(["UNKNOWN", "UNPAID"]);
@@ -275,13 +276,16 @@ describe("vehicle retention definitions and reconciliation", () => {
     });
     expect(retentionDetails(m, { metric: "plate" }).total).toBe(1);
   });
-  it("does not promote invalid or unreviewed hashes into valid VIN matches", () => {
+  it("accepts reported VIN hashes despite local format flags or an unreviewed validation label", () => {
     const m = model([
       visit("invalid", "2025-01-01", "A", { invalidVin: true, plateHash: "P" }),
       visit("unreviewed", "2026-01-01", "A", { identityStatus: "UNREVIEWED" }),
     ]);
-    expect(m.report.identifiableVehicles).toBe(0);
-    expect(m.report.repeatPercentage).toBeNull();
+    expect(m.report.identifiableVehicles).toBe(1);
+    expect(m.report.repeatPercentage).toBe(1);
+    expect(m.report.qualifyingInspections).toBe(2);
+    expect(m.report.repeatVehicles).toBe(1);
+    expect(m.report.coverage.reviewableVisits).toBe(0);
     expect(m.report.coverage.plateFallbackRecords).toBe(0);
   });
   it("shows partial coverage and includes unrepresented report rows in matching coverage", () => {
@@ -338,7 +342,7 @@ describe("vehicle retention definitions and reconciliation", () => {
     expect(retentionDetails(m, { metric: "review" }).total).toBe(
       m.report.coverage.reviewableVisits,
     );
-    expect(m.report.coverage.reviewableVisits).toBe(2);
+    expect(m.report.coverage.reviewableVisits).toBe(0);
   });
   it("compresses actual missing dates without treating endpoints as complete history", () => {
     expect(datePeriods(["2025-01-03", "2025-01-01", "2025-01-02", "2025-02-01"])).toEqual([

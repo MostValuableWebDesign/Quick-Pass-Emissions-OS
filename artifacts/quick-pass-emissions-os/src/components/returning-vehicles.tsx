@@ -24,7 +24,7 @@ export function ReturningVehicles({ report }: { report: ReturningVehicleReport }
           <strong data-testid="first-observed-count">{report.firstObserved}</strong>
         </div>
         <div>
-          <span>Unknown classification / unmatched records</span>
+          <span>Missing identity / completion</span>
           <strong>{report.unmatchedRecords + report.unknownStatusRecords}</strong>
         </div>
         <div>
@@ -56,10 +56,10 @@ export function ReturningVehicles({ report }: { report: ReturningVehicleReport }
         {report.coverage.missingMonths}. Gaps remain unknown.
       </p>
       <p className="muted">
-        {report.identifiableVehicles} distinct identifiable vehicles had completed, explicitly paid
-        initial inspections. {report.unknownStatusRecords} records have unknown payment, retest, or
-        completion status; {report.excludedRecords} records were excluded as unpaid, refunded, known
-        retests, voided, cancelled, or incomplete.
+        {report.identifiableVehicles} distinct vehicles had qualifying completed inspections.{" "}
+        {report.unknownStatusRecords} records have unknown completion status;{" "}
+        {report.excludedRecords} free retests, voided, cancelled or incomplete inspections were
+        excluded. Reported VINs are accepted without local format or check-digit approval.
       </p>
       <p className="muted">
         Extraction review: {report.coverage.unresolvedRecords} unresolved and{" "}
@@ -93,8 +93,8 @@ export function ReturningVehicles({ report }: { report: ReturningVehicleReport }
           Unmatched records are excluded from the rate denominator and cannot be deduplicated into a
           reliable vehicle count. Identification coverage is {report.identifiedRecords}/
           {report.qualifyingRecords} qualifying inspection records. {report.plateMatchedRecords}{" "}
-          records use lower-confidence, unambiguous plate/state matching; invalid VINs never fall
-          back to plates.
+          records use plate/state matching. A missing identifier cannot establish a returning
+          vehicle, but does not invalidate the inspection itself.
         </p>
         <p className="muted">
           Reconciliation describes the exported scope. It does not prove the provider retains all

@@ -48,7 +48,6 @@ describe("Verified station-report format and conservative dates", () => {
   });
   it("retains only non-identifying evidence counts for incomplete Performance rows", () => {
     for (const [original, replacement, issue] of [
-      ["1SYNTHETIC0000001", "1SYNTHETIC000001", "vehicle"],
       ["Fixture Inspector", "", "inspector"],
       [">Pass<", "><", "outcome"],
     ] as const) {
@@ -58,7 +57,7 @@ describe("Verified station-report format and conservative dates", () => {
       expect(parsed.incompleteRows).toEqual([
         {
           businessDate: "2026-10-09",
-          vehicle: issue === "vehicle",
+          vehicle: false,
           inspector: issue === "inspector",
           outcome: issue === "outcome",
         },

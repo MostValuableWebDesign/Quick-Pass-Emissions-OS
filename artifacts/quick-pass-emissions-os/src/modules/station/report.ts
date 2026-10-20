@@ -3,6 +3,7 @@ import { parse, type DefaultTreeAdapterMap } from "parse5";
 import { Temporal } from "@js-temporal/polyfill";
 import { dateString } from "@/lib/validation";
 import { requireRule } from "../phase2";
+import { reportedVin } from "./reported-vin";
 
 type Node = DefaultTreeAdapterMap["node"];
 type Element = DefaultTreeAdapterMap["element"];
@@ -28,6 +29,7 @@ export type ReportRow = {
   certificate: string;
   vehicleSuffix: string;
   vehicleHash: string;
+  unidentifiedVehicle?: boolean;
 };
 export function sourceDate(value: string) {
   const m = /^(\d{2})\/(\d{2})\/(\d{4})(?: (\d{2}):(\d{2}) (AM|PM))?$/.exec(value);
@@ -123,7 +125,9 @@ function parseOriginalReport(
     fingerprints.add(fingerprint);
     const issue = {
       businessDate: date,
-      vehicle: !/^[A-Za-z0-9]{17}$/.test(r[0]),
+      // A provider-generated report establishes the inspection, even when the
+      // reported VIN fails a local format or checksum check.
+      vehicle: !allowIncompleteEvidence && !r[0],
       inspector: !r[3],
       outcome: !r[5],
     };
@@ -141,6 +145,7 @@ function parseOriginalReport(
       certificate: r[4],
       vehicleSuffix: r[0].slice(-4),
       vehicleHash: digest(r[0].toUpperCase()),
+      ...(reportedVin(r[0]) ? {} : { unidentifiedVehicle: true }),
     });
   }
   return { ...bounds, rows: parsed, incompleteRows, digest: digest(body) };

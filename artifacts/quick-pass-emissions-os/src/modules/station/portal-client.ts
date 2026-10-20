@@ -439,7 +439,7 @@ export async function portalRangeDays(
       day.testTimes!.push({
         inspector: row.inspector,
         minute: reportMinute(row.sourceDate),
-        vinHash: row.vehicleHash,
+        vinHash: row.unidentifiedVehicle ? undefined : row.vehicleHash,
         recordKey: row.fingerprint,
         outcome: key,
       });

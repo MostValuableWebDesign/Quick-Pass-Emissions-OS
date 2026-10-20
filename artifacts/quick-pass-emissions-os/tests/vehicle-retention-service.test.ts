@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Tx } from "../src/modules/phase2";
 import type { DashboardQuery, PortalDay } from "../src/modules/station/dashboard-types";
 
@@ -21,6 +21,9 @@ import {
   retentionInTransaction,
 } from "../src/modules/station/vehicle-retention-service";
 import { stationTransaction } from "../src/modules/station/service";
+import { seal } from "../src/modules/station/history/crypto";
+import { digest } from "../src/modules/station/report";
+import { returningInTransaction } from "../src/modules/station/history/report";
 
 const query: DashboardQuery = { start: "2025-12-31", end: "2025-12-31", trendDays: "all" };
 const scope = { label: "All inspectors", inspector: null };
@@ -99,6 +102,7 @@ beforeEach(() => {
   state.hash = `owned-station-${Math.random()}`;
   vi.clearAllMocks();
 });
+afterEach(() => vi.unstubAllEnvs());
 
 describe("retention server aggregation and protected drilldowns", () => {
   it("supports every trend timeframe and keeps differently scoped cached models separate", async () => {
@@ -140,8 +144,12 @@ describe("retention server aggregation and protected drilldowns", () => {
     });
     expect(repeat).toEqual(report);
     expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
-    const detail = await readRetentionDetails("active-owner", query, { metric: "review" });
-    expect(detail?.total).toBe(1); // unknown payment remains visible
+    const review = await readRetentionDetails("active-owner", query, { metric: "review" });
+    expect(review?.total).toBe(0); // unknown payment is not an inspection defect
+    const detail = await readRetentionDetails("active-owner", query, {
+      metric: "selected",
+      vehicleId: "canonical-record",
+    });
     expect(detail?.visits[0]).toMatchObject({
       id: "canonical-record",
       payment: "UNKNOWN",
@@ -166,7 +174,7 @@ describe("retention server aggregation and protected drilldowns", () => {
     expect(next.classifications.knownRetestsExcluded).toBe(1);
     expect(tx.$queryRaw).toHaveBeenCalledTimes(2);
   });
-  it("does not treat an unprocessed Performance hash as a validated VIN or infer paid status", async () => {
+  it("counts a reported Performance VIN without claiming verified payment or VIN validation", async () => {
     const tx = setup([]);
     const report = await retentionInTransaction(tx as unknown as Tx, state.hash, {
       start: day.date,
@@ -175,20 +183,23 @@ describe("retention server aggregation and protected drilldowns", () => {
       query,
       scope,
     });
-    expect(report.identifiableVehicles).toBe(0);
-    expect(report.repeatPercentage).toBeNull();
+    expect(report.identifiableVehicles).toBe(1);
+    expect(report.repeatPercentage).toBe(0);
     expect(report.coverage).toMatchObject({
       sourceRecords: 1,
-      vinMatchedRecords: 0,
-      identifierCoverage: 0,
-      reviewableVisits: 1,
+      vinMatchedRecords: 1,
+      identifierCoverage: 1,
+      reviewableVisits: 0,
     });
-    const details = await readRetentionDetails("active-owner", query, { metric: "review" });
+    const details = await readRetentionDetails("active-owner", query, {
+      metric: "selected",
+      vehicleId: "cache-row:1",
+    });
     expect(details?.visits[0]).toMatchObject({
       payment: "UNKNOWN",
       retest: "UNKNOWN",
       sourceUrl: null,
-      qualifying: false,
+      qualifying: true,
     });
     expect(JSON.stringify(details)).not.toContain("unvalidated-cache-hash");
     expect(JSON.stringify(details)).not.toContain("row-key");
@@ -223,7 +234,92 @@ describe("retention server aggregation and protected drilldowns", () => {
       query,
       scope,
     });
-    const detail = await readRetentionDetails("active-owner", query, { metric: "review" });
+    const detail = await readRetentionDetails("active-owner", query, {
+      metric: "selected",
+      vehicleId: "canonical-record",
+    });
     expect(detail?.visits[0].sourceUrl).toBeNull();
+  });
+  it("recovers a malformed reported VIN from existing encrypted VIR evidence without re-exporting", async () => {
+    vi.stubEnv("BETTER_AUTH_SECRET", "test-only-source-identity-secret-1234567890");
+    const vin = "GCAF-REPORTED-VIN";
+    const tx = setup([
+      evidence({
+        vinHash: null,
+        invalidVin: true,
+        identityStatus: "NEEDS_REVIEW",
+        identityPayload: seal(
+          { original: { fields: { VIN: vin } } },
+          "inspection:canonical-record",
+        ),
+      }),
+    ]);
+    const report = await retentionInTransaction(tx as unknown as Tx, state.hash, {
+      start: day.date,
+      end: day.date,
+      days: [day],
+      query,
+      scope,
+    });
+    expect(report.qualifyingInspections).toBe(1);
+    expect(report.identifiableVehicles).toBe(1);
+    expect(report.coverage.reviewableVisits).toBe(0);
+    const details = await readRetentionDetails("active-owner", query, {
+      metric: "selected",
+      vehicleId: "canonical-record",
+    });
+    expect(details?.visits[0].qualifying).toBe(true);
+    expect(JSON.stringify(details)).not.toContain(vin);
+    expect(JSON.stringify(details)).not.toContain(digest(vin));
+  });
+  it("counts a retained report even if its identity payload cannot be read", async () => {
+    const tx = setup([
+      evidence({ vinHash: null, invalidVin: true, identityPayload: "unreadable-evidence" }),
+    ]);
+    const report = await retentionInTransaction(tx as unknown as Tx, state.hash, {
+      start: day.date,
+      end: day.date,
+      days: [day],
+      query,
+      scope,
+    });
+    expect(report.qualifyingInspections).toBe(1);
+    expect(report.identifiableVehicles).toBe(0);
+    expect(report.coverage.reviewableVisits).toBe(1);
+  });
+  it("uses the same reported-VIN and unknown-payment policy in the other returning-vehicle panel", async () => {
+    vi.stubEnv("BETTER_AUTH_SECRET", "test-only-source-identity-secret-1234567890");
+    const row = (id: string, date: string) =>
+      evidence({
+        id,
+        key: id,
+        sourceId: id,
+        date,
+        sourceDate: `${date}T10:00:00`,
+        vinHash: null,
+        invalidVin: true,
+        identityStatus: "NEEDS_REVIEW",
+        identityPayload: seal(
+          { original: { fields: { VIN: "REPORTED-INVALID-VIN" } } },
+          `inspection:${id}`,
+        ),
+      });
+    const tx = Object.assign(setup([row("prior", "2025-11-30"), row("current", day.date)]), {
+      stationInspectionEvidence: {
+        aggregate: vi.fn().mockResolvedValue({
+          _min: { businessDate: "2025-11-30" },
+          _max: { businessDate: day.date },
+        }),
+      },
+    });
+    const report = await returningInTransaction(tx as unknown as Tx, [state.hash], query);
+    expect(report).toMatchObject({
+      returning: 1,
+      identifiableVehicles: 1,
+      qualifyingRecords: 1,
+      unknownStatusRecords: 0,
+      excludedRecords: 0,
+      rate: 1,
+    });
   });
 });

@@ -11,7 +11,11 @@ import type { DashboardData, DashboardQuery, PayPlan } from "./dashboard-types";
 import { supportsTrendBackfill } from "./dashboard-types";
 import { HISTORY_START_ACTION, historyStartSchema } from "./history-boundary";
 import { analyzeRepeatVehicleHistory } from "./repeat-vehicle-analysis";
-import { classifyDashboardRetests, hasVinEvidence, retestHistoryDates } from "./dashboard-retests";
+import {
+  classifyDashboardRetests,
+  hasReportEvidence,
+  retestHistoryDates,
+} from "./dashboard-retests";
 import { PACE_SETTINGS_ACTION, paceSettingsSchema } from "./pace-settings";
 
 import { withStationTestExport, requireActiveTestExport } from "./test-export-gate";
@@ -19,6 +23,8 @@ import { testExportBatches, TEST_EXPORT_MAX_REQUESTS } from "./test-export-batch
 import { returningInTransaction } from "./history/report";
 import { captureRefreshHistory } from "./history/service";
 import { retentionInTransaction } from "./vehicle-retention-service";
+import { sourceVisits } from "./source-visits";
+import { includeReportedInspections } from "./report-counts";
 
 const SNAPSHOT = "STATION_PERFORMANCE_DAY_CACHED";
 const PLAN = "STATION_PERFORMANCE_PAY_PLAN";
@@ -80,9 +86,7 @@ export const dashboardDaySchema = z
           ))) &&
       (!d.testTimes ||
         d.testTimes.every(
-          (t) =>
-            (!t.vinHash && !t.recordKey && !t.outcome) ||
-            (!!t.vinHash && !!t.recordKey && !!t.outcome),
+          (t) => (!t.vinHash && !t.recordKey && !t.outcome) || (!!t.recordKey && !!t.outcome),
         )) &&
       (!d.testTimes?.some((t) => t.recordKey) ||
         (new Set(d.testTimes.map((t) => t.recordKey)).size === d.testTimes.length &&
@@ -252,7 +256,10 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
     });
     const parsed = dashboardPayPlanSchema.safeParse(savedPlan?.details);
     const payPlan = parsed.success ? parsed.data : { revision: 0, profiles: [], adjustments: [] };
-    const rawDays = [...snapshots.values()];
+    const rawDays = includeReportedInspections(
+      [...snapshots.values()],
+      await sourceVisits(tx, [hash]),
+    );
     const savedPace = await tx.auditLog.findFirst({
       where: { entityId: hash, action: PACE_SETTINGS_ACTION },
       orderBy: { createdAt: "desc" },
@@ -265,7 +272,7 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
     const data = buildDashboard(query, today, classifiedDays, payPlan, paceSettings, allTimeStart);
     data.retestMissingDates = needed.filter((date) => {
       const day = snapshots.get(date);
-      return !day || !hasVinEvidence(day);
+      return !day || !hasReportEvidence(day);
     });
     requireRule(
       !query.employee || data.employeeOptions.some((e) => e.id === query.employee),
@@ -278,7 +285,14 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
           : businessDate(new Date(d.retrievedAt)) <= d.date,
       )
       .map((d) => d.date);
-    data.returningVehicles = await returningInTransaction(tx, [hash], query);
+    const profile = payPlan.profiles.find((p) => p.id === query.employee);
+    const selectedInspector =
+      profile?.inspector ?? data.employees.find((e) => e.id === query.employee)?.inspector ?? null;
+    data.returningVehicles = await returningInTransaction(
+      tx,
+      [hash],
+      query.employee ? { ...query, inspector: selectedInspector } : query,
+    );
     if (supportsTrendBackfill(query.trendDays)) {
       const gate = await tx.stationTestExportState.findUnique({ where: { stationHash: hash } });
       const gateNow = Date.now();
@@ -300,7 +314,6 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
         trendRange.start,
         trendRange.end,
       );
-      const profile = payPlan.profiles.find((p) => p.id === query.employee);
       data.repeatVehicleAnalysis.retention = await retentionInTransaction(tx, hash, {
         start: trendRange.start,
         end: trendRange.end,
@@ -309,10 +322,7 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
         scope: {
           id: query.employee || undefined,
           label: profile?.name ?? "All inspectors",
-          inspector:
-            profile?.inspector ??
-            data.employees.find((e) => e.id === query.employee)?.inspector ??
-            null,
+          inspector: selectedInspector,
         },
       });
     }

@@ -57,8 +57,8 @@ Dashboard Needs attention includes live certificate-threshold alerts and calenda
 
 **How to apply:** Use the saved provider balance and configured inclusive threshold for certificate alerts, deduplicating a recorded-stock warning when the provider count is already low. Keep the dashboard payday item date-driven from the established payday calendar; do not couple it to the top banner's per-account acknowledgement.
 
-Vehicle-history presentation should keep useful return statistics visible and concise, without a "More details" section.
+Vehicle-history presentation should keep useful return statistics visible and concise, without a "More details" section or separate repeat-inspection event total.
 
-**Why:** The owner found the trend-timeframe panels confusing and wordy, and explicitly rejected hiding useful information behind another section.
+**Why:** The owner found the trend-timeframe panels confusing and wordy, rejected hiding useful information, and chose unique returning vehicles rather than a separate inspection-event count.
 
-**How to apply:** Prioritize easily scanned return figures, short labels and meaningful comparisons. Keep necessary incomplete-data warnings concise; do not mix free-retest-inclusive physical counts with vehicle-retention figures.
+**How to apply:** Prioritize easily scanned unique-vehicle return figures, short labels and meaningful comparisons. Keep necessary incomplete-data warnings concise; do not mix free-retest-inclusive physical counts with vehicle-retention figures.

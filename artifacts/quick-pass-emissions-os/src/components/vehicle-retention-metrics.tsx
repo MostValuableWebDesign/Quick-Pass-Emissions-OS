@@ -39,7 +39,6 @@ function Metric({
   sub,
   tip,
   onOpen,
-  linkLabel = "View vehicles",
 }: {
   id: string;
   label: string;
@@ -47,7 +46,6 @@ function Metric({
   sub?: string;
   tip: string;
   onOpen?: () => void;
-  linkLabel?: string;
 }) {
   return (
     <div className="vr-metric" data-testid={`metric-${id}`}>
@@ -64,7 +62,7 @@ function Metric({
           onClick={onOpen}
           data-testid={`button-drill-${id}`}
         >
-          {linkLabel}
+          View vehicles
         </button>
       )}
     </div>
@@ -426,15 +424,6 @@ export function VehicleRetentionMetrics({
           sub={`${pct(rate)} of ${n(vehicles)} ${vehicles === 1 ? "vehicle" : "vehicles"} · ${returnBasis}`}
           tip="Each vehicle is counted once, even if it returned multiple times."
           onOpen={() => open("Returning vehicles", { metric: allTime ? "repeat" : "selected" })}
-        />
-        <Metric
-          id="return-visits"
-          label="Repeat inspections"
-          value={c.vinMatchedRecords ? n(report.repeatInspections) : "Insufficient data"}
-          sub="Each inspection after a vehicle’s first counts"
-          tip="Counts inspection visits, not vehicles. Free retests are excluded."
-          onOpen={() => open("Return visits", { metric: "intervals" })}
-          linkLabel="View visits"
         />
         <Metric
           id="median-interval"

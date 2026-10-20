@@ -103,13 +103,14 @@ describe("retention presentation", () => {
     const html = render();
     expect(html).toContain("<h2>Vehicle history</h2>");
     expect(html).toContain("Vehicles that returned");
-    expect(html).toContain("Repeat inspections");
     expect(html).toContain("Typical return time");
     expect(html).toContain("Returned the following year");
     expect(html).toContain("When vehicles come back");
-    expect(html.match(/data-testid="metric-/g)).toHaveLength(3);
+    expect(html.match(/data-testid="metric-/g)).toHaveLength(2);
     expect(html).not.toContain("Recorded repeat vehicles");
     expect(html).not.toContain("Distinct VIN-matched vehicles");
+    expect(html).not.toContain("Repeat inspections");
+    expect(html).not.toContain('data-testid="metric-return-visits"');
     expect(html).not.toContain("QUALIFYING RETENTION");
     expect(html).not.toContain("TREND TIMEFRAME");
     expect(html).not.toContain("<details");
@@ -121,7 +122,8 @@ describe("retention presentation", () => {
     expect(html).toContain("Incomplete data");
     expect(html).toContain("VIN match:");
     expect(html).toContain("656 / 657 dates loaded");
-    expect(html).toContain('data-testid="button-drill-return-visits">View visits');
+    expect(html).toContain('data-testid="button-drill-repeat-pct">View vehicles');
+    expect(html).not.toContain("Repeat inspections");
     expect(html).not.toContain("private-hash-not-for-browser");
     expect(html).not.toContain("New customer");
     expect(html).not.toContain("Free repeats · within 30 days");

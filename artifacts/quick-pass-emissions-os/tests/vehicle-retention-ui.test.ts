@@ -102,8 +102,8 @@ describe("retention presentation", () => {
   it("shows useful return stats directly without competing counts or a collapsed section", () => {
     const html = render();
     expect(html).toContain("<h2>Vehicle history</h2>");
-    expect(html).toContain("Returning vehicles");
-    expect(html).toContain("Return visits");
+    expect(html).toContain("Vehicles that returned");
+    expect(html).toContain("Repeat inspections");
     expect(html).toContain("Typical return time");
     expect(html).toContain("Returned the following year");
     expect(html).toContain("When vehicles come back");
@@ -116,7 +116,8 @@ describe("retention presentation", () => {
     expect(html).not.toContain("More details");
     expect(html).toContain("30-day free-retest rule");
     expect(html).toContain("Payment not verified");
-    expect(html).toContain('data-testid="value-repeat-pct">100.0%');
+    expect(html).toContain('data-testid="value-repeat-pct">1</strong>');
+    expect(html).toContain("100.0% of 1 vehicle · 2+ qualifying visits in saved history");
     expect(html).toContain("Incomplete data");
     expect(html).toContain("VIN match:");
     expect(html).toContain("656 / 657 dates loaded");
@@ -131,8 +132,8 @@ describe("retention presentation", () => {
       [...rows, { ...rows[1], id: "later", key: "later", sourceId: "later", date: "2026-10-10" }],
       7,
     );
-    expect(html).toContain('data-testid="value-selected">100.0%');
-    expect(html).toContain("1 of 1 vehicles · seen before these dates");
+    expect(html).toContain('data-testid="value-selected">1</strong>');
+    expect(html).toContain("100.0% of 1 vehicle · Visited before these dates, then returned");
     expect(html).not.toContain('data-testid="value-repeat-pct"');
     expect(html).not.toContain('data-testid="metric-month"');
     expect(html).not.toContain('data-testid="metric-year"');

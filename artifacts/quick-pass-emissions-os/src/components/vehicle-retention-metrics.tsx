@@ -399,6 +399,9 @@ export function VehicleRetentionMetrics({
   const rate = allTime ? report.repeatPercentage : report.selectedPeriod.rate;
   const returning = allTime ? report.repeatVehicles : report.selectedPeriod.returning;
   const vehicles = allTime ? report.identifiableVehicles : report.selectedPeriod.vehicles;
+  const returnBasis = allTime
+    ? "2+ qualifying visits in saved history"
+    : "Visited before these dates, then returned";
 
   return (
     <div className="vr" data-testid="vehicle-retention">
@@ -418,22 +421,18 @@ export function VehicleRetentionMetrics({
       <div className="vr-grid">
         <Metric
           id={allTime ? "repeat-pct" : "selected"}
-          label="Returning vehicles"
-          value={pct(rate)}
-          sub={`${n(returning)} of ${n(vehicles)} vehicles${allTime ? "" : " · seen before these dates"}`}
-          tip={
-            allTime
-              ? "VIN-matched vehicles with two or more qualifying visits in saved history. Free retests are excluded."
-              : "Vehicles with a qualifying visit before these dates that came back during this period. Free retests are excluded."
-          }
+          label="Vehicles that returned"
+          value={rate === null ? "Insufficient data" : n(returning)}
+          sub={`${pct(rate)} of ${n(vehicles)} ${vehicles === 1 ? "vehicle" : "vehicles"} · ${returnBasis}`}
+          tip="Each vehicle is counted once, even if it returned multiple times."
           onOpen={() => open("Returning vehicles", { metric: allTime ? "repeat" : "selected" })}
         />
         <Metric
           id="return-visits"
-          label="Return visits"
+          label="Repeat inspections"
           value={c.vinMatchedRecords ? n(report.repeatInspections) : "Insufficient data"}
-          sub="During these dates"
-          tip="Qualifying visits after a vehicle's first qualifying inspection. One vehicle may have several return visits; free retests are excluded."
+          sub="Each inspection after a vehicle’s first counts"
+          tip="Counts inspection visits, not vehicles. Free retests are excluded."
           onOpen={() => open("Return visits", { metric: "intervals" })}
           linkLabel="View visits"
         />

@@ -110,7 +110,7 @@ describe("All Time repeat-vehicle analysis", () => {
     expect(result).toMatchObject({ repeatVisits: 2, freeRetests: 2, paidRepeatInspections: 0 });
   });
 
-  it("shows the repeat metrics and makes partial All Time coverage explicit", () => {
+  it("shows an honest fallback without presenting retest-inclusive counts as retention", () => {
     const report = analyzeRepeatVehicleHistory(
       [day("2020-01-01", ["vehicle-a"]), day("2020-01-20", ["vehicle-a"])],
       "2020-01-01",
@@ -123,13 +123,12 @@ describe("All Time repeat-vehicle analysis", () => {
         incompleteDates: 1,
       }),
     );
-    expect(markup).toContain("Recorded repeat vehicles · includes retests");
+    expect(markup).toContain("Vehicles in saved reports");
+    expect(markup).not.toContain("Recorded repeat vehicles");
     expect(markup).not.toContain("Free repeats · within 30 days");
     expect(markup).not.toContain("Paid repeats · after 30 days");
     expect(markup).not.toContain("Inspections without a usable VIN");
-    expect(markup).toContain(
-      "Preliminary · Some source dates or rows are incomplete; totals may change after retrieval.",
-    );
+    expect(markup).toContain("Incomplete data · Some reports still need to be loaded or checked.");
     expect(markup).not.toContain("18 source dates pending");
     expect(markup).not.toContain("dates have incomplete source rows");
     expect(markup).not.toContain("vehicle-a");
@@ -144,7 +143,7 @@ describe("All Time repeat-vehicle analysis", () => {
         incompleteDates: 0,
       }),
     );
-    expect(markup).toContain("No vehicle history is loaded yet");
+    expect(markup).toContain("No vehicle history saved for these dates");
     expect(markup).not.toContain("Vehicles tested more than once");
   });
 });

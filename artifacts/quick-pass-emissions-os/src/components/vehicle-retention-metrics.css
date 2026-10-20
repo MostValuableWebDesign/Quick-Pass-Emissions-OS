@@ -1,7 +1,5 @@
 .vr {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid var(--line);
+  margin-top: 16px;
   display: grid;
   gap: 16px;
 }
@@ -12,11 +10,24 @@
   align-items: center;
   justify-content: space-between;
 }
-.vr-intro .eyebrow {
-  margin: 0;
+.vr-intro {
+  font-size: 13px;
 }
-.history-report .vr p.vr-scope {
-  margin-top: 0;
+.history-report .vr p.vr-policy {
+  margin: 0;
+  font-size: 12px;
+}
+.vr-data-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+.vr-data-status .vr-link {
+  margin: 0;
+  font-size: inherit;
 }
 .vr-badge {
   display: inline-block;
@@ -34,16 +45,17 @@
 }
 .vr-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 .vr-metric {
+  min-width: 0;
   display: grid;
   gap: 4px;
   align-content: start;
   padding: 14px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--surface);
 }
 .vr-label {
@@ -172,29 +184,9 @@
 .vr-bands strong {
   font-variant-numeric: tabular-nums;
 }
-.vr-details summary {
-  cursor: pointer;
-  font-size: 14px;
-}
-.vr-dl {
-  display: grid;
-  grid-template-columns: minmax(140px, auto) 1fr;
-  gap: 6px 16px;
-  margin: 12px 0 0;
-  font-size: 13px;
-}
-.vr-dl dt {
-  color: var(--muted);
-}
-.vr-dl dd {
-  margin: 0;
-}
 @media (max-width: 640px) {
-  .vr-dl {
+  .vr-grid {
     grid-template-columns: 1fr;
-  }
-  .vr-dl dd {
-    margin-bottom: 6px;
   }
 }
 .vr-overlay {
@@ -333,23 +325,4 @@
 .history-report .vr p.vr-provisional {
   margin: 0;
   font-size: 13px;
-}
-.vr-mini {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 20px;
-  margin: 8px 0 0;
-  font-size: 12px;
-}
-.vr-mini dt {
-  color: var(--muted);
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.vr-mini dd {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
 }

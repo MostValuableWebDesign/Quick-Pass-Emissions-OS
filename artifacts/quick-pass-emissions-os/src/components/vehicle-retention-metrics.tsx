@@ -12,11 +12,6 @@ import "./vehicle-retention-metrics.css";
 
 const pct = (v: number | null) => (v === null ? "Insufficient data" : `${(v * 100).toFixed(1)}%`);
 const n = (v: number) => v.toLocaleString();
-const periods = (list: { start: string; end: string }[]) =>
-  list.length
-    ? list.map((p) => (p.start === p.end ? p.start : `${p.start} – ${p.end}`)).join(", ")
-    : "None";
-
 type Drill = { title: string; request: RetentionDetailRequest };
 
 function Tip({ id, text }: { id: string; text: string }) {
@@ -44,6 +39,7 @@ function Metric({
   sub,
   tip,
   onOpen,
+  linkLabel = "View vehicles",
 }: {
   id: string;
   label: string;
@@ -51,6 +47,7 @@ function Metric({
   sub?: string;
   tip: string;
   onOpen?: () => void;
+  linkLabel?: string;
 }) {
   return (
     <div className="vr-metric" data-testid={`metric-${id}`}>
@@ -67,7 +64,7 @@ function Metric({
           onClick={onOpen}
           data-testid={`button-drill-${id}`}
         >
-          View vehicles
+          {linkLabel}
         </button>
       )}
     </div>
@@ -391,285 +388,197 @@ export function VehicleRetentionMetrics({
   query: DashboardQuery;
 }) {
   const [drill, setDrill] = useState<Drill | null>(null);
-  const years = report.annualCohorts;
-  const [year, setYear] = useState<number | undefined>(years.at(-2)?.year ?? years.at(-1)?.year);
+  const years = report.annualCohorts.filter((c) => c.rate !== null);
+  const [selectedYear, setYear] = useState<number | undefined>();
+  const year = years.some((c) => c.year === selectedYear) ? selectedYear : years.at(-1)?.year;
   const cohort = years.find((c) => c.year === year);
   const c = report.coverage,
     k = report.classifications;
   const open = (title: string, request: RetentionDetailRequest) => setDrill({ title, request });
-  const period = (p: VehicleRetentionReport["selectedPeriod"]) =>
-    `${n(p.returning)} of ${n(p.vehicles)} · ${n(p.firstObserved)} first observed in available history${
-      p.priorNonqualifying
-        ? ` · ${n(p.priorNonqualifying)} with only excluded or incomplete prior observations`
-        : ""
-    }`;
+  const allTime = query.trendDays === "all";
+  const rate = allTime ? report.repeatPercentage : report.selectedPeriod.rate;
+  const returning = allTime ? report.repeatVehicles : report.selectedPeriod.returning;
+  const vehicles = allTime ? report.identifiableVehicles : report.selectedPeriod.vehicles;
 
   return (
     <div className="vr" data-testid="vehicle-retention">
       <div className="vr-intro">
-        <p className="eyebrow">QUALIFYING RETENTION · {report.scope.label}</p>
+        <span className="muted">{report.scope.label}</span>
         <span
           className={c.label === "Partial coverage" ? "vr-badge warn" : "vr-badge"}
           data-testid="status-coverage"
         >
-          {c.label}
+          {c.label === "Partial coverage" ? "Incomplete data" : "Saved reports"}
         </span>
       </div>
-      <p className="muted vr-scope">
-        {report.start} – {report.end} · America/New_York.{" "}
-        {report.scope.id
-          ? report.scope.inspector
-            ? "Selected inspector sets which vehicles count; "
-            : "No source inspector is mapped to the selected employee; "
-          : ""}
-        totals follow the trend timeframe; earlier saved visits across all inspectors are used to
-        identify returning vehicles. Vehicle retention, not customer identity.
-      </p>
-      <p className="muted vr-scope" data-testid="text-vin-coverage">
-        Validated VIN identity: {n(c.vinMatchedRecords)} of {n(c.sourceRecords)} loaded inspections{" "}
-        ({pct(c.identifierCoverage)}). Retention uses processed identities and can differ from the
-        recorded-report summary above.
-      </p>
+      {report.scope.id && !report.scope.inspector && (
+        <p className="notice warning">No report inspector is linked to this employee.</p>
+      )}
 
       <div className="vr-grid">
         <Metric
-          id="repeat-pct"
-          label={
-            query.trendDays === "all"
-              ? "Repeat vehicles · all time"
-              : "Repeat vehicles · trend timeframe"
+          id={allTime ? "repeat-pct" : "selected"}
+          label="Returning vehicles"
+          value={pct(rate)}
+          sub={`${n(returning)} of ${n(vehicles)} vehicles${allTime ? "" : " · seen before these dates"}`}
+          tip={
+            allTime
+              ? "VIN-matched vehicles with two or more qualifying visits in saved history. Free retests are excluded."
+              : "Vehicles with a qualifying visit before these dates that came back during this period. Free retests are excluded."
           }
-          value={pct(report.repeatPercentage)}
-          sub={`${n(report.repeatVehicles)} of ${n(report.identifiableVehicles)} VIN-matched vehicles`}
-          tip="Distinct VIN vehicles with at least two qualifying inspections within this trend timeframe, divided by its distinct identifiable VIN vehicles. Completed visits qualify unless explicitly free retests or within 30 calendar days of the previous same-VIN inspection. A return after 30 days can qualify."
-          onOpen={() => open("Repeat vehicles", { metric: "repeat" })}
+          onOpen={() => open("Returning vehicles", { metric: allTime ? "repeat" : "selected" })}
         />
         <Metric
-          id="selected"
-          label="Returning · trend timeframe"
-          value={pct(report.selectedPeriod.rate)}
-          sub={period(report.selectedPeriod)}
-          tip={`${report.selectedPeriod.start} – ${report.selectedPeriod.end}. Returning means a qualifying inspection before the period began. First observed in available history does not mean a first-ever visit.`}
-          onOpen={() => open("Returning in selected period", { metric: "selected" })}
+          id="return-visits"
+          label="Return visits"
+          value={c.vinMatchedRecords ? n(report.repeatInspections) : "Insufficient data"}
+          sub="During these dates"
+          tip="Qualifying visits after a vehicle's first qualifying inspection. One vehicle may have several return visits; free retests are excluded."
+          onOpen={() => open("Return visits", { metric: "intervals" })}
+          linkLabel="View visits"
         />
         <Metric
-          id="month"
-          label={`Returning · ${report.end.slice(0, 7)}`}
-          value={pct(report.returningMonth.rate)}
-          sub={period(report.returningMonth)}
-          tip={`${report.returningMonth.start} – ${report.returningMonth.end}, within the selected trend timeframe. Earlier saved visits identify returning vehicles.`}
-          onOpen={() => open(`Returning in ${report.end.slice(0, 7)}`, { metric: "month" })}
-        />
-        <Metric
-          id="year"
-          label={`Returning · ${report.end.slice(0, 4)}`}
-          value={pct(report.returningYear.rate)}
-          sub={period(report.returningYear)}
-          tip={`${report.returningYear.start} – ${report.returningYear.end}, within the selected trend timeframe. Earlier saved visits identify returning vehicles.`}
-          onOpen={() => open(`Returning in ${report.end.slice(0, 4)}`, { metric: "year" })}
+          id="median-interval"
+          label="Typical return time"
+          value={
+            report.medianIntervalDays === null
+              ? "Insufficient data"
+              : `${n(Math.round(report.medianIntervalDays))} days`
+          }
+          sub="Median between visits"
+          tip="The middle value of the days between qualifying visits for the same VIN. Free retests are excluded."
         />
       </div>
 
+      <p className="muted vr-policy">Free retests within 30 days excluded · Payment not verified</p>
       {k.unknownRetestIncluded > 0 && (
         <p
           className="notice warning vr-provisional"
           role="note"
           data-testid="text-provisional-retest"
         >
-          Provisional: {n(k.unknownRetestIncluded)} completed VIN-matched visits with unknown source
-          retest status are included after applying the 30-day free-retest rule. Explicit free
-          retests and same-VIN inspections within 30 calendar days are excluded. Payment is not
-          verified.
+          Preliminary · Some test classifications are unverified. The 30-day free-retest rule still
+          applies.
         </p>
       )}
 
       <div className="vr-split">
-        <section className="vr-block" aria-labelledby="vr-cohort-h">
-          <div className="vr-block-head">
-            <h4 id="vr-cohort-h">
-              Annual cohort return
-              <Tip
-                id="cohort"
-                text="Vehicles inspected in the cohort year that came back for a qualifying inspection during the following calendar year."
-              />
-            </h4>
-            {years.length > 0 && (
-              <select
-                aria-label="Cohort year"
-                value={year ?? ""}
-                onChange={(e) => setYear(Number(e.target.value))}
-                data-testid="select-cohort-year"
-              >
-                {years.map((y) => (
-                  <option key={y.year} value={y.year}>
-                    {y.year}
-                  </option>
-                ))}
-              </select>
+        {cohort && (
+          <section className="vr-block" aria-labelledby="vr-cohort-h">
+            <div className="vr-block-head">
+              <h4 id="vr-cohort-h">
+                Returned the following year
+                <Tip
+                  id="cohort"
+                  text="Vehicles inspected in the cohort year that came back for a qualifying inspection during the following calendar year."
+                />
+              </h4>
+              {years.length > 0 && (
+                <select
+                  aria-label="Cohort year"
+                  value={year ?? ""}
+                  onChange={(e) => setYear(Number(e.target.value))}
+                  data-testid="select-cohort-year"
+                >
+                  {years.map((y) => (
+                    <option key={y.year} value={y.year}>
+                      {y.year}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            {cohort ? (
+              <>
+                <strong className="vr-big" data-testid="value-cohort-rate">
+                  {pct(cohort.rate)}
+                </strong>
+                <p className="muted">
+                  {n(cohort.returned)} of {n(cohort.cohort)} returned in {cohort.year + 1}
+                  <span className="vr-badge">
+                    {cohort.label === "Full following year" ? "Full year" : cohort.label}
+                  </span>
+                  {cohort.partialCoverage && <span className="vr-badge warn">Incomplete data</span>}
+                </p>
+                <button
+                  type="button"
+                  className="vr-link"
+                  onClick={() =>
+                    open(`${cohort.year} cohort`, { metric: "cohort", year: cohort.year })
+                  }
+                  data-testid="button-drill-cohort"
+                >
+                  View vehicles
+                </button>
+              </>
+            ) : (
+              <p className="muted">Insufficient data</p>
             )}
-          </div>
-          {cohort ? (
-            <>
-              <strong className="vr-big" data-testid="value-cohort-rate">
-                {pct(cohort.rate)}
-              </strong>
-              <p className="muted">
-                {n(cohort.returned)} of {n(cohort.cohort)} returned in {cohort.year + 1}
-                <span className="vr-badge">{cohort.label}</span>
-                {cohort.partialCoverage && <span className="vr-badge warn">Partial coverage</span>}
-              </p>
-              <p className="muted">
-                Follow-up window {cohort.followStart} – {cohort.followEnd ?? "not started"}
-              </p>
-              <button
-                type="button"
-                className="vr-link"
-                onClick={() =>
-                  open(`${cohort.year} cohort`, { metric: "cohort", year: cohort.year })
-                }
-                data-testid="button-drill-cohort"
-              >
-                View cohort vehicles
-              </button>
-            </>
-          ) : (
-            <p className="muted">Insufficient data</p>
-          )}
-        </section>
+          </section>
+        )}
 
         <section className="vr-block" aria-labelledby="vr-int-h">
           <div className="vr-block-head">
             <h4 id="vr-int-h">
-              Time between qualifying visits
+              When vehicles come back
               <Tip
                 id="interval"
                 text="Days between consecutive qualifying inspections of the same VIN. Free retests, including same-VIN inspections within 30 calendar days, are excluded."
               />
             </h4>
           </div>
-          <strong className="vr-big" data-testid="value-median-interval">
-            {report.medianIntervalDays === null
-              ? "Insufficient data"
-              : `${n(Math.round(report.medianIntervalDays))} days`}
-          </strong>
-          <p className="muted">Median across {n(report.intervalCount)} intervals</p>
-          <dl className="vr-mini">
-            <div>
-              <dt>Qualifying inspections</dt>
-              <dd data-testid="value-qualifying-inspections">{n(report.qualifyingInspections)}</dd>
-            </div>
-            <div>
-              <dt>
-                Qualifying repeats
-                <Tip
-                  id="qrepeat"
-                  text="Qualifying inspections after a vehicle's first qualifying visit at this station. Each one is one interval, so this matches the interval count."
-                />
-              </dt>
-              <dd data-testid="value-qualifying-repeats">{n(report.repeatInspections)}</dd>
-            </div>
-          </dl>
-          <ul className="vr-bands">
-            {report.intervals.map((b) => (
-              <li key={b.id}>
-                <button
-                  type="button"
-                  disabled={!b.count}
-                  onClick={() => open(b.label, { metric: "intervals", band: b.id })}
-                  data-testid={`button-band-${b.id}`}
-                >
-                  <span>{b.label}</span>
-                  <strong>{n(b.count)}</strong>
-                </button>
-              </li>
-            ))}
-          </ul>
+          {report.intervalCount > 0 ? (
+            <ul className="vr-bands">
+              {report.intervals.map((b) => (
+                <li key={b.id}>
+                  <button
+                    type="button"
+                    disabled={!b.count}
+                    onClick={() => open(b.label, { metric: "intervals", band: b.id })}
+                    data-testid={`button-band-${b.id}`}
+                  >
+                    <span>{b.label.replace(" · around annual", "")}</span>
+                    <strong>{n(b.count)}</strong>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">
+              {c.vinMatchedRecords
+                ? "No qualifying return visits in these dates."
+                : "No return-time data available."}
+            </p>
+          )}
         </section>
       </div>
 
-      <details className="vr-details" data-testid="details-coverage">
-        <summary>Coverage and data quality</summary>
-        <dl className="vr-dl">
-          <dt>Loaded dates</dt>
-          <dd>
-            {n(c.loadedDates)} of {n(c.totalDates)} ({c.start} – {c.end})
-          </dd>
-          <dt>Missing periods</dt>
-          <dd>{periods(c.missingPeriods)}</dd>
-          <dt>Incomplete periods</dt>
-          <dd>{periods(c.incompletePeriods)}</dd>
-          <dt>Unprocessed periods</dt>
-          <dd>
-            {c.unprocessedPeriods.length
-              ? c.unprocessedPeriods
-                  .map(
-                    (p) =>
-                      `${p.start} – ${p.end} (${p.status}${p.review ? `, ${p.review} review` : ""})`,
-                  )
-                  .join(", ")
-              : "None"}
-          </dd>
-          <dt>VIN identification</dt>
-          <dd>
-            {pct(c.identifierCoverage)} · {n(c.vinMatchedRecords)} of {n(c.sourceRecords)} records
-          </dd>
-          <dt>Plate/state fallback</dt>
-          <dd>
-            {n(c.plateFallbackRecords)} records, {n(c.plateFallbackVehicles)} vehicles · excluded
-            from VIN metrics
-            {c.plateFallbackVehicles > 0 && (
-              <button
-                type="button"
-                className="vr-link"
-                onClick={() => open("Plate/state-only vehicles", { metric: "plate" })}
-                data-testid="button-drill-plate"
-              >
-                View
-              </button>
-            )}
-          </dd>
-          <dt>Loaded visits needing review</dt>
-          <dd>
-            {n(c.reviewableVisits)} visits
-            {c.reviewableVisits > 0 && (
-              <button
-                type="button"
-                className="vr-link"
-                onClick={() => open("Loaded visits needing review", { metric: "review" })}
-                data-testid="button-drill-review"
-              >
-                View {n(c.reviewableVisits)}
-              </button>
-            )}
-          </dd>
-          <dt>Ambiguous / unmatched</dt>
-          <dd>
-            {n(c.ambiguousRecords)} ambiguous, {n(c.unmatchedRecords)} unmatched records
-          </dd>
-          <dt>Without retained identity</dt>
-          <dd>{n(c.unrepresentedRecords)} known report rows</dd>
-          <dt>Source processing review flags</dt>
-          <dd>{n(c.recordsNeedingReview)} flags · not distinct vehicles or loaded visit records</dd>
-          <dt>Duplicates excluded</dt>
-          <dd>{n(c.duplicateRecordsExcluded)}</dd>
-          <dt>Unknown retest</dt>
-          <dd>{n(k.unknownRetestIncluded)} included provisionally</dd>
-          <dt>Explicit free retests</dt>
-          <dd>{n(k.knownRetestsExcluded)} excluded</dd>
-          <dt>Additional free retests · 30-day rule</dt>
-          <dd>{n(k.inferredFreeRetestsExcluded)} excluded</dd>
-          <dt>Incomplete inspections</dt>
-          <dd>{n(k.incompleteInspectionsExcluded)} excluded</dd>
-          <dt>Unknown payment</dt>
-          <dd>{n(k.unknownPayment)} records</dd>
-        </dl>
-        <p className="muted">
-          Payment status is shown for context only; it does not decide qualification and is not
-          proof money was collected. Missing periods are not zero inspections. Raw Performance rows
-          that only carry an identifier hash, without a processed and validated VIR identity, are
-          counted above as without retained identity and excluded from VIN metrics.
-        </p>
-      </details>
+      <div className="vr-data-status muted" data-testid="text-vin-coverage">
+        <span>
+          {n(c.loadedDates)} / {n(c.totalDates)} dates loaded
+        </span>
+        <span>VIN match: {pct(c.identifierCoverage)}</span>
+        {c.plateFallbackVehicles > 0 && (
+          <button
+            type="button"
+            className="vr-link"
+            onClick={() => open("Plate-only vehicles", { metric: "plate" })}
+            data-testid="button-drill-plate"
+          >
+            {n(c.plateFallbackVehicles)} plate-only vehicles excluded
+          </button>
+        )}
+        {c.reviewableVisits > 0 && (
+          <button
+            type="button"
+            className="vr-link"
+            onClick={() => open("Inspections needing review", { metric: "review" })}
+            data-testid="button-drill-review"
+          >
+            {n(c.reviewableVisits)} inspections need review
+          </button>
+        )}
+      </div>
 
       {drill && (
         <DetailPanel

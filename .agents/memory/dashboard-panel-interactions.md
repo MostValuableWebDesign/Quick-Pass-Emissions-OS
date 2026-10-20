@@ -56,3 +56,9 @@ Dashboard Needs attention includes live certificate-threshold alerts and calenda
 **Why:** The user wants low-certificate and payroll alerts in Needs attention. Dismissing a personal banner should not hide an active business due-date reminder.
 
 **How to apply:** Use the saved provider balance and configured inclusive threshold for certificate alerts, deduplicating a recorded-stock warning when the provider count is already low. Keep the dashboard payday item date-driven from the established payday calendar; do not couple it to the top banner's per-account acknowledgement.
+
+Vehicle-history presentation should keep useful return statistics visible and concise, without a "More details" section.
+
+**Why:** The owner found the trend-timeframe panels confusing and wordy, and explicitly rejected hiding useful information behind another section.
+
+**How to apply:** Prioritize easily scanned return figures, short labels and meaningful comparisons. Keep necessary incomplete-data warnings concise; do not mix free-retest-inclusive physical counts with vehicle-retention figures.

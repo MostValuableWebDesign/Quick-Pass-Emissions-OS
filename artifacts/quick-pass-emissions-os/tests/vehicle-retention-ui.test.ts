@@ -46,7 +46,7 @@ const coverage = {
   recordsNeedingReview: 0,
   unrepresentedRecords: 0,
 };
-function render(visits = rows) {
+function render(visits = rows, trendDays: "all" | 7 = "all") {
   const retention = createRetentionModel(
     visits,
     coverage,
@@ -68,7 +68,7 @@ function render(visits = rows) {
         classificationUnknownDates: 0,
         retention,
       },
-      query: { start: "2026-10-01", end: "2026-10-19", trendDays: "all" },
+      query: { start: "2026-10-01", end: "2026-10-19", trendDays },
       pendingDates: 0,
       incompleteDates: 0,
     }),
@@ -99,28 +99,50 @@ describe("retention presentation", () => {
     );
     expect(html).toContain('data-testid="after-panel-trend"');
   });
-  it("preserves the recorded summary, adds defined retention, and discloses provisional matching", () => {
+  it("shows useful return stats directly without competing counts or a collapsed section", () => {
     const html = render();
-    expect(html).toContain("Recorded repeat vehicles · includes retests");
+    expect(html).toContain("<h2>Vehicle history</h2>");
+    expect(html).toContain("Returning vehicles");
+    expect(html).toContain("Return visits");
+    expect(html).toContain("Typical return time");
+    expect(html).toContain("Returned the following year");
+    expect(html).toContain("When vehicles come back");
+    expect(html.match(/data-testid="metric-/g)).toHaveLength(3);
+    expect(html).not.toContain("Recorded repeat vehicles");
+    expect(html).not.toContain("Distinct VIN-matched vehicles");
+    expect(html).not.toContain("QUALIFYING RETENTION");
+    expect(html).not.toContain("TREND TIMEFRAME");
+    expect(html).not.toContain("<details");
+    expect(html).not.toContain("More details");
     expect(html).toContain("30-day free-retest rule");
-    expect(html).not.toContain("Time between visits is never used");
-    expect(html).toContain("Distinct VIN-matched vehicles");
+    expect(html).toContain("Payment not verified");
     expect(html).toContain('data-testid="value-repeat-pct">100.0%');
-    expect(html).toContain("Partial coverage");
-    expect(html).toContain("First observed in available history");
-    expect(html).toContain("Validated VIN identity:");
-    expect(html).toContain("America/New_York");
+    expect(html).toContain("Incomplete data");
+    expect(html).toContain("VIN match:");
+    expect(html).toContain("656 / 657 dates loaded");
+    expect(html).toContain('data-testid="button-drill-return-visits">View visits');
     expect(html).not.toContain("private-hash-not-for-browser");
     expect(html).not.toContain("New customer");
-    expect(html.indexOf('data-testid="text-provisional-retest"')).toBeLessThan(
-      html.indexOf('data-testid="details-coverage"'),
-    );
     expect(html).not.toContain("Free repeats · within 30 days");
     expect(html).not.toContain("Paid repeats · after 30 days");
+  });
+  it("uses the selected-period rate outside All Time and keeps its meaning visible", () => {
+    const html = render(
+      [...rows, { ...rows[1], id: "later", key: "later", sourceId: "later", date: "2026-10-10" }],
+      7,
+    );
+    expect(html).toContain('data-testid="value-selected">100.0%');
+    expect(html).toContain("1 of 1 vehicles · seen before these dates");
+    expect(html).not.toContain('data-testid="value-repeat-pct"');
+    expect(html).not.toContain('data-testid="metric-month"');
+    expect(html).not.toContain('data-testid="metric-year"');
   });
   it("uses Insufficient data for empty denominators rather than a zero rate", () => {
     const html = render([]);
     expect(html).toContain('data-testid="value-repeat-pct">Insufficient data');
     expect(html).toContain('data-testid="value-median-interval">Insufficient data');
+    expect(html).toContain("No return-time data available.");
+    expect(html).not.toContain('id="vr-cohort-h"');
+    expect(html).not.toContain('class="vr-bands"');
   });
 });

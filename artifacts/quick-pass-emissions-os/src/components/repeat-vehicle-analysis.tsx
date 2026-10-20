@@ -47,15 +47,6 @@ export function RepeatVehicleAnalysis({
             <NumberMetric label="Vehicles tested more than once" value={report.repeatVehicles} />
             <NumberMetric label="Distinct VIN-matched vehicles" value={report.distinctVehicles} />
             <NumberMetric label="Repeat inspections" value={report.repeatVisits} />
-            <NumberMetric label="Free repeats · within 30 days" value={report.freeRetests} />
-            <NumberMetric
-              label="Paid repeats · after 30 days"
-              value={report.paidRepeatInspections}
-            />
-            <NumberMetric
-              label="Inspections without a usable VIN"
-              value={report.unidentifiedInspections}
-            />
           </div>
           <p className={pending ? "notice warning" : "muted"} role="status">
             {pending

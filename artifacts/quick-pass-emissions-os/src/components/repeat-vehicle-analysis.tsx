@@ -59,7 +59,7 @@ export function RepeatVehicleAnalysis({
           </div>
           <p className={pending ? "notice warning" : "muted"} role="status">
             {pending
-              ? `Preliminary · ${pendingDates} source dates pending${report.classificationUnknownDates ? ` · ${report.classificationUnknownDates} dates need complete VIN timing` : ""}${incompleteDates ? ` · ${incompleteDates} ${incompleteDates === 1 ? "date has" : "dates have"} incomplete source rows` : ""}. Counts may change as history loads.`
+              ? "Preliminary · Some source dates or rows are incomplete; totals may change after retrieval."
               : "Based on the loaded report history."}
           </p>
         </>

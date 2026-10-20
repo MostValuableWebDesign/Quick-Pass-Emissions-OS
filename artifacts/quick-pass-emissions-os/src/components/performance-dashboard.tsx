@@ -47,6 +47,8 @@ export function PerformanceDashboard({
 
   const { loading, message, sourceStatus, refresh, pause, phase, backfillActive, waitSeconds } =
     usePerformanceRefresh(q, setData);
+  const showBackfillStatus =
+    backfillActive || phase === "paused" || phase === "failed" || phase === "stalled";
 
   // Extraction continues only while Performance is open, using one bounded request at a time.
   useEffect(() => {
@@ -284,37 +286,29 @@ export function PerformanceDashboard({
                     {historyMessage}
                   </span>
                 )}
-                {supportsTrendBackfill(q.trendDays) && data.backfill && (
+                {supportsTrendBackfill(q.trendDays) && data.backfill && showBackfillStatus && (
                   <div
                     className="pd-backfill-status"
                     role="status"
                     data-testid="trend-backfill-progress"
                   >
-                    <span title="Includes the preceding 30-day VIN history needed to classify free retests.">
-                      {num(data.backfill.totalDates - data.backfill.pendingDates)} /{" "}
-                      {num(data.backfill.totalDates)} source dates saved
-                    </span>
-                    <progress
-                      max={data.backfill.totalDates}
-                      value={data.backfill.totalDates - data.backfill.pendingDates}
-                      aria-label="Historical trend retrieval progress"
-                    />
+                    {backfillActive && (
+                      <progress
+                        max={data.backfill.totalDates}
+                        value={data.backfill.totalDates - data.backfill.pendingDates}
+                        aria-label="Historical trend retrieval progress"
+                      />
+                    )}
                     <span>
                       {phase === "pausing"
                         ? "Pausing after current batch"
                         : backfillActive && waitSeconds !== null
                           ? `Next batch in ${waitSeconds}s`
                           : backfillActive
-                            ? "Retrieving missing dates"
+                            ? "Retrieving history"
                             : phase === "paused"
                               ? "Paused · Refresh to resume"
-                              : phase === "failed" || phase === "stalled"
-                                ? "Paused · Refresh to retry"
-                                : data.backfill.pendingDates === 0
-                                  ? "Up to date"
-                                  : "Ready · Refresh to retrieve"}
-                      {data.backfill.incompleteDates > 0 &&
-                        ` · ${num(data.backfill.incompleteDates)} dates with excluded rows`}
+                              : "Paused · Refresh to retry"}
                     </span>
                   </div>
                 )}

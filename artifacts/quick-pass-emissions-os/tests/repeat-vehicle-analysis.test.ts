@@ -126,8 +126,11 @@ describe("All Time repeat-vehicle analysis", () => {
     expect(markup).toContain("Vehicles tested more than once");
     expect(markup).toContain("Free repeats · within 30 days");
     expect(markup).toContain("Paid repeats · after 30 days");
-    expect(markup).toContain("Preliminary · 18 source dates pending");
-    expect(markup).toContain("1 date has incomplete source rows");
+    expect(markup).toContain(
+      "Preliminary · Some source dates or rows are incomplete; totals may change after retrieval.",
+    );
+    expect(markup).not.toContain("18 source dates pending");
+    expect(markup).not.toContain("dates have incomplete source rows");
     expect(markup).not.toContain("vehicle-a");
   });
 

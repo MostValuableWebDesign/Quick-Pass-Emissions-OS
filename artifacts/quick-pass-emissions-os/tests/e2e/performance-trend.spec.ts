@@ -65,7 +65,7 @@ test("report scope stays stable when switching daily and yearly trends", async (
     await trend.getByTestId("select-trend").selectOption(value);
     await expect(page).toHaveURL(new RegExp(`trendDays=${value}`));
     await expect(trend).toContainText(`${years} years · monthly totals through`);
-    await expect(page.getByTestId("trend-backfill-progress")).toBeVisible();
+    await expect(page.getByTestId("trend-backfill-progress")).toHaveCount(0);
     await expect(page.getByTestId("text-cars")).toHaveText(originalCars!);
     await expect(page.getByTestId("text-pay")).toHaveText(originalPay!);
   }

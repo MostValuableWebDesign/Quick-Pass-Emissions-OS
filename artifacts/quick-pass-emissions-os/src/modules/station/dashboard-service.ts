@@ -10,6 +10,7 @@ import { pendingDashboardSourceDates } from "./dashboard-refresh";
 import type { DashboardData, DashboardQuery, PayPlan } from "./dashboard-types";
 import { supportsTrendBackfill } from "./dashboard-types";
 import { HISTORY_START_ACTION, historyStartSchema } from "./history-boundary";
+import { analyzeRepeatVehicleHistory } from "./repeat-vehicle-analysis";
 import { classifyDashboardRetests, hasVinEvidence, retestHistoryDates } from "./dashboard-retests";
 import { PACE_SETTINGS_ACTION, paceSettingsSchema } from "./pace-settings";
 
@@ -259,14 +260,8 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
     const paceSettings = parsedPace.success
       ? parsedPace.data
       : { revision: 0, longGapMinutes: null };
-    const data = buildDashboard(
-      query,
-      today,
-      classifyDashboardRetests(rawDays),
-      payPlan,
-      paceSettings,
-      allTimeStart,
-    );
+    const classifiedDays = classifyDashboardRetests(rawDays);
+    const data = buildDashboard(query, today, classifiedDays, payPlan, paceSettings, allTimeStart);
     data.retestMissingDates = needed.filter((date) => {
       const day = snapshots.get(date);
       return !day || !hasVinEvidence(day);
@@ -297,6 +292,12 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
         ),
       };
     }
+    if (query.trendDays === "all" && allTimeStart)
+      data.repeatVehicleAnalysis = analyzeRepeatVehicleHistory(
+        classifiedDays,
+        allTimeStart,
+        query.end,
+      );
     return data;
   });
 }

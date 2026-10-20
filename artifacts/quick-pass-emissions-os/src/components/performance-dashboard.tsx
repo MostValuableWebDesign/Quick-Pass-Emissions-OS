@@ -20,6 +20,7 @@ import {
 import type { DashboardPanelId } from "./performance-dashboard-layout";
 import { SourceRefreshIndicator } from "./source-refresh-indicator";
 import { ReturningVehicles } from "./returning-vehicles";
+import { RepeatVehicleAnalysis } from "./repeat-vehicle-analysis";
 
 export function PerformanceDashboard({
   initial,
@@ -472,6 +473,13 @@ export function PerformanceDashboard({
         </div>
       </section>
 
+      {data.repeatVehicleAnalysis && (
+        <RepeatVehicleAnalysis
+          report={data.repeatVehicleAnalysis}
+          pendingDates={data.backfill?.pendingDates ?? 0}
+          incompleteDates={data.backfill?.incompleteDates ?? 0}
+        />
+      )}
       {data.returningVehicles && <ReturningVehicles report={data.returningVehicles} />}
       <PerformanceDashboardPanels
         layout={panelLayout.layout}

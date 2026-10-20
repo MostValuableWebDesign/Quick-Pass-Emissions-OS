@@ -171,6 +171,7 @@ export type DashboardData = {
   }[];
   error?: string;
   returningVehicles?: import("./history/report").ReturningVehicleReport;
+  repeatVehicleAnalysis?: import("./repeat-vehicle-analysis").RepeatVehicleAnalysis;
 };
 export type DashboardState = {
   ok?: boolean;

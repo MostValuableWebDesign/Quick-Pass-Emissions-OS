@@ -52,8 +52,6 @@ export type AnnualRetention = {
   partialCoverage: boolean;
 };
 export const intervalBands = [
-  { id: "same-day", label: "Same day", min: 0, max: 0 },
-  { id: "1-30", label: "1–30 days", min: 1, max: 30 },
   { id: "31-180", label: "31–180 days", min: 31, max: 180 },
   { id: "181-299", label: "181–299 days", min: 181, max: 299 },
   { id: "300-430", label: "300–430 days · around annual", min: 300, max: 430 },
@@ -92,6 +90,7 @@ export type VehicleRetentionReport = {
     unknownRetestIncluded: number;
     unknownPayment: number;
     knownRetestsExcluded: number;
+    inferredFreeRetestsExcluded: number;
     incompleteInspectionsExcluded: number;
   };
 };
@@ -136,9 +135,9 @@ export type RetentionDetails = {
 };
 
 export function isQualifyingVisit(v: RetentionVisit) {
-  // A close interval is NOT source evidence of a retest. Unknown retest status is
-  // included provisionally and disclosed; payment is deliberately not a qualifier.
-  return v.completion === "COMPLETED" && !["FREE_RETEST", "PAID_RETEST"].includes(v.retest);
+  // Payment is deliberately not a qualifier. Explicit free retests are excluded;
+  // the rolling 30-day same-VIN rule is applied in the chronological model below.
+  return v.completion === "COMPLETED" && v.retest !== "FREE_RETEST";
 }
 function validVin(v: RetentionVisit) {
   return !!v.vinHash && !v.invalidVin && v.identityStatus === "VALID_VIN";
@@ -204,12 +203,27 @@ export function createRetentionModel(
     !bindings.get(v.plateHash)?.has("INVALID");
   const allByVin = new Map<string, RetentionVisit[]>();
   const byVin = new Map<string, RetentionVisit[]>();
+  const qualifyingVisitIds = new Set<string>();
+  const inferredFreeRetestIds = new Set<string>();
   const byPlate = new Map<string, RetentionVisit[]>();
   for (const v of visits) {
     if (validVin(v)) {
       allByVin.set(v.vinHash!, [...(allByVin.get(v.vinHash!) ?? []), v]);
-      if (isQualifyingVisit(v)) byVin.set(v.vinHash!, [...(byVin.get(v.vinHash!) ?? []), v]);
     } else if (fallback(v)) byPlate.set(v.plateHash!, [...(byPlate.get(v.plateHash!) ?? []), v]);
+  }
+  for (const [vin, rows] of allByVin) {
+    let previous: RetentionVisit | undefined;
+    for (const v of rows) {
+      const withinFreeRetestWindow =
+        previous !== undefined &&
+        Temporal.PlainDate.from(previous.date).until(Temporal.PlainDate.from(v.date)).days <= 30;
+      if (withinFreeRetestWindow && v.retest !== "FREE_RETEST") inferredFreeRetestIds.add(v.id);
+      if (isQualifyingVisit(v) && !withinFreeRetestWindow) {
+        byVin.set(vin, [...(byVin.get(vin) ?? []), v]);
+        qualifyingVisitIds.add(v.id);
+      }
+      previous = v;
+    }
   }
   const focusedVins = new Set(focusedVisits.filter(validVin).map((v) => v.vinHash!));
   const repeat = new Set(
@@ -311,7 +325,7 @@ export function createRetentionModel(
         });
   const sorted = gaps.map((g) => g.days).sort((a, b) => a - b),
     middle = Math.floor(sorted.length / 2);
-  const qualifying = focusedVisits.filter(isQualifyingVisit);
+  const qualifying = focusedVisits.filter((v) => qualifyingVisitIds.has(v.id));
   const vinMatchedRecords = focusedVisits.filter(validVin).length;
   const plateRecords = focusedVisits.filter(fallback);
   const ambiguous = focusedVisits.filter(
@@ -368,15 +382,15 @@ export function createRetentionModel(
           !validVin(v) ||
           v.retest === "UNKNOWN" ||
           v.payment === "UNKNOWN" ||
-          !isQualifyingVisit(v),
+          !qualifyingVisitIds.has(v.id),
       ).length,
     },
     classifications: {
       unknownRetestIncluded: qualifying.filter((v) => validVin(v) && v.retest === "UNKNOWN").length,
       unknownPayment: focusedVisits.filter((v) => v.payment === "UNKNOWN").length,
-      knownRetestsExcluded: focusedVisits.filter((v) =>
-        ["FREE_RETEST", "PAID_RETEST"].includes(v.retest),
-      ).length,
+      knownRetestsExcluded: focusedVisits.filter((v) => v.retest === "FREE_RETEST").length,
+      inferredFreeRetestsExcluded: focusedVisits.filter((v) => inferredFreeRetestIds.has(v.id))
+        .length,
       incompleteInspectionsExcluded: focusedVisits.filter((v) => v.completion !== "COMPLETED")
         .length,
     },
@@ -386,6 +400,8 @@ export function createRetentionModel(
     visits,
     byVin,
     allByVin,
+    qualifyingVisitIds,
+    inferredFreeRetestIds,
     byPlate,
     focused,
     repeat,
@@ -419,7 +435,7 @@ export function retentionDetails(
     completion: v.completion,
     sourceKind: v.sourceKind,
     sourceUrl: v.sourceUrl,
-    qualifying: validVin(v) && isQualifyingVisit(v),
+    qualifying: validVin(v) && model.qualifyingVisitIds.has(v.id),
   });
   let vehicles: RetentionVehicleView[] = [],
     visits: RetentionVisitView[] = [];
@@ -445,7 +461,7 @@ export function retentionDetails(
           (!validVin(v) ||
             v.retest === "UNKNOWN" ||
             v.payment === "UNKNOWN" ||
-            !isQualifyingVisit(v)),
+            !model.qualifyingVisitIds.has(v.id)),
       )
       .map(visitView);
   } else {
@@ -481,7 +497,10 @@ export function retentionDetails(
         firstObserved: rows[0].date,
         lastObserved: rows.at(-1)!.date,
         qualifyingVisits: rows.filter(
-          (v) => isQualifyingVisit(v) && v.date >= model.report.start && v.date <= model.report.end,
+          (v) =>
+            model.qualifyingVisitIds.has(v.id) &&
+            v.date >= model.report.start &&
+            v.date <= model.report.end,
         ).length,
         ...(cohort ? { returned: cohort.returned.has(key) } : {}),
       }))

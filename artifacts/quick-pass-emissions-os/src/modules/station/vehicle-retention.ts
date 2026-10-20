@@ -122,6 +122,7 @@ export type RetentionVisitView = {
   sourceKind: string;
   sourceUrl: string | null;
   qualifying: boolean;
+  freeRetestByDateRule: boolean;
   intervalDays?: number;
   previousDate?: string;
 };
@@ -436,6 +437,7 @@ export function retentionDetails(
     sourceKind: v.sourceKind,
     sourceUrl: v.sourceUrl,
     qualifying: validVin(v) && model.qualifyingVisitIds.has(v.id),
+    freeRetestByDateRule: model.inferredFreeRetestIds.has(v.id),
   });
   let vehicles: RetentionVehicleView[] = [],
     visits: RetentionVisitView[] = [];

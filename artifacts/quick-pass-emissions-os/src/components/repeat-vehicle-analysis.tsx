@@ -53,12 +53,16 @@ export function RepeatVehicleAnalysis({
       ) : (
         <>
           <div className="history-metrics">
-            <NumberMetric label="Vehicles tested more than once" value={report.repeatVehicles} />
+            <NumberMetric
+              label="Recorded repeat vehicles · includes retests"
+              value={report.repeatVehicles}
+              tip="Physical repeat inspections, including free retests. This is not a count of returning customers; qualifying retention below excludes free retests."
+            />
             <NumberMetric label="Distinct VIN-matched vehicles" value={report.distinctVehicles} />
             <NumberMetric
               label="Repeat inspections"
               value={report.repeatVisits}
-              tip="Recorded physical inspections beyond each vehicle's first, including retests. Distinct from the qualifying retention metrics below, which exclude known retests."
+              tip="Recorded physical inspections beyond each vehicle's first, including retests. Distinct from the qualifying retention metrics below, which exclude free retests."
             />
           </div>
           <p className={pending ? "notice warning" : "muted"} role="status">
@@ -73,9 +77,9 @@ export function RepeatVehicleAnalysis({
       )}
       <p className="muted">
         Vehicles are matched using privacy-protected VIN hashes; this does not identify customer
-        names. The recorded-report summary includes retests. Qualifying retention uses explicit
-        source retest and completion classifications only; short time gaps are never treated as
-        retests.
+        names. The recorded-report summary includes retests. Returning-vehicle metrics exclude
+        explicit free retests and same-VIN inspections within 30 calendar days of the previous
+        inspection. Returns after 30 days can qualify; reports do not prove payment.
       </p>
     </section>
   );

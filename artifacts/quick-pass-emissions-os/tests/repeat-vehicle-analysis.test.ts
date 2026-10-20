@@ -123,7 +123,7 @@ describe("All Time repeat-vehicle analysis", () => {
         incompleteDates: 1,
       }),
     );
-    expect(markup).toContain("Vehicles tested more than once");
+    expect(markup).toContain("Recorded repeat vehicles · includes retests");
     expect(markup).not.toContain("Free repeats · within 30 days");
     expect(markup).not.toContain("Paid repeats · after 30 days");
     expect(markup).not.toContain("Inspections without a usable VIN");

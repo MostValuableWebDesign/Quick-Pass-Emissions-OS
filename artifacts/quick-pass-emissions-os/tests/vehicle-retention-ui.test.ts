@@ -101,7 +101,9 @@ describe("retention presentation", () => {
   });
   it("preserves the recorded summary, adds defined retention, and discloses provisional matching", () => {
     const html = render();
-    expect(html).toContain("Vehicles tested more than once");
+    expect(html).toContain("Recorded repeat vehicles · includes retests");
+    expect(html).toContain("30-day free-retest rule");
+    expect(html).not.toContain("Time between visits is never used");
     expect(html).toContain("Distinct VIN-matched vehicles");
     expect(html).toContain('data-testid="value-repeat-pct">100.0%');
     expect(html).toContain("Partial coverage");

@@ -103,13 +103,13 @@ beforeEach(() => {
 describe("retention server aggregation and protected drilldowns", () => {
   it("supports every trend timeframe and keeps differently scoped cached models separate", async () => {
     const tx = setup([
-      evidence({ id: "prior", key: "prior", sourceId: "prior", date: "2025-12-01" }),
+      evidence({ id: "prior", key: "prior", sourceId: "prior", date: "2025-11-30" }),
       evidence(),
     ]);
     const timeframes = [7, 30, 365, 730, 1095, 1460, 1825, 2190, "all"] as const;
     for (const trendDays of timeframes) {
       const q = { ...query, trendDays };
-      const start = trendDays === 7 ? "2025-12-25" : "2025-12-01";
+      const start = trendDays === 7 ? "2025-12-25" : "2025-11-30";
       const report = await retentionInTransaction(tx as unknown as Tx, state.hash, {
         start,
         end: day.date,

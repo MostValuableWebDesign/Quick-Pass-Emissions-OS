@@ -83,11 +83,11 @@ Payroll date selection needs a visible in-page calendar for both single days and
 
 **How to apply:** Keep month navigation and selectable day buttons, make an incomplete range obvious, and apply the chosen dates to the overview without relying on the browser's native date popup.
 
-Vehicle-retention analysis uses completed visits and excludes explicitly classified free or paid retests. A short interval alone must not classify a retention visit as a retest. Unknown retest status is included provisionally and disclosed; payment evidence is not required and unknown payment never proves money collected.
+Vehicle-retention analysis excludes free retests from returning-vehicle rates, repeat metrics, annual cohorts and intervals. Apply the owner's same-VIN rule: an inspection within 30 calendar days of the previous occurrence is a free retest, including across selected periods or inspector changes. Returns after 30 days can qualify, including paid retests; explicitly free retests remain excluded even without an earlier loaded occurrence. Unknown source status and unverified payment remain disclosed.
 
-**Why:** The owner requested evidence-based vehicle retention without inferring retests from timing or payment from VIRs. This is different from the owner's existing Performance revenue/payroll estimation rule and the older paid-initial returning-vehicle rate.
+**Why:** The owner clarified that a free retest is an obligatory follow-up, not a returning customer. This supersedes the earlier retention-only restriction against using the 30-day rule. VIRs still do not prove money collected.
 
-**How to apply:** Keep those definitions separate. Preserve the recorded-report summary, use validated VIN identities for new retention rates, show plate/state fallback separately, and disclose missing processing/coverage. Describe first observations as “First observed in available history,” not new customers.
+**How to apply:** Use validated VIN histories and calendar-day comparisons before filtering to the selected timeframe or employee. Keep physical report repeats visibly separate from qualifying retention, preserve source classifications alongside derived exclusions, show plate/state fallback separately, and disclose missing processing/coverage. Describe first observations as “First observed in available history,” not new customers.
 
 Repeat-vehicle analysis belongs directly below Trend and is available for every trend timeframe, not only All Time. Its repeat totals and intervals follow the trend window, rather than the separate headline report day/range. Earlier saved station visits remain comparison context for returning status, not extra visits counted inside that window.
 

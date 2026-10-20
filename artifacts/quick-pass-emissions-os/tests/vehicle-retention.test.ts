@@ -118,7 +118,7 @@ describe("vehicle retention definitions and reconciliation", () => {
     });
     expect(retentionDetails(m, { metric: "repeat" }).total).toBe(m.report.repeatVehicles);
   });
-  it("excludes explicitly known free AND paid retests, not short intervals", () => {
+  it("excludes free retests, applies the 30-day VIN rule, and allows later paid returns", () => {
     const m = model([
       visit("1", "2025-01-01", "A"),
       visit("2", "2025-01-02", "A", { retest: "UNKNOWN" }),
@@ -128,9 +128,37 @@ describe("vehicle retention definitions and reconciliation", () => {
     expect(m.report).toMatchObject({
       qualifyingInspections: 2,
       repeatInspections: 1,
-      medianIntervalDays: 1,
-      classifications: { unknownRetestIncluded: 1, knownRetestsExcluded: 2 },
+      medianIntervalDays: 367,
+      classifications: {
+        unknownRetestIncluded: 0,
+        knownRetestsExcluded: 1,
+        inferredFreeRetestsExcluded: 1,
+      },
     });
+    const visits = retentionDetails(m, { metric: "repeat", vehicleId: "1" }).visits;
+    expect(visits.map((v) => v.qualifying)).toEqual([true, false, false, true]);
+    expect(visits[1]).toMatchObject({ retest: "UNKNOWN", freeRetestByDateRule: true });
+  });
+  it("excludes day 30 but counts a day-31 return using prior visits across year and inspector boundaries", () => {
+    const m = model(
+      [
+        visit("a0", "2025-12-31", "A"),
+        visit("b0", "2025-12-31", "B"),
+        visit("a30", "2026-01-30", "A", { inspector: "Inspector B", retest: "UNKNOWN" }),
+        visit("b31", "2026-01-31", "B", { inspector: "Inspector B", retest: "PAID_RETEST" }),
+      ],
+      coverage({ end: "2026-01-31" }),
+      all,
+      { start: "2026-01-01", end: "2026-01-31" },
+    );
+    expect(m.report.selectedPeriod).toMatchObject({ returning: 1, vehicles: 1 });
+    expect(m.report.annualCohorts.find((c) => c.year === 2025)).toMatchObject({
+      cohort: 2,
+      returned: 1,
+      rate: 0.5,
+    });
+    expect(retentionDetails(m, { metric: "selected" }).total).toBe(1);
+    expect(retentionDetails(m, { metric: "selected" }).vehicles[0].id).toBe("b0");
   });
   it("does not require or invent payment evidence", () => {
     const m = model([
@@ -161,13 +189,13 @@ describe("vehicle retention definitions and reconciliation", () => {
     const m = model(
       [
         visit("a0", "2025-12-31", "A"),
-        visit("a1", "2026-01-01", "A", { inspector: "Inspector B" }),
-        visit("a2", "2026-01-31", "A", { inspector: "Inspector B" }),
-        visit("b1", "2026-01-01", "B", { inspector: "Inspector B" }),
+        visit("a1", "2026-02-01", "A", { inspector: "Inspector B" }),
+        visit("a2", "2026-02-28", "A", { inspector: "Inspector B" }),
+        visit("b1", "2026-02-01", "B", { inspector: "Inspector B" }),
       ],
-      coverage({ end: "2026-01-31" }),
+      coverage({ end: "2026-02-28" }),
       { id: "b", label: "B", inspector: "Inspector B" },
-      { start: "2026-01-01", end: "2026-01-31" },
+      { start: "2026-02-01", end: "2026-02-28" },
     );
     expect(m.report.returningMonth).toMatchObject({
       returning: 1,
@@ -186,7 +214,7 @@ describe("vehicle retention definitions and reconciliation", () => {
     const m = model([
       visit("a1", "2025-01-01", "A"),
       visit("a2", "2025-12-31", "A"),
-      visit("a3", "2026-01-01", "A", { inspector: "Inspector B" }),
+      visit("a3", "2026-02-01", "A", { inspector: "Inspector B" }),
       visit("b1", "2025-05-01", "B"),
       visit("b2", "2026-02-01", "B", { retest: "FREE_RETEST" }),
     ]);
@@ -213,11 +241,11 @@ describe("vehicle retention definitions and reconciliation", () => {
   it("uses calendar days through leap years and DST, not elapsed 24-hour blocks", () => {
     const m = model([
       visit("1", "2024-02-28", "A"),
-      visit("2", "2024-03-01", "A"),
-      visit("3", "2024-03-11", "A"),
+      visit("2", "2024-03-30", "A"),
+      visit("3", "2024-04-30", "A"),
     ]);
-    expect(m.report.medianIntervalDays).toBe(6);
-    expect(m.report.intervals.find((b) => b.id === "1-30")?.count).toBe(2);
+    expect(m.report.medianIntervalDays).toBe(31);
+    expect(m.report.intervals.find((b) => b.id === "31-180")?.count).toBe(2);
   });
   it("reconciles interval bands with qualifying repeated visits and interval drilldowns", () => {
     const m = model([

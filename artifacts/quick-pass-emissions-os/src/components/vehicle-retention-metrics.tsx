@@ -343,7 +343,15 @@ function DetailPanel({
                       <td>{v.inspector}</td>
                       <td>{v.outcome}</td>
                       <td>{v.payment}</td>
-                      <td>{v.retest}</td>
+                      <td>
+                        {v.freeRetestByDateRule ? (
+                          <span title={`Source classification: ${v.retest}`}>
+                            Free retest · 30-day rule
+                          </span>
+                        ) : (
+                          v.retest
+                        )}
+                      </td>
                       <td>
                         {v.completion}
                         {v.qualifying ? <small>Qualifying</small> : <small>Not qualifying</small>}
@@ -433,7 +441,7 @@ export function VehicleRetentionMetrics({
           }
           value={pct(report.repeatPercentage)}
           sub={`${n(report.repeatVehicles)} of ${n(report.identifiableVehicles)} VIN-matched vehicles`}
-          tip="Distinct VIN vehicles with at least two qualifying inspections within this trend timeframe, divided by its distinct identifiable VIN vehicles. The denominator also includes vehicles with only excluded observations. Qualifying visits are completed inspections not explicitly classified as retests."
+          tip="Distinct VIN vehicles with at least two qualifying inspections within this trend timeframe, divided by its distinct identifiable VIN vehicles. Completed visits qualify unless explicitly free retests or within 30 calendar days of the previous same-VIN inspection. A return after 30 days can qualify."
           onOpen={() => open("Repeat vehicles", { metric: "repeat" })}
         />
         <Metric
@@ -468,9 +476,10 @@ export function VehicleRetentionMetrics({
           role="note"
           data-testid="text-provisional-retest"
         >
-          Provisional: {n(k.unknownRetestIncluded)} completed VIN-matched visits with unknown retest
-          status are included; known retests are excluded. Time between visits is never used to
-          infer a retest, and payment status does not qualify a visit.
+          Provisional: {n(k.unknownRetestIncluded)} completed VIN-matched visits with unknown source
+          retest status are included after applying the 30-day free-retest rule. Explicit free
+          retests and same-VIN inspections within 30 calendar days are excluded. Payment is not
+          verified.
         </p>
       )}
 
@@ -534,7 +543,7 @@ export function VehicleRetentionMetrics({
               Time between qualifying visits
               <Tip
                 id="interval"
-                text="Days between consecutive qualifying inspections of the same VIN. A short interval does not prove a retest."
+                text="Days between consecutive qualifying inspections of the same VIN. Free retests, including same-VIN inspections within 30 calendar days, are excluded."
               />
             </h4>
           </div>
@@ -645,8 +654,10 @@ export function VehicleRetentionMetrics({
           <dd>{n(c.duplicateRecordsExcluded)}</dd>
           <dt>Unknown retest</dt>
           <dd>{n(k.unknownRetestIncluded)} included provisionally</dd>
-          <dt>Known retests</dt>
+          <dt>Explicit free retests</dt>
           <dd>{n(k.knownRetestsExcluded)} excluded</dd>
+          <dt>Additional free retests · 30-day rule</dt>
+          <dd>{n(k.inferredFreeRetestsExcluded)} excluded</dd>
           <dt>Incomplete inspections</dt>
           <dd>{n(k.incompleteInspectionsExcluded)} excluded</dd>
           <dt>Unknown payment</dt>

@@ -118,23 +118,50 @@ export function PerformanceCalendar({ start, end, today, period, employee }: Pro
     >
       <div className="pd-cal" data-testid="calendar">
         <div className="pd-cal-top">
-          <div className="pd-seg" role="group" aria-label="Selection mode">
-            <button
-              type="button"
-              aria-pressed={mode === "single"}
-              onClick={() => switchMode("single")}
-              data-testid="button-mode-single"
-            >
-              Single day
-            </button>
-            <button
-              type="button"
-              aria-pressed={mode === "range"}
-              onClick={() => switchMode("range")}
-              data-testid="button-mode-range"
-            >
-              Date range
-            </button>
+          <div className="pd-cal-controls">
+            <div className="pd-seg" role="group" aria-label="Selection mode">
+              <button
+                type="button"
+                aria-pressed={mode === "single"}
+                onClick={() => switchMode("single")}
+                data-testid="button-mode-single"
+              >
+                Single day
+              </button>
+              <button
+                type="button"
+                aria-pressed={mode === "range"}
+                onClick={() => switchMode("range")}
+                data-testid="button-mode-range"
+              >
+                Date range
+              </button>
+            </div>
+            <label className="pd-cal-period">
+              <span>Period</span>
+              <select
+                name="period"
+                defaultValue={String(period)}
+                data-testid="select-report-period"
+                onChange={(event) => {
+                  const selected = event.currentTarget.value;
+                  (formRef.current?.elements.namedItem("trendDays") as HTMLInputElement).value =
+                    selected;
+                  formRef.current?.requestSubmit();
+                }}
+              >
+                <option value="custom">Selected dates</option>
+                <option value="7">Past 7 Days</option>
+                <option value="30">Past 30 Days</option>
+                <option value="365">Year to Date</option>
+                <option value="730">Past 2 Years</option>
+                <option value="1095">Past 3 Years</option>
+                <option value="1460">Past 4 Years</option>
+                <option value="1825">Past 5 Years</option>
+                <option value="2190">Past 6 Years</option>
+                <option value="all">All Time</option>
+              </select>
+            </label>
           </div>
           <div className="pd-cal-nav">
             <button
@@ -209,106 +236,66 @@ export function PerformanceCalendar({ start, end, today, period, employee }: Pro
         </div>
       </div>
 
-      <div className="pd-cal-side">
-        <div className="pd-cal-scope-title">
-          {mode === "single" ? "Selected date" : "Report scope"}
-        </div>
-        {mode === "single" ? (
-          <div className="pd-cal-sum" data-testid="text-cal-selection">
-            <span className="lab">Date</span>
-            <strong className="pd-num">{label(out.start)}</strong>
+      <input type="hidden" name="employee" value={employee ?? ""} />
+      <input type="hidden" name="trendDays" value={String(period)} />
+      {mode === "single" ? (
+        <>
+          <input type="hidden" name="start" value={out.start} data-testid="input-start" />
+          <input type="hidden" name="end" value={out.end} data-testid="input-end" />
+        </>
+      ) : (
+        <div className="pd-cal-date-fields">
+          <label className="field">
+            <span>From</span>
+            <input
+              type="date"
+              name="start"
+              value={out.start}
+              max={today}
+              required
+              data-testid="input-start"
+              onChange={(e) => {
+                const next = selectStartDate(mode, sel, e.target.value);
+                setSel(next);
+                (formRef.current?.elements.namedItem("period") as HTMLSelectElement).value =
+                  "custom";
+                (formRef.current?.elements.namedItem("trendDays") as HTMLInputElement).value =
+                  "custom";
+                if (shouldAutoSearchSingleDay(mode, next)) submit(next);
+              }}
+            />
+          </label>
+          <label className="field">
+            <span>Through</span>
+            <input
+              type="date"
+              name="end"
+              value={out.end}
+              min={out.start}
+              max={today}
+              required
+              data-testid="input-end"
+              onChange={(e) => {
+                setSel({ ...sel, end: e.target.value });
+                (formRef.current?.elements.namedItem("period") as HTMLSelectElement).value =
+                  "custom";
+                (formRef.current?.elements.namedItem("trendDays") as HTMLInputElement).value =
+                  "custom";
+              }}
+            />
+          </label>
+          <div className="pd-cal-acts">
+            <button
+              type="button"
+              className="button button-primary button-sm"
+              data-testid="button-apply-range"
+              onClick={() => submit(out)}
+            >
+              Apply dates
+            </button>
           </div>
-        ) : (
-          pending && (
-            <small className="pd-cal-range-hint">Select an end date, or Apply for one day.</small>
-          )
-        )}
-        <label className="field pd-cal-period">
-          <span>Period</span>
-          <select
-            name="period"
-            defaultValue={String(period)}
-            data-testid="select-report-period"
-            onChange={(event) => {
-              const selected = event.currentTarget.value;
-              (formRef.current?.elements.namedItem("trendDays") as HTMLInputElement).value =
-                selected;
-              formRef.current?.requestSubmit();
-            }}
-          >
-            <option value="custom">Selected dates</option>
-            <option value="7">Past 7 Days</option>
-            <option value="30">Past 30 Days</option>
-            <option value="365">Year to Date</option>
-            <option value="730">Past 2 Years</option>
-            <option value="1095">Past 3 Years</option>
-            <option value="1460">Past 4 Years</option>
-            <option value="1825">Past 5 Years</option>
-            <option value="2190">Past 6 Years</option>
-            <option value="all">All Time</option>
-          </select>
-        </label>
-        <input type="hidden" name="employee" value={employee ?? ""} />
-        <input type="hidden" name="trendDays" value={String(period)} />
-        {mode === "single" ? (
-          <>
-            <input type="hidden" name="start" value={out.start} data-testid="input-start" />
-            <input type="hidden" name="end" value={out.end} data-testid="input-end" />
-          </>
-        ) : (
-          <>
-            <label className="field">
-              <span>From</span>
-              <input
-                type="date"
-                name="start"
-                value={out.start}
-                max={today}
-                required
-                data-testid="input-start"
-                onChange={(e) => {
-                  const next = selectStartDate(mode, sel, e.target.value);
-                  setSel(next);
-                  (formRef.current?.elements.namedItem("period") as HTMLSelectElement).value =
-                    "custom";
-                  (formRef.current?.elements.namedItem("trendDays") as HTMLInputElement).value =
-                    "custom";
-                  if (shouldAutoSearchSingleDay(mode, next)) submit(next);
-                }}
-              />
-            </label>
-            <label className="field">
-              <span>Through</span>
-              <input
-                type="date"
-                name="end"
-                value={out.end}
-                min={out.start}
-                max={today}
-                required
-                data-testid="input-end"
-                onChange={(e) => {
-                  setSel({ ...sel, end: e.target.value });
-                  (formRef.current?.elements.namedItem("period") as HTMLSelectElement).value =
-                    "custom";
-                  (formRef.current?.elements.namedItem("trendDays") as HTMLInputElement).value =
-                    "custom";
-                }}
-              />
-            </label>
-            <div className="pd-cal-acts">
-              <button
-                type="button"
-                className="button button-primary button-sm"
-                data-testid="button-apply-range"
-                onClick={() => submit(out)}
-              >
-                Apply dates
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+        </div>
+      )}
     </form>
   );
 }

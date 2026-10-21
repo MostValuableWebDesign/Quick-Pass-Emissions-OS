@@ -27,12 +27,14 @@ describe("Performance calendar controls", () => {
 
   it("shows one date and hides range controls in single-day mode", () => {
     const markup = renderCalendar("2025-03-10", "2025-03-10");
-    expect(markup).toContain("Selected date");
     expect(markup).toContain("Mar 10, 2025");
     expect(markup).not.toContain(">From</span>");
     expect(markup).not.toContain(">Through</span>");
     expect(markup).not.toContain(">Today</button>");
     expect(markup).not.toContain("Apply dates");
+    expect(markup).not.toContain("Report scope");
+    expect(markup).not.toContain('class="pd-cal-side"');
+    expect(markup).not.toContain("text-cal-selection");
   });
 
   it("shows date fields and actions in date-range mode", () => {
@@ -41,6 +43,8 @@ describe("Performance calendar controls", () => {
     expect(markup).toContain(">Through</span>");
     expect(markup).not.toContain(">Today</button>");
     expect(markup).toContain("Apply dates");
+    expect(markup).not.toContain("Report scope");
+    expect(markup).not.toContain('class="pd-cal-side"');
     expect(markup).not.toContain("Mar 10, 2025 to Mar 15, 2025");
   });
   it("keeps period presets inside the shared calendar control", () => {
@@ -49,6 +53,11 @@ describe("Performance calendar controls", () => {
     expect(markup).toContain(">Past 7 Days</option>");
     expect(markup).toContain(">Year to Date</option>");
     expect(markup).toContain(">All Time</option>");
+    const toolbar = markup.slice(
+      markup.indexOf('class="pd-cal-top"'),
+      markup.indexOf('class="pd-cal-grid"'),
+    );
+    expect(toolbar).toContain('data-testid="select-report-period"');
     expect(markup).not.toContain("select-trend");
   });
 });

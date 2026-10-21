@@ -246,8 +246,8 @@
 /* calendar */
 .pd-cal-form {
   display: grid !important;
-  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
-  gap: 20px !important;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px !important;
   align-items: start !important;
   width: 100%;
 }
@@ -258,6 +258,34 @@
   gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 10px;
+}
+.pd-cal-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pd-cal-period {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pd-cal-period select {
+  width: auto;
+  min-width: 142px;
+  max-width: 180px;
+  min-height: 34px;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
 }
 .pd-cal-nav {
   display: flex;
@@ -354,62 +382,30 @@
   outline: 3px solid var(--focus);
   outline-offset: 1px;
 }
-.pd-cal-side {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-left: 20px;
-  border-left: 1px solid var(--line);
-  align-self: stretch;
-}
-.pd-cal-scope-title {
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.3px;
-  text-transform: uppercase;
-}
-.pd-cal-sum {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: var(--bg);
-}
-.pd-cal-sum .lab {
-  font-size: 10px;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: var(--muted);
-}
-.pd-cal-sum strong {
-  font-size: 15px;
-  color: var(--text);
-}
-.pd-cal-sum small {
-  font-size: 11px;
-  color: var(--muted);
-}
-.pd-cal-range-hint {
-  color: var(--muted);
-  font-size: 11px;
+.pd-cal-date-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  gap: 10px;
+  align-items: end;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
 }
 .pd-cal-acts {
   display: flex;
   gap: 8px;
-  margin-top: auto;
 }
 @media (max-width: 760px) {
-  .pd-cal-form {
+  .pd-cal-date-fields {
     grid-template-columns: minmax(0, 1fr);
   }
-  .pd-cal-side {
-    padding-left: 0;
-    border-left: 0;
-    border-top: 1px solid var(--line);
-    padding-top: 14px;
+  .pd-cal-period {
+    flex: 1;
+    min-width: 0;
+  }
+  .pd-cal-period select {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
   }
   .pd-cal-acts .button {
     flex: 1;
@@ -1143,7 +1139,7 @@
   z-index: 10;
 }
 .pd-date-popover .pd-cal-form {
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 .pd-date-popover .pd-cal-top {
   flex-wrap: wrap;
@@ -1188,12 +1184,8 @@
     max-width: none;
     margin-top: 8px;
   }
-  .pd-date-popover .pd-cal-form {
+  .pd-date-popover .pd-cal-date-fields {
     grid-template-columns: 1fr;
-  }
-  .pd-date-popover .pd-cal-side {
-    flex-direction: column;
-    align-items: stretch;
   }
   .pd-employee-focus,
   .pd-employee-focus label {

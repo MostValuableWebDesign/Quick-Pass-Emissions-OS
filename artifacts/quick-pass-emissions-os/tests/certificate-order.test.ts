@@ -107,7 +107,9 @@ describe("manual certificate portal navigation", () => {
     expect(inventory).not.toContain('id="purchase-history"');
     expect(inventory).not.toContain('id="purchase-request"');
     expect(inventory).not.toContain('id="records"');
-    expect(inventory).toContain("CertificatePortalBrowser");
+    expect(inventory).toContain("CertificateInsights");
+    const insights = readFileSync("src/components/certificate-insights.tsx", "utf8");
+    expect(insights).toContain("CertificatePortalBrowser");
     const dashboard = readFileSync("src/app/(app)/dashboard/page.tsx", "utf8");
     expect(dashboard).toContain("<CertificateOrderLink role={data.role} compact />");
     expect(dashboard).toContain("Quick actions");

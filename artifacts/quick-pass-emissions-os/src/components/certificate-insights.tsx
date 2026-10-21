@@ -14,6 +14,7 @@ import {
 import { asOf } from "./certificate-portal-banner";
 import type { SourceRefreshStatus } from "@/lib/source-refresh";
 import { SourceRefreshIndicator } from "./source-refresh-indicator";
+import { CertificatePortalBrowser } from "./certificate-portal-browser";
 
 export function CertificateInsights({
   initial,
@@ -71,43 +72,48 @@ export function CertificateInsights({
       aria-label="Provider certificate inventory"
       data-testid="certificate-insights"
     >
-      <div className="certificate-actions-row">
-        <div className="certificate-refresh-stack">
-          {canRefresh && (
-            <button
-              type="button"
-              className="button button-outline"
-              onClick={() => void refresh(true)}
-              disabled={busy}
-              data-testid="button-refresh-certificate-insights"
+      <CertificatePortalBrowser
+        initial={data.portal}
+        actions={
+          <div className="certificate-actions-row">
+            <div className="certificate-refresh-stack">
+              {canRefresh && (
+                <button
+                  type="button"
+                  className="button button-outline"
+                  onClick={() => void refresh(true)}
+                  disabled={busy}
+                  data-testid="button-refresh-certificate-insights"
+                >
+                  <RefreshCw size={15} aria-hidden="true" />{" "}
+                  {busy ? "Checking provider…" : "Refresh stock & orders"}
+                </button>
+              )}
+              <div className="certificate-source-status">
+                <SourceRefreshIndicator
+                  label="Order history"
+                  status={ordersSourceStatus}
+                  source="Georgia Dashboard"
+                />
+                <SourceRefreshIndicator
+                  label="Stock balance"
+                  status={balanceSourceStatus}
+                  source="Georgia Dashboard"
+                />
+              </div>
+            </div>
+            <a
+              className="button button-primary button-sm"
+              href={CERTIFICATE_ORDER_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="link-open-portal"
             >
-              <RefreshCw size={15} aria-hidden="true" />{" "}
-              {busy ? "Checking provider…" : "Refresh stock & orders"}
-            </button>
-          )}
-          <div className="certificate-source-status">
-            <SourceRefreshIndicator
-              label="Order history"
-              status={ordersSourceStatus}
-              source="Georgia Dashboard"
-            />
-            <SourceRefreshIndicator
-              label="Stock balance"
-              status={balanceSourceStatus}
-              source="Georgia Dashboard"
-            />
+              <ExternalLink size={14} aria-hidden="true" /> Open Georgia dashboard
+            </a>
           </div>
-        </div>
-        <a
-          className="button button-primary button-sm"
-          href={CERTIFICATE_ORDER_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid="link-open-portal"
-        >
-          <ExternalLink size={14} aria-hidden="true" /> Open Georgia dashboard
-        </a>
-      </div>
+        }
+      />
       {(message || data.error || data.portal.error) && (
         <p role="status" className="notice warning">
           {message || data.error || data.portal.error}

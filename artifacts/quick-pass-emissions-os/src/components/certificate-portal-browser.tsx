@@ -1,6 +1,13 @@
+import type { ReactNode } from "react";
 import type { CertificatePortalStatus } from "@/modules/certificates/portal-types";
 
-export function CertificatePortalBrowser({ initial }: { initial: CertificatePortalStatus | null }) {
+export function CertificatePortalBrowser({
+  initial,
+  actions,
+}: {
+  initial: CertificatePortalStatus | null;
+  actions: ReactNode;
+}) {
   return (
     <section
       className="certificate-portal-header"
@@ -22,6 +29,7 @@ export function CertificatePortalBrowser({ initial }: { initial: CertificatePort
             </div>
           </dl>
         </div>
+        {actions}
       </div>
     </section>
   );

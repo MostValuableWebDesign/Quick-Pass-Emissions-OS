@@ -57,6 +57,7 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
     "Selected dates",
     "Past 7 Days",
     "Past 30 Days",
+    "Past 1 Year",
     "Year to Date",
     "Past 2 Years",
     "Past 3 Years",

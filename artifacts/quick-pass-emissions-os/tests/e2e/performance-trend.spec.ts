@@ -35,6 +35,7 @@ test("one calendar controls the shared Performance date range", async ({ page })
     "Selected dates",
     "Past 7 Days",
     "Past 30 Days",
+    "Past 1 Year",
     "Year to Date",
     "Past 2 Years",
     "Past 3 Years",
@@ -45,6 +46,18 @@ test("one calendar controls the shared Performance date range", async ({ page })
   ]);
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("button-date-range")).toHaveAttribute("aria-expanded", "false");
+
+  const pastYearStart = new Date(`${today}T00:00:00.000Z`);
+  pastYearStart.setUTCDate(pastYearStart.getUTCDate() - 364);
+  await choosePeriod("past-year");
+  await expect(page).toHaveURL(/period=past-year/);
+  expect(new URL(page.url()).searchParams.get("start")).toBe(
+    pastYearStart.toISOString().slice(0, 10),
+  );
+  expect(new URL(page.url()).searchParams.get("end")).toBe(today);
+  await expect(trend.getByTestId("text-trend-period")).toContainText(
+    "Past 1 year · monthly totals",
+  );
 
   await choosePeriod("365");
   await expect(page).toHaveURL(/period=365/);

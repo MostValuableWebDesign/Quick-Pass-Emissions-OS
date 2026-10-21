@@ -51,6 +51,7 @@ describe("Performance calendar controls", () => {
     const markup = renderCalendar("2025-03-10", "2025-03-15");
     expect(markup).toContain('data-testid="select-report-period"');
     expect(markup).toContain(">Past 7 Days</option>");
+    expect(markup).toContain(">Past 1 Year</option>");
     expect(markup).toContain(">Year to Date</option>");
     expect(markup).toContain(">All Time</option>");
     const toolbar = markup.slice(

@@ -309,6 +309,14 @@ describe("Performance financial projections", () => {
       ).toMatchObject({ start, end, trendDays: days });
     },
   );
+  it("applies Past 1 Year as a rolling 365-day report period", () => {
+    const end = businessDate();
+    expect(resolveDashboardQuery({ start: today, end: today, period: "past-year" })).toMatchObject({
+      start: addDays(end, -364),
+      end,
+      trendDays: "past-year",
+    });
+  });
   it("sets All Time and custom dates as the report window modes", () => {
     expect(resolveDashboardQuery({ start: today, end: today, period: "all" })).toMatchObject({
       end: businessDate(),

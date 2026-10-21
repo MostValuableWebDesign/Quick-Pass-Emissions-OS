@@ -153,6 +153,7 @@ export const dashboardQuerySchema = z.object({
     z.literal(7),
     z.literal(30),
     z.literal(365),
+    z.literal("past-year"),
     z.literal(730),
     z.literal(1095),
     z.literal(1460),
@@ -201,6 +202,7 @@ export function resolveDashboardQuery(
     "7": 7,
     "30": 30,
     "365": 365,
+    "past-year": "past-year",
     "730": 730,
     "1095": 1095,
     "1460": 1460,
@@ -212,14 +214,18 @@ export function resolveDashboardQuery(
   };
   let selectedPeriod = trendValues[period ?? ""] ?? trendValues[trendDays ?? ""] ?? "custom";
   if (period && period !== "custom" && period !== "all") {
-    const days = Number(period);
     end = today;
-    start =
-      days === 365
-        ? `${today.slice(0, 4)}-01-01`
-        : days >= 730
-          ? `${Number(today.slice(0, 4)) - days / 365 + 1}-01-01`
-          : addDays(today, 1 - days);
+    if (period === "past-year") {
+      start = addDays(today, -364);
+    } else {
+      const days = Number(period);
+      start =
+        days === 365
+          ? `${today.slice(0, 4)}-01-01`
+          : days >= 730
+            ? `${Number(today.slice(0, 4)) - days / 365 + 1}-01-01`
+            : addDays(today, 1 - days);
+    }
   } else if (period === "all") {
     end = today;
   }

@@ -43,7 +43,7 @@ import type { SourceRefreshStatus } from "@/lib/source-refresh";
 export type DashboardQuery = {
   start: string;
   end: string;
-  trendDays: 7 | 30 | 365 | 730 | 1095 | 1460 | 1825 | 2190 | "all" | "custom";
+  trendDays: 7 | 30 | 365 | 730 | 1095 | 1460 | 1825 | 2190 | "past-year" | "all" | "custom";
   employee?: string;
 };
 export function supportsTrendBackfill(query: DashboardQuery) {

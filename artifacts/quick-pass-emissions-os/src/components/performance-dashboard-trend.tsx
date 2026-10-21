@@ -47,6 +47,7 @@ export function PerformanceTrend({
     value: metric === "cars" ? s.cars : s.revenueCents === null ? null : s.revenueCents / 100,
     station: metric === "cars" && filtered ? s.stationCars : null,
   }));
+  const pastYear = trendDays === "past-year";
   const yearly = trendDays === 365;
   const allTime = trendDays === "all";
   const trendYears = typeof trendDays === "number" && trendDays >= 730 ? trendDays / 365 : 0;
@@ -54,7 +55,7 @@ export function PerformanceTrend({
     Math.floor(
       (Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000,
     ) + 1;
-  const monthly = yearly || trendYears > 0 || allTime || selectedDays > 90;
+  const monthly = pastYear || yearly || trendYears > 0 || allTime || selectedDays > 90;
   const year = Number(endDate.slice(0, 4));
   const rows = monthly ? monthlyTrendRangePoints(dailyRows, startDate, endDate) : dailyRows;
   const has = rows.some((r) => r.value !== null);
@@ -68,13 +69,15 @@ export function PerformanceTrend({
           <p data-testid="text-trend-period">
             {allTime
               ? `All time · monthly totals · ${shortDate(startDate)} – ${shortDate(endDate)}`
-              : yearly
-                ? `${endDate.slice(0, 4)} to date · monthly totals`
-                : trendYears > 0
-                  ? `${trendYears} years · monthly totals`
-                  : trendDays === "custom"
-                    ? `${longDate(startDate)}${startDate === endDate ? "" : ` – ${longDate(endDate)}`} · ${monthly ? "monthly totals" : "daily"}`
-                    : `Daily · ${trendDays} days`}
+              : pastYear
+                ? "Past 1 year · monthly totals"
+                : yearly
+                  ? `${endDate.slice(0, 4)} to date · monthly totals`
+                  : trendYears > 0
+                    ? `${trendYears} years · monthly totals`
+                    : trendDays === "custom"
+                      ? `${longDate(startDate)}${startDate === endDate ? "" : ` – ${longDate(endDate)}`} · ${monthly ? "monthly totals" : "daily"}`
+                      : `Daily · ${trendDays} days`}
             {` · ${scope}`}
             {!monthly && dailyGaps > 0
               ? ` · ${dailyGaps} ${dailyGaps === 1 ? "day" : "days"} without data`

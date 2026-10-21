@@ -153,8 +153,8 @@ export function PerformanceCalendar({ start, end, today, period, employee }: Pro
                 <option value="custom">Selected dates</option>
                 <option value="7">Past 7 Days</option>
                 <option value="30">Past 30 Days</option>
-                <option value="past-year">Past 1 Year</option>
                 <option value="365">Year to Date</option>
+                <option value="past-year">Past 1 Year</option>
                 <option value="730">Past 2 Years</option>
                 <option value="1095">Past 3 Years</option>
                 <option value="1460">Past 4 Years</option>

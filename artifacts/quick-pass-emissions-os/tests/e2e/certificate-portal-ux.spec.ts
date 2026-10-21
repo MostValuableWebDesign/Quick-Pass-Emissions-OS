@@ -105,7 +105,11 @@ test.describe("owner certificate portal and alert settings", () => {
       "alert at or below 50",
     );
     await expect(page.getByText("Portal balance")).toHaveCount(0);
-    await expect(page.getByTestId("button-refresh-certificate-insights")).toBeVisible();
+    const certificateActions = page.locator(".certificate-actions-row");
+    await expect(
+      certificateActions.getByTestId("button-refresh-certificate-insights"),
+    ).toBeVisible();
+    await expect(certificateActions.getByTestId("link-open-portal")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Record opening physical count" })).toHaveCount(
       0,
     );

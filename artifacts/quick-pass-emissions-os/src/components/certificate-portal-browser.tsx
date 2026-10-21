@@ -1,6 +1,4 @@
-import { ExternalLink } from "lucide-react";
 import type { CertificatePortalStatus } from "@/modules/certificates/portal-types";
-import { CERTIFICATE_ORDER_URL } from "@/modules/certificates/portal-types";
 
 export function CertificatePortalBrowser({ initial }: { initial: CertificatePortalStatus | null }) {
   return (
@@ -24,15 +22,6 @@ export function CertificatePortalBrowser({ initial }: { initial: CertificatePort
             </div>
           </dl>
         </div>
-        <a
-          className="button button-primary button-sm"
-          href={CERTIFICATE_ORDER_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid="link-open-portal"
-        >
-          <ExternalLink size={14} aria-hidden="true" /> Open Georgia dashboard
-        </a>
       </div>
     </section>
   );

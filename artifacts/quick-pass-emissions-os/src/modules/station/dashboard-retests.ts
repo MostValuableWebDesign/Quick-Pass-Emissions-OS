@@ -6,9 +6,7 @@ import type { DashboardQuery, PortalDay } from "./dashboard-types";
 export function retestHistoryDates(query: DashboardQuery, allTimeStart?: string) {
   return [
     ...new Set(
-      dashboardDates(query, allTimeStart).flatMap((date) =>
-        calendarDays(addDays(date, -30), date),
-      ),
+      dashboardDates(query, allTimeStart).flatMap((date) => calendarDays(addDays(date, -30), date)),
     ),
   ].sort();
 }

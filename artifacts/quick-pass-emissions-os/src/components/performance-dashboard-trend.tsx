@@ -13,7 +13,6 @@ import {
   YAxis,
 } from "recharts";
 import type { DashboardData } from "@/modules/station/dashboard-types";
-import { addDays } from "@/lib/time";
 import {
   excludeSundayTrendDays,
   longDate,
@@ -58,6 +57,7 @@ export function PerformanceTrend({
       (Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000,
     ) + 1;
   const monthly = yearly || trendYears > 0 || allTime || selectedDays > 90;
+  const year = Number(endDate.slice(0, 4));
   const rows = monthly ? monthlyTrendRangePoints(dailyRows, startDate, endDate) : dailyRows;
   const has = rows.some((r) => r.value !== null);
   const scope = employeeName ?? "All employees";
@@ -89,6 +89,7 @@ export function PerformanceTrend({
             <input type="hidden" name="start" value={startDate} />
             <input type="hidden" name="end" value={endDate} />
             {employeeId && <input type="hidden" name="employee" value={employeeId} />}
+            <input type="hidden" name="trendDays" value={String(trendDays)} />
             <label className="pd-trend-view">
               <span>Date period</span>
               <select

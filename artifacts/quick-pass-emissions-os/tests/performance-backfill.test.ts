@@ -152,7 +152,7 @@ describe("Source backlog checkpoints", () => {
       }),
     ).toEqual(["2026-10-18"]);
   });
-  it("keeps explicit one-shot refresh semantics for existing smaller views", () => {
+  it("refreshes only the selected date for a single-day report", () => {
     const dates = pendingDashboardSourceDates(
       {
         ...data,
@@ -164,8 +164,8 @@ describe("Source backlog checkpoints", () => {
       },
       true,
     );
-    expect(dates).toHaveLength(7);
-    expect(dates[0]).toBe("2026-10-12");
+    expect(dates).toHaveLength(1);
+    expect(dates[0]).toBe("2026-10-18");
     expect(dates.at(-1)).toBe("2026-10-18");
   });
   it("uses the server-resolved All Time boundary when explicitly refreshing a fully cached range", () => {
@@ -187,13 +187,10 @@ describe("Source backlog checkpoints", () => {
 
 describe("Multi-year trend controls", () => {
   it("enables saved-source-date progress for all multi-year trends", () => {
-    expect(supportsTrendBackfill(730)).toBe(true);
-    expect(supportsTrendBackfill(1095)).toBe(true);
-    expect(supportsTrendBackfill(1460)).toBe(true);
-    expect(supportsTrendBackfill(1825)).toBe(true);
-    expect(supportsTrendBackfill(2190)).toBe(true);
-    expect(supportsTrendBackfill("all")).toBe(true);
-    expect(supportsTrendBackfill(365)).toBe(false);
+    const q = { start: "2024-01-01", end: "2026-10-20", trendDays: "custom" as const };
+    expect(supportsTrendBackfill(q)).toBe(true);
+    expect(supportsTrendBackfill({ ...q, start: "2025-10-20" })).toBe(false);
+    expect(supportsTrendBackfill({ ...q, trendDays: "all" })).toBe(true);
   });
   it("routes saved VIR processing to the Next app, not the scaffold API server", () => {
     const manifest = readFileSync(
@@ -202,20 +199,19 @@ describe("Multi-year trend controls", () => {
     );
     expect(manifest).toMatch(/paths\s*=\s*\[[^\]]*"\/api\/inspection-history"/);
   });
-  it("shows the all-time option while preserving independent report dates", () => {
+  it("uses the shared report dates for the all-time window", () => {
     const markup = renderToStaticMarkup(
       createElement(PerformanceTrend, {
         series: [],
         filtered: false,
         trendDays: "all",
-        trendStart: "2012-06-18",
-        startDate: "2026-06-01",
-        endDate: "2026-06-30",
-        today: "2026-10-18",
+        startDate: "2012-06-18",
+        endDate: "2026-10-19",
       }),
     );
     expect(markup).toContain('value="all" selected="">All Time</option>');
     expect([...markup.matchAll(/<option[^>]*>(.*?)<\/option>/g)].map((match) => match[1])).toEqual([
+      "Selected dates",
       "Past 7 Days",
       "Past 30 Days",
       "Year to Date",
@@ -226,10 +222,9 @@ describe("Multi-year trend controls", () => {
       "Past 6 Years",
       "All Time",
     ]);
-    expect(markup).toContain("All time · monthly totals through");
-    expect(markup).toContain("from 2012-06-18");
-    expect(markup).toContain('name="start" value="2026-06-01"');
-    expect(markup).toContain('name="end" value="2026-06-30"');
+    expect(markup).toContain("All time · monthly totals · Jun 18 – Oct 19");
+    expect(markup).toContain('name="start" value="2012-06-18"');
+    expect(markup).toContain('name="end" value="2026-10-19"');
     expect(markup).toContain("No complete monthly totals are loaded for this period yet.");
   });
   it("keeps missing months unknown across a full six-calendar-year chart", () => {

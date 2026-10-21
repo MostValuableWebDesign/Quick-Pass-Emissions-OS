@@ -1,6 +1,4 @@
 "use client";
-import type { DashboardQuery } from "@/modules/station/dashboard-types";
-
 import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {

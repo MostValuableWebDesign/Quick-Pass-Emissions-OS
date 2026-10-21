@@ -321,13 +321,13 @@ describe("VIN-based free retests", () => {
     expect(data.summary.inspectionCadence.timedTests).toBe(5);
     expect(data.summary.inspectionCadence.includedGaps).toBe(3);
   });
-  it("loads lookback for the selected dates and today without exporting a multi-year gap", () => {
-    const needed = retestHistoryDates({ ...query, start: "2025-01-15", end: "2025-01-15" }, today);
+  it("loads only the selected dates and their 30-day retest lookback", () => {
+    const needed = retestHistoryDates({ ...query, start: "2025-01-15", end: "2025-01-15" });
     expect(needed).toContain("2024-12-16");
-    expect(needed).toContain("2024-12-10");
-    expect(needed).toContain(addDays(today, -30));
+    expect(needed).not.toContain("2024-12-10");
+    expect(needed).not.toContain(addDays(today, -30));
     expect(needed).not.toContain("2025-08-01");
-    expect(needed.length).toBe(68);
+    expect(needed.length).toBe(31);
   });
   it("keeps a verified empty date zero even before lookback coverage exists", () => {
     expect(

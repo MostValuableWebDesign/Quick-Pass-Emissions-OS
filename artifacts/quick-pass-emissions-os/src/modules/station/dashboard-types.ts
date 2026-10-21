@@ -50,8 +50,7 @@ export function supportsTrendBackfill(query: DashboardQuery) {
   if (query.trendDays === "all") return true;
   const days =
     Math.floor(
-      (Date.parse(`${query.end}T00:00:00Z`) - Date.parse(`${query.start}T00:00:00Z`)) /
-        86_400_000,
+      (Date.parse(`${query.end}T00:00:00Z`) - Date.parse(`${query.start}T00:00:00Z`)) / 86_400_000,
     ) + 1;
   return days >= 730;
 }

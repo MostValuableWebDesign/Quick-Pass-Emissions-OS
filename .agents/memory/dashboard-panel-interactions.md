@@ -45,11 +45,11 @@ Performance tables must fit the available panel width without horizontal scrolli
 
 **How to apply:** Let table columns size from their content, center numeric headers and values, wrap labels and secondary details, and adapt spacing to narrower panels instead of imposing a wide minimum. Keep the Employees panel compact for fewer than seven rows while ensuring the rows fit; preserve deliberately larger saved sizes. Performance currency and timing are whole numbers, and weekly base reference stays separate from selected-period base.
 
-Keep report scope separate from the chart's trend view. Year view uses calendar-year monthly totals.
+All date-based Performance panels must use one applied report window. Trend period presets update that shared window; the trend chart may group the shared dates daily or monthly.
 
-**Why:** The user found the date, employee and trend controls confusing and chose monthly totals for Year view.
+**Why:** The owner confirmed separate report dates and trend dates caused contradictory panel totals and chose one shared date range.
 
-**How to apply:** Report dates control selected-period results; employee focus should remain consistent across report panels. Trend changes must preserve report dates and employee focus. Label daily lookback dates and the year shown. Do not present incomplete monthly coverage as zero or as a complete total; distinguish the current month-to-date from completed months.
+**How to apply:** A calendar selection or a preset such as Past 7 Days, Year to Date or All Time must set the dates used by cars, revenue, pay, employee results, trends and vehicle-return counts. Prior visits may identify a returning VIN but must not be added to the selected-window totals. Keep employee focus consistent across date-based panels and show the exact shared period; incomplete coverage is not zero.
 
 Dashboard Needs attention includes live certificate-threshold alerts and calendar-based payday reminders. The payday reminder stays in the business panel through its active date window even when the account-specific banner is acknowledged.
 

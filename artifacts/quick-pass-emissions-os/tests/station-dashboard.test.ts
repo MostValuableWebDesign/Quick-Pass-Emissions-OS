@@ -5,6 +5,7 @@ import {
   inspectorKey,
 } from "../src/modules/station/dashboard-calculations";
 import type { PayPlan, PortalDay } from "../src/modules/station/dashboard-types";
+import { addDays, businessDate } from "../src/lib/time";
 import { portalExplicitEmpty } from "../src/modules/station/portal-client";
 import {
   dashboardDaySchema,
@@ -67,14 +68,14 @@ describe("Performance financial projections", () => {
     expect(data.current?.total).toBe(95);
     expect(data.series.at(-1)?.stationCars).toBe(95);
   });
-  it("keeps report panels on the selected day while the chart uses its own daily window", () => {
+  it("keeps report panels and the chart on the same selected day", () => {
     const data = buildDashboard(
       { ...query, trendDays: 30, employee: inspectorKey("Fixture Two") },
       today,
       [{ ...day, date: "2026-01-14" }, day],
       plan,
     );
-    expect(data.series).toHaveLength(30);
+    expect(data.series).toHaveLength(1);
     expect(data.series.at(-1)).toMatchObject({ date: today, cars: 25, revenueCents: 50000 });
     expect(data.commissionProgress.days.map((d) => d.date)).toEqual([today]);
     expect(data.busyHours.expectedDays).toBe(1);
@@ -88,7 +89,7 @@ describe("Performance financial projections", () => {
       [{ ...day, date: "2026-01-11" }, day],
       plan,
     );
-    expect(data.series.map((d) => d.date)).toEqual(calendarDays("2026-01-09", "2026-01-15"));
+    expect(data.series.map((d) => d.date)).toEqual(calendarDays("2026-01-11", "2026-01-15"));
     expect(data.series.find((d) => d.date === "2026-01-11")?.cars).toBe(95);
     expect(data.series.find((d) => d.date === "2026-01-12")?.cars).toBeNull();
     expect(data.commissionProgress.days.map((d) => d.date)).toEqual(
@@ -293,22 +294,45 @@ describe("Performance financial projections", () => {
       end: today,
     });
   });
-  it.each([730, 1095, 1460, 1825, 2190, "all"] as const)("accepts multi-year trend %s", (days) => {
+  it.each([7, 30, 365, 730, 1095, 1460, 1825, 2190] as const)(
+    "applies date-period preset %s to the shared report range",
+    (days) => {
+      const end = businessDate();
+      const start =
+        days === 365
+          ? `${end.slice(0, 4)}-01-01`
+          : days >= 730
+            ? `${Number(end.slice(0, 4)) - days / 365 + 1}-01-01`
+            : addDays(end, 1 - days);
+      expect(
+        resolveDashboardQuery({ start: today, end: today, period: String(days) }),
+      ).toMatchObject({ start, end, trendDays: days });
+    },
+  );
+  it("sets All Time and custom dates as the report window modes", () => {
+    expect(resolveDashboardQuery({ start: today, end: today, period: "all" })).toMatchObject({
+      end: businessDate(),
+      trendDays: "all",
+    });
     expect(
-      resolveDashboardQuery({ start: today, end: today, trendDays: String(days) }),
+      resolveDashboardQuery({
+        start: "2024-05-12",
+        end: "2024-05-15",
+        trendDays: "custom",
+      }),
     ).toMatchObject({
-      start: today,
-      end: today,
-      trendDays: days,
+      start: "2024-05-12",
+      end: "2024-05-15",
+      trendDays: "custom",
     });
   });
-  it("accepts the legacy trend URL as the five-year view without changing report dates", () => {
+  it("treats an older independent trend parameter as a custom shared date window", () => {
     expect(
       resolveDashboardQuery({ start: today, end: today, trendDays: "since2023" }),
     ).toMatchObject({
       start: today,
       end: today,
-      trendDays: 1825,
+      trendDays: "custom",
     });
   });
 });

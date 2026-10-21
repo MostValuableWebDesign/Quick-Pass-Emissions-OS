@@ -224,6 +224,16 @@ export function resolveDashboardQuery(
     end = today;
   }
   if (period) selectedPeriod = trendValues[period] ?? "custom";
+  else if (selectedPeriod !== "all" && typeof selectedPeriod === "number") {
+    const days = selectedPeriod;
+    const expectedStart =
+      days === 365
+        ? `${today.slice(0, 4)}-01-01`
+        : days >= 730
+          ? `${Number(today.slice(0, 4)) - days / 365 + 1}-01-01`
+          : addDays(today, 1 - days);
+    if (start !== expectedStart || end !== today) selectedPeriod = "custom";
+  }
   return validateQuery({
     start,
     end,

@@ -21,7 +21,6 @@ describe("Performance calendar controls", () => {
         start,
         end,
         today: max,
-        trendDays: 7,
       }),
     );
 

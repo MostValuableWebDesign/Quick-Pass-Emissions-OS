@@ -49,7 +49,7 @@ All date-based Performance panels must use one applied report window. Trend peri
 
 **Why:** The owner confirmed separate report dates and trend dates caused contradictory panel totals and chose one shared date range.
 
-**How to apply:** A calendar selection or a preset such as Past 7 Days, Year to Date or All Time must set the dates used by cars, revenue, pay, employee results, trends and vehicle-return counts. Prior visits may identify a returning VIN but must not be added to the selected-window totals. Keep employee focus consistent across date-based panels and show the exact shared period; incomplete coverage is not zero.
+**How to apply:** Keep one reporting date control: place presets such as Past 7 Days, Year to Date or All Time inside the calendar, not as a second Trend selector. Calendar or preset changes must set the dates used by cars, revenue, pay, employee results, trends and vehicle-return counts. Prior visits may identify a returning VIN but must not be added to selected-window totals. Keep employee focus consistent across date-based panels and show the exact shared period; incomplete coverage is not zero.
 
 Dashboard Needs attention includes live certificate-threshold alerts and calendar-based payday reminders. The payday reminder stays in the business panel through its active date window even when the account-specific banner is acknowledged.
 

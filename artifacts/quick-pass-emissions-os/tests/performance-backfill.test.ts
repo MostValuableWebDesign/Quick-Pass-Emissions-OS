@@ -199,7 +199,7 @@ describe("Multi-year trend controls", () => {
     );
     expect(manifest).toMatch(/paths\s*=\s*\[[^\]]*"\/api\/inspection-history"/);
   });
-  it("uses the shared report dates for the all-time window", () => {
+  it("shows the shared all-time dates in the chart without a second period selector", () => {
     const markup = renderToStaticMarkup(
       createElement(PerformanceTrend, {
         series: [],
@@ -209,22 +209,9 @@ describe("Multi-year trend controls", () => {
         endDate: "2026-10-19",
       }),
     );
-    expect(markup).toContain('value="all" selected="">All Time</option>');
-    expect([...markup.matchAll(/<option[^>]*>(.*?)<\/option>/g)].map((match) => match[1])).toEqual([
-      "Selected dates",
-      "Past 7 Days",
-      "Past 30 Days",
-      "Year to Date",
-      "Past 2 Years",
-      "Past 3 Years",
-      "Past 4 Years",
-      "Past 5 Years",
-      "Past 6 Years",
-      "All Time",
-    ]);
+    expect(markup).not.toContain("select-report-period");
+    expect(markup).not.toContain("select-trend");
     expect(markup).toContain("All time · monthly totals · Jun 18 – Oct 19");
-    expect(markup).toContain('name="start" value="2012-06-18"');
-    expect(markup).toContain('name="end" value="2026-10-19"');
     expect(markup).toContain("No complete monthly totals are loaded for this period yet.");
   });
   it("keeps missing months unknown across a full six-calendar-year chart", () => {

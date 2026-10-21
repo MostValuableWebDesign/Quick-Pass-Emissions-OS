@@ -14,6 +14,7 @@ import {
   shouldAutoSearchSingleDay,
   shiftMonth,
 } from "./performance-calendar-utils";
+import type { DashboardQuery } from "@/modules/station/dashboard-types";
 
 const MONTHS = [
   "January",
@@ -35,10 +36,11 @@ type Props = {
   start: string;
   end: string;
   today: string;
+  period: DashboardQuery["trendDays"];
   employee?: string | null;
 };
 
-export function PerformanceCalendar({ start, end, today, employee }: Props) {
+export function PerformanceCalendar({ start, end, today, period, employee }: Props) {
   const [mode, setMode] = useState<CalMode>(modeForDates(start, end));
   const [sel, setSel] = useState<CalSel>({ start, end });
   const [hover, setHover] = useState<string | null>(null);
@@ -69,6 +71,8 @@ export function PerformanceCalendar({ start, end, today, employee }: Props) {
     const values = finalize(selection);
     (form.elements.namedItem("start") as HTMLInputElement).value = values.start;
     (form.elements.namedItem("end") as HTMLInputElement).value = values.end;
+    (form.elements.namedItem("period") as HTMLSelectElement).value = "custom";
+    (form.elements.namedItem("trendDays") as HTMLInputElement).value = "custom";
     form.requestSubmit();
   };
 
@@ -219,8 +223,33 @@ export function PerformanceCalendar({ start, end, today, employee }: Props) {
             <small className="pd-cal-range-hint">Select an end date, or Apply for one day.</small>
           )
         )}
+        <label className="field pd-cal-period">
+          <span>Period</span>
+          <select
+            name="period"
+            defaultValue={String(period)}
+            data-testid="select-report-period"
+            onChange={(event) => {
+              const selected = event.currentTarget.value;
+              (formRef.current?.elements.namedItem("trendDays") as HTMLInputElement).value =
+                selected;
+              formRef.current?.requestSubmit();
+            }}
+          >
+            <option value="custom">Selected dates</option>
+            <option value="7">Past 7 Days</option>
+            <option value="30">Past 30 Days</option>
+            <option value="365">Year to Date</option>
+            <option value="730">Past 2 Years</option>
+            <option value="1095">Past 3 Years</option>
+            <option value="1460">Past 4 Years</option>
+            <option value="1825">Past 5 Years</option>
+            <option value="2190">Past 6 Years</option>
+            <option value="all">All Time</option>
+          </select>
+        </label>
         <input type="hidden" name="employee" value={employee ?? ""} />
-        <input type="hidden" name="trendDays" value="custom" />
+        <input type="hidden" name="trendDays" value={String(period)} />
         {mode === "single" ? (
           <>
             <input type="hidden" name="start" value={out.start} data-testid="input-start" />
@@ -240,6 +269,10 @@ export function PerformanceCalendar({ start, end, today, employee }: Props) {
                 onChange={(e) => {
                   const next = selectStartDate(mode, sel, e.target.value);
                   setSel(next);
+                  (formRef.current?.elements.namedItem("period") as HTMLSelectElement).value =
+                    "custom";
+                  (formRef.current?.elements.namedItem("trendDays") as HTMLInputElement).value =
+                    "custom";
                   if (shouldAutoSearchSingleDay(mode, next)) submit(next);
                 }}
               />
@@ -256,11 +289,20 @@ export function PerformanceCalendar({ start, end, today, employee }: Props) {
                 data-testid="input-end"
                 onChange={(e) => {
                   setSel({ ...sel, end: e.target.value });
+                  (formRef.current?.elements.namedItem("period") as HTMLSelectElement).value =
+                    "custom";
+                  (formRef.current?.elements.namedItem("trendDays") as HTMLInputElement).value =
+                    "custom";
                 }}
               />
             </label>
             <div className="pd-cal-acts">
-              <button className="button button-primary button-sm" data-testid="button-apply-range">
+              <button
+                type="button"
+                className="button button-primary button-sm"
+                data-testid="button-apply-range"
+                onClick={() => submit(out)}
+              >
                 Apply dates
               </button>
             </div>

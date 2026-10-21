@@ -28,8 +28,25 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   await expect(page.getByTestId("performance-layout-save-status")).toHaveText(
     "Layout saved to your account",
   );
-  await expect(page.getByTestId("select-trend")).toHaveCount(1);
-  await expect(page.getByTestId("text-trend-period")).toContainText("Daily · 7 days");
+  await expect(page.getByTestId("select-trend")).toHaveCount(0);
+  await expect(page.getByTestId("select-report-period")).toHaveCount(0);
+  await expect(page.getByTestId("text-trend-period")).toContainText("daily");
+  await page.getByTestId("button-date-range").click();
+  const reportPeriod = page.getByTestId("select-report-period");
+  await expect(reportPeriod).toBeVisible();
+  await expect(reportPeriod.locator("option")).toHaveText([
+    "Selected dates",
+    "Past 7 Days",
+    "Past 30 Days",
+    "Year to Date",
+    "Past 2 Years",
+    "Past 3 Years",
+    "Past 4 Years",
+    "Past 5 Years",
+    "Past 6 Years",
+    "All Time",
+  ]);
+  await page.keyboard.press("Escape");
   await page.getByTestId("button-sort-inspectionCadence").click();
   await expect(page.locator(".pd-table tbody tr").first()).toContainText("Fixture Two");
   await page.getByTestId("button-sort-inspectionCadence").click();

@@ -23,9 +23,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
   } catch (error) {
     if (!(error instanceof BusinessError)) throw error;
     const params = new URLSearchParams({
-      start: query.start,
-      end: query.end,
-      trendDays: "7",
+      period: "7",
       ...(query.employee ? { employee: query.employee } : {}),
     });
     return (

@@ -30,7 +30,6 @@ export function PerformanceTrend({
   trendDays,
   endDate,
   startDate,
-  employeeId,
   employeeName,
 }: {
   series: DashboardData["series"];
@@ -39,7 +38,6 @@ export function PerformanceTrend({
   trendDays: DashboardData["query"]["trendDays"];
   endDate: string;
   startDate: string;
-  employeeId?: string;
   employeeName?: string;
 }) {
   const [metric, setMetric] = useState<Metric>("cars");
@@ -85,32 +83,6 @@ export function PerformanceTrend({
           </p>
         </div>
         <div className="pd-card-actions">
-          <form method="get" action="/performance" className="pd-trend-form">
-            <input type="hidden" name="start" value={startDate} />
-            <input type="hidden" name="end" value={endDate} />
-            {employeeId && <input type="hidden" name="employee" value={employeeId} />}
-            <input type="hidden" name="trendDays" value={String(trendDays)} />
-            <label className="pd-trend-view">
-              <span>Date period</span>
-              <select
-                name="period"
-                defaultValue={String(trendDays)}
-                data-testid="select-trend"
-                onChange={(event) => event.currentTarget.form?.requestSubmit()}
-              >
-                <option value="custom">Selected dates</option>
-                <option value="7">Past 7 Days</option>
-                <option value="30">Past 30 Days</option>
-                <option value="365">Year to Date</option>
-                <option value="730">Past 2 Years</option>
-                <option value="1095">Past 3 Years</option>
-                <option value="1460">Past 4 Years</option>
-                <option value="1825">Past 5 Years</option>
-                <option value="2190">Past 6 Years</option>
-                <option value="all">All Time</option>
-              </select>
-            </label>
-          </form>
           <div className="pd-seg" role="group" aria-label="Trend metric">
             {(["cars", "revenue"] as Metric[]).map((m) => (
               <button

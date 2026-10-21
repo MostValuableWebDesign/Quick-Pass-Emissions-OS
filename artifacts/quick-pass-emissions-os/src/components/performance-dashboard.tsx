@@ -238,6 +238,7 @@ export function PerformanceDashboard({
                     start={q.start}
                     end={q.end}
                     today={data.today}
+                    period={q.trendDays}
                     employee={q.employee}
                   />
                 </div>
@@ -500,7 +501,6 @@ export function PerformanceDashboard({
               trendDays={q.trendDays}
               endDate={q.end}
               startDate={q.start}
-              employeeId={q.employee}
               employeeName={empName}
             />
           ) : id === "busy-hours" ? (

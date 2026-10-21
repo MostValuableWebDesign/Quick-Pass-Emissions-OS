@@ -2,27 +2,37 @@ import { test, expect } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
-test("report scope stays stable when switching daily and yearly trends", async ({ page }) => {
+test("one calendar controls the shared Performance date range", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   const year = new Date().getFullYear();
   const reportDate = `${year}-01-15`;
+  const today = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/New_York",
+  }).format(new Date());
   const captures = path.resolve("../../generated-artifacts/performance-trend");
   await mkdir(captures, { recursive: true });
   await page.setViewportSize({ width: 1440, height: 1100 });
-  await page.goto(`/performance?start=${reportDate}&end=${reportDate}&trendDays=7`);
+  await page.goto(`/performance?start=${reportDate}&end=${reportDate}&trendDays=custom`);
   const scope = page.getByRole("form", { name: "Reporting dates" });
-  const employeeFocus = page.getByRole("form", { name: "Employee filter" });
   const trend = page.getByRole("region", { name: "Trend", exact: true });
+  const choosePeriod = async (period: string) => {
+    await page.getByTestId("button-date-range").click();
+    await page.getByTestId("select-report-period").selectOption(period);
+  };
+
   await page.getByTestId("button-date-range").click();
   await expect(page.getByTestId("button-date-range")).toHaveAttribute("aria-expanded", "true");
   await expect(page.locator("#performance-date-popover")).toBeVisible();
+  await scope.getByTestId("button-mode-range").click();
   await page.screenshot({ path: path.join(captures, "date-controls-desktop.jpg"), fullPage: true });
   await expect(scope).toBeVisible();
   await expect(scope).toContainText("From");
-  await expect(scope.getByTestId("select-trend")).toHaveCount(0);
-  await expect(trend.getByTestId("select-trend")).toBeVisible();
-  await expect(trend.getByTestId("select-trend").locator("option")).toHaveText([
+  await expect(scope.getByTestId("select-report-period")).toBeVisible();
+  await expect(trend.getByTestId("select-report-period")).toHaveCount(0);
+  await expect(page.getByTestId("select-trend")).toHaveCount(0);
+  await expect(scope.getByTestId("select-report-period").locator("option")).toHaveText([
+    "Selected dates",
     "Past 7 Days",
     "Past 30 Days",
     "Year to Date",
@@ -33,28 +43,22 @@ test("report scope stays stable when switching daily and yearly trends", async (
     "Past 6 Years",
     "All Time",
   ]);
-  const originalCars = await page.getByTestId("text-cars").textContent();
-  const originalPay = await page.getByTestId("text-pay").textContent();
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("button-date-range")).toHaveAttribute("aria-expanded", "false");
 
-  await trend.getByTestId("select-trend").selectOption("365");
-  await expect(page).toHaveURL(/trendDays=365/);
-  expect(new URL(page.url()).searchParams.get("start")).toBe(reportDate);
-  expect(new URL(page.url()).searchParams.get("end")).toBe(reportDate);
-  await expect(trend).toContainText(`${year} · monthly totals`);
-  await expect(page.getByTestId("text-cars")).toHaveText(originalCars!);
-  await expect(page.getByTestId("text-pay")).toHaveText(originalPay!);
+  await choosePeriod("365");
+  await expect(page).toHaveURL(/period=365/);
+  expect(new URL(page.url()).searchParams.get("start")).toBe(`${year}-01-01`);
+  expect(new URL(page.url()).searchParams.get("end")).toBe(today);
+  await expect(trend).toContainText(`${year} to date · monthly totals`);
   await expect(trend.locator(".recharts-wrapper")).toBeVisible();
   await expect(trend.locator(".recharts-wrapper").getByText("Jan", { exact: true })).toBeVisible();
 
-  await trend.getByTestId("select-trend").selectOption("730");
-  await expect(page).toHaveURL(/trendDays=730/);
-  expect(new URL(page.url()).searchParams.get("start")).toBe(reportDate);
-  expect(new URL(page.url()).searchParams.get("end")).toBe(reportDate);
-  await expect(trend).toContainText(`2 years · monthly totals through`);
-  await expect(page.getByTestId("text-cars")).toHaveText(originalCars!);
-  await expect(page.getByTestId("text-pay")).toHaveText(originalPay!);
+  await choosePeriod("730");
+  await expect(page).toHaveURL(/period=730/);
+  expect(new URL(page.url()).searchParams.get("start")).toBe(`${year - 1}-01-01`);
+  expect(new URL(page.url()).searchParams.get("end")).toBe(today);
+  await expect(trend).toContainText("2 years · monthly totals");
 
   for (const [value, years] of [
     ["1095", 3],
@@ -62,46 +66,33 @@ test("report scope stays stable when switching daily and yearly trends", async (
     ["1825", 5],
     ["2190", 6],
   ] as const) {
-    await trend.getByTestId("select-trend").selectOption(value);
-    await expect(page).toHaveURL(new RegExp(`trendDays=${value}`));
-    await expect(trend).toContainText(`${years} years · monthly totals through`);
-    await expect(page.getByTestId("trend-backfill-progress")).toHaveCount(0);
-    await expect(page.getByTestId("text-cars")).toHaveText(originalCars!);
-    await expect(page.getByTestId("text-pay")).toHaveText(originalPay!);
+    await choosePeriod(value);
+    await expect(page).toHaveURL(new RegExp(`period=${value}`));
+    expect(new URL(page.url()).searchParams.get("start")).toBe(`${year - years + 1}-01-01`);
+    expect(new URL(page.url()).searchParams.get("end")).toBe(today);
+    await expect(trend).toContainText(`${years} years · monthly totals`);
   }
-  await trend.getByTestId("select-trend").selectOption("all");
-  await expect(page).toHaveURL(/trendDays=all/);
+
+  await choosePeriod("all");
+  await expect(page).toHaveURL(/period=all/);
   await expect(page.getByRole("alert")).toContainText(
     "oldest available report has not been verified",
   );
-  await page.getByRole("link", { name: "Return to a shorter trend" }).click();
-  await expect(page.getByTestId("text-cars")).toHaveText(originalCars!);
-  await expect(page.getByTestId("text-pay")).toHaveText(originalPay!);
-  await trend.getByTestId("select-trend").selectOption("730");
 
-  await employeeFocus.getByTestId("select-employee").selectOption({ label: "Fixture Two" });
+  await page.goto(`/performance?start=${reportDate}&end=${reportDate}&trendDays=custom`);
+  await choosePeriod("730");
+  await page.getByTestId("select-employee").selectOption({ label: "Fixture Two" });
   await expect(page).toHaveURL(/trendDays=730/);
-  expect(new URL(page.url()).searchParams.get("start")).toBe(reportDate);
-  expect(new URL(page.url()).searchParams.get("end")).toBe(reportDate);
-  await expect(page.getByTestId("text-cars")).toHaveText("25");
-  await expect(
-    page.getByRole("region", { name: "Employees", exact: true }).locator("tbody tr[data-testid]"),
-  ).toHaveCount(1);
+  expect(new URL(page.url()).searchParams.get("start")).toBe(`${year - 1}-01-01`);
+  expect(new URL(page.url()).searchParams.get("end")).toBe(today);
   await expect(trend).toContainText("Fixture Two");
 
-  await page.screenshot({ path: path.join(captures, "year-desktop.jpg"), fullPage: true });
-  await trend.getByTestId("select-trend").selectOption("30");
-  await expect(page).toHaveURL(/trendDays=30/);
-  await expect(trend).toContainText("Daily · 30 days");
-  await expect(page.getByTestId("text-cars")).toHaveText("25");
-  expect(new URL(page.url()).searchParams.get("start")).toBe(reportDate);
-
   await page.setViewportSize({ width: 402, height: 874 });
-  await trend.scrollIntoViewIfNeeded();
-  const selectBox = await trend.getByTestId("select-trend").boundingBox();
+  await page.getByTestId("button-date-range").click();
+  const selectBox = await page.getByTestId("select-report-period").boundingBox();
   expect(selectBox).not.toBeNull();
   expect(selectBox!.x).toBeGreaterThanOrEqual(0);
   expect(selectBox!.x + selectBox!.width).toBeLessThanOrEqual(402);
-  await page.screenshot({ path: path.join(captures, "daily-mobile.jpg"), fullPage: true });
+  await page.screenshot({ path: path.join(captures, "date-controls-mobile.jpg"), fullPage: true });
   expect(errors).toEqual([]);
 });

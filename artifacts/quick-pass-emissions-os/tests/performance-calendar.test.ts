@@ -21,6 +21,7 @@ describe("Performance calendar controls", () => {
         start,
         end,
         today: max,
+        period: "custom",
       }),
     );
 
@@ -40,8 +41,15 @@ describe("Performance calendar controls", () => {
     expect(markup).toContain(">Through</span>");
     expect(markup).not.toContain(">Today</button>");
     expect(markup).toContain("Apply dates");
-    expect(markup).not.toContain("Report period");
     expect(markup).not.toContain("Mar 10, 2025 to Mar 15, 2025");
+  });
+  it("keeps period presets inside the shared calendar control", () => {
+    const markup = renderCalendar("2025-03-10", "2025-03-15");
+    expect(markup).toContain('data-testid="select-report-period"');
+    expect(markup).toContain(">Past 7 Days</option>");
+    expect(markup).toContain(">Year to Date</option>");
+    expect(markup).toContain(">All Time</option>");
+    expect(markup).not.toContain("select-trend");
   });
 });
 

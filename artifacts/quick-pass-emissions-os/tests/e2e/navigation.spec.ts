@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
@@ -8,6 +8,33 @@ const directory = process.env.E2E_PRIVATE_DIR!;
 const fixtures = JSON.parse(readFileSync(path.join(directory, "navigation.json"), "utf8")) as {
   records: Record<string, string>;
 };
+
+async function selectSingleDate(page: Page, date: string) {
+  await page.getByTestId("button-date-range").click();
+  await page.getByTestId("button-mode-single").click();
+  const target = page.getByTestId(`button-day-${date}`);
+  for (let month = 0; month < 120 && !(await target.count()); month++)
+    await page.getByTestId("button-cal-prev").click();
+  await expect(target).toBeVisible();
+  await target.click();
+}
+
+async function selectDateRange(page: Page, start: string, end: string) {
+  await page.getByTestId("button-date-range").click();
+  await page.getByTestId("button-mode-range").click();
+  const first = page.getByTestId(`button-day-${start}`);
+  for (let month = 0; month < 120 && !(await first.count()); month++)
+    await page.getByTestId("button-cal-prev").click();
+  await expect(first).toBeVisible();
+  await first.click();
+  await page.getByTestId(`button-day-${end}`).click();
+  await page.getByTestId("button-apply-range").click();
+}
+
+async function selectPeriod(page: Page, period: string) {
+  await page.getByTestId("button-date-range").click();
+  await page.getByTestId("select-report-period").selectOption(period);
+}
 
 for (const role of ["OWNER", "ADMIN"] as const) {
   test.describe(`${role} navigation`, () => {
@@ -183,12 +210,10 @@ test.describe("Owner daily performance count", () => {
       await expect(page.getByTestId("text-cars")).toHaveText("95");
       await expect(page.getByTestId("text-revenue")).toHaveText("$1,860");
     }
-    await page.getByTestId("input-date").fill("2026-01-15");
-    if (new URL(page.url()).searchParams.get("start") !== "2026-01-15")
-      await page.getByTestId("button-apply-date").click();
+    await selectSingleDate(page, "2026-01-15");
     await expect(page).toHaveURL(/start=2026-01-15/);
     await page.reload();
-    await expect(page.getByTestId("input-date")).toHaveValue("2026-01-15");
+    await expect(page.getByTestId("button-date-range")).toContainText("Jan 15, 2026");
     if (process.env.E2E_PORTAL_LIVE !== "1") {
       await expect(page.getByTestId("text-cars")).toHaveText("95");
       await expect(page.getByTestId("text-revenue")).toHaveText("$1,860");
@@ -197,20 +222,15 @@ test.describe("Owner daily performance count", () => {
       await expect(employeeRows).toHaveCount(2);
       await expect(page.getByTestId("row-employee-inspector:Fixture%20One")).toContainText("$45");
       await expect(page.getByTestId("row-employee-inspector:Fixture%20Two")).toContainText("$45");
-      await page.getByTestId("select-trend").selectOption("7");
-      await page.getByTestId("button-apply-range").click();
+      await selectPeriod(page, "7");
       await expect(page.getByRole("region", { name: "Trend" })).toContainText("7 days");
-      await page.getByTestId("select-trend").selectOption("30");
-      await page.getByTestId("button-apply-range").click();
+      await selectPeriod(page, "30");
       await expect(page.getByRole("region", { name: "Trend" })).toContainText("30 days");
-      await page.getByTestId("input-start").fill("2026-01-14");
-      await page.getByTestId("input-end").fill("2026-01-15");
-      await page.getByTestId("button-apply-range").click();
+      await selectDateRange(page, "2026-01-14", "2026-01-15");
       await expect(page.getByTestId("text-cars")).toHaveText("190");
       await expect(page.getByTestId("text-revenue")).toHaveText("$3,720");
       await expect(page.getByTestId("text-pay")).toHaveText("$1,100");
       await page.getByTestId("select-employee").selectOption("inspector:Fixture%20Two");
-      await page.getByTestId("button-apply-range").click();
       await expect(page.getByTestId("text-cars")).toHaveText("50");
       await expect(page.getByTestId("text-revenue")).toHaveText("$1,000");
       await expect(page.getByTestId("row-employee-inspector:Fixture%20Two")).toContainText("$90");
@@ -219,7 +239,6 @@ test.describe("Owner daily performance count", () => {
         "line is station total",
       );
       await page.getByTestId("select-employee").selectOption("");
-      await page.getByTestId("button-apply-range").click();
       await page.getByTestId("button-sort-name").click();
       const sortedRows = page.getByRole("region", { name: "Employees" }).locator("tbody tr");
       await expect(sortedRows.nth(0)).toContainText("Fixture One");
@@ -231,12 +250,9 @@ test.describe("Owner daily performance count", () => {
       await search.fill("no such fixture");
       await expect(page.getByText("No employees match that filter.")).toBeVisible();
       await search.fill("");
-      await page.getByTestId("input-date").fill("2026-01-15");
-      if (new URL(page.url()).searchParams.get("start") !== "2026-01-15")
-        await page.getByTestId("button-apply-date").click();
+      await selectSingleDate(page, "2026-01-15");
       await expect(page).toHaveURL(/start=2026-01-15/);
-      await page.getByTestId("select-trend").selectOption("30");
-      await page.getByTestId("button-apply-date").click();
+      await selectPeriod(page, "30");
       const performanceUrl = page.url();
       await expect(page.getByTestId("button-pay-setup")).toHaveCount(0);
       await page.goto("/payroll");
@@ -287,7 +303,7 @@ test.describe("Owner daily performance count", () => {
       });
     }
     if (process.env.E2E_PORTAL_LIVE === "1") {
-      await page.getByTestId("input-date").fill("2026-10-09");
+      await selectSingleDate(page, "2026-10-09");
       await expect(page.getByTestId("text-cars")).toHaveText("94", { timeout: 90000 });
       await expect(page.getByTestId("text-revenue")).toHaveText("$1,840");
       await page.reload();

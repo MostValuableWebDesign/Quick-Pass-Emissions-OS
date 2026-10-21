@@ -20,6 +20,7 @@ export function usePerformanceRefresh(
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [sourceStatus, setSourceStatus] = useState<SourceRefreshStatus>("cached");
+  const [showSourceStatus, setShowSourceStatus] = useState(false);
   const [phase, setPhase] = useState<BackfillPhase>("idle");
   const [waitUntil, setWaitUntil] = useState<number | null>(null);
   const [clock, setClock] = useState(0);
@@ -30,6 +31,7 @@ export function usePerformanceRefresh(
     (result: DashboardState) => {
       if (result.data) onData(result.data);
       setSourceStatus(result.data?.sourceStatus ?? (result.ok === false ? "failed" : "cached"));
+      setShowSourceStatus(true);
       setMessage(
         result.ok === false || !result.data
           ? (result.message ?? "Could not reach the station portal.")
@@ -46,6 +48,7 @@ export function usePerformanceRefresh(
       const controller = new AbortController();
       controllerRef.current = controller;
       setLoading(true);
+      if (refresh) setShowSourceStatus(true);
       setSourceStatus("checking");
       try {
         const result = await getPerformanceDashboardAction(query, refresh);
@@ -53,6 +56,7 @@ export function usePerformanceRefresh(
       } catch {
         if (!controller.signal.aborted) {
           setSourceStatus("failed");
+          setShowSourceStatus(true);
           setMessage("Could not reach the station portal. Showing last saved numbers.");
         }
       } finally {
@@ -70,6 +74,7 @@ export function usePerformanceRefresh(
     if (!supportsTrendBackfill(query)) return loadOnce(true);
     if (busy.current) return;
     busy.current = true;
+    setShowSourceStatus(true);
     const controller = new AbortController();
     controllerRef.current = controller;
     setPhase("running");
@@ -106,6 +111,7 @@ export function usePerformanceRefresh(
       if (controllerRef.current === controller) {
         setPhase(controller.signal.aborted ? "paused" : "failed");
         setSourceStatus("failed");
+        setShowSourceStatus(true);
         setMessage(
           "History refresh interrupted. Saved dates are retained; Refresh will resume missing dates.",
         );
@@ -135,7 +141,7 @@ export function usePerformanceRefresh(
     return () => {
       mounted = false;
     };
-  }, [query.trendDays, loadOnce]);
+  }, [query, loadOnce]);
 
   useEffect(
     () => () => {
@@ -155,6 +161,7 @@ export function usePerformanceRefresh(
     loading,
     message,
     sourceStatus,
+    showSourceStatus,
     refresh,
     pause,
     phase,

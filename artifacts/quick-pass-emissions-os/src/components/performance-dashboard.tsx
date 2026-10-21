@@ -44,8 +44,17 @@ export function PerformanceDashboard({
   const q = useMemo(() => ({ start, end, trendDays, employee }), [start, end, trendDays, employee]);
   const panelLayout = usePerformanceDashboardLayout(initialLayout, layoutAccountId);
 
-  const { loading, message, sourceStatus, refresh, pause, phase, backfillActive, waitSeconds } =
-    usePerformanceRefresh(q, setData);
+  const {
+    loading,
+    message,
+    sourceStatus,
+    showSourceStatus,
+    refresh,
+    pause,
+    phase,
+    backfillActive,
+    waitSeconds,
+  } = usePerformanceRefresh(q, setData);
   const showBackfillStatus =
     backfillActive || phase === "paused" || phase === "failed" || phase === "stalled";
 
@@ -291,33 +300,41 @@ export function PerformanceDashboard({
             </div>
           </div>
         </div>
-        <div className="pd-panel-layout-toolbar">
-          <SourceRefreshIndicator status={sourceStatus} source="Georgia I/M" />
-          <div
-            className="pd-panel-layout-status"
-            role="status"
-            aria-live="polite"
-            data-testid="performance-layout-save-status"
-          >
-            {panelLayout.saveStatus === "saving"
-              ? "Saving layout to your account…"
-              : panelLayout.saveStatus === "saved"
-                ? "Layout saved to your account"
-                : panelLayout.saveStatus === "error"
-                  ? "Could not sync the layout to your account."
-                  : "Layout changes save to your account automatically"}
+        {(showSourceStatus || panelLayout.showSaveStatus) && (
+          <div className="pd-panel-layout-toolbar" data-testid="performance-action-status-row">
+            {panelLayout.showSaveStatus && (
+              <>
+                <div
+                  className="pd-panel-layout-status"
+                  role="status"
+                  aria-live="polite"
+                  data-testid="performance-layout-save-status"
+                >
+                  {panelLayout.saveStatus === "saving"
+                    ? "Saving layout to your account…"
+                    : panelLayout.saveStatus === "saved"
+                      ? "Layout saved to your account"
+                      : panelLayout.saveStatus === "error"
+                        ? "Could not sync the layout to your account."
+                        : "Layout changes save to your account automatically"}
+                </div>
+                {panelLayout.saveStatus === "error" && (
+                  <button
+                    type="button"
+                    className="button button-outline button-sm"
+                    onClick={panelLayout.retrySave}
+                    data-testid="button-retry-panel-layout-save"
+                  >
+                    Retry save
+                  </button>
+                )}
+              </>
+            )}
+            {showSourceStatus && (
+              <SourceRefreshIndicator status={sourceStatus} source="Georgia I/M" />
+            )}
           </div>
-          {panelLayout.saveStatus === "error" && (
-            <button
-              type="button"
-              className="button button-outline button-sm"
-              onClick={panelLayout.retrySave}
-              data-testid="button-retry-panel-layout-save"
-            >
-              Retry save
-            </button>
-          )}
-        </div>
+        )}
         {historyMessage && (
           <div className="pd-toolbar-feedback" role="status">
             {historyMessage}

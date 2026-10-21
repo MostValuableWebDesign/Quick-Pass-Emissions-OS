@@ -44,10 +44,12 @@ export function usePerformanceDashboardLayout(
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">(
     initialLayout ? "saved" : "idle",
   );
+  const [showSaveStatus, setShowSaveStatus] = useState(false);
   const saveVersion = useRef(0);
   const saveQueue = useRef(Promise.resolve());
 
   const persist = useCallback((next: DashboardLayout) => {
+    setShowSaveStatus(true);
     const version = ++saveVersion.current;
     setSaveStatus("saving");
     saveQueue.current = saveQueue.current.then(async () => {
@@ -115,6 +117,7 @@ export function usePerformanceDashboardLayout(
   return {
     layout,
     saveStatus,
+    showSaveStatus,
     retrySave,
     move(id: DashboardPanelId, toIndex: number) {
       const current = layoutRef.current;

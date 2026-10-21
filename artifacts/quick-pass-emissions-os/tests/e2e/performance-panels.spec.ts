@@ -31,9 +31,14 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   expect(
     refreshButtonBox && resetButtonBox && Math.abs(refreshButtonBox.y - resetButtonBox.y) < 3,
   ).toBe(true);
-  const refreshStatusBox = await toolbar
-    .locator(".pd-panel-layout-toolbar .source-refresh-indicator")
-    .boundingBox();
+  await expect(page.getByTestId("performance-layout-save-status")).toHaveCount(0);
+  await toolbar.getByTestId("button-save-panel-layout").click();
+  await expect(page.getByTestId("performance-layout-save-status")).toHaveText(
+    "Layout saved to your account",
+  );
+  const refreshStatus = toolbar.locator(".pd-panel-layout-toolbar .source-refresh-indicator");
+  await expect(refreshStatus).toBeVisible();
+  const refreshStatusBox = await refreshStatus.boundingBox();
   const layoutSavedStatusBox = await page
     .getByTestId("performance-layout-save-status")
     .boundingBox();
@@ -42,10 +47,6 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
       layoutSavedStatusBox &&
       Math.abs(refreshStatusBox.y - layoutSavedStatusBox.y) < 3,
   ).toBe(true);
-  await toolbar.getByTestId("button-save-panel-layout").click();
-  await expect(page.getByTestId("performance-layout-save-status")).toHaveText(
-    "Layout saved to your account",
-  );
   await expect(page.getByTestId("select-trend")).toHaveCount(0);
   await expect(page.getByTestId("select-report-period")).toHaveCount(0);
   await expect(page.getByTestId("text-trend-period")).toContainText("daily");

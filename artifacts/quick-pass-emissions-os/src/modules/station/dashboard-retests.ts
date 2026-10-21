@@ -3,10 +3,10 @@ import { calendarDays, dashboardDates } from "./dashboard-calculations";
 import type { DashboardQuery, PortalDay } from "./dashboard-types";
 
 /** Calendar-day policy in the station timezone; day 30 is free, day 31 is paid. */
-export function retestHistoryDates(query: DashboardQuery, today: string, allTimeStart?: string) {
+export function retestHistoryDates(query: DashboardQuery, allTimeStart?: string) {
   return [
     ...new Set(
-      dashboardDates(query, today, allTimeStart).flatMap((date) =>
+      dashboardDates(query, allTimeStart).flatMap((date) =>
         calendarDays(addDays(date, -30), date),
       ),
     ),

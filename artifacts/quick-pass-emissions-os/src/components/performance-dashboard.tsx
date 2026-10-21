@@ -239,7 +239,6 @@ export function PerformanceDashboard({
                     end={q.end}
                     today={data.today}
                     employee={q.employee}
-                    trendDays={q.trendDays}
                   />
                 </div>
               )}
@@ -286,7 +285,7 @@ export function PerformanceDashboard({
                     {historyMessage}
                   </span>
                 )}
-                {supportsTrendBackfill(q.trendDays) && data.backfill && showBackfillStatus && (
+                {supportsTrendBackfill(q) && data.backfill && showBackfillStatus && (
                   <div
                     className="pd-backfill-status"
                     role="status"
@@ -502,9 +501,7 @@ export function PerformanceDashboard({
               endDate={q.end}
               startDate={q.start}
               employeeId={q.employee}
-              today={data.today}
               employeeName={empName}
-              trendStart={data.trendStart}
             />
           ) : id === "busy-hours" ? (
             <PerformanceBusyHours

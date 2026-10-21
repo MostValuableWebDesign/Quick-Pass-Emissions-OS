@@ -38,10 +38,9 @@ type Props = {
   end: string;
   today: string;
   employee?: string | null;
-  trendDays: DashboardQuery["trendDays"];
 };
 
-export function PerformanceCalendar({ start, end, today, employee, trendDays }: Props) {
+export function PerformanceCalendar({ start, end, today, employee }: Props) {
   const [mode, setMode] = useState<CalMode>(modeForDates(start, end));
   const [sel, setSel] = useState<CalSel>({ start, end });
   const [hover, setHover] = useState<string | null>(null);
@@ -223,7 +222,7 @@ export function PerformanceCalendar({ start, end, today, employee, trendDays }: 
           )
         )}
         <input type="hidden" name="employee" value={employee ?? ""} />
-        <input type="hidden" name="trendDays" value={trendDays} />
+        <input type="hidden" name="trendDays" value="custom" />
         {mode === "single" ? (
           <>
             <input type="hidden" name="start" value={out.start} data-testid="input-start" />

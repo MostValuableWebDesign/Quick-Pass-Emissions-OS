@@ -67,7 +67,7 @@ export function usePerformanceRefresh(
   );
 
   const refresh = useCallback(async () => {
-    if (!supportsTrendBackfill(query.trendDays)) return loadOnce(true);
+    if (!supportsTrendBackfill(query)) return loadOnce(true);
     if (busy.current) return;
     busy.current = true;
     const controller = new AbortController();
@@ -127,7 +127,7 @@ export function usePerformanceRefresh(
 
   useEffect(() => {
     // The multi-year source backfill starts only from the owner's Refresh click.
-    if (supportsTrendBackfill(query.trendDays)) return;
+    if (supportsTrendBackfill(query)) return;
     let mounted = true;
     queueMicrotask(() => {
       if (mounted) void loadOnce(false);

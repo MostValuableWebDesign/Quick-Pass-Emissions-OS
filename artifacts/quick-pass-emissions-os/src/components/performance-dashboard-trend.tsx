@@ -13,10 +13,10 @@ import {
   YAxis,
 } from "recharts";
 import type { DashboardData } from "@/modules/station/dashboard-types";
+import { addDays } from "@/lib/time";
 import {
   excludeSundayTrendDays,
   longDate,
-  monthlyTrendPoints,
   monthlyTrendRangePoints,
   shortDate,
   usd,
@@ -32,9 +32,7 @@ export function PerformanceTrend({
   endDate,
   startDate,
   employeeId,
-  today,
   employeeName,
-  trendStart,
 }: {
   series: DashboardData["series"];
   filtered: boolean;
@@ -43,9 +41,7 @@ export function PerformanceTrend({
   endDate: string;
   startDate: string;
   employeeId?: string;
-  today: string;
   employeeName?: string;
-  trendStart?: string;
 }) {
   const [metric, setMetric] = useState<Metric>("cars");
   const weekdays = excludeSundayTrendDays(series);
@@ -54,16 +50,15 @@ export function PerformanceTrend({
     value: metric === "cars" ? s.cars : s.revenueCents === null ? null : s.revenueCents / 100,
     station: metric === "cars" && filtered ? s.stationCars : null,
   }));
-  const year = Number(today.slice(0, 4));
   const yearly = trendDays === 365;
   const allTime = trendDays === "all";
   const trendYears = typeof trendDays === "number" && trendDays >= 730 ? trendDays / 365 : 0;
-  const monthly = yearly || trendYears > 0 || allTime;
-  const rows = yearly
-    ? monthlyTrendPoints(dailyRows, year, today).filter((row) => row.status !== "upcoming")
-    : trendYears > 0 || allTime
-      ? monthlyTrendRangePoints(dailyRows, trendStart ?? dailyRows[0]?.date ?? endDate, endDate)
-      : dailyRows;
+  const selectedDays =
+    Math.floor(
+      (Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000,
+    ) + 1;
+  const monthly = yearly || trendYears > 0 || allTime || selectedDays > 90;
+  const rows = monthly ? monthlyTrendRangePoints(dailyRows, startDate, endDate) : dailyRows;
   const has = rows.some((r) => r.value !== null);
   const scope = employeeName ?? "All employees";
   const dailyGaps = dailyRows.filter((row) => row.value === null).length;
@@ -73,13 +68,15 @@ export function PerformanceTrend({
         <div className="pd-card-title">
           <h2>Trend</h2>
           <p data-testid="text-trend-period">
-            {yearly
-              ? `${year} · monthly totals`
-              : allTime
-                ? `All time · monthly totals through ${shortDate(endDate)}${trendStart ? ` · from ${trendStart}` : ""}`
+            {allTime
+              ? `All time · monthly totals · ${shortDate(startDate)} – ${shortDate(endDate)}`
+              : yearly
+                ? `${endDate.slice(0, 4)} to date · monthly totals`
                 : trendYears > 0
-                  ? `${trendYears} years · monthly totals through ${shortDate(endDate)}`
-                  : `Daily · ${trendDays} days through ${shortDate(endDate)}`}
+                  ? `${trendYears} years · monthly totals`
+                  : trendDays === "custom"
+                    ? `${longDate(startDate)}${startDate === endDate ? "" : ` – ${longDate(endDate)}`} · ${monthly ? "monthly totals" : "daily"}`
+                    : `Daily · ${trendDays} days`}
             {` · ${scope}`}
             {!monthly && dailyGaps > 0
               ? ` · ${dailyGaps} ${dailyGaps === 1 ? "day" : "days"} without data`
@@ -93,13 +90,14 @@ export function PerformanceTrend({
             <input type="hidden" name="end" value={endDate} />
             {employeeId && <input type="hidden" name="employee" value={employeeId} />}
             <label className="pd-trend-view">
-              <span>Trend view</span>
+              <span>Date period</span>
               <select
-                name="trendDays"
+                name="period"
                 defaultValue={String(trendDays)}
                 data-testid="select-trend"
                 onChange={(event) => event.currentTarget.form?.requestSubmit()}
               >
+                <option value="custom">Selected dates</option>
                 <option value="7">Past 7 Days</option>
                 <option value="30">Past 30 Days</option>
                 <option value="365">Year to Date</option>

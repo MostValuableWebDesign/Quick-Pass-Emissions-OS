@@ -43,11 +43,17 @@ import type { SourceRefreshStatus } from "@/lib/source-refresh";
 export type DashboardQuery = {
   start: string;
   end: string;
-  trendDays: 7 | 30 | 365 | 730 | 1095 | 1460 | 1825 | 2190 | "all";
+  trendDays: 7 | 30 | 365 | 730 | 1095 | 1460 | 1825 | 2190 | "all" | "custom";
   employee?: string;
 };
-export function supportsTrendBackfill(trendDays: DashboardQuery["trendDays"]) {
-  return trendDays === "all" || trendDays >= 730;
+export function supportsTrendBackfill(query: DashboardQuery) {
+  if (query.trendDays === "all") return true;
+  const days =
+    Math.floor(
+      (Date.parse(`${query.end}T00:00:00Z`) - Date.parse(`${query.start}T00:00:00Z`)) /
+        86_400_000,
+    ) + 1;
+  return days >= 730;
 }
 export type PayProfile = {
   id: string;

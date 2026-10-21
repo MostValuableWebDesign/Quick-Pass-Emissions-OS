@@ -2,7 +2,6 @@ import { z } from "zod";
 import { dateString } from "@/lib/validation";
 import { addDays, businessDate } from "@/lib/time";
 import { audit, requireRule, BusinessError } from "../phase2";
-import { range } from "./report";
 import { stationTransaction } from "./service";
 import { portalRangeDays, PortalSession } from "./portal-client";
 import { buildDashboard, calendarDays, dashboardTrendRange } from "./dashboard-calculations";
@@ -160,13 +159,16 @@ export const dashboardQuerySchema = z.object({
     z.literal(1825),
     z.literal(2190),
     z.literal("all"),
+    z.literal("custom"),
   ]),
   employee: z.string().min(1).max(1000).optional(),
 });
 function validateQuery(input: unknown): DashboardQuery {
   const query = dashboardQuerySchema.parse(input);
-  range(query.start, query.end);
-  requireRule(query.end <= businessDate(), "Choose today or an earlier date.");
+  requireRule(
+    query.start >= "2000-01-01" && query.end >= query.start && query.end <= businessDate(),
+    "Select a valid date range ending today or earlier.",
+  );
   if (query.employee?.startsWith("inspector:")) {
     try {
       const name = decodeURIComponent(query.employee.slice("inspector:".length));
@@ -194,6 +196,7 @@ export function resolveDashboardQuery(
     end = today;
   }
   const trendDays = field("trendDays");
+  const period = field("period");
   const trendValues: Record<string, DashboardQuery["trendDays"]> = {
     "7": 7,
     "30": 30,
@@ -205,18 +208,33 @@ export function resolveDashboardQuery(
     "2190": 2190,
     all: "all",
     since2023: 1825,
+    custom: "custom",
   };
+  let selectedPeriod = trendValues[period ?? ""] ?? trendValues[trendDays ?? ""] ?? "custom";
+  if (period && period !== "custom" && period !== "all") {
+    const days = Number(period);
+    end = today;
+    start =
+      days === 365
+        ? `${today.slice(0, 4)}-01-01`
+        : days >= 730
+          ? `${Number(today.slice(0, 4)) - days / 365 + 1}-01-01`
+          : addDays(today, 1 - days);
+  } else if (period === "all") {
+    end = today;
+  }
+  if (period) selectedPeriod = trendValues[period] ?? "custom";
   return validateQuery({
     start,
     end,
-    trendDays: trendValues[trendDays ?? ""] ?? 7,
+    trendDays: selectedPeriod,
     ...(field("employee") ? { employee: field("employee") } : {}),
   });
 }
 
 /** Cache-only read: rendering/navigation never logs into the external portal. */
 export async function readDashboard(actorId: string, input: unknown, now = new Date()) {
-  const query = validateQuery(input);
+  let query = validateQuery(input);
   const today = businessDate(now);
   return stationTransaction(actorId, async (tx, hash) => {
     let allTimeStart: string | undefined;
@@ -231,8 +249,9 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
         "The station's oldest available report has not been verified yet. Choose a shorter trend until the history check is complete.",
       );
       allTimeStart = verified.data.earliestDate;
+      query = { ...query, start: allTimeStart, end: today };
     }
-    const needed = retestHistoryDates(query, today, allTimeStart);
+    const needed = retestHistoryDates(query, allTimeStart);
     const logs = await tx.auditLog.findMany({
       where: {
         entityId: hash,
@@ -293,7 +312,7 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
       [hash],
       query.employee ? { ...query, inspector: selectedInspector } : query,
     );
-    if (supportsTrendBackfill(query.trendDays)) {
+    if (supportsTrendBackfill(query)) {
       const gate = await tx.stationTestExportState.findUnique({ where: { stationHash: hash } });
       const gateNow = Date.now();
       data.backfill = {
@@ -308,7 +327,7 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
       };
     }
     {
-      const trendRange = dashboardTrendRange(query, today, allTimeStart);
+      const trendRange = dashboardTrendRange(query, allTimeStart);
       data.repeatVehicleAnalysis = analyzeRepeatVehicleHistory(
         classifiedDays,
         trendRange.start,
@@ -358,7 +377,7 @@ export async function loadDashboard(
   refresh = false,
 ): Promise<DashboardData> {
   const query = validateQuery(input);
-  const resumableTrend = supportsTrendBackfill(query.trendDays);
+  const resumableTrend = supportsTrendBackfill(query);
   const initial = await readDashboard(actorId, query);
   // Continue missing history before re-fetching cached days. Foreground backfill uses refresh=false.
   const needed = pendingDashboardSourceDates(initial, refresh);

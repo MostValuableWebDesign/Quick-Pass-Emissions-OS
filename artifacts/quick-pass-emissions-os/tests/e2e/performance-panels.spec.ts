@@ -26,6 +26,22 @@ test("signed-in owner can drag, resize, persist and reset performance panels", a
   const toolbarBox = await toolbar.boundingBox();
   const headlineBox = await page.getByRole("region", { name: "Headline numbers" }).boundingBox();
   expect(toolbarBox && headlineBox && toolbarBox.y + toolbarBox.height <= headlineBox.y).toBe(true);
+  const refreshButtonBox = await page.getByTestId("button-refresh").boundingBox();
+  const resetButtonBox = await page.getByTestId("button-reset-panel-layout").boundingBox();
+  expect(
+    refreshButtonBox && resetButtonBox && Math.abs(refreshButtonBox.y - resetButtonBox.y) < 3,
+  ).toBe(true);
+  const refreshStatusBox = await toolbar
+    .locator(".pd-panel-layout-toolbar .source-refresh-indicator")
+    .boundingBox();
+  const layoutSavedStatusBox = await page
+    .getByTestId("performance-layout-save-status")
+    .boundingBox();
+  expect(
+    refreshStatusBox &&
+      layoutSavedStatusBox &&
+      Math.abs(refreshStatusBox.y - layoutSavedStatusBox.y) < 3,
+  ).toBe(true);
   await toolbar.getByTestId("button-save-panel-layout").click();
   await expect(page.getByTestId("performance-layout-save-status")).toHaveText(
     "Layout saved to your account",

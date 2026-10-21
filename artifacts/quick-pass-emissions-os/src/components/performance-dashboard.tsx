@@ -279,43 +279,20 @@ export function PerformanceDashboard({
                     {phase === "pausing" ? "Pausing…" : "Pause"}
                   </button>
                 )}
-                <SourceRefreshIndicator status={sourceStatus} source="Georgia I/M" />
-                {historyMessage && (
-                  <span role="status" className="muted">
-                    {historyMessage}
-                  </span>
-                )}
-                {supportsTrendBackfill(q) && data.backfill && showBackfillStatus && (
-                  <div
-                    className="pd-backfill-status"
-                    role="status"
-                    data-testid="trend-backfill-progress"
-                  >
-                    {backfillActive && (
-                      <progress
-                        max={data.backfill.totalDates}
-                        value={data.backfill.totalDates - data.backfill.pendingDates}
-                        aria-label="Historical trend retrieval progress"
-                      />
-                    )}
-                    <span>
-                      {phase === "pausing"
-                        ? "Pausing after current batch"
-                        : backfillActive && waitSeconds !== null
-                          ? `Next batch in ${waitSeconds}s`
-                          : backfillActive
-                            ? "Retrieving history"
-                            : phase === "paused"
-                              ? "Paused · Refresh to resume"
-                              : "Paused · Refresh to retry"}
-                    </span>
-                  </div>
-                )}
               </div>
+              <button
+                type="button"
+                className="button button-outline button-sm"
+                onClick={panelLayout.reset}
+                data-testid="button-reset-panel-layout"
+              >
+                <RotateCcw size={14} aria-hidden="true" /> Reset panels
+              </button>
             </div>
           </div>
         </div>
         <div className="pd-panel-layout-toolbar">
+          <SourceRefreshIndicator status={sourceStatus} source="Georgia I/M" />
           <div
             className="pd-panel-layout-status"
             role="status"
@@ -340,15 +317,34 @@ export function PerformanceDashboard({
               Retry save
             </button>
           )}
-          <button
-            type="button"
-            className="button button-outline button-sm"
-            onClick={panelLayout.reset}
-            data-testid="button-reset-panel-layout"
-          >
-            <RotateCcw size={14} aria-hidden="true" /> Reset panels
-          </button>
         </div>
+        {historyMessage && (
+          <div className="pd-toolbar-feedback" role="status">
+            {historyMessage}
+          </div>
+        )}
+        {supportsTrendBackfill(q) && data.backfill && showBackfillStatus && (
+          <div className="pd-backfill-status" role="status" data-testid="trend-backfill-progress">
+            {backfillActive && (
+              <progress
+                max={data.backfill.totalDates}
+                value={data.backfill.totalDates - data.backfill.pendingDates}
+                aria-label="Historical trend retrieval progress"
+              />
+            )}
+            <span>
+              {phase === "pausing"
+                ? "Pausing after current batch"
+                : backfillActive && waitSeconds !== null
+                  ? `Next batch in ${waitSeconds}s`
+                  : backfillActive
+                    ? "Retrieving history"
+                    : phase === "paused"
+                      ? "Paused · Refresh to resume"
+                      : "Paused · Refresh to retry"}
+            </span>
+          </div>
+        )}
       </section>
 
       {(message || data.error) && (

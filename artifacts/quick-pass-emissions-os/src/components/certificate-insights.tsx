@@ -4,7 +4,12 @@ import { useRouter } from "next/navigation";
 import { RefreshCw, ExternalLink } from "lucide-react";
 import type { CertificateInsightsData } from "@/modules/certificates/order-history";
 import { refreshCertificateInsightsAction } from "@/app/certificate-portal-actions";
-import { CERTIFICATE_HISTORY_URL, CERTIFICATE_ANALYZER } from "@/modules/certificates/portal-types";
+import {
+  CERTIFICATE_HISTORY_URL,
+  CERTIFICATE_ANALYZER,
+  DEFAULT_CERTIFICATE_THRESHOLD,
+  certificatesLow,
+} from "@/modules/certificates/portal-types";
 import { asOf } from "./certificate-portal-banner";
 import type { SourceRefreshStatus } from "@/lib/source-refresh";
 import { SourceRefreshIndicator } from "./source-refresh-indicator";
@@ -57,16 +62,15 @@ export function CertificateInsights({
 
   const metrics = data.metrics;
   const records = data.orders.filter((o) => o.analyzer === CERTIFICATE_ANALYZER);
+  const alertThreshold = data.portal?.threshold ?? DEFAULT_CERTIFICATE_THRESHOLD;
+  const lowStock = certificatesLow(metrics.balance, alertThreshold);
   return (
     <section
       className="space-top"
       aria-label="Provider certificate inventory"
       data-testid="certificate-insights"
     >
-      <div className="portal-head">
-        <div>
-          <h2>Certificate stock & planning</h2>
-        </div>
+      <div className="certificate-refresh-stack">
         {canRefresh && (
           <button
             type="button"
@@ -79,18 +83,18 @@ export function CertificateInsights({
             {busy ? "Checking provider…" : "Refresh stock & orders"}
           </button>
         )}
-      </div>
-      <div className="certificate-source-status">
-        <SourceRefreshIndicator
-          label="Order history"
-          status={ordersSourceStatus}
-          source="Georgia Dashboard"
-        />
-        <SourceRefreshIndicator
-          label="Stock balance"
-          status={balanceSourceStatus}
-          source="Georgia Dashboard"
-        />
+        <div className="certificate-source-status">
+          <SourceRefreshIndicator
+            label="Order history"
+            status={ordersSourceStatus}
+            source="Georgia Dashboard"
+          />
+          <SourceRefreshIndicator
+            label="Stock balance"
+            status={balanceSourceStatus}
+            source="Georgia Dashboard"
+          />
+        </div>
       </div>
       {(message || data.error || data.portal.error) && (
         <p role="status" className="notice warning">
@@ -102,7 +106,7 @@ export function CertificateInsights({
           {
             label: "Certificate stock",
             value: metrics.balance ?? "Awaiting provider",
-            note: "Official analyzer balance · no opening count required",
+            note: `As of ${asOf(data.portal?.checkedAt ?? null)} · alert at or below ${alertThreshold}`,
             id: "stock",
           },
           {
@@ -138,7 +142,12 @@ export function CertificateInsights({
             id: "reorder",
           },
         ].map((metric) => (
-          <article className="stat" key={metric.id} data-testid={`certificate-metric-${metric.id}`}>
+          <article
+            className={`stat${metric.id === "stock" && lowStock ? " certificate-stock-low" : ""}`}
+            key={metric.id}
+            data-testid={`certificate-metric-${metric.id}`}
+            data-low={metric.id === "stock" ? lowStock : undefined}
+          >
             <div className="stat-top">
               <span>{metric.label}</span>
             </div>

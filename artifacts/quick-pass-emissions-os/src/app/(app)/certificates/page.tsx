@@ -14,17 +14,14 @@ export default async function Certificates() {
   const approver = approvalRoles.includes(actor.role);
   return (
     <>
-      <PageHeader
-        title="Certificate inventory"
-        description="Provider stock, certificate order history and planning estimates. Purchasing stays manual."
-      />
+      <PageHeader title="Certificate inventory" />
       {data.demo && (
         <div className="notice warning">
           DEMONSTRATION WORKSPACE · Illustrative payroll and stock records. These are not actual
           business records.
         </div>
       )}
-      <CertificatePortalBrowser initial={insights.portal} canRefresh={approver} />
+      <CertificatePortalBrowser initial={insights.portal} />
       <CertificateInsights initial={insights} canRefresh={approver} />
     </>
   );

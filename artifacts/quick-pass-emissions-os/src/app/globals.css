@@ -2454,16 +2454,10 @@ details > summary {
   gap: 1rem;
   flex-wrap: wrap;
 }
-.portal-sign-in {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  margin-top: 1rem;
-}
-.portal-sign-in p {
-  flex: 1 1 100%;
-  margin: 0 0 0.25rem;
+.certificate-portal-header {
+  margin: 1.25rem 0 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
 }
 .portal-ids {
   display: flex;
@@ -2482,21 +2476,9 @@ details > summary {
   font-weight: 600;
   font-family: ui-monospace, monospace;
 }
-.portal-balance {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: 0.6rem;
-  min-width: 14rem;
-}
-.portal-balance strong {
-  font-size: 1.6rem;
-}
-.portal-balance.low {
+.certificate-stock-low {
   border-color: #b3261e;
-  background: color-mix(in srgb, #b3261e 8%, transparent);
+  background: color-mix(in srgb, #b3261e 8%, var(--surface));
 }
 .portal-frame-wrap {
   border: 1px solid var(--line);
@@ -3090,10 +3072,27 @@ details > summary {
 .source-refresh-indicator[data-source-status="blocked"] {
   color: var(--warning);
 }
+.certificate-refresh-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
 .certificate-source-status {
   display: grid;
   gap: 4px;
-  margin: 10px 0 16px;
+}
+.certificate-source-status .source-refresh-indicator {
+  max-width: none;
+  text-align: right;
+}
+@media (max-width: 640px) {
+  .certificate-refresh-stack {
+    align-items: flex-start;
+  }
+  .certificate-source-status .source-refresh-indicator {
+    text-align: left;
+  }
 }
 @keyframes dashboard-refresh-spin {
   to {

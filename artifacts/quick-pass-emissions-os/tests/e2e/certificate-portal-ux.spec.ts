@@ -99,7 +99,13 @@ test.describe("owner certificate portal and alert settings", () => {
     await expect(page.getByTestId("link-open-portal")).toHaveClass(/button-primary/);
     await expect(page.getByTestId("text-station")).toHaveText(CERTIFICATE_STATION);
     await expect(page.getByTestId("text-analyzer")).toHaveText(CERTIFICATE_ANALYZER);
-    await expect(page.getByTestId("status-portal-balance")).toContainText("29");
+    await expect(page.getByTestId("certificate-metric-stock")).toContainText("29");
+    await expect(page.getByTestId("certificate-metric-stock")).toContainText("As of");
+    await expect(page.getByTestId("certificate-metric-stock")).toContainText(
+      "alert at or below 50",
+    );
+    await expect(page.getByText("Portal balance")).toHaveCount(0);
+    await expect(page.getByTestId("button-refresh-certificate-insights")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Record opening physical count" })).toHaveCount(
       0,
     );
@@ -136,7 +142,7 @@ test.describe("owner certificate portal and alert settings", () => {
     await page.screenshot({ path: path.join(screenshotDir, "owner-portal.png"), fullPage: true });
   });
 
-test("low banner threshold persistence, inclusive comparison and invalid values", async ({
+  test("low banner threshold persistence, inclusive comparison and invalid values", async ({
     page,
   }) => {
     await page.goto("/dashboard");
@@ -156,10 +162,7 @@ test("low banner threshold persistence, inclusive comparison and invalid values"
     await setPortalBalance(51);
     await page.goto("/dashboard");
     await expect(page.getByTestId("banner-low-certificates")).toHaveCount(0);
-    await expect(page.locator(".dashboard-certificate-panel")).toHaveAttribute(
-      "data-low",
-      "false",
-    );
+    await expect(page.locator(".dashboard-certificate-panel")).toHaveAttribute("data-low", "false");
 
     await setPortalBalance(29);
     await page.goto("/settings");
@@ -199,13 +202,14 @@ test("low banner threshold persistence, inclusive comparison and invalid values"
 
   test("failed refresh retains the last known low balance and warning", async ({ page }) => {
     await page.goto("/certificates");
-    await expect(page.getByTestId("status-portal-balance")).toContainText("29");
-    await page.getByTestId("button-refresh-balance").click();
-    await expect(page.getByTestId("status-portal-balance")).toContainText("29", {
+    const stock = page.getByTestId("certificate-metric-stock");
+    await expect(stock).toContainText("29");
+    await page.getByTestId("button-refresh-certificate-insights").click();
+    await expect(stock).toContainText("29", {
       timeout: 30_000,
     });
-    await expect(page.getByTestId("status-portal-balance")).not.toContainText("Unknown");
-    await expect(page.getByTestId("status-portal-balance")).toContainText("Last check failed");
+    await expect(stock).not.toContainText("Awaiting provider");
+    await expect(page.locator('[data-source-status="failed"]')).toBeVisible();
     await expect(page.getByTestId("banner-low-certificates")).toContainText(
       "29 left on the portal",
     );
@@ -227,8 +231,8 @@ test.describe("certificate portal role access", () => {
       await page.goto("/certificates");
       await expect(page).toHaveURL(/\/login$/);
       await expect(page.getByTestId("link-open-portal")).toHaveCount(0);
-      await expect(page.getByTestId("status-portal-balance")).toHaveCount(0);
-      await expect(page.getByTestId("button-refresh-balance")).toHaveCount(0);
+      await expect(page.getByTestId("certificate-metric-stock")).toHaveCount(0);
+      await expect(page.getByTestId("button-refresh-certificate-insights")).toHaveCount(0);
       await page.goto("/settings");
       await expect(page).toHaveURL(/\/login$/);
       await expect(page.getByLabel("Alert at or below portal balance")).toHaveCount(0);
@@ -243,7 +247,7 @@ test.describe("certificate portal role access", () => {
       await expect(page.getByTestId("banner-low-certificates")).toHaveCount(0);
       await page.goto("/certificates");
       await expect(page).toHaveURL(/\/login$/);
-      await expect(page.getByTestId("status-portal-balance")).toHaveCount(0);
+      await expect(page.getByTestId("certificate-metric-stock")).toHaveCount(0);
     });
   });
 });

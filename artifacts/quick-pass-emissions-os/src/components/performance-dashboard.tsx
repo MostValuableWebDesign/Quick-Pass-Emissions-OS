@@ -19,7 +19,6 @@ import {
 } from "./performance-dashboard-panels";
 import type { DashboardPanelId } from "./performance-dashboard-layout";
 import { SourceRefreshIndicator } from "./source-refresh-indicator";
-import { ReturningVehicles } from "./returning-vehicles";
 import { RepeatVehicleAnalysis } from "./repeat-vehicle-analysis";
 
 export function PerformanceDashboard({
@@ -467,7 +466,6 @@ export function PerformanceDashboard({
         </div>
       </section>
 
-      {data.returningVehicles && <ReturningVehicles report={data.returningVehicles} />}
       <PerformanceDashboardPanels
         layout={panelLayout.layout}
         employeeRowCount={visibleEmployeeRows}

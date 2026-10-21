@@ -5,6 +5,8 @@ import path from "node:path";
 test("signed-in owner can drag, resize, persist and reset performance panels", async ({ page }) => {
   await page.goto("/performance");
   await expect(page.getByRole("heading", { name: "Performance" })).toBeVisible();
+  await expect(page.getByTestId("repeat-vehicle-history")).toHaveCount(1);
+  await expect(page.locator('[aria-label="Returning vehicles"]')).toHaveCount(0);
   await expect(page.getByTestId("text-inspection-interval")).toHaveText("5 min");
   await expect(page.getByTestId("text-employee-interval-inspector:Fixture%20One")).toContainText(
     "5 min",

@@ -20,7 +20,7 @@ export default async function Supplies({
         title="Weekly supplies"
         description="Recorded counts, configurable thresholds and external purchase evidence"
       />
-      <WorkspaceTabs />
+      <WorkspaceTabs active="supplies" />
       <div className="notice">
         Walmart: copy paper, soap, tissue paper, paper towels. Amazon: receipt paper, plastic tag
         scrapers. Printer/ink: OPUS, Best Buy or your existing family contact. Preferred vendors are

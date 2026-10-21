@@ -37,7 +37,7 @@ export default async function MySchedule() {
         title="My weekly schedule"
         description={`Week of ${recurringSchedule.startDate} · America/New_York · ${recurringSchedule.status === "DRAFT" ? "Proposed" : "Approved"}`}
       />
-      <WorkspaceTabs />
+      <WorkspaceTabs active="schedule" />
       <div className="notice">
         Your recurring work blocks are already populated. Free time remains available for breaks,
         customer service, travel, repairs and interruptions. These are management plans—not payroll
@@ -134,8 +134,8 @@ export default async function MySchedule() {
           {!data.actor.employee && (
             <p>
               Approval also creates your management responsibility profile for task assignment,
-              without setting pay rates or changing account access. This profile appears in Employees
-              and may appear as unconfigured in payroll setup.
+              without setting pay rates or changing account access. This profile appears in
+              Employees and may appear as unconfigured in payroll setup.
             </p>
           )}
           <ActionForm action={managerAction} submit="Approve schedule & create recurring duties">

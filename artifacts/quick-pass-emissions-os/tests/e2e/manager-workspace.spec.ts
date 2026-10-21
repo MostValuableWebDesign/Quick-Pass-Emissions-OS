@@ -124,15 +124,21 @@ test("workspace allows management and rejects anonymous or legacy staff access",
   });
   try {
     const p = await manager.newPage();
-    for (const route of [
-      "/operations",
-      "/operations/schedule",
-      "/operations/supplies",
-      "/operations/registers",
-    ]) {
+    const selectedTabs = {
+      "/operations": "Manager overview",
+      "/operations/schedule": "My weekly schedule",
+      "/operations/supplies": "Supplies",
+      "/operations/registers": "Payments & deposits",
+      "/tasks": "All responsibilities",
+    };
+    for (const [route, selectedTab] of Object.entries(selectedTabs)) {
       await p.goto(route);
       await expect(p).toHaveURL(new RegExp(`${route}$`));
       await expect(p.getByText("Application error", { exact: false })).toHaveCount(0);
+      const tabNavigation = p.getByRole("navigation", { name: "Operations manager" });
+      await expect(
+        tabNavigation.getByRole("link", { name: selectedTab, exact: true }),
+      ).toHaveAttribute("aria-current", "page");
     }
     await p.goto("/operations/registers");
     await expect(p.getByRole("button", { name: "Save configured bank limit" })).toHaveCount(0);

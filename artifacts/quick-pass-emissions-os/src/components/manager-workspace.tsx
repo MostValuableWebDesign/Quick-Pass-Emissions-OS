@@ -4,14 +4,30 @@ import { managerAction } from "@/app/manager-actions";
 import { areas, priorities, checklistInput } from "@/modules/manager/rules";
 import type { managerOverview } from "@/modules/manager/service";
 export type ManagerData = Awaited<ReturnType<typeof managerOverview>>;
-export function WorkspaceTabs() {
+type WorkspaceTabId = "overview" | "schedule" | "supplies" | "registers" | "responsibilities";
+const workspaceTabs: { id: WorkspaceTabId; href: string; label: string }[] = [
+  { id: "overview", href: "/operations", label: "Manager overview" },
+  { id: "schedule", href: "/operations/schedule", label: "My weekly schedule" },
+  { id: "supplies", href: "/operations/supplies", label: "Supplies" },
+  { id: "registers", href: "/operations/registers", label: "Payments & deposits" },
+  { id: "responsibilities", href: "/tasks", label: "All responsibilities" },
+];
+export function WorkspaceTabs({ active }: { active: WorkspaceTabId }) {
   return (
     <nav className="tabs" aria-label="Operations manager">
-      <Link href="/operations">Manager overview</Link>
-      <Link href="/operations/schedule">My weekly schedule</Link>
-      <Link href="/operations/supplies">Supplies</Link>
-      <Link href="/operations/registers">Payments & deposits</Link>
-      <Link href="/tasks">All responsibilities</Link>
+      {workspaceTabs.map((tab) => {
+        const selected = active === tab.id;
+        return (
+          <Link
+            key={tab.id}
+            href={tab.href}
+            className={selected ? "selected" : undefined}
+            aria-current={selected ? "page" : undefined}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }

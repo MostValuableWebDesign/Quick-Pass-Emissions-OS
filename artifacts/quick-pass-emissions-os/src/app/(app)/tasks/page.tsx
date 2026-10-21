@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { isManager } from "@/lib/policy";
 import { PageHeader, TaskTable, employeeSelect } from "@/components/shared";
 import { Button } from "@/components/ui/button";
+import { WorkspaceTabs } from "@/components/manager-workspace";
 import { businessDate, dueInstant, addDays } from "@/lib/time";
 export default async function Tasks({
   searchParams,
@@ -52,6 +53,7 @@ export default async function Tasks({
           </Button>
         )}
       </PageHeader>
+      {management && <WorkspaceTabs active="responsibilities" />}
       <nav className="tabs" aria-label="Task filters">
         {[
           "active",

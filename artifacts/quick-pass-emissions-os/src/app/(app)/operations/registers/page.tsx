@@ -22,7 +22,7 @@ export default async function Registers({
         title="Payment & deposit evidence"
         description="Internal evidence register · no bank connection or payment initiation"
       />
-      <WorkspaceTabs />
+      <WorkspaceTabs active="registers" />
       <div className="notice">
         Completing a responsibility never confirms payroll payment or a bank deposit. Keep evidence
         and reconciliation separate. Payroll entries refer to an existing independently approved

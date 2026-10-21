@@ -42,7 +42,7 @@ export default async function Operations({
           Today’s business snapshot
         </Link>
       </PageHeader>
-      <WorkspaceTabs />
+      <WorkspaceTabs active="overview" />
       {!data.actor.employee && (
         <div className="notice warning">
           Your management account has no responsibility profile. Source-trigger assignment and your

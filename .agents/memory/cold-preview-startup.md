@@ -8,3 +8,9 @@ Keep the imported Next app on Webpack for development unless a replacement bundl
 **Why:** After a workspace restart, Turbopack repeatedly logged “Ready” while the managed preview failed its HTTP startup check. The existing datastore identity remained intact. Using Webpack restored both direct and proxied health responses and the sign-in page.
 
 **How to apply:** Treat a framework-ready log as insufficient evidence. Verify an HTTP response through both the local service and the public preview proxy. Preserve datastore identity checks; do not reset or replace a database to resolve a preview startup failure.
+
+Honor an injected port, but keep any missing-environment fallback tied to the artifact's declared service port rather than the framework default.
+
+**Why:** A later cold start bound Next's default port while the managed workflow waited on the artifact's assigned port. Clearing caches and changing health checks did not address this mismatch; aligning startup with the service declaration restored direct and proxied HTTP responses.
+
+**How to apply:** Compare the port printed by the current server run with the managed workflow's expected port before retrying startup. Do not infer port alignment from configuration files alone.

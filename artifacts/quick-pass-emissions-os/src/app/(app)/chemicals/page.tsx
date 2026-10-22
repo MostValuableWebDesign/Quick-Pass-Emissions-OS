@@ -1,3 +1,5 @@
+import { ChemicalMonitoring } from "@/components/chemical-monitoring";
+import { monitoringOverview } from "@/modules/chemical-monitoring/service";
 import { currentUser } from "@/lib/access";
 import { businessDate, formatDate } from "@/lib/time";
 import { chemicalOverview } from "@/modules/chemicals/service";
@@ -53,9 +55,17 @@ function ItemForm({ data, item: i }: { data: Data; item?: Data["items"][number] 
     </ActionForm>
   );
 }
-export default async function Chemicals() {
+export default async function Chemicals({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const actor = await currentUser(),
     data = await chemicalOverview(actor.id);
+  const q = await searchParams;
+  const monitoring = await monitoringOverview(actor.id, {
+    sensorId: typeof q.sensorId === "string" ? q.sensorId : undefined,
+  });
   return (
     <>
       <PageHeader
@@ -63,6 +73,10 @@ export default async function Chemicals() {
         description="Physical stock, recorded usage, receipts, disposal, and low-stock thresholds."
       />
       <DemoNotice demo={data.demo} />
+      <ChemicalMonitoring
+        initial={monitoring}
+        endpoint="https://YOUR-QUICK-PASS-HOST/api/integrations/proteus/events"
+      />
       <p className="notice">
         Record milliliters, grams, or individual items as whole numbers. Convert packaging
         quantities before entry. Stock stays unknown until physically counted.

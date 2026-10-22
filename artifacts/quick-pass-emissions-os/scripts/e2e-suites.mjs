@@ -1,4 +1,5 @@
 export function browserSuite(env) {
+  if (env.E2E_CHEMICAL_ONLY === "1") return { "chemical-monitoring.spec.ts": 2 };
   if (env.E2E_MANAGER_REGRESSION === "1")
     return {
       "manager-workspace.spec.ts": 2,
@@ -47,6 +48,7 @@ export function browserSuite(env) {
   return {
     "manager-workspace.spec.ts": 2,
     "inspection-history.spec.ts": 2,
+    "chemical-monitoring.spec.ts": 2,
     "analytics.spec.ts": 2,
 
     "marketing.spec.ts": 1,

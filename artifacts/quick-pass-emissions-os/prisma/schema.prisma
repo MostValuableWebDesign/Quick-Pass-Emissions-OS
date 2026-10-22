@@ -267,6 +267,7 @@ model RateLimit {
 }
 
 model Employee {
+  chemicalSensors      ChemicalSensor[]
   doorCodes            DoorAccessCode[]
   responsibleBays      CarwashBay[]        @relation("BayResponsible")
   maintenancePlans     MaintenancePlan[]   @relation("PlanAssignee")
@@ -367,35 +368,36 @@ model TaskTemplate {
 }
 
 model TaskInstance {
-  managerTask     Boolean          @default(false)
-  area            String           @default("GENERAL")
-  station         String           @default("")
-  durationMinutes Int              @default(30)
-  checklist       Json             @default("[]")
-  oversightId     String?
-  sourceHref      String           @default("")
-  evidence        String           @default("")
-  dependencies    TaskDependency[] @relation("Dependent")
-  dependents      TaskDependency[] @relation("Prerequisite")
-  id              String           @id @default(cuid())
-  templateId      String
-  template        TaskTemplate     @relation(fields: [templateId], references: [id])
-  occurrenceDate  String
-  title           String
-  description     String
-  dueAt           DateTime
-  employeeId      String
-  employee        Employee         @relation(fields: [employeeId], references: [id])
-  priority        Priority
-  reviewRequired  Boolean
-  escalationHours Int
-  status          TaskStatus       @default(PENDING)
-  completedAt     DateTime?
-  reviewedAt      DateTime?
-  reviewedBy      String?
-  version         Int              @default(0)
-  events          TaskEvent[]
-  notifications   Notification[]
+  chemicalSensorIncident ChemicalSensorIncident?
+  managerTask            Boolean                 @default(false)
+  area                   String                  @default("GENERAL")
+  station                String                  @default("")
+  durationMinutes        Int                     @default(30)
+  checklist              Json                    @default("[]")
+  oversightId            String?
+  sourceHref             String                  @default("")
+  evidence               String                  @default("")
+  dependencies           TaskDependency[]        @relation("Dependent")
+  dependents             TaskDependency[]        @relation("Prerequisite")
+  id                     String                  @id @default(cuid())
+  templateId             String
+  template               TaskTemplate            @relation(fields: [templateId], references: [id])
+  occurrenceDate         String
+  title                  String
+  description            String
+  dueAt                  DateTime
+  employeeId             String
+  employee               Employee                @relation(fields: [employeeId], references: [id])
+  priority               Priority
+  reviewRequired         Boolean
+  escalationHours        Int
+  status                 TaskStatus              @default(PENDING)
+  completedAt            DateTime?
+  reviewedAt             DateTime?
+  reviewedBy             String?
+  version                Int                     @default(0)
+  events                 TaskEvent[]
+  notifications          Notification[]
 
   @@unique([templateId, occurrenceDate])
   @@index([employeeId, dueAt])
@@ -507,18 +509,20 @@ model TaskEvent {
 }
 
 model Notification {
-  maintenanceId String?
-  maintenance   MaintenanceTicket? @relation(fields: [maintenanceId], references: [id])
-  id            String             @id @default(cuid())
-  key           String             @unique
-  userId        String
-  user          User               @relation(fields: [userId], references: [id])
-  taskId        String?
-  task          TaskInstance?      @relation(fields: [taskId], references: [id])
-  title         String
-  readAt        DateTime?
-  resolvedAt    DateTime?
-  createdAt     DateTime           @default(now())
+  sensorIncidentId String?
+  sensorIncident   ChemicalSensorIncident? @relation(fields: [sensorIncidentId], references: [id], onDelete: Restrict)
+  maintenanceId    String?
+  maintenance      MaintenanceTicket?      @relation(fields: [maintenanceId], references: [id])
+  id               String                  @id @default(cuid())
+  key              String                  @unique
+  userId           String
+  user             User                    @relation(fields: [userId], references: [id])
+  taskId           String?
+  task             TaskInstance?           @relation(fields: [taskId], references: [id])
+  title            String
+  readAt           DateTime?
+  resolvedAt       DateTime?
+  createdAt        DateTime                @default(now())
 
   @@index([maintenanceId])
   @@index([userId, resolvedAt])
@@ -1045,6 +1049,7 @@ model MaintenanceEvent {
 }
 
 model ChemicalItem {
+  sensors          ChemicalSensor[]
   id               String             @id @default(cuid())
   name             String
   unit             ChemicalUnit?
@@ -1793,6 +1798,7 @@ model GoogleBusinessOAuth {
 }
 
 model AnalyticsStation {
+  chemicalSensors   ChemicalSensor[]
   id                String                   @id @default(cuid())
   name              String
   stationHash       String                   @unique
@@ -1916,4 +1922,89 @@ model MarketingAttribution {
   createdAt DateTime         @default(now())
 
   @@index([stationId, date])
+}
+
+// Binary chemical-level evidence is separate from measured stock movements.
+model ChemicalSensor {
+  id                String                     @id @default(cuid())
+  name              String
+  stationId         String
+  station           AnalyticsStation           @relation(fields: [stationId], references: [id], onDelete: Restrict)
+  chemicalId        String
+  chemical          ChemicalItem               @relation(fields: [chemicalId], references: [id], onDelete: Restrict)
+  containerSize     String
+  locationNote      String                     @default("")
+  active            Boolean                    @default(true)
+  version           Int                        @default(0)
+  registeredBy      String
+  assigneeId        String
+  assignee          Employee                   @relation(fields: [assigneeId], references: [id], onDelete: Restrict)
+  staleAfterMinutes Int                        @default(1440)
+  heartbeatMinutes  Int?
+  lastState         String                     @default("UNKNOWN")
+  lastObservedAt    DateTime?
+  lastAppliedAt     DateTime?
+  lastReceivedAt    DateTime?
+  stateFenceAt      DateTime?
+  manualRefilledAt  DateTime?
+  createdAt         DateTime                   @default(now())
+  credentials       ChemicalSensorCredential[]
+  events            ChemicalSensorEvent[]
+  incidents         ChemicalSensorIncident[]
+
+  @@index([stationId, active])
+}
+
+model ChemicalSensorCredential {
+  id        String         @id @default(cuid())
+  sensorId  String
+  sensor    ChemicalSensor @relation(fields: [sensorId], references: [id], onDelete: Restrict)
+  tokenHash String         @unique
+  createdAt DateTime       @default(now())
+  revokedAt DateTime?
+  createdBy String
+
+  @@index([sensorId, revokedAt])
+}
+
+model ChemicalSensorEvent {
+  id            String         @id @default(cuid())
+  sensorId      String
+  sensor        ChemicalSensor @relation(fields: [sensorId], references: [id], onDelete: Restrict)
+  dedupeKey     String
+  payloadHash   String
+  source        String
+  eventIdentity String?
+  state         String
+  fault         String?
+  observedAt    DateTime?
+  receivedAt    DateTime       @default(now())
+  disposition   String
+  chemicalId    String
+  stationId     String
+  actorId       String?
+
+  @@unique([sensorId, source, dedupeKey])
+  @@index([sensorId, source, receivedAt, id])
+}
+
+model ChemicalSensorIncident {
+  id              String         @id @default(cuid())
+  sensorId        String
+  sensor          ChemicalSensor @relation(fields: [sensorId], references: [id], onDelete: Restrict)
+  openedByEventId String         @unique
+  taskId          String?        @unique
+  task            TaskInstance?  @relation(fields: [taskId], references: [id], onDelete: Restrict)
+  openedAt        DateTime       @default(now())
+  closedAt        DateTime?
+  resolution      String?
+  notifications   Notification[]
+
+  @@index([sensorId, closedAt])
+}
+
+model ChemicalSensorRate {
+  key    String @id
+  minute BigInt
+  count  Int
 }

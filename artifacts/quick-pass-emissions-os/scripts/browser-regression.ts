@@ -308,6 +308,29 @@ async function main() {
       { mode: 0o600 },
     );
   }
+  if (suite["chemical-monitoring.spec.ts"]) {
+    const { createHash } = await import("node:crypto");
+    const stationHash = createHash("sha256").update(env.GA_STATION_ID!).digest("hex");
+    const station = await db.analyticsStation.upsert({
+      where: { stationHash },
+      create: {
+        stationHash,
+        name: "Monitoring fixture station",
+        createdBy: user.id,
+        timezoneConfirmed: true,
+      },
+      update: {},
+    });
+    await db.chemicalItem.create({
+      data: { name: "Monitoring fixture soap", unit: "ML", balance: 5000, reorderPoint: 500 },
+    });
+    const manager = fixtures.users.find((u) => u.role === "ADMIN")!;
+    await db.analyticsStationGrant.upsert({
+      where: { stationId_userId: { stationId: station.id, userId: manager.id } },
+      create: { stationId: station.id, userId: manager.id },
+      update: {},
+    });
+  }
   stage = "owned station fixture configuration";
   const station =
     process.env.E2E_STATION_HISTORY === "1" ||

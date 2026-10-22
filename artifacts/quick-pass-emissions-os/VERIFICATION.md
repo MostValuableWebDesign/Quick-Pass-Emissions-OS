@@ -1,3 +1,58 @@
+# Chemical Level Monitoring — October 21, 2026
+
+Pulled shared main first from `c24cde0` to `e3fc80f`. Added the Chemical Level Monitoring
+panel inside the existing Chemicals area, a strict app-owned normalized ingestion contract,
+revocable per-sensor hashed credentials, persistent events/incidents, existing refill tasks
+and in-app notifications, owner-reported refill provenance and isolated synthetic tests.
+The requested four illustrated 5-gallon demo containers are presentation-only; actual readings
+never convert a binary sensing point into a percentage or gallons remaining. Existing stock,
+payroll, financial and unrelated automation systems remain separate. See
+[CHEMICAL_LEVEL_MONITORING.md](CHEMICAL_LEVEL_MONITORING.md) for setup, security, ordering,
+retention and exact external acceptance steps.
+
+- **19 focused chemical-monitoring unit/database checks passed** in the final full run;
+  the initial focused run passed 18 before adding the archived-chemical deactivation case.
+  Tests cover current role/station permissions, strict JSON/byte limits, invalid/revoked/
+  rotated credentials, inactive/mismatched sensors, concurrent Low reports, event identity
+  conflicts, duplicate/out-of-order/untimed/future messages, Low/restored/fault behavior,
+  manual-refill fences/provenance, independent task completion, warning/task deduplication,
+  synthetic isolation, persistence/pagination, heartbeat/freshness and measured-ledger separation.
+- **Both isolated chemical-monitoring browser workflows passed, no skips.** They exercised
+  registration/reload, one-time credential creation/rotation, rejected old credentials,
+  protected synthetic tests, normalized fixture delivery through the public HTTP receiver,
+  duplicate Low events, manual refill/newer Low/recovery, owner/manager/anonymous/origin
+  boundaries and desktop/phone fit in both Actual and Demo modes. The SVG previews were
+  inspected. API events in this run were owned fixtures, not physical device evidence.
+  The strict default browser manifest retains prior workflows and adds the two new tests
+  (45 total); the full browser suite was not run. A stale hard-coded manifest count was
+  corrected from 43 to 45; missing/failed/skipped workflows still fail its completion guard.
+- **Full isolated unit/database suite: 986 passed, 11 failed across 98 files (997 tests),
+  no skips.** All 11 failures reproduce unchanged on an archive of pulled commit `e3fc80f`
+  before this implementation (50 passed/11 failed across the three affected files).
+  Seven failures are old inspection-history expectations for unique paid vehicle matching,
+  payment/retest exclusion/enrichment and period/station boundaries; three are old portal
+  tests expecting incomplete VIN rows to be dropped; one is the old VIR paid-classification
+  expectation. Those production modules/tests were not changed by this task. The broader
+  suite is therefore **not green**; these baseline failures are explicitly unresolved.
+- **TypeScript, ESLint and the production webpack build passed.** The build used an unreachable
+  build-only database and synthetic auth settings, without business migrations or deployment.
+  All 82 build-trace manifests were checked: zero references to private verification directories.
+  Generated Next paths were restored. Changed-file formatting and whitespace checks pass;
+  repository format:check still reports **39 untouched baseline files**. No dependencies were
+  added; no dependency audit was rerun for this source-only change.
+- Additive migration `202610210001_chemical_level_monitoring` passed isolated upgrade checks,
+  preserving approved payroll/invoice and signed reversal sentinels. Sensor events do not
+  post chemical movements, financial entries, commissions or payroll. No real business
+  records were reset, seeded or modified. Existing owner emails and automation jobs were
+  not changed; no external email/text delivery or new worker was configured.
+- **Proteus transport compatibility: unresolved. Real device event: unverified. Deployment:
+  not performed.** Official product, Home Assistant and webhook guides were reviewed through
+  official indexed documentation; direct article fetches returned 403. They do not verify
+  this exact non-contact unit's authenticated HTTPS/header/body capabilities. No native
+  payload adapter was invented. The panel shows an explicit endpoint placeholder and a
+  bridge requirement if direct delivery cannot satisfy the contract; no bridge, subscription
+  or extra hardware was silently introduced. Registration and tests do not claim Connected.
+
 # VIR-derived history — October 18, 2026
 
 Pulled shared main first, fast-forwarding `6aad6ff` to `dd2808c`. Reused the existing station

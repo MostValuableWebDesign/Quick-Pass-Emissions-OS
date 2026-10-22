@@ -38,19 +38,30 @@ export default async function Notifications() {
             <div className="list-row" key={reminder.id}>
               <div>
                 <strong>{reminder.title}</strong>
-                <small>{formatDate(reminder.startsAt)} · {reminder.readAt ? "Read" : "Alert active"}</small>
+                <small>
+                  {formatDate(reminder.startsAt)} · {reminder.readAt ? "Read" : "Alert active"}
+                </small>
                 {reminder.description && <p className="preserve-lines">{reminder.description}</p>}
-                <Link className="text-link" href={`/reminders#${reminder.id}`}>Manage reminder</Link>
+                <Link className="text-link" href={`/reminders#${reminder.id}`}>
+                  Manage reminder
+                </Link>
               </div>
               {!reminder.readAt && (
-                <ActionForm action={acknowledgePersonalReminderAction} submit="Mark read" className="inline-form">
+                <ActionForm
+                  action={acknowledgePersonalReminderAction}
+                  submit="Mark read"
+                  className="inline-form"
+                >
                   <input type="hidden" name="id" value={reminder.id} />
                 </ActionForm>
               )}
             </div>
           ))
         ) : (
-          <Empty title="No event alerts" text="Scheduled reminders appear here when their alert time arrives." />
+          <Empty
+            title="No event alerts"
+            text="Scheduled reminders appear here when their alert time arrives."
+          />
         )}
       </section>
       <section className="card">
@@ -68,7 +79,9 @@ export default async function Notifications() {
                       ? `/tasks/${a.taskId}`
                       : a.maintenanceId
                         ? `/maintenance/${a.maintenanceId}`
-                        : "/dashboard"
+                        : a.sensorIncidentId
+                          ? "/chemicals#chemical-level-monitoring"
+                          : "/dashboard"
                   }
                 >
                   {a.title}

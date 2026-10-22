@@ -19,3 +19,4 @@
 - [Marketing scope](marketing-scope.md) — evidence reporting and owner-controlled drafts do not authorize outbound marketing or parallel payment systems.
 - [Reolink camera setup](reolink-camera-setup.md) — Argus PT is standalone; the NVR is separate, so treat Reolink video as external unless supported access is added.
 - [Manager schedule scope](manager-schedule-scope.md) — auto-populate proposed work blocks; do not treat the manager schedule as payroll timekeeping.
+- [Prisma runtime refresh](prisma-runtime-refresh.md) — database migrations do not refresh an already-loaded Prisma client; verify delegates and preview health separately.

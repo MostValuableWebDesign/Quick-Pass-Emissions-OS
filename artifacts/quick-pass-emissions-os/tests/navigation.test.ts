@@ -187,7 +187,13 @@ describe("role-filtered navigation", () => {
       expect(emissions.items.map((i) => i.href)).toEqual(
         expect.arrayContaining(["/certificates", "#dealerships-menu"]),
       );
-      expect(carwash.items.map((i) => i.href)).toEqual(["/carwash", "/equipment"]);
+      expect(carwash.items.map((i) => i.href)).toEqual([
+        "/carwash",
+        "/equipment",
+        "/chemicals",
+      ]);
+      expect(activeNavHref("/chemicals", role)).toBe("/chemicals");
+      expect(matchRoute("/chemicals")?.section).toBe("Car Wash");
       expect(shared.items.map((i) => i.href)).toEqual([
         "#employees-menu",
         "/vendors",
@@ -198,7 +204,7 @@ describe("role-filtered navigation", () => {
       expect(employees.children?.[0].label).toBe("Employee directory");
       expect(allNavItems(role).find((item) => item.href === "/employees")).toBeDefined();
       expect(allNavItems(role).find((item) => item.href === "/payroll")?.parent).toBe("/employees");
-      for (const path of ["/maintenance", "/maintenance/plans", "/chemicals", "/rentals"]) {
+      for (const path of ["/maintenance", "/maintenance/plans", "/rentals"]) {
         expect(hrefs(role)).not.toContain(path);
         expect(matchRoute(path)).toBeDefined();
         expect(safeReturnPath(path, role)).toBe(path);

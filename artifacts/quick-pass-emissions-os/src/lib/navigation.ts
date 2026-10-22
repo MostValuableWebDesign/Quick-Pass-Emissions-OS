@@ -110,6 +110,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/carwash", label: "Carwash & Bays", icon: "car", roles: MANAGERS },
       { href: "/equipment", label: "Equipment", icon: "cog", roles: MANAGERS },
+      { href: "/chemicals", label: "Chemicals", icon: "flask", roles: MANAGERS },
     ],
   },
   {

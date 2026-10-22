@@ -31,56 +31,90 @@ export default async function MySchedule() {
     ),
     payload = plan?.payload as Plan | undefined;
   const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const scheduleStatus = recurringSchedule.status === "DRAFT" ? "Proposed" : "Approved";
+  const displayDay = (date: string) =>
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(new Date(`${date}T12:00:00Z`));
   return (
     <>
       <PageHeader
         title="My weekly schedule"
-        description={`Week of ${recurringSchedule.startDate} · America/New_York · ${recurringSchedule.status === "DRAFT" ? "Proposed" : "Approved"}`}
+        description={`Week of ${displayDay(recurringSchedule.startDate)} · ${scheduleStatus}`}
       />
       <WorkspaceTabs active="schedule" />
-      <div className="notice">
-        Your recurring work blocks are already populated. Free time remains available for breaks,
-        customer service, travel, repairs and interruptions. These are management plans—not payroll
-        time records. Sunday is unscheduled.
+      <div className="manager-schedule-intro">
+        <div>
+          <strong>Weekly work plan</strong>
+          <p>
+            Recurring duties are grouped by day. Open a checklist when you need the task details.
+          </p>
+        </div>
+        <span className={`manager-schedule-status ${recurringSchedule.status.toLowerCase()}`}>
+          {scheduleStatus}
+        </span>
+        <p className="manager-schedule-note">
+          This is a management plan, not a payroll timesheet. Open time remains available for
+          customer needs, repairs and interruptions.
+        </p>
       </div>
       {exceptions.map((exception) => (
         <p className="notice warning" key={exception}>
           {exception}
         </p>
       ))}
-      <div className="manager-week" aria-label="Proposed weekly operations schedule">
+      <div
+        className="manager-week manager-recurring-week"
+        aria-label="Proposed weekly operations schedule"
+      >
         {weekdays.map((day, index) => {
           const blocks = proposed.blocks
             .filter((block) => block.weekdays.includes(index + 1))
             .sort((a, b) => a.start.localeCompare(b.start));
           return (
-            <section key={day}>
-              <h2>{day}</h2>
-              <p className="muted">{addDays(recurringSchedule.startDate, index)}</p>
+            <section className="manager-day-card" key={day}>
+              <header className="manager-day-header">
+                <div>
+                  <h2>{day}</h2>
+                  <p className="muted">{displayDay(addDays(recurringSchedule.startDate, index))}</p>
+                </div>
+                <span className="manager-day-count">
+                  {blocks.length
+                    ? `${blocks.length} ${blocks.length === 1 ? "block" : "blocks"}`
+                    : "No work planned"}
+                </span>
+              </header>
               {blocks.map((block) => (
-                <div className="manager-schedule-slot" key={block.id}>
-                  <strong>
-                    {block.start}–{block.end}
-                  </strong>
+                <article className="manager-schedule-slot manager-week-block" key={block.id}>
+                  <div className="manager-week-block-time">
+                    <strong>{block.start}</strong>
+                    <span>to</span>
+                    <strong>{block.end}</strong>
+                  </div>
                   <h3>{block.title}</h3>
-                  <p>{block.description}</p>
+                  <p className="muted">{block.description}</p>
                   <details>
-                    <summary>Checklist · due by {block.end}</summary>
+                    <summary>View checklist</summary>
                     <ul>
                       {(operationsDutyChecklists[block.id] ?? [block.description]).map((item) => (
                         <li key={item}>{item}</li>
                       ))}
                     </ul>
                   </details>
-                </div>
+                </article>
               ))}
-              {!blocks.length && <p className="muted">No manager work scheduled.</p>}
+              {!blocks.length && (
+                <p className="manager-day-empty">No manager work scheduled for this day.</p>
+              )}
             </section>
           );
         })}
       </div>
-      <details className="card card-body">
-        <summary>Adjust recurring times</summary>
+      <details className="card card-body manager-schedule-settings">
+        <summary>Schedule settings · adjust recurring times</summary>
         <p>
           Changes apply to every listed weekday and carry forward into later weekly proposals.
           Overlapping work blocks are rejected. Inventory orders, bank trips, service calls and

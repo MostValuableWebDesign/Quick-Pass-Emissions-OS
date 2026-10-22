@@ -32,6 +32,131 @@
   border-radius: 10px;
   background: var(--surface);
 }
+.manager-recurring-week {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 14px;
+  margin: 16px 0 24px;
+}
+.manager-recurring-week .manager-day-card {
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.manager-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 15px 16px 12px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 92%, var(--line));
+}
+.manager-day-header h2 {
+  margin-bottom: 4px;
+}
+.manager-day-header .muted {
+  font-size: 12px;
+}
+.manager-day-count,
+.manager-schedule-status {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+.manager-schedule-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 16px 0;
+  padding: 15px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.manager-schedule-intro > div > strong {
+  display: block;
+  margin-bottom: 3px;
+}
+.manager-schedule-intro > div > p,
+.manager-schedule-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+.manager-schedule-note {
+  grid-column: 1 / -1;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.manager-schedule-status {
+  color: var(--text);
+}
+.manager-schedule-status.approved {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--line));
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 8%, var(--surface));
+}
+.manager-schedule-status.draft {
+  border-color: color-mix(in srgb, var(--warning) 35%, var(--line));
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 8%, var(--surface));
+}
+.manager-week-block {
+  margin: 0 16px;
+  padding: 13px 0;
+}
+.manager-week-block h3 {
+  margin: 9px 0 4px;
+}
+.manager-week-block > p {
+  font-size: 13px;
+  line-height: 1.45;
+}
+.manager-week-block-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  font-size: 12px;
+}
+.manager-week-block-time span {
+  color: var(--muted);
+}
+.manager-week-block details {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.manager-week-block details summary {
+  width: fit-content;
+  color: var(--text);
+  font-weight: 600;
+}
+.manager-week-block details ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+.manager-week-block details li + li {
+  margin-top: 4px;
+}
+.manager-day-empty {
+  padding: 17px 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.manager-schedule-settings {
+  margin-top: 16px;
+}
+.manager-schedule-settings > summary {
+  font-weight: 650;
+}
 .manager-availability {
   width: 100%;
   min-width: 700px;
@@ -60,5 +185,19 @@
   .manager-filters label,
   .manager-filters select {
     width: 100%;
+  }
+}
+@media (max-width: 1050px) {
+  .manager-recurring-week {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 620px) {
+  .manager-recurring-week {
+    grid-template-columns: 1fr;
+  }
+  .manager-schedule-intro {
+    grid-template-columns: 1fr auto;
+    padding: 13px;
   }
 }

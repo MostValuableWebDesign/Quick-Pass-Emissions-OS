@@ -26,6 +26,7 @@ const config: NextConfig = {
   ],
   logging: { incomingRequests: false },
   experimental: {
+    agentUpgrade: "security",
     serverActions: {
       bodySizeLimit: "3mb",
       allowedOrigins: previewServerActionHosts(process.env),

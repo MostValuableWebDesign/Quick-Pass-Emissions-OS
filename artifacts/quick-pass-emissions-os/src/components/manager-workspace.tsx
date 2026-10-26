@@ -12,7 +12,13 @@ const workspaceTabs: { id: WorkspaceTabId; href: string; label: string }[] = [
   { id: "registers", href: "/operations/registers", label: "Payments & deposits" },
   { id: "responsibilities", href: "/tasks", label: "All responsibilities" },
 ];
-export function WorkspaceTabs({ active }: { active: WorkspaceTabId }) {
+export function WorkspaceTabs({
+  active,
+  sample = false,
+}: {
+  active: WorkspaceTabId;
+  sample?: boolean;
+}) {
   return (
     <nav className="tabs" aria-label="Operations manager">
       {workspaceTabs.map((tab) => {
@@ -20,7 +26,7 @@ export function WorkspaceTabs({ active }: { active: WorkspaceTabId }) {
         return (
           <Link
             key={tab.id}
-            href={tab.href}
+            href={sample ? `${tab.href}${tab.href.includes("?") ? "&" : "?"}sample=1` : tab.href}
             className={selected ? "selected" : undefined}
             aria-current={selected ? "page" : undefined}
           >

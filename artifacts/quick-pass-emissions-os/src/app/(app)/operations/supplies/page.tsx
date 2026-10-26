@@ -5,15 +5,30 @@ import { managerAction } from "@/app/manager-actions";
 import { ActionForm, Field } from "@/components/action-form";
 import { PageHeader } from "@/components/shared";
 import { WorkspaceTabs, Command } from "@/components/manager-workspace";
+import { SamplePreviewControl, SuppliesSample } from "@/components/manager-sample-preview";
 import "../workspace.css";
 export default async function Supplies({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; sample?: string }>;
 }) {
-  const page = Math.max(1, Math.min(10000, Math.floor(Number((await searchParams).page)) || 1));
-  const actor = await currentUser(),
-    supplies = await supplyRegister(actor.id, page);
+  const query = await searchParams;
+  const page = Math.max(1, Math.min(10000, Math.floor(Number(query.page)) || 1));
+  const actor = await currentUser();
+  if (query.sample === "1")
+    return (
+      <>
+        <PageHeader title="Weekly supplies" description="Example stock counts and purchase history">
+          <Link className="button button-primary" href="/operations/supplies">
+            Show live data
+          </Link>
+        </PageHeader>
+        <WorkspaceTabs active="supplies" sample />
+        <SamplePreviewControl active path="/operations/supplies" />
+        <SuppliesSample />
+      </>
+    );
+  const supplies = await supplyRegister(actor.id, page);
   return (
     <>
       <PageHeader
@@ -21,6 +36,7 @@ export default async function Supplies({
         description="Recorded counts, configurable thresholds and external purchase evidence"
       />
       <WorkspaceTabs active="supplies" />
+      <SamplePreviewControl active={false} path="/operations/supplies" />
       <div className="notice">
         Walmart: copy paper, soap, tissue paper, paper towels. Amazon: receipt paper, plastic tag
         scrapers. Printer/ink: OPUS, Best Buy or your existing family contact. Preferred vendors are

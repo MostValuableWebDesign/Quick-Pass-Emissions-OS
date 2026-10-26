@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { currentUser } from "@/lib/access";
-import { formatDate } from "@/lib/time";
+import { businessDate, formatDate } from "@/lib/time";
 import { managerOverview, refreshWorkspace } from "@/modules/manager/service";
 import { areas } from "@/modules/manager/rules";
 import { vendorContacts } from "@/modules/manager/starter";
@@ -15,16 +15,42 @@ import {
   words,
 } from "@/components/manager-workspace";
 import "./workspace.css";
+import {
+  ManagerOverviewSample,
+  SamplePreviewControl,
+} from "@/components/manager-sample-preview";
 export default async function Operations({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; filter?: string; area?: string }>;
+  searchParams: Promise<{ page?: string; filter?: string; area?: string; sample?: string }>;
 }) {
   const actor = await currentUser(),
     query = await searchParams;
   const page = Math.max(1, Math.min(10000, Math.floor(Number(query.page)) || 1)),
     filter = query.filter ?? "active",
-    area = areas.includes(query.area as (typeof areas)[number]) ? query.area! : "";
+    area = areas.includes(query.area as (typeof areas)[number]) ? query.area! : "",
+    sample = query.sample === "1";
+  if (sample) {
+    const today = businessDate();
+    return (
+      <>
+        <PageHeader
+          title="Operations manager"
+          description={`Sample overview · ${today} Eastern`}
+        >
+          <Link className="button button-primary" href="/operations">
+            Show live data
+          </Link>
+          <Link className="button button-outline" href="/operations/schedule">
+            View weekly schedule
+          </Link>
+        </PageHeader>
+        <WorkspaceTabs active="overview" sample />
+        <SamplePreviewControl active path="/operations" />
+        <ManagerOverviewSample />
+      </>
+    );
+  }
   await refreshWorkspace(actor.id);
   const data = await managerOverview(actor.id, page, filter, area);
   const link = (p: number) =>
@@ -43,6 +69,7 @@ export default async function Operations({
         </Link>
       </PageHeader>
       <WorkspaceTabs active="overview" />
+      <SamplePreviewControl active={false} path="/operations" />
       {!data.actor.employee && (
         <div className="notice warning">
           Your management account has no responsibility profile. Source-trigger assignment and your

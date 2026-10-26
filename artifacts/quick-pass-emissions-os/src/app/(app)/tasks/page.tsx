@@ -6,15 +6,30 @@ import { isManager } from "@/lib/policy";
 import { PageHeader, TaskTable, employeeSelect } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { WorkspaceTabs } from "@/components/manager-workspace";
+import { ResponsibilitiesSample, SamplePreviewControl } from "@/components/manager-sample-preview";
 import { businessDate, dueInstant, addDays } from "@/lib/time";
 export default async function Tasks({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; page?: string }>;
+  searchParams: Promise<{ filter?: string; page?: string; sample?: string }>;
 }) {
   const user = await currentUser();
   const management = isManager(user.role);
   const query = await searchParams;
+  const sample = query.sample === "1";
+  if (management && sample)
+    return (
+      <>
+        <PageHeader title="Team responsibilities" description="Example assignments and statuses">
+          <Button asChild>
+            <Link href="/tasks">Show live responsibilities</Link>
+          </Button>
+        </PageHeader>
+        <WorkspaceTabs active="responsibilities" sample />
+        <SamplePreviewControl active path="/tasks" />
+        <ResponsibilitiesSample />
+      </>
+    );
   const filter = query.filter ?? "active";
   const page = Math.max(1, Math.min(10000, Math.floor(Number(query.page)) || 1));
   const today = businessDate();
@@ -53,7 +68,12 @@ export default async function Tasks({
           </Button>
         )}
       </PageHeader>
-      {management && <WorkspaceTabs active="responsibilities" />}
+      {management && (
+        <>
+          <WorkspaceTabs active="responsibilities" />
+          <SamplePreviewControl active={false} path="/tasks" />
+        </>
+      )}
       <nav className="tabs" aria-label="Task filters">
         {[
           "active",

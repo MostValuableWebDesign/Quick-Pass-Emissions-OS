@@ -6,15 +6,33 @@ import { managerAction } from "@/app/manager-actions";
 import { ActionForm, Field } from "@/components/action-form";
 import { PageHeader } from "@/components/shared";
 import { WorkspaceTabs, Command, money } from "@/components/manager-workspace";
+import { PaymentsDepositsSample, SamplePreviewControl } from "@/components/manager-sample-preview";
 import "../workspace.css";
 export default async function Registers({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; sample?: string }>;
 }) {
-  const page = Math.max(1, Math.min(10000, Math.floor(Number((await searchParams).page)) || 1));
-  const actor = await currentUser(),
-    data = await managerOverview(actor.id);
+  const query = await searchParams;
+  const page = Math.max(1, Math.min(10000, Math.floor(Number(query.page)) || 1));
+  const actor = await currentUser();
+  if (query.sample === "1")
+    return (
+      <>
+        <PageHeader
+          title="Payment & deposit evidence"
+          description="Example payment evidence and deposits"
+        >
+          <Link className="button button-primary" href="/operations/registers">
+            Show live data
+          </Link>
+        </PageHeader>
+        <WorkspaceTabs active="registers" sample />
+        <SamplePreviewControl active path="/operations/registers" />
+        <PaymentsDepositsSample />
+      </>
+    );
+  const data = await managerOverview(actor.id);
   const register = await financialRegister(actor.id, page);
   return (
     <>
@@ -23,6 +41,7 @@ export default async function Registers({
         description="Internal evidence register · no bank connection or payment initiation"
       />
       <WorkspaceTabs active="registers" />
+      <SamplePreviewControl active={false} path="/operations/registers" />
       <div className="notice">
         Completing a responsibility never confirms payroll payment or a bank deposit. Keep evidence
         and reconciliation separate. Payroll entries refer to an existing independently approved

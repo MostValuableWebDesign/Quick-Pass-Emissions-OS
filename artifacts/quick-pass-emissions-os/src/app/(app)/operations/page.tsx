@@ -67,11 +67,6 @@ export default async function Operations({
           </ActionForm>
         </div>
       )}
-      <div className="notice">
-        Confirmed emissions / kiosk hours: Mon–Fri 8 AM–6 PM, Sat 8 AM–5 PM, Sunday closed. Personal
-        availability and carwash hours are separate. Recurring work and triggers refresh when this
-        workspace opens; unattended reminders need the existing independent runner.
-      </div>
       <section className="card card-body">
         <div className="card-heading">
           <h2>Priorities & delegated work</h2>

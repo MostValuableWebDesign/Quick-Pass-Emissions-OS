@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import {
   DEFAULT_DASHBOARD_LAYOUT,
   employeePanelDisplayHeight,
@@ -7,8 +9,27 @@ import {
   reorderDashboardPanel,
   resizeDashboardPanel,
 } from "../src/components/performance-dashboard-layout";
+import { PanelResizeHandle } from "../src/components/performance-panel-resize-handle";
 
 describe("customizable performance panels", () => {
+  it("renders separate accessible edge grips for width and height resizing", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PanelResizeHandle, {
+        label: "Employees",
+        columns: 6,
+        height: 420,
+        onResize: () => {},
+      }),
+    );
+
+    expect(markup).toContain('data-axis="width"');
+    expect(markup).toContain('aria-label="Resize Employees panel width"');
+    expect(markup).toContain('aria-orientation="vertical"');
+    expect(markup).toContain('data-axis="height"');
+    expect(markup).toContain('aria-label="Resize Employees panel height"');
+    expect(markup).toContain('aria-orientation="horizontal"');
+  });
+
   it("accepts only complete, valid account layouts", () => {
     expect(normalizeDashboardLayout(DEFAULT_DASHBOARD_LAYOUT)).toEqual(DEFAULT_DASHBOARD_LAYOUT);
     expect(normalizeDashboardLayout(DEFAULT_DASHBOARD_LAYOUT.slice(0, 3))).toBeNull();

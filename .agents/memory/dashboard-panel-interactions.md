@@ -15,11 +15,11 @@ Use pointer-driven panel grips with keyboard alternatives, and retain full-width
 
 **How to apply:** Verify drag, resize, reload persistence and reset in an owned isolated browser flow. Do not switch the managed preview to a fixture database for presentation testing.
 
-Resizing must use a visible corner grab handle, not a header toolbar button.
+Resizing uses separate visible edge grips: the right edge changes width and the bottom edge changes height.
 
-**Why:** The user explicitly said panels should have a grab handle to resize, “not the button.”
+**Why:** The user requested panel-edge grab handles like the reference screenshot, replacing the earlier corner grip.
 
-**How to apply:** Keep the resize grip at the panel corner while retaining keyboard resizing and personal account persistence.
+**How to apply:** Keep pointer/touch edge grips, keyboard arrow alternatives, and personal account persistence. Hide width resizing when the responsive grid forces panels full-width.
 
 Keep each panel's layout controls at the right side of its header, separate from the title and description.
 

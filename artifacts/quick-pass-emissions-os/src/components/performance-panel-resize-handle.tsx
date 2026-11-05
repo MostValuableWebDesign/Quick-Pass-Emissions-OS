@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type PointerEvent } from "react";
+import { useRef, type KeyboardEvent, type PointerEvent } from "react";
 
 export function PanelResizeHandle({
   label,
@@ -15,6 +15,7 @@ export function PanelResizeHandle({
 }) {
   const origin = useRef<{
     pointer: number;
+    axis: "width" | "height";
     x: number;
     y: number;
     columns: number;
@@ -33,6 +34,7 @@ export function PanelResizeHandle({
     const gap = Number.parseFloat(getComputedStyle(grid).columnGap) || 0;
     origin.current = {
       pointer: event.pointerId,
+      axis: event.currentTarget.dataset.axis === "width" ? "width" : "height",
       x: event.clientX,
       y: event.clientY,
       columns,
@@ -47,62 +49,80 @@ export function PanelResizeHandle({
   function move(event: PointerEvent<HTMLButtonElement>) {
     const start = origin.current;
     if (!start || start.pointer !== event.pointerId) return;
-    const narrow = window.matchMedia("(max-width: 480px)").matches;
-    const nextColumns = narrow
-      ? start.columns
-      : Math.max(
-          4,
-          Math.min(12, start.columns + Math.round((event.clientX - start.x) / start.columnWidth)),
-        );
+    if (start.axis === "width") {
+      if (window.matchMedia("(max-width: 480px)").matches) return;
+      const nextColumns = Math.max(
+        4,
+        Math.min(12, start.columns + Math.round((event.clientX - start.x) / start.columnWidth)),
+      );
+      const dx = nextColumns - start.lastColumns;
+      if (dx) onResize(dx, 0);
+      start.lastColumns = nextColumns;
+      return;
+    }
     const nextHeight = Math.max(
       240,
       Math.min(720, start.height + Math.round((event.clientY - start.y) / 40) * 40),
     );
-    const dx = nextColumns - start.lastColumns;
     const dy = nextHeight - start.lastHeight;
-    if (dx || dy) onResize(dx, dy);
-    start.lastColumns = nextColumns;
+    if (dy) onResize(0, dy);
     start.lastHeight = nextHeight;
   }
 
+  function finish() {
+    origin.current = null;
+  }
+
+  function handleKeyDown(
+    event: KeyboardEvent<HTMLButtonElement>,
+    axis: "width" | "height",
+  ) {
+    if (axis === "width") {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      if (window.matchMedia("(max-width: 480px)").matches) return;
+      onResize(event.key === "ArrowLeft" ? -1 : 1, 0);
+      return;
+    }
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    event.preventDefault();
+    onResize(0, event.key === "ArrowUp" ? -40 : 40);
+  }
+
   return (
-    <button
-      type="button"
-      className="pd-panel-resize-handle"
-      aria-label={`Resize ${label} panel. Drag the corner or use arrow keys.`}
-      title="Drag corner to resize"
-      onPointerDown={begin}
-      onPointerMove={move}
-      onPointerUp={() => {
-        origin.current = null;
-      }}
-      onPointerCancel={() => {
-        origin.current = null;
-      }}
-      onLostPointerCapture={() => {
-        origin.current = null;
-      }}
-      onKeyDown={(event) => {
-        const changes: Record<string, [number, number]> = {
-          ArrowLeft: [-1, 0],
-          ArrowRight: [1, 0],
-          ArrowUp: [0, -40],
-          ArrowDown: [0, 40],
-        };
-        const change = changes[event.key];
-        if (!change) return;
-        event.preventDefault();
-        onResize(window.matchMedia("(max-width: 480px)").matches ? 0 : change[0], change[1]);
-      }}
-    >
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path
-          d="M5 17 17 5M10 17l7-7M15 17l2-2"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </svg>
-    </button>
+    <>
+      <button
+        type="button"
+        className="pd-panel-edge-handle pd-panel-edge-width"
+        data-axis="width"
+        aria-label={`Resize ${label} panel width`}
+        aria-orientation="vertical"
+        title="Drag horizontally to resize width; use left and right arrow keys"
+        onPointerDown={begin}
+        onPointerMove={move}
+        onPointerUp={finish}
+        onPointerCancel={finish}
+        onLostPointerCapture={finish}
+        onKeyDown={(event) => handleKeyDown(event, "width")}
+      >
+        <span aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        className="pd-panel-edge-handle pd-panel-edge-height"
+        data-axis="height"
+        aria-label={`Resize ${label} panel height`}
+        aria-orientation="horizontal"
+        title="Drag vertically to resize height; use up and down arrow keys"
+        onPointerDown={begin}
+        onPointerMove={move}
+        onPointerUp={finish}
+        onPointerCancel={finish}
+        onLostPointerCapture={finish}
+        onKeyDown={(event) => handleKeyDown(event, "height")}
+      >
+        <span aria-hidden="true" />
+      </button>
+    </>
   );
 }

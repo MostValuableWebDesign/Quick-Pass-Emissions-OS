@@ -522,33 +522,62 @@
 .pd-panel-drag:active {
   cursor: grabbing;
 }
-.pd-panel-resize-handle {
+.pd-panel-edge-handle {
   position: absolute;
-  right: 3px;
-  bottom: 3px;
-  width: 28px;
-  height: 28px;
   display: grid;
   place-items: center;
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--muted);
-  cursor: nwse-resize;
+  color: var(--pd-blue);
   touch-action: none;
-  z-index: 2;
+  z-index: 3;
 }
-.pd-panel-resize-handle:hover,
-.pd-panel-resize-handle:active {
-  color: var(--text);
+.pd-panel-edge-handle span {
+  display: block;
+  border-radius: 999px;
+  background: var(--pd-blue);
+  opacity: 0.58;
+  transition:
+    opacity 120ms ease,
+    box-shadow 120ms ease;
 }
-.pd-panel-resize-handle:focus-visible {
+.pd-panel-edge-handle:hover span,
+.pd-panel-edge-handle:active span {
+  opacity: 0.9;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pd-blue) 14%, transparent);
+}
+.pd-panel-edge-handle:focus-visible {
   outline: 2px solid var(--focus);
-  outline-offset: -2px;
-  border-radius: 4px;
+  outline-offset: 1px;
+  border-radius: 999px;
 }
-.pd-widget > .pd-card {
-  padding-bottom: 22px;
+.pd-panel-edge-width {
+  top: 50%;
+  right: -12px;
+  width: 24px;
+  height: 76px;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+.pd-panel-edge-width span {
+  width: 7px;
+  height: 54px;
+}
+.pd-panel-edge-height {
+  left: 50%;
+  bottom: -12px;
+  width: 88px;
+  height: 24px;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+.pd-panel-edge-height span {
+  width: 72px;
+  height: 7px;
+}
+.pd-panel-edge-height:focus-visible {
+  outline-offset: -2px;
 }
 .pd-card-h p {
   font-size: 11px;
@@ -851,6 +880,9 @@
   }
   .pd-widget {
     grid-column: 1 / -1 !important;
+  }
+  .pd-panel-edge-width {
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {

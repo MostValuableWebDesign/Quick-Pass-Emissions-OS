@@ -1151,33 +1151,78 @@ enum FinanceBasis {
 }
 
 model Dealership {
-  id                String          @id @default(cuid())
-  code              String          @unique
+  id                String            @id @default(cuid())
+  code              String            @unique
   name              String
   billingAddress    String
-  phone             String          @default("")
-  email             String          @default("")
-  streetAddress     String          @default("")
-  addressLine2      String          @default("")
-  city              String          @default("")
-  state             String          @default("")
-  postalCode        String          @default("")
-  notes             String          @default("")
-  active            Boolean         @default(true)
+  phone             String            @default("")
+  email             String            @default("")
+  streetAddress     String            @default("")
+  addressLine2      String            @default("")
+  city              String            @default("")
+  state             String            @default("")
+  postalCode        String            @default("")
+  notes             String            @default("")
+  active            Boolean           @default(true)
   termsDays         Int?
   defaultRateCents  Int?
   taxBps            Int?
   termsReference    String?
   termsAuthorizedBy String?
   termsAuthorizedAt DateTime?
-  version           Int             @default(0)
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  version           Int               @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
   contacts          DealerContact[]
   services          DealerService[]
   invoices          DealerInvoice[]
-  addressSource     String          @default("MANUAL")
-  addressProviderId String          @default("")
+  addressSource     String            @default("MANUAL")
+  addressProviderId String            @default("")
+  virUploads        DealerVirUpload[]
+  virRecords        DealerVirRecord[]
+}
+
+// Only reviewed billing metadata and hashed vehicle identity; never PDF/OCR bytes.
+model DealerVirUpload {
+  id             String            @id @default(cuid())
+  dealershipId   String
+  dealership     Dealership        @relation(fields: [dealershipId], references: [id], onDelete: Restrict)
+  createdBy      String
+  rows           Json
+  status         String            @default("PROCESSING")
+  expiresAt      DateTime
+  completedAt    DateTime?
+  result         Json?
+  billingVersion Int?
+  createdAt      DateTime          @default(now())
+  records        DealerVirRecord[]
+
+  @@index([createdBy, createdAt])
+}
+
+model DealerVirRecord {
+  id           String          @id @default(cuid())
+  uploadId     String
+  upload       DealerVirUpload @relation(fields: [uploadId], references: [id], onDelete: Restrict)
+  dealershipId String
+  dealership   Dealership      @relation(fields: [dealershipId], references: [id], onDelete: Restrict)
+  reportKey    String          @unique
+  sourceKey    String          @unique
+  testKey      String?         @unique
+  certificate  String
+  testNumber   String
+  date         String
+  minute       Int?
+  vinHash      String?
+  outcome      String
+  testType     String
+  billing      String
+  serviceId    String?
+  createdBy    String
+  createdAt    DateTime        @default(now())
+
+  @@index([vinHash, date])
+  @@index([dealershipId, date])
 }
 
 model DealerContact {

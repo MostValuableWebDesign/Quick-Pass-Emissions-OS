@@ -1,0 +1,288 @@
+.vir-dialog {
+  width: min(920px, calc(100vw - 32px));
+  max-height: min(90vh, 900px);
+}
+.vir-dialog .vir-body {
+  max-height: calc(min(90vh, 900px) - 60px);
+}
+.vir-upload,
+.vir-review {
+  display: grid;
+  gap: 14px;
+}
+.vir-drop {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 26px 16px;
+  border: 1.5px dashed var(--input-line);
+  border-radius: 12px;
+  background: var(--soft);
+  text-align: center;
+  cursor: pointer;
+  color: var(--muted);
+}
+.vir-drop:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.vir-drop strong {
+  color: var(--text);
+  font-size: 14px;
+}
+.vir-drop input {
+  margin-top: 8px;
+  max-width: 100%;
+}
+.vir-file-note {
+  margin: 0;
+  font-size: 13px;
+}
+.vir-file-note.bad,
+.vir-block {
+  color: var(--danger);
+}
+.vir-block {
+  margin: 0;
+  font-size: 13px;
+}
+.vir-privacy {
+  margin: 0;
+  font-size: 12px;
+}
+.vir-alert {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--danger-line);
+  border-radius: 9px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 13px;
+}
+.vir-progress {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
+.vir-spin {
+  flex: none;
+  animation: vir-spin 1s linear infinite;
+}
+@keyframes vir-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vir-spin {
+    animation: none;
+  }
+}
+.vir-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+.vir-tally {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 2.2fr);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.vir-tally > div {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-right: 1px solid var(--line);
+}
+.vir-tally > div:last-child {
+  border-right: 0;
+  background: var(--soft);
+}
+.vir-tally span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.vir-tally strong {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  color: var(--brand);
+}
+.vir-tally small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.vir-empty {
+  padding: 18px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  margin: 0;
+}
+.vir-all {
+  font-weight: 600;
+}
+.vir-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.vir-row {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--action);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+}
+.vir-row.is-free {
+  border-left-color: var(--success);
+}
+.vir-row.is-exclude {
+  border-left-color: var(--line);
+  background: var(--soft);
+}
+.vir-row-head {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 13px;
+}
+.vir-chip {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.vir-chip.warn {
+  color: var(--warning);
+  background: var(--warning-bg);
+  border-color: var(--warning-line);
+}
+.vir-chip.bad {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-color: var(--danger-line);
+}
+.vir-chip.info {
+  color: var(--success);
+  background: var(--success-bg);
+  border-color: var(--success-line);
+}
+.vir-warnings {
+  margin: 0;
+  padding: 6px 10px 6px 26px;
+  font-size: 12px;
+  color: var(--warning);
+  background: var(--warning-bg);
+  border-radius: 8px;
+}
+.vir-fields {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr 0.9fr 0.9fr 0.9fr;
+  gap: 8px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.vir-fields label {
+  display: grid;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 0;
+}
+.vir-fields input,
+.vir-fields select {
+  min-height: 34px;
+  font-size: 13px;
+  width: 100%;
+}
+.vir-confirm {
+  font-size: 13px;
+}
+.vir-invoice {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.vir-invoice legend {
+  font-weight: 600;
+  padding: 0 4px;
+  font-size: 13px;
+}
+.vir-invoice p {
+  margin: 0;
+  font-size: 12px;
+}
+.vir-invoice-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.vir-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--success-line);
+  background: var(--success-bg);
+  color: var(--success);
+  border-radius: 10px;
+  font-size: 13px;
+  width: 100%;
+}
+.vir-result p {
+  margin: 0;
+  flex: 1;
+  color: var(--text);
+}
+.vir-result-dismiss {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+@media (max-width: 767px) {
+  .vir-tally {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .vir-tally > div {
+    border-bottom: 1px solid var(--line);
+  }
+  .vir-tally-amount {
+    grid-column: 1 / -1;
+  }
+  .vir-fields,
+  .vir-invoice-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.vir-toolbar {
+  gap: 10px;
+  flex-wrap: wrap;
+}

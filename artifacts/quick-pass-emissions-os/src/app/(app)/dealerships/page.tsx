@@ -8,6 +8,8 @@ import { DemoNotice, RecordId } from "@/components/phase3";
 import { DealershipFields } from "@/components/dealership-fields";
 import { saveDealer } from "@/app/phase4-actions";
 import { Button } from "@/components/ui/button";
+import { DealerVirUpload } from "@/components/dealer-vir-upload";
+import { dealerVirOptions } from "@/modules/finance/dealer-vir-service";
 export default async function Dealers({
   searchParams,
 }: {
@@ -18,7 +20,8 @@ export default async function Dealers({
     q = params.q ?? "",
     scope =
       params.partners === "all" ? "all" : params.partners === "archived" ? "archived" : "active",
-    data = await dealerOverview(actor.id, q, scope);
+    data = await dealerOverview(actor.id, q, scope),
+    virDealers = await dealerVirOptions(actor.id);
   return (
     <>
       <PageHeader
@@ -26,7 +29,8 @@ export default async function Dealers({
         description="Billing accounts, contact records, completed services, and owner-authorized terms."
       />
       <DemoNotice demo={data.demo} />
-      <div className="directory-add-toolbar">
+      <div className="directory-add-toolbar vir-toolbar">
+        <DealerVirUpload dealers={virDealers} />
         <DirectoryAddDialog title="Add dealership">
           <ActionForm action={saveDealer} submit="Add dealership">
             <RecordId />

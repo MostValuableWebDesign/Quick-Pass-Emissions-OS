@@ -4,6 +4,23 @@ const config: NextConfig = {
   // Each isolated browser run owns a separate build cache; leave .next untouched.
   ...(process.env.E2E_NEXT_DIST_DIR ? { distDir: process.env.E2E_NEXT_DIST_DIR } : {}),
   poweredByHeader: false,
+  serverExternalPackages: [
+    "pdfjs-dist",
+    "tesseract.js",
+    "tesseract.js-core",
+    "@tesseract.js-data/eng",
+  ],
+  outputFileTracingIncludes: {
+    "/*": [
+      "node_modules/pdfjs-dist/legacy/build/**/*",
+      "node_modules/pdfjs-dist/wasm/**/*",
+      "node_modules/pdfjs-dist/cmaps/**/*",
+      "node_modules/pdfjs-dist/standard_fonts/**/*",
+      "node_modules/tesseract.js/src/**/*",
+      "node_modules/tesseract.js-core/**/*",
+      "node_modules/@tesseract.js-data/eng/**/*",
+    ],
+  },
   // Runtime backup paths must never cause private sources/archives to enter server bundles.
   outputFileTracingExcludes: {
     "/*": [
@@ -28,7 +45,7 @@ const config: NextConfig = {
   experimental: {
     agentUpgrade: "security",
     serverActions: {
-      bodySizeLimit: "3mb",
+      bodySizeLimit: "16mb",
       allowedOrigins: previewServerActionHosts(process.env),
     },
   },

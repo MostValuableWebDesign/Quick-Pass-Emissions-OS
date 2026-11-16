@@ -14,6 +14,7 @@ import * as actions from "@/app/phase4-actions";
 import { marketingOptions } from "@/modules/marketing/service";
 import { ServiceSourceFields } from "@/components/marketing-client";
 import { sourceOptions } from "@/components/marketing";
+import { DealerVirUpload } from "@/components/dealer-vir-upload";
 export default async function Dealer({ params }: { params: Promise<{ id: string }> }) {
   const actor = await currentUser(),
     data = await dealerDetail(actor.id, (await params).id),
@@ -29,6 +30,11 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
         description={d.active ? "Active dealership partner" : "Archived dealership"}
       />
       <DemoNotice demo={data.demo} />
+      {d.active && (
+        <div className="directory-add-toolbar vir-toolbar">
+          <DealerVirUpload dealershipId={d.id} />
+        </div>
+      )}
       <section className="card card-body">
         <h2>Account & billing details</h2>
         <p className="preserve-lines">{d.billingAddress}</p>
@@ -51,7 +57,7 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
           </ActionForm>
         </details>
       </section>
-      <section className="card card-body space-top">
+      <section className="card card-body space-top" id="billing-terms">
         <h2>Authorized billing terms</h2>
         <p>
           {d.termsDays === null
@@ -101,6 +107,53 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
           </details>
         )}
       </section>
+      {!!d.virRecords.length && (
+        <section className="card space-top">
+          <div className="card-heading">
+            <h2>Uploaded VIR inspections</h2>
+          </div>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Certificate / Test ID</th>
+                  <th>Result</th>
+                  <th>Billing</th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.virRecords.map((report) => {
+                  const service = d.services.find((item) => item.id === report.serviceId);
+                  return (
+                    <tr key={report.id}>
+                      <td>{report.date}</td>
+                      <td>
+                        {report.certificate || report.testNumber}
+                        {report.certificate && report.testNumber && (
+                          <small>Test ID {report.testNumber}</small>
+                        )}
+                      </td>
+                      <td>{report.outcome}</td>
+                      <td>
+                        {report.billing === "FREE" ? (
+                          "Free · not invoiced"
+                        ) : service?.invoice ? (
+                          <RecordLink href={`/invoices/${service.invoice.id}`}>
+                            {service.invoice.number}
+                          </RecordLink>
+                        ) : (
+                          "Unbilled service"
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
       <section className="card card-body space-top">
         <h2>Contacts</h2>
         {[...d.contacts, null].map((c) => (

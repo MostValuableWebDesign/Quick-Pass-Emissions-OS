@@ -14,3 +14,9 @@ The user chose Gmail and manual sending, then dismissed the Gmail connection and
 **Why:** The user selected click-to-send rather than a recurring schedule and did not authorize a Gmail integration.
 
 **How to apply:** Keep the unconnected workflow explicit: download the invoice, open the Gmail draft, attach and send manually, then record actual external delivery. Opening the draft is not proof of sending. A connected sending workflow requires a later user-approved connection.
+
+Dealership VIR uploads should tally inspections and prepare draft invoices. The user chose “OCR plus manual review” for scanned PDFs.
+
+**Why:** The sample's embedded text was unreliable; the user explicitly selected scan recognition with review instead of rejecting scanned reports.
+
+**How to apply:** Keep OCR local and require reviewed fields before billing. Use the dealership's authorized rate rather than treating a printed test fee as its contracted price. Uploading a report is not authorization to approve, send or collect payment.

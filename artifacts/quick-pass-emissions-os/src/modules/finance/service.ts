@@ -233,7 +233,7 @@ export async function recordService(actorId: string, input: unknown) {
     const row = await tx.dealerService.create({ data: { ...data, createdBy: actorId } });
     const finalCents = await serviceMarketing(tx, actorId, input, row);
     if (finalCents !== row.unitCents) {
-      await tx.dealerService.update({where:{id:row.id},data:{unitCents:finalCents}});
+      await tx.dealerService.update({ where: { id: row.id }, data: { unitCents: finalCents } });
     }
     await audit(tx, actorId, "DEALER_SERVICE", row.id, data);
     return { ...row, unitCents: finalCents };
@@ -255,6 +255,11 @@ export async function voidService(actorId: string, input: unknown) {
   });
 }
 export async function createInvoice(actorId: string, input: unknown) {
+  return phase4(actorId, financeRoles, (tx) => createInvoiceInTransaction(tx, actorId, input));
+}
+
+/** Shared by the manual invoice form and the atomic, reviewed VIR import. */
+export async function createInvoiceInTransaction(tx: Tx, actorId: string, input: unknown) {
   const data = z
     .object({
       dealershipId: id,
@@ -268,105 +273,103 @@ export async function createInvoice(actorId: string, input: unknown) {
     new Set(data.serviceIds).size === data.serviceIds.length,
     "Select distinct services.",
   );
-  return phase4(actorId, financeRoles, async (tx) => {
-    currentPast(data.issueDate);
-    const dealer = await tx.dealership.findUnique({
-      where: { id: data.dealershipId },
-      include: { contacts: { where: { active: true }, orderBy: { createdAt: "asc" } } },
-    });
-    requireRule(
-      dealer?.active &&
-        dealer.termsAuthorizedAt &&
-        dealer.termsDays !== null &&
-        dealer.taxBps !== null,
-      "Owner-authorized terms and tax settings are required.",
-    );
-    requireRule(
-      !(await tx.dealerInvoice.count({ where: { number: data.number } })),
-      "Invoice number already exists.",
-    );
-    const services = await tx.dealerService.findMany({
-      where: {
-        id: { in: data.serviceIds },
-        dealershipId: dealer.id,
-        invoiceId: null,
-        voidDate: null,
-        date: { lte: data.issueDate },
-      },
-      orderBy: [{ date: "asc" }, { id: "asc" }],
-    });
-    requireRule(
-      services.length === data.serviceIds.length,
-      "A service changed, is already billed, or is after the issue date. Refresh and review.",
-    );
-    await assertBillingHistory(tx, data.serviceIds, data.issueDate);
-    const totals = invoiceTotals(services, dealer.taxBps);
-    const row = await tx.dealerInvoice.create({
-      data: {
-        dealershipId: dealer.id,
-        number: data.number,
-        issueDate: data.issueDate,
-        dueDate: addDays(data.issueDate, dealer.termsDays),
-        subtotalCents: totals.subtotalCents,
-        taxBps: dealer.taxBps,
-        taxCents: totals.taxCents,
-        totalCents: totals.totalCents,
-        notes: data.notes,
-        createdBy: actorId,
-        snapshot: {
-          code: dealer.code,
-          name: dealer.name,
-          billingAddress: dealer.billingAddress,
-          phone: dealer.phone,
-          contacts: [
-            ...dealer.contacts.map((c) => ({
-              name: c.name,
-              email: c.email,
-              phone: c.phone,
-              purpose: c.purpose,
-            })),
-            ...(dealer.email &&
-            !dealer.contacts.some((c) => c.email.toLowerCase() === dealer.email.toLowerCase())
-              ? [
-                  {
-                    name: dealer.name,
-                    email: dealer.email,
-                    phone: dealer.phone,
-                    purpose: "Billing",
-                  },
-                ]
-              : []),
-          ],
-          termsDays: dealer.termsDays,
-          defaultRateCents: dealer.defaultRateCents,
-          taxBps: dealer.taxBps,
-          termsReference: dealer.termsReference,
-          termsAuthorizedBy: dealer.termsAuthorizedBy,
-          termsAuthorizedAt: dealer.termsAuthorizedAt.toISOString(),
-        },
-        lines: {
-          create: services.map((s, i) => ({
-            serviceId: s.id,
-            date: s.date,
-            description: s.description,
-            quantity: s.quantity,
-            unitCents: s.unitCents,
-            amountCents: totals.amounts[i],
-          })),
-        },
-      },
-    });
-    await tx.dealerService.updateMany({
-      where: { id: { in: data.serviceIds } },
-      data: { invoiceId: row.id },
-    });
-    await audit(tx, actorId, "DEALER_INVOICE_DRAFT", row.id, {
-      number: row.number,
-      serviceIds: data.serviceIds,
-      totalCents: row.totalCents,
-    });
-    return row;
+  currentPast(data.issueDate);
+  const dealer = await tx.dealership.findUnique({
+    where: { id: data.dealershipId },
+    include: { contacts: { where: { active: true }, orderBy: { createdAt: "asc" } } },
   });
+  requireRule(
+    dealer?.active &&
+      dealer.termsAuthorizedAt &&
+      dealer.termsDays !== null &&
+      dealer.taxBps !== null,
+    "Owner-authorized terms and tax settings are required.",
+  );
+  requireRule(
+    !(await tx.dealerInvoice.count({ where: { number: data.number } })),
+    "Invoice number already exists.",
+  );
+  const services = await tx.dealerService.findMany({
+    where: {
+      id: { in: data.serviceIds },
+      dealershipId: dealer.id,
+      invoiceId: null,
+      voidDate: null,
+      date: { lte: data.issueDate },
+    },
+    orderBy: [{ date: "asc" }, { id: "asc" }],
+  });
+  requireRule(
+    services.length === data.serviceIds.length,
+    "A service changed, is already billed, or is after the issue date. Refresh and review.",
+  );
+  await assertBillingHistory(tx, data.serviceIds, data.issueDate);
+  const totals = invoiceTotals(services, dealer.taxBps);
+  const row = await tx.dealerInvoice.create({
+    data: {
+      dealershipId: dealer.id,
+      number: data.number,
+      issueDate: data.issueDate,
+      dueDate: addDays(data.issueDate, dealer.termsDays),
+      subtotalCents: totals.subtotalCents,
+      taxBps: dealer.taxBps,
+      taxCents: totals.taxCents,
+      totalCents: totals.totalCents,
+      notes: data.notes,
+      createdBy: actorId,
+      snapshot: {
+        code: dealer.code,
+        name: dealer.name,
+        billingAddress: dealer.billingAddress,
+        phone: dealer.phone,
+        contacts: [
+          ...dealer.contacts.map((c) => ({
+            name: c.name,
+            email: c.email,
+            phone: c.phone,
+            purpose: c.purpose,
+          })),
+          ...(dealer.email &&
+          !dealer.contacts.some((c) => c.email.toLowerCase() === dealer.email.toLowerCase())
+            ? [
+                {
+                  name: dealer.name,
+                  email: dealer.email,
+                  phone: dealer.phone,
+                  purpose: "Billing",
+                },
+              ]
+            : []),
+        ],
+        termsDays: dealer.termsDays,
+        defaultRateCents: dealer.defaultRateCents,
+        taxBps: dealer.taxBps,
+        termsReference: dealer.termsReference,
+        termsAuthorizedBy: dealer.termsAuthorizedBy,
+        termsAuthorizedAt: dealer.termsAuthorizedAt.toISOString(),
+      },
+      lines: {
+        create: services.map((s, i) => ({
+          serviceId: s.id,
+          date: s.date,
+          description: s.description,
+          quantity: s.quantity,
+          unitCents: s.unitCents,
+          amountCents: totals.amounts[i],
+        })),
+      },
+    },
+  });
+  await tx.dealerService.updateMany({
+    where: { id: { in: data.serviceIds } },
+    data: { invoiceId: row.id },
+  });
+  await audit(tx, actorId, "DEALER_INVOICE_DRAFT", row.id, {
+    number: row.number,
+    serviceIds: data.serviceIds,
+    totalCents: row.totalCents,
+  });
+  return row;
 }
 export async function reviewInvoice(actorId: string, input: unknown) {
   const data = z
@@ -638,6 +641,19 @@ export async function dealerDetail(actorId: string, key: string) {
           include: { invoice: { select: { id: true, number: true } } },
         },
         invoices: { orderBy: { createdAt: "desc" }, take: 100, include: { payments: true } },
+        virRecords: {
+          orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+          take: 100,
+          select: {
+            id: true,
+            date: true,
+            certificate: true,
+            testNumber: true,
+            outcome: true,
+            billing: true,
+            serviceId: true,
+          },
+        },
       },
     }),
     demo: (await tx.employee.count({ where: { demo: true } })) > 0,

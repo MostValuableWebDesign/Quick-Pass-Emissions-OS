@@ -1,0 +1,229 @@
+import { randomUUID } from "node:crypto";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import type { PrismaClient } from "@prisma/client";
+import { addDays, businessDate } from "../src/lib/time";
+import { parseVirPage, type StoredVirRow } from "../src/modules/finance/dealer-vir-parser";
+import type {
+  DealerVirCommitInput,
+  DealerVirPreview,
+} from "../src/modules/finance/dealer-vir-types";
+
+const enabled = !!process.env.TEST_DATABASE_URL;
+if (enabled) {
+  if (!new URL(process.env.TEST_DATABASE_URL!).pathname.endsWith("_test"))
+    throw Error("Use an isolated test database.");
+  process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+}
+
+(enabled ? describe : describe.skip)("reviewed dealership VIR billing", () => {
+  let db: PrismaClient;
+  let service: typeof import("../src/modules/finance/dealer-vir-service");
+  let owner: string;
+  let dealer: string;
+  const today = businessDate();
+  const past = addDays(today, -40);
+  beforeAll(async () => {
+    db = (await import("../src/lib/db")).db;
+    service = await import("../src/modules/finance/dealer-vir-service");
+    process.env.GA_STATION_ID = "VIR_FIXTURE";
+  });
+  beforeEach(async () => {
+    await db.$executeRawUnsafe('TRUNCATE "Dealership", "StationImport", "User" CASCADE');
+    owner = (
+      await db.user.create({
+        data: { name: "VIR fixture owner", email: `${randomUUID()}@example.test`, role: "OWNER" },
+      })
+    ).id;
+    dealer = (
+      await db.dealership.create({
+        data: {
+          code: randomUUID(),
+          name: "VIR fixture dealership",
+          billingAddress: "Fixture only",
+          defaultRateCents: 2000,
+          termsDays: 30,
+          taxBps: 0,
+          termsAuthorizedAt: new Date(),
+          termsAuthorizedBy: owner,
+          termsReference: "Fixture owner-authorized terms",
+        },
+      })
+    ).id;
+  });
+  afterAll(async () => {
+    await db?.$disconnect();
+  });
+
+  function row(
+    cert = "ZZ123456",
+    date = past,
+    minute = 600,
+    vin = "1M8GDM9AXKP042788",
+  ): StoredVirRow {
+    const [year, month, day] = date.split("-");
+    const parsed = parseVirPage(
+      `GEORGIA VEHICLE EMISSIONS INSPECTION REPORT OVERALL TEST RESULT: PASS CERTIFICATE NUMBER: ${cert}
+      Test Date/Time: ${month}/${day}/${year} @ ${Math.floor(minute / 60)}:${String(minute % 60).padStart(2, "0")}
+      Test Type: Initial Test Fee: $20.00 VIN: ${vin}`,
+      "PDF 1 · Page 1",
+      "TEXT",
+    );
+    return parsed;
+  }
+  async function preview(rows: StoredVirRow[]) {
+    const key = await service.beginDealerVirUpload(owner, dealer);
+    return service.finishDealerVirUpload(owner, key, rows);
+  }
+  function commit(
+    p: DealerVirPreview,
+    billing: "BILL" | "FREE" | "EXCLUDE" = "BILL",
+    draft = true,
+  ): DealerVirCommitInput {
+    return {
+      uploadId: p.uploadId,
+      dealershipId: dealer,
+      createDraft: draft,
+      issueDate: today,
+      invoiceNumber: "",
+      rows: p.rows.map((r) => ({
+        id: r.id,
+        date: r.date,
+        certificate: r.certificate,
+        testNumber: r.testNumber,
+        outcome: r.outcome,
+        testType: r.testType,
+        billing,
+        confirmed: true,
+      })),
+    };
+  }
+  it("makes one grouped service and a draft with exact count, rate, due date and persistent report breakdown", async () => {
+    const p = await preview([row(), row("ZZ123457", past, 620, "1M8GDM9AXKP042789")]);
+    expect(JSON.stringify(p)).not.toContain("vinHash");
+    expect(JSON.stringify(p)).not.toContain("sourceKey");
+    const result = await service.commitDealerVirUpload(owner, commit(p));
+    expect(result).toMatchObject({ saved: 2, billable: 2, free: 0, skipped: 0 });
+    const invoice = await db.dealerInvoice.findUniqueOrThrow({
+      where: { id: result.invoiceId! },
+      include: { lines: true },
+    });
+    expect(invoice).toMatchObject({
+      state: "DRAFT",
+      subtotalCents: 4000,
+      taxCents: 0,
+      totalCents: 4000,
+      dueDate: addDays(today, 30),
+    });
+    expect(invoice.lines).toHaveLength(1);
+    expect(invoice.lines[0]).toMatchObject({ quantity: 2, unitCents: 2000, amountCents: 4000 });
+    expect(await db.dealerVirRecord.count()).toBe(2);
+    const upload = await db.dealerVirUpload.findUniqueOrThrow({ where: { id: p.uploadId } });
+    expect(upload.rows).toEqual([]);
+  });
+  it("returns the prior result on a repeated save without another invoice", async () => {
+    const p = await preview([row()]);
+    const first = await service.commitDealerVirUpload(owner, commit(p));
+    expect(await service.commitDealerVirUpload(owner, commit(p))).toEqual(first);
+    expect(await db.dealerInvoice.count()).toBe(1);
+  });
+  it("prevents repeat PDF imports and matching certificate imports across dealership accounts", async () => {
+    await service.commitDealerVirUpload(owner, commit(await preview([row()])));
+    const otherDealer = await db.dealership.create({
+      data: { code: randomUUID(), name: "Other fixture", billingAddress: "Fixture" },
+    });
+    const key = await service.beginDealerVirUpload(owner, otherDealer.id);
+    const p = await service.finishDealerVirUpload(owner, key, [row()]);
+    expect(p.rows[0].duplicate).toBe(true);
+    await expect(
+      service.commitDealerVirUpload(owner, { ...commit(p), dealershipId: otherDealer.id }),
+    ).rejects.toThrow("Duplicates");
+    expect(await db.dealerInvoice.count()).toBe(1);
+  });
+  it("skips a duplicate inside the batch without double-counting it", async () => {
+    const p = await preview([row(), row()]);
+    expect(p.rows[1].duplicate).toBe(true);
+    expect(await service.commitDealerVirUpload(owner, commit(p))).toMatchObject({
+      saved: 1,
+      skipped: 1,
+      billable: 1,
+    });
+  });
+  it("protects source identity even if a reviewer changes the certificate on a repeat upload", async () => {
+    await service.commitDealerVirUpload(owner, commit(await preview([row()])));
+    const p = await preview([row()]);
+    const input = commit(p);
+    input.rows[0].certificate = "ZZ999999";
+    await expect(service.commitDealerVirUpload(owner, input)).rejects.toThrow("Duplicates");
+  });
+  it("excludes a 30-day repeated VIN but allows a repeat after 30 days", async () => {
+    const base = addDays(today, -70);
+    await service.commitDealerVirUpload(owner, commit(await preview([row("ZZ123456", base)])));
+    const free = await preview([row("ZZ123458", addDays(base, 30))]);
+    expect(free.rows[0].freeRetest).toBe(true);
+    await expect(service.commitDealerVirUpload(owner, commit(free))).rejects.toThrow("free retest");
+    await service.commitDealerVirUpload(owner, commit(free, "FREE", false));
+    // Most recent occurrence, including free inspections, is the comparison point.
+    const paid = await preview([row("ZZ123459", addDays(base, 61))]);
+    expect(paid.rows[0].freeRetest).toBe(false);
+  });
+  it("detects same-day free repeats from an earlier uploaded inspection", async () => {
+    await service.commitDealerVirUpload(owner, commit(await preview([row()])));
+    const p = await preview([row("ZZ123458", past, 650)]);
+    expect(p.rows[0].freeRetest).toBe(true);
+  });
+  it("stores free inspections without creating services or an invoice", async () => {
+    const p = await preview([{ ...row(), feeCents: 0, freeRetest: true }]);
+    const result = await service.commitDealerVirUpload(owner, commit(p, "FREE", false));
+    expect(result).toMatchObject({ free: 1, billable: 0, invoiceId: null });
+    expect(await db.dealerService.count()).toBe(0);
+  });
+  it("requires every included row to be explicitly reviewed", async () => {
+    const p = await preview([row()]);
+    const input = commit(p);
+    input.rows[0].confirmed = false;
+    await expect(service.commitDealerVirUpload(owner, input)).rejects.toThrow("Confirm");
+    expect(await db.dealerService.count()).toBe(0);
+  });
+  it("rolls back services and VIR records when invoice creation fails", async () => {
+    const p1 = await preview([row()]);
+    const input1 = { ...commit(p1), invoiceNumber: "EXISTING" };
+    await service.commitDealerVirUpload(owner, input1);
+    const p2 = await preview([row("ZZ123458", past, 650, "1M8GDM9AXKP042790")]);
+    await expect(
+      service.commitDealerVirUpload(owner, { ...commit(p2), invoiceNumber: "EXISTING" }),
+    ).rejects.toThrow("already exists");
+    expect(await db.dealerService.count()).toBe(1);
+    expect(await db.dealerVirRecord.count()).toBe(1);
+    expect(
+      (await db.dealerVirUpload.findUniqueOrThrow({ where: { id: p2.uploadId } })).status,
+    ).toBe("REVIEW");
+  });
+  it("rejects stale billing settings rather than silently charging a changed rate", async () => {
+    const p = await preview([row()]);
+    await db.dealership.update({
+      where: { id: dealer },
+      data: { defaultRateCents: 3000, version: { increment: 1 } },
+    });
+    await expect(service.commitDealerVirUpload(owner, commit(p))).rejects.toThrow(
+      "billing settings changed",
+    );
+  });
+  it("blocks expired uploads and access to another user's preview", async () => {
+    const p = await preview([row()]);
+    const second = await db.user.create({
+      data: { name: "Other owner", email: `${randomUUID()}@example.test`, role: "OWNER" },
+    });
+    await expect(service.commitDealerVirUpload(second.id, commit(p))).rejects.toThrow("not found");
+    await db.dealerVirUpload.update({
+      where: { id: p.uploadId },
+      data: { expiresAt: new Date(0) },
+    });
+    await expect(service.commitDealerVirUpload(owner, commit(p))).rejects.toThrow("expired");
+  });
+  it("does not let staff without finance privileges upload or commit billing data", async () => {
+    const employee = await db.user.create({
+      data: { name: "No finance", email: `${randomUUID()}@example.test`, role: "EMPLOYEE" },
+    });
+    await expect(service.beginDealerVirUpload(employee.id, dealer)).rejects.toThrow("permission");
+  });
+});

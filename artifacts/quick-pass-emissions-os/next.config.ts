@@ -19,6 +19,7 @@ const config: NextConfig = {
       "node_modules/tesseract.js/src/**/*",
       "node_modules/tesseract.js-core/**/*",
       "node_modules/@tesseract.js-data/eng/**/*",
+      "public/images/invoice-dealerships/*.png",
     ],
   },
   // Runtime backup paths must never cause private sources/archives to enter server bundles.

@@ -20,3 +20,15 @@ Dealership VIR uploads should tally inspections and prepare draft invoices. The 
 **Why:** The sample's embedded text was unreliable; the user explicitly selected scan recognition with review instead of rejecting scanned reports.
 
 **How to apply:** Keep OCR local and require reviewed fields before billing. Use the dealership's authorized rate rather than treating a printed test fee as its contracted price. Uploading a report is not authorization to approve, send or collect payment.
+
+VIR uploads must show upload and processed counts and automatically process larger submissions in sequential batches of no more than 40 VIRs.
+
+**Why:** The user explicitly requested visible counts and automatic splitting above 40 reports.
+
+**How to apply:** Preserve the full-upload tally across batch boundaries and distinguish processed pages from billable inspections; free or excluded reports must not disappear from processing counts.
+
+Dealership invoices should be tailored to each recipient using their official website branding, while Quick Pass remains clearly identified as the invoice issuer.
+
+**Why:** The user asked for dealership-specific invoice designs referenced from their five partner websites. Customer branding must not imply that the dealership issued the invoice.
+
+**How to apply:** Use reviewed local branding assets, not live website requests during PDF creation. Public contact information is not permission to overwrite saved billing contacts, addresses, rates, payment instructions or terms.

@@ -9,6 +9,7 @@ import { DemoNotice, RecordId, Money } from "@/components/phase3";
 import { PaymentFields, ReviewFields } from "@/components/finance";
 import { InvoiceEmailComposer } from "@/components/invoice-email-composer";
 import { invoiceSnapshotSchema } from "@/modules/finance/invoice-document";
+import { InvoiceCustomerBrand } from "@/components/invoice-customer-brand";
 import * as actions from "@/app/phase4-actions";
 export default async function Invoice({ params }: { params: Promise<{ id: string }> }) {
   const actor = await currentUser(),
@@ -31,16 +32,12 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
       <DemoNotice demo={data.demo} />
       <section className="card card-body">
         <h2>Billing snapshot</h2>
-        <h3>
-          {snap.name}
-        </h3>
-        <p>{snap.billingAddress}</p>
-        {snap.phone && <p>{snap.phone}</p>}
-        {snap.contacts.map((c, n) => (
-          <p key={n}>
-            {c.name} · {c.purpose} · {c.email || c.phone}
-          </p>
-        ))}
+        <InvoiceCustomerBrand
+          name={snap.name}
+          billingAddress={snap.billingAddress}
+          phone={snap.phone}
+          contacts={snap.contacts}
+        />
         <p>
           Terms: net {snap.termsDays} days · {snap.termsReference}
         </p>

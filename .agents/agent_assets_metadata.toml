@@ -210,3 +210,17 @@ mtime_ms = 1792244649651
 storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/2e99df2d-3195-4608-a8ae-9981c94935ea/6fc39a83-3ecb-43ab-88e3-1ae7a6c1df86"
 storage_version_token = "1792244725423157"
 content_type = "image/png"
+
+[[outputs]]
+id = "eJ1ypSFEfOMTFCHyhd3eE"
+uri = "file://generated-artifacts/dealership-invoice-designs/dealership-invoice-samples.pdf"
+type = "pdf"
+title = "Five dealership invoice designs"
+description = "Demonstration-only samples for Turn & Burn, Conyers Nissan, Byrider Conyers, Apex Autos and Top Deals Automotive. These are not real invoices."
+logical_id = "8da4b41f-4fcc-40f4-b1b5-cb828608bde9"
+content_hash = "sha256:4791ae17f1a8dc808769f2511acde952e02853ebd09ed8ea460ca8f740e28c95"
+size = 124965
+mtime_ms = 1794871353436
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:5a9db794-2477-4577-a452-8c2361a636ab/8da4b41f-4fcc-40f4-b1b5-cb828608bde9/1823e175-c66b-40e9-9096-d3801de2e3f0"
+storage_version_token = "1794871366144602"
+content_type = "application/pdf"

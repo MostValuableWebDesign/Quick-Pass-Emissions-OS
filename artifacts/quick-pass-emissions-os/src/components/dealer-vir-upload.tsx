@@ -98,7 +98,15 @@ export function DealerVirUpload({
   const [createDraft, setCreateDraft] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [issueDate, setIssueDate] = useState(today());
-  const [result, setResult] = useState<(DealerVirResult & { dealershipId: string }) | null>(null);
+  const [result, setResult] = useState<
+    | (DealerVirResult & {
+        dealershipId: string;
+        fileCount: number;
+        processedPages: number;
+        uploadedPages: number;
+      })
+    | null
+  >(null);
 
   useEffect(() => {
     if (!busy) return;
@@ -336,7 +344,13 @@ export function DealerVirUpload({
         issueDate: draftOn ? issueDate : preview.issueDate,
       });
       if (!res.ok) return setError(res.message);
-      setResult({ ...res.data, dealershipId: preview.dealershipId });
+      setResult({
+        ...res.data,
+        dealershipId: preview.dealershipId,
+        fileCount: preview.fileCount,
+        processedPages: preview.processedPages,
+        uploadedPages: preview.uploadedPages,
+      });
       dialog.current?.close();
       router.refresh();
     } catch {
@@ -384,8 +398,10 @@ export function DealerVirUpload({
         <div className="vir-result" role="status" data-testid="status-vir-result">
           <CheckCircle2 size={18} aria-hidden="true" />
           <p>
-            Saved {result.saved} reviewed inspection{result.saved === 1 ? "" : "s"} ·{" "}
-            {result.billable} billable · {result.free} free · {result.skipped} skipped.{" "}
+            {result.fileCount} PDF{result.fileCount === 1 ? "" : "s"} uploaded ·{" "}
+            {result.processedPages} / {result.uploadedPages} VIR pages processed. Saved{" "}
+            {result.saved} reviewed inspection{result.saved === 1 ? "" : "s"} · {result.billable}{" "}
+            billable · {result.free} free · {result.skipped} skipped.{" "}
             {result.invoiceId ? (
               <a href={`/invoices/${result.invoiceId}`}>
                 Open invoice draft {result.invoiceNumber ?? ""}
@@ -445,7 +461,11 @@ export function DealerVirUpload({
                   <span>Dealership</span>
                   <select
                     value={dealer}
-                    onChange={(e) => setDealer(e.target.value)}
+                    onChange={(e) => {
+                      setDealer(e.target.value);
+                      setFiles([]);
+                      if (fileInput.current) fileInput.current.value = "";
+                    }}
                     required
                     disabled={!!busy}
                     data-testid="select-vir-dealer"
@@ -459,12 +479,13 @@ export function DealerVirUpload({
                   </select>
                 </label>
               )}
-              <label className="vir-drop">
+              <label className={`vir-drop${dealer ? "" : " is-disabled"}`} aria-disabled={!dealer}>
                 <FileUp size={22} aria-hidden="true" />
                 <strong>Choose vehicle inspection report PDFs</strong>
                 <span>
-                  Up to 100 PDFs · 150 MB combined · 1,000 pages, processed in batches of up to 40
-                  VIRs
+                  {dealer
+                    ? "Up to 100 PDFs · 150 MB combined · 1,000 pages, processed in batches of up to 40 VIRs"
+                    : "Select an active dealership first"}
                 </span>
                 <input
                   ref={fileInput}
@@ -472,7 +493,7 @@ export function DealerVirUpload({
                   name="reports"
                   accept="application/pdf,.pdf"
                   multiple
-                  disabled={!!busy}
+                  disabled={!!busy || !dealer}
                   onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
                   data-testid="input-vir-files"
                 />

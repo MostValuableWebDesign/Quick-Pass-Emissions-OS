@@ -1,19 +1,60 @@
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, PDFName, PDFRawStream } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 import { createInvoicePdf } from "@/modules/finance/invoice-pdf";
 import { invoiceSnapshotSchema, type InvoicePdfDetails } from "@/modules/finance/invoice-document";
+import { dealershipInvoiceBrands } from "@/modules/finance/dealership-invoice-branding";
+import { invoiceDesignFixture } from "./fixtures/invoice-design";
+
+async function pdfText(bytes: Uint8Array) {
+  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const task = getDocument({ data: new Uint8Array(bytes), verbosity: 0 });
+  try {
+    const document = await task.promise;
+    const pages = [];
+    for (let index = 1; index <= document.numPages; index++) {
+      const page = await document.getPage(index);
+      const content = await page.getTextContent();
+      pages.push(content.items.flatMap((item) => ("str" in item ? [item.str] : [])).join(" "));
+    }
+    return pages.join(" ");
+  } finally {
+    await task.destroy();
+  }
+}
 
 const invoicePdfFixture: InvoicePdfDetails = {
-  number: "INV-104", status: "APPROVED", issueDate: "2026-10-01", dueDate: "2026-10-20",
+  number: "INV-104",
+  status: "APPROVED",
+  issueDate: "2026-10-01",
+  dueDate: "2026-10-20",
   snapshot: {
-    name: "Fixture Motors", code: "INTERNAL", phone: "555-0100", billingAddress: "100 Fixture Avenue",
-    termsDays: 19, termsReference: "Fixture terms",
-    contacts: [{ name: "Fixture Billing", email: "billing@example.test", phone: "", purpose: "Invoices" }],
+    name: "Fixture Motors",
+    code: "INTERNAL",
+    phone: "555-0100",
+    billingAddress: "100 Fixture Avenue",
+    termsDays: 19,
+    termsReference: "Fixture terms",
+    contacts: [
+      { name: "Fixture Billing", email: "billing@example.test", phone: "", purpose: "Invoices" },
+    ],
   },
   notes: "Thank you for your business.",
   demo: false,
-  lines: [{ date: "2026-10-01", description: "Emissions inspections", quantity: 5, unitCents: 2000, amountCents: 10000 }],
-  subtotalCents: 10000, taxBps: 0, taxCents: 0, totalCents: 10000, paidCents: 2000, remainingCents: 8000,
+  lines: [
+    {
+      date: "2026-10-01",
+      description: "Emissions inspections",
+      quantity: 5,
+      unitCents: 2000,
+      amountCents: 10000,
+    },
+  ],
+  subtotalCents: 10000,
+  taxBps: 0,
+  taxCents: 0,
+  totalCents: 10000,
+  paidCents: 2000,
+  remainingCents: 8000,
 };
 
 describe("invoice PDF generation", () => {
@@ -29,10 +70,15 @@ describe("invoice PDF generation", () => {
     const bytes = await createInvoicePdf({
       ...invoicePdfFixture,
       lines: Array.from({ length: 100 }, (_, index) => ({
-        date: "2026-10-01", description: `Completed emissions inspection group ${index + 1}. Additional service description for billing review.`,
-        quantity: 1, unitCents: 2000, amountCents: 2000,
+        date: "2026-10-01",
+        description: `Completed emissions inspection group ${index + 1}. Additional service description for billing review.`,
+        quantity: 1,
+        unitCents: 2000,
+        amountCents: 2000,
       })),
-      subtotalCents: 200000, totalCents: 200000, remainingCents: 198000,
+      subtotalCents: 200000,
+      totalCents: 200000,
+      remainingCents: 198000,
       notes: "Retained billing notes. ".repeat(80),
     });
     expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThan(2);
@@ -41,5 +87,70 @@ describe("invoice PDF generation", () => {
   it("reads historical snapshots without the newly added dealership phone field", () => {
     const historical = { ...invoicePdfFixture.snapshot, phone: undefined };
     expect(invoiceSnapshotSchema.parse(historical).phone).toBe("");
+  });
+
+  it.each(dealershipInvoiceBrands)(
+    "embeds $displayName branding without changing billing details or totals",
+    async (brand) => {
+      const fixture = {
+        ...invoiceDesignFixture(brand.displayName),
+        // Use non-demo financial amounts to ensure customer styling cannot change calculations.
+        status: "APPROVED",
+        demo: false,
+        paidCents: 10000,
+        remainingCents: 40000,
+      };
+      const original = structuredClone(fixture);
+      const bytes = await createInvoicePdf(fixture);
+      expect(fixture).toEqual(original);
+      const document = await PDFDocument.load(bytes);
+      const images = document.context
+        .enumerateIndirectObjects()
+        .filter(
+          ([, object]) =>
+            object instanceof PDFRawStream &&
+            object.dict.get(PDFName.of("Subtype")) === PDFName.of("Image"),
+        );
+      expect(images.length).toBeGreaterThan(0);
+      const text = await pdfText(bytes);
+      for (const expected of [
+        "QUICK PASS",
+        brand.displayName,
+        fixture.snapshot.billingAddress,
+        "billing@example.test",
+        "SAMPLE-104",
+        "$500.00",
+        "$100.00",
+        "$400.00",
+      ])
+        expect(text.toUpperCase()).toContain(expected.toUpperCase());
+      expect(document.getPages()[0].getSize()).toEqual({ width: 612, height: 792 });
+    },
+  );
+
+  it("keeps a branded long invoice readable across pages with each service retained", async () => {
+    const fixture = invoiceDesignFixture("Top Deals Automotive LLC");
+    fixture.lines = Array.from({ length: 75 }, (_, index) => ({
+      date: "2026-11-12",
+      description: `Distinct inspection group ${index + 1}`,
+      quantity: 1,
+      unitCents: 2000,
+      amountCents: 2000,
+    }));
+    fixture.subtotalCents = fixture.totalCents = 150000;
+    fixture.snapshot.contacts = Array.from({ length: 8 }, (_, index) => ({
+      name: `Billing contact ${index + 1}`,
+      email: `contact${index + 1}@example.test`,
+      phone: "",
+      purpose: "Invoice administration",
+    }));
+    const bytes = await createInvoicePdf(fixture);
+    const document = await PDFDocument.load(bytes);
+    expect(document.getPageCount()).toBeGreaterThan(1);
+    const text = await pdfText(bytes);
+    expect(text).toContain("Distinct inspection group 1");
+    expect(text).toContain("Distinct inspection group 75");
+    expect(text).toContain("$1,500.00");
+    expect(text.toUpperCase()).toContain("DRAFT");
   });
 });

@@ -3668,3 +3668,19 @@ textarea:focus-visible {
     min-height: 44px;
   }
 }
+
+/* Invoice bill-to dealership identity */
+.billto { position: relative; display: grid; gap: 0.9rem; margin: 0.75rem 0 1rem; padding: 1.1rem 1.25rem 1rem 1.5rem; background: var(--bt-tint); border: 1px solid color-mix(in srgb, var(--bt-heading) 12%, transparent); border-radius: 10px; overflow: hidden; }
+.billto::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--bt-accent); }
+.billto-main { display: grid; gap: 0.3rem; min-width: 0; }
+.billto-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--bt-heading); }
+.billto-logo { display: inline-flex; align-items: center; justify-content: center; justify-self: start; padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--bt-heading) 14%, transparent); margin: 0.25rem 0 0.35rem; max-width: 100%; }
+.billto-logo img { display: block; max-height: 44px; max-width: min(200px, 100%); width: auto; height: auto; object-fit: contain; }
+.billto-name { margin: 0; font-size: 1.3rem; line-height: 1.2; color: var(--bt-heading); overflow-wrap: anywhere; }
+.billto-address { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+.billto-site { font-size: 0.8rem; color: var(--bt-heading); opacity: 0.75; justify-self: start; }
+.billto-contacts { list-style: none; margin: 0; padding: 0.7rem 0 0; border-top: 1px solid color-mix(in srgb, var(--bt-heading) 14%, transparent); display: grid; gap: 0.35rem; }
+.billto-contacts li { display: grid; grid-template-columns: minmax(0, 12rem) 1fr; gap: 0.75rem; font-size: 0.875rem; overflow-wrap: anywhere; }
+.billto-contacts span { opacity: 0.75; }
+.billto-issuer { margin: 0; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.6; }
+@media (max-width: 640px) { .billto-contacts li { grid-template-columns: 1fr; gap: 0.1rem; } }

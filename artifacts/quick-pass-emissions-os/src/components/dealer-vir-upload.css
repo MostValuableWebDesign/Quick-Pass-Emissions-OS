@@ -42,6 +42,15 @@
 .vir-block {
   color: var(--danger);
 }
+.vir-upload-summary {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.vir-upload-summary strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
 .vir-block {
   margin: 0;
   font-size: 13px;

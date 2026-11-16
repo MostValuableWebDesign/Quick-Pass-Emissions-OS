@@ -3,13 +3,17 @@ import { requireRule } from "../phase4";
 import { parseVirPage, type StoredVirRow } from "./dealer-vir-parser";
 
 // PDF parsing/OCR runs locally. No source bytes or text are logged or persisted.
-export async function extractDealerVirs(files: File[]): Promise<StoredVirRow[]> {
+export async function extractDealerVirs(
+  files: File[],
+  sourceLabels: string[] = [],
+): Promise<StoredVirRow[]> {
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const { createWorker } = await import("tesseract.js");
   let worker: Awaited<ReturnType<typeof createWorker>> | undefined;
   const rows: StoredVirRow[] = [];
   const started = Date.now();
   try {
+    let pageIndex = 0;
     for (const [fileIndex, file] of files.entries()) {
       const bytes = new Uint8Array(await file.arrayBuffer());
       requireRule(
@@ -39,7 +43,7 @@ export async function extractDealerVirs(files: File[]): Promise<StoredVirRow[]> 
             .filter((item) => "str" in item)
             .map((item) => item.str)
             .join(" ");
-          const source = `PDF ${fileIndex + 1} · Page ${pageNumber}`;
+          const source = sourceLabels[pageIndex] ?? `PDF ${fileIndex + 1} · Page ${pageNumber}`;
           let row = parseVirPage(text, source, "TEXT");
           // Even a scan with a text layer may have OCR-corrupted dates or identifiers.
           if (
@@ -96,12 +100,18 @@ export async function extractDealerVirs(files: File[]): Promise<StoredVirRow[]> 
             }
           }
           rows.push(row);
+          pageIndex++;
           page.cleanup();
         }
       } finally {
         await task.destroy();
       }
     }
+    if (sourceLabels.length)
+      requireRule(
+        sourceLabels.length === rows.length,
+        "The processed batch page labels do not match its report pages.",
+      );
     return rows;
   } finally {
     await worker?.terminate();

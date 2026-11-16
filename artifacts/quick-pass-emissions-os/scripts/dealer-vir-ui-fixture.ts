@@ -38,6 +38,9 @@ async function main() {
       await tx.dealerVirRecord.deleteMany({
         where: { dealershipId: registry.dealerId, createdBy: registry.ownerId },
       });
+      await tx.dealerVirChunk.deleteMany({
+        where: { upload: { dealershipId: registry.dealerId, createdBy: registry.ownerId } },
+      });
       await tx.dealerVirUpload.deleteMany({
         where: { dealershipId: registry.dealerId, createdBy: registry.ownerId },
       });
@@ -131,28 +134,34 @@ async function main() {
   const cert = `ZX${String(Math.floor(Math.random() * 900000) + 100000)}`;
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
-  for (const [index, values] of [
-    [0, { cert, type: "Initial", fee: "$20.00", test: "91106999991" }],
-    [1, { cert: "RETEST", type: "Retest", fee: "$0.00", test: "91106999992" }],
-  ] as const) {
+  for (let index = 0; index < 41; index++) {
+    const isRetest = index === 40;
+    const values = {
+      cert: isRetest ? "RETEST" : index === 0 ? cert : `ZX${String(300000 + index)}`,
+      type: isRetest ? "Retest" : "Initial",
+      fee: isRetest ? "$0.00" : "$20.00",
+      test: String(91106999000 + index),
+      vin: isRetest ? "1M8GDM9AXKP000000" : `1M8GDM9AXKP${String(index).padStart(6, "0")}`,
+    };
     const page = pdf.addPage([612, 792]);
     const lines = [
       "GEORGIA VEHICLE EMISSIONS INSPECTION REPORT",
       "SYNTHETIC VERIFICATION ONLY",
       "OVERALL TEST RESULT: PASS",
       `CERTIFICATE NUMBER: ${values.cert}`,
-      `Test Date/Time: ${month}/${day}/${year} @ ${index + 10}:00`,
+      `Test Date/Time: ${month}/${day}/${year} @ ${index === 40 ? "08:40" : "08:00"}`,
       `Test Type: ${values.type}`,
       `Test Fee: ${values.fee}`,
+      `VIN: ${values.vin}`,
       `Test ID: ${values.test}`,
     ];
-    lines.forEach((line, i) => page.drawText(line, { x: 40, y: 720 - i * 45, size: 14, font }));
+    lines.forEach((line, i) => page.drawText(line, { x: 40, y: 720 - i * 38, size: 13, font }));
   }
-  // Rasterize the second page so the real browser flow exercises local OCR.
+  // Rasterize page 41 so the real browser flow exercises local OCR in its second batch.
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const task = getDocument({ data: await pdf.save(), verbosity: 0 });
   const doc = await task.promise;
-  const page = await doc.getPage(2);
+  const page = await doc.getPage(41);
   const viewport = page.getViewport({ scale: 1.5 });
   const factory = doc.canvasFactory as {
     create(
@@ -167,7 +176,7 @@ async function main() {
   const canvas = factory.create(Math.ceil(viewport.width), Math.ceil(viewport.height));
   await page.render({ viewport, canvas: canvas.canvas, canvasContext: canvas.context }).promise;
   const image = await pdf.embedPng(canvas.canvas.toBuffer("image/png"));
-  pdf.removePage(1);
+  pdf.removePage(40);
   pdf.addPage([612, 792]).drawImage(image, { x: 0, y: 0, width: 612, height: 792 });
   factory.destroy(canvas);
   await task.destroy();
@@ -180,12 +189,12 @@ async function main() {
       certificate: cert,
       pdfPath: resolve(folder, "fixture-virs.pdf"),
       statePath: resolve(folder, "browser-state.json"),
-      expected: { reports: 2, billable: 1, free: 1, totalCents: 2000 },
+      expected: { reports: 41, billable: 40, free: 1, totalCents: 80000, batches: 2 },
     }),
     { mode: 0o600 },
   );
   console.log(
-    "Prepared two synthetic VIR pages and a private native-authenticated browser session. No existing records were changed.",
+    "Prepared 41 synthetic VIR pages and a private native-authenticated browser session. No existing records were changed.",
   );
 }
 

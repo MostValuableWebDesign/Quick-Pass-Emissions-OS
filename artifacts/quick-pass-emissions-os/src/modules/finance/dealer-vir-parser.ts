@@ -57,7 +57,8 @@ export function parseVirPage(
   const feeMatch = normalized.match(/Test\s*Fee\s*:\s*[$S]?\s*(\d{1,3})[.,](\d{2})/i);
   const feeCents = feeMatch ? Number(feeMatch[1]) * 100 + Number(feeMatch[2]) : null;
   const vin = normalized.match(/\bVIN\s*:\s*([A-Z0-9]{17})\b/i)?.[1].toUpperCase() ?? null;
-  const certificate = cleanVirIdentifier(certMatch?.[1] ?? "");
+  const rawCertificate = cleanVirIdentifier(certMatch?.[1] ?? "");
+  const certificate = rawCertificate === "RETEST" ? "" : rawCertificate;
   const testNumber = cleanVirIdentifier(testMatch?.[1] ?? "");
   const testType = testTypeMatch
     ? /initial/i.test(testTypeMatch)
@@ -96,7 +97,7 @@ export function parseVirPage(
     vinHash: vin ? hash(vin) : null,
     reportKey: virReportKey(certificate, testNumber),
     minute,
-    sourceKey: hash(`VIR:PAGE:${normalized}`),
+    sourceKey: hash(`VIR:PAGE:${virReportKey(certificate, testNumber) ?? randomUUID()}`),
   };
 }
 
@@ -120,5 +121,5 @@ export const virReviewSchema = z.object({
       }),
     )
     .min(1)
-    .max(40),
+    .max(1000),
 });

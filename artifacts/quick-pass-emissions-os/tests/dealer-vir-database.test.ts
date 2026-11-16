@@ -61,18 +61,20 @@ if (enabled) {
     vin = "1M8GDM9AXKP042788",
   ): StoredVirRow {
     const [year, month, day] = date.split("-");
+    const testNumber = String(91106000000 + Number(cert.replace(/\D/g, "") || 1));
     const parsed = parseVirPage(
       `GEORGIA VEHICLE EMISSIONS INSPECTION REPORT OVERALL TEST RESULT: PASS CERTIFICATE NUMBER: ${cert}
       Test Date/Time: ${month}/${day}/${year} @ ${Math.floor(minute / 60)}:${String(minute % 60).padStart(2, "0")}
-      Test Type: Initial Test Fee: $20.00 VIN: ${vin}`,
+      Test Type: Initial Test Fee: $20.00 VIN: ${vin} Test ID: ${testNumber}`,
       "PDF 1 · Page 1",
       "TEXT",
     );
     return parsed;
   }
   async function preview(rows: StoredVirRow[]) {
-    const key = await service.beginDealerVirUpload(owner, dealer);
-    return service.finishDealerVirUpload(owner, key, rows);
+    const key = await service.beginDealerVirUpload(owner, dealer, 1, rows.length);
+    await service.recordDealerVirChunk(owner, key, randomUUID(), rows);
+    return service.finishDealerVirUpload(owner, key);
   }
   function commit(
     p: DealerVirPreview,
@@ -131,8 +133,9 @@ if (enabled) {
     const otherDealer = await db.dealership.create({
       data: { code: randomUUID(), name: "Other fixture", billingAddress: "Fixture" },
     });
-    const key = await service.beginDealerVirUpload(owner, otherDealer.id);
-    const p = await service.finishDealerVirUpload(owner, key, [row()]);
+    const key = await service.beginDealerVirUpload(owner, otherDealer.id, 1, 1);
+    await service.recordDealerVirChunk(owner, key, randomUUID(), [row()]);
+    const p = await service.finishDealerVirUpload(owner, key);
     expect(p.rows[0].duplicate).toBe(true);
     await expect(
       service.commitDealerVirUpload(owner, { ...commit(p), dealershipId: otherDealer.id }),
@@ -224,6 +227,64 @@ if (enabled) {
     const employee = await db.user.create({
       data: { name: "No finance", email: `${randomUUID()}@example.test`, role: "EMPLOYEE" },
     });
-    await expect(service.beginDealerVirUpload(employee.id, dealer)).rejects.toThrow("permission");
+    await expect(service.beginDealerVirUpload(employee.id, dealer, 1, 1)).rejects.toThrow(
+      "permission",
+    );
+  });
+  it("processes large uploads in sequential batches of at most 40 pages", async () => {
+    const uploadId = await service.beginDealerVirUpload(owner, dealer, 2, 41);
+    const first = Array.from({ length: 40 }, (_, index) =>
+      row(
+        `ZZ${String(200000 + index)}`,
+        past,
+        100 + index,
+        `1M8GDM9AXKP0${String(index).padStart(6, "0")}`,
+      ),
+    );
+    const firstChunkKey = randomUUID();
+    expect(await service.recordDealerVirChunk(owner, uploadId, firstChunkKey, first)).toMatchObject(
+      {
+        processedPages: 40,
+        expectedPages: 41,
+        processedBatches: 1,
+      },
+    );
+    expect(await service.recordDealerVirChunk(owner, uploadId, firstChunkKey, first)).toMatchObject(
+      {
+        processedPages: 40,
+        expectedPages: 41,
+        processedBatches: 1,
+      },
+    );
+    await expect(service.finishDealerVirUpload(owner, uploadId)).rejects.toThrow("Only 40 of 41");
+    expect(
+      await service.recordDealerVirChunk(owner, uploadId, randomUUID(), [
+        row("ZZ299999", past, 900, "1M8GDM9AXKP099999"),
+      ]),
+    ).toMatchObject({ processedPages: 41, expectedPages: 41, processedBatches: 2 });
+    expect(await service.finishDealerVirUpload(owner, uploadId)).toMatchObject({
+      fileCount: 2,
+      uploadedPages: 41,
+      processedPages: 41,
+      processedBatches: 2,
+    });
+  });
+  it("rejects more than 40 pages in a chunk and prevents exceeding the declared count", async () => {
+    const uploadId = await service.beginDealerVirUpload(owner, dealer, 1, 41);
+    const many = Array.from({ length: 41 }, (_, index) =>
+      row(
+        `ZZ${String(300000 + index)}`,
+        past,
+        100 + index,
+        `1M8GDM9AXKP1${String(index).padStart(5, "0")}`,
+      ),
+    );
+    await expect(service.recordDealerVirChunk(owner, uploadId, randomUUID(), many)).rejects.toThrow(
+      "at most 40",
+    );
+    await service.recordDealerVirChunk(owner, uploadId, randomUUID(), many.slice(0, 40));
+    await expect(
+      service.recordDealerVirChunk(owner, uploadId, randomUUID(), many.slice(0, 2)),
+    ).rejects.toThrow("match the expected total");
   });
 });

@@ -18,12 +18,28 @@ export type DealerVirRow = {
 export type DealerVirPreview = {
   uploadId: string;
   dealershipId: string;
+  fileCount: number;
+  uploadedPages: number;
+  processedPages: number;
+  processedBatches: number;
   expiresAt: string;
   rows: DealerVirRow[];
   rateCents: number | null;
   taxBps: number | null;
   termsReady: boolean;
   issueDate: string;
+};
+
+export type DealerVirStart = {
+  uploadId: string;
+  fileCount: number;
+  expectedPages: number;
+};
+
+export type DealerVirProgress = {
+  processedPages: number;
+  expectedPages: number;
+  processedBatches: number;
 };
 
 export type DealerVirReviewRow = {

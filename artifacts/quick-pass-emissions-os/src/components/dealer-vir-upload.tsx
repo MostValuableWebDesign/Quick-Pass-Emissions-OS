@@ -4,7 +4,14 @@ import { AlertTriangle, CheckCircle2, FileUp, Loader2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { commitDealerVirs, previewDealerVirs } from "@/app/dealer-vir-actions";
+import type { PDFDocument as PdfDocument } from "pdf-lib";
+import {
+  commitDealerVirs,
+  failDealerVirs,
+  finishDealerVirs,
+  processDealerVirChunk,
+  startDealerVirs,
+} from "@/app/dealer-vir-actions";
 import type {
   DealerVirPreview,
   DealerVirResult,
@@ -13,12 +20,18 @@ import type {
 } from "@/modules/finance/dealer-vir-types";
 import "./dealer-vir-upload.css";
 
-const MAX_FILES = 10;
-const MAX_BYTES = 15_000_000;
+const MAX_FILES = 100;
+const MAX_BYTES = 150_000_000;
+const MAX_FILE_BYTES = 50_000_000;
+const MAX_PAGES = 1000;
+const MAX_BATCH_PAGES = 40;
+const MAX_BATCH_BYTES = 15_000_000;
 const OUTCOMES = ["PASS", "FAIL", "ABORT", "UNKNOWN"] as const;
 const TYPES = ["INITIAL", "RETEST", "UNKNOWN"] as const;
 
 type Billing = DealerVirReviewRow["billing"];
+
+class VirUploadUserError extends Error {}
 
 function money(cents: number) {
   return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -78,6 +91,7 @@ export function DealerVirUpload({
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState<"" | "preview" | "commit">("");
   const [elapsed, setElapsed] = useState(0);
+  const [progressMessage, setProgressMessage] = useState("");
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<DealerVirPreview | null>(null);
   const [rows, setRows] = useState<DealerVirReviewRow[]>([]);
@@ -98,10 +112,12 @@ export function DealerVirUpload({
     files.length > MAX_FILES
       ? `Select at most ${MAX_FILES} PDFs.`
       : totalBytes > MAX_BYTES
-        ? "Combined size must be 15 MB or less."
+        ? "Combined size must be 150 MB or less."
         : files.some((f) => f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf"))
           ? "Only PDF files are accepted."
-          : "";
+          : files.some((f) => f.size > MAX_FILE_BYTES)
+            ? "Each PDF must be 50 MB or smaller."
+            : "";
 
   const srcById = useMemo(() => new Map((preview?.rows ?? []).map((r) => [r.id, r])), [preview]);
 
@@ -143,6 +159,7 @@ export function DealerVirUpload({
     setPreview(null);
     setRows([]);
     setError("");
+    setProgressMessage("");
     setInvoiceNumber("");
     setIssueDate(today());
     setDealer(dealershipId ?? "");
@@ -163,21 +180,145 @@ export function DealerVirUpload({
     if (!dealer || !files.length || fileError) return;
     setBusy("preview");
     setError("");
+    setProgressMessage("Checking selected PDFs…");
+    let uploadId = "";
     try {
-      const form = new FormData();
-      form.set("dealershipId", dealer);
-      files.forEach((f) => form.append("reports", f));
-      const res = await previewDealerVirs(form);
+      const { PDFDocument } = await import("pdf-lib");
+      const pageCounts: number[] = [];
+      let expectedPages = 0;
+
+      for (const [index, file] of files.entries()) {
+        setProgressMessage(`Checking PDF ${index + 1} of ${files.length}…`);
+        if (!file.name.toLowerCase().endsWith(".pdf") || file.size > MAX_FILE_BYTES)
+          throw new VirUploadUserError(`PDF ${index + 1} is not a supported file.`);
+        const signature = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+        if (new TextDecoder().decode(signature) !== "%PDF-")
+          throw new VirUploadUserError(`PDF ${index + 1} could not be opened.`);
+        const source = await PDFDocument.load(await file.arrayBuffer(), { updateMetadata: false });
+        const count = source.getPageCount();
+        if (!count) throw new VirUploadUserError(`PDF ${index + 1} has no pages.`);
+        expectedPages += count;
+        if (expectedPages > MAX_PAGES)
+          throw new VirUploadUserError(
+            `This upload contains more than ${MAX_PAGES} VIR pages. Split it into smaller uploads.`,
+          );
+        pageCounts.push(count);
+      }
+
+      const begin = new FormData();
+      begin.set("dealershipId", dealer);
+      begin.set("fileCount", String(files.length));
+      begin.set("expectedPages", String(expectedPages));
+      const started = await startDealerVirs(begin);
+      if (!started.ok) throw new VirUploadUserError(started.message);
+      uploadId = started.data.uploadId;
+
+      type SourcePage = { source: number; page: number; label: string };
+      const sources = new Map<number, PdfDocument>();
+      const remainingPages = [...pageCounts];
+      let pageBatch: SourcePage[] = [];
+      let processedPages = 0;
+      let processedBatches = 0;
+
+      const sendPages = async (sourcePages: SourcePage[]): Promise<void> => {
+        const output = await PDFDocument.create();
+        for (const sourcePage of sourcePages) {
+          const source = sources.get(sourcePage.source);
+          if (!source)
+            throw new VirUploadUserError(`PDF ${sourcePage.source + 1} could not be reopened.`);
+          const [page] = await output.copyPages(source, [sourcePage.page]);
+          output.addPage(page);
+        }
+        const bytes = await output.save({ useObjectStreams: true });
+        if (bytes.byteLength > MAX_BATCH_BYTES) {
+          if (sourcePages.length === 1)
+            throw new VirUploadUserError(
+              `${sourcePages[0].label} is larger than a single batch. Compress that PDF page and try again.`,
+            );
+          const middle = Math.ceil(sourcePages.length / 2);
+          await sendPages(sourcePages.slice(0, middle));
+          await sendPages(sourcePages.slice(middle));
+          return;
+        }
+
+        setProgressMessage(
+          `Processing batch ${processedBatches + 1} · ${processedPages} of ${expectedPages} VIRs processed`,
+        );
+        const form = new FormData();
+        form.set("uploadId", uploadId);
+        form.set("chunkKey", window.crypto.randomUUID());
+        form.set("sourceLabels", JSON.stringify(sourcePages.map((page) => page.label)));
+        const fileBytes = new Uint8Array(bytes).buffer as ArrayBuffer;
+        form.append(
+          "reports",
+          new File([fileBytes], `VIR-batch-${processedBatches + 1}.pdf`, {
+            type: "application/pdf",
+          }),
+        );
+        const result = await processDealerVirChunk(form);
+        if (!result.ok) throw new VirUploadUserError(result.message);
+        processedPages = result.data.processedPages;
+        processedBatches = result.data.processedBatches;
+        setProgressMessage(
+          `Processing batch ${processedBatches} · ${processedPages} of ${expectedPages} VIRs processed`,
+        );
+      };
+
+      const releaseUnusedSources = () => {
+        const needed = new Set(pageBatch.map((page) => page.source));
+        for (const [index] of sources) {
+          if (remainingPages[index] === 0 && !needed.has(index)) sources.delete(index);
+        }
+      };
+
+      for (const [sourceIndex, file] of files.entries()) {
+        setProgressMessage(
+          `Preparing PDF ${sourceIndex + 1} of ${files.length} · ${processedPages} of ${expectedPages} VIRs processed`,
+        );
+        const source = await PDFDocument.load(await file.arrayBuffer(), { updateMetadata: false });
+        sources.set(sourceIndex, source);
+        for (let page = 0; page < pageCounts[sourceIndex]; page++) {
+          pageBatch.push({
+            source: sourceIndex,
+            page,
+            label: `PDF ${sourceIndex + 1} · Page ${page + 1}`,
+          });
+          remainingPages[sourceIndex]--;
+          if (pageBatch.length === MAX_BATCH_PAGES) {
+            const ready = pageBatch;
+            pageBatch = [];
+            await sendPages(ready);
+            releaseUnusedSources();
+          }
+        }
+        releaseUnusedSources();
+      }
+      if (pageBatch.length) {
+        const ready = pageBatch;
+        pageBatch = [];
+        await sendPages(ready);
+      }
+
+      setProgressMessage(`Finishing upload · ${processedPages} of ${expectedPages} VIRs processed`);
+      const finished = await finishDealerVirs(uploadId);
+      if (!finished.ok) throw new VirUploadUserError(finished.message);
       if (!dialog.current?.open) return;
-      if (!res.ok) return setError(res.message);
-      setPreview(res.data);
-      setRows(res.data.rows.map(initialRow));
-      setCreateDraft(res.data.termsReady && res.data.rateCents != null);
-      setIssueDate(res.data.issueDate || today());
-    } catch {
-      setError("The reports could not be read. Check the files and try again.");
+      setPreview(finished.data);
+      setRows(finished.data.rows.map(initialRow));
+      setCreateDraft(finished.data.termsReady && finished.data.rateCents != null);
+      setIssueDate(finished.data.issueDate || today());
+      setFiles([]);
+      if (fileInput.current) fileInput.current.value = "";
+    } catch (error) {
+      if (uploadId) await failDealerVirs(uploadId);
+      setError(
+        error instanceof VirUploadUserError
+          ? error.message
+          : "The upload did not finish. No invoice was created. Check the selected PDFs and retry.",
+      );
     } finally {
       setBusy("");
+      setProgressMessage("");
     }
   }
 
@@ -321,7 +462,10 @@ export function DealerVirUpload({
               <label className="vir-drop">
                 <FileUp size={22} aria-hidden="true" />
                 <strong>Choose vehicle inspection report PDFs</strong>
-                <span>Up to 10 files · 15 MB combined · 40 pages total</span>
+                <span>
+                  Up to 100 PDFs · 150 MB combined · 1,000 pages, processed in batches of up to 40
+                  VIRs
+                </span>
                 <input
                   ref={fileInput}
                   type="file"
@@ -351,9 +495,9 @@ export function DealerVirUpload({
                 <div className="vir-progress" role="status" aria-live="polite">
                   <Loader2 size={16} className="vir-spin" aria-hidden="true" />
                   <span>
-                    Reading reports on this server · {elapsedLabel(elapsed)} elapsed. Scanned pages
-                    use local OCR and can take a few minutes. This window stays open until reading
-                    finishes.
+                    {progressMessage || "Reading reports"} · {elapsedLabel(elapsed)} elapsed.
+                    Scanned pages use local OCR and can take a few minutes. This window stays open
+                    until reading finishes.
                   </span>
                 </div>
               )}
@@ -381,7 +525,7 @@ export function DealerVirUpload({
             <div className="vir-review">
               <div className="vir-tally" data-testid="status-vir-tally">
                 <div>
-                  <span>Found</span>
+                  <span>Processed</span>
                   <strong>{rows.length}</strong>
                 </div>
                 <div>
@@ -410,6 +554,16 @@ export function DealerVirUpload({
                   </small>
                 </div>
               </div>
+              <p className="vir-upload-summary" data-testid="text-vir-upload-counts">
+                PDFs uploaded: <strong>{preview.fileCount}</strong>
+                {" · "}VIR pages detected: <strong>{preview.uploadedPages}</strong>
+                {" · "}Processed:{" "}
+                <strong>
+                  {preview.processedPages} / {preview.uploadedPages}
+                </strong>
+                {" · "}
+                {preview.processedBatches} batches (up to 40 each)
+              </p>
 
               {!rows.length && (
                 <p className="vir-empty">No inspection reports were recognized in these PDFs.</p>

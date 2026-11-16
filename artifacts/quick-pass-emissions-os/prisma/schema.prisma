@@ -1190,14 +1190,31 @@ model DealerVirUpload {
   createdBy      String
   rows           Json
   status         String            @default("PROCESSING")
+  fileCount      Int               @default(0)
+  expectedPages  Int               @default(0)
+  processedPages Int               @default(0)
   expiresAt      DateTime
   completedAt    DateTime?
   result         Json?
   billingVersion Int?
   createdAt      DateTime          @default(now())
   records        DealerVirRecord[]
+  chunks         DealerVirChunk[]
 
   @@index([createdBy, createdAt])
+}
+
+model DealerVirChunk {
+  id        String          @id @default(cuid())
+  uploadId  String
+  upload    DealerVirUpload @relation(fields: [uploadId], references: [id], onDelete: Restrict)
+  chunkKey  String
+  sequence  Int
+  pageCount Int
+  createdAt DateTime        @default(now())
+
+  @@unique([uploadId, chunkKey])
+  @@unique([uploadId, sequence])
 }
 
 model DealerVirRecord {

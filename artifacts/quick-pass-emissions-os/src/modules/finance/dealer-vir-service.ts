@@ -31,35 +31,118 @@ export async function dealerVirOptions(actorId: string) {
   );
 }
 
-export async function beginDealerVirUpload(actorId: string, dealershipId: string) {
+export async function beginDealerVirUpload(
+  actorId: string,
+  dealershipId: string,
+  fileCount: number,
+  expectedPages: number,
+) {
   return phase4(actorId, financeRoles, async (tx) => {
+    requireRule(
+      Number.isInteger(fileCount) &&
+        fileCount >= 1 &&
+        fileCount <= 100 &&
+        Number.isInteger(expectedPages) &&
+        expectedPages >= 1 &&
+        expectedPages <= 1000,
+      "Choose 1–100 PDFs containing no more than 1,000 VIR pages.",
+    );
     requireRule(
       await tx.dealership.count({ where: { id: dealershipId, active: true } }),
       "Choose an active dealership.",
     );
     requireRule(
       !(await tx.dealerVirUpload.count({
-        where: { status: "PROCESSING", createdAt: { gte: new Date(Date.now() - 6 * 60_000) } },
+        where: {
+          createdBy: actorId,
+          status: "PROCESSING",
+          expiresAt: { gte: new Date() },
+        },
       })),
-      "Another report upload is being processed. Please wait before starting a new upload.",
+      "Another report upload is being processed. Please finish it or wait for it to expire before starting a new upload.",
     );
     // Expired, uncommitted previews contain no billing records and can be discarded.
-    await tx.dealerVirUpload.deleteMany({
+    const expired = await tx.dealerVirUpload.findMany({
       where: {
         createdBy: actorId,
-        status: { in: ["REVIEW", "FAILED"] },
+        status: { in: ["REVIEW", "FAILED", "PROCESSING"] },
         expiresAt: { lt: new Date() },
       },
+      select: { id: true },
     });
+    const expiredIds = expired.map((item) => item.id);
+    if (expiredIds.length) {
+      await tx.dealerVirChunk.deleteMany({ where: { uploadId: { in: expiredIds } } });
+      await tx.dealerVirUpload.deleteMany({ where: { id: { in: expiredIds } } });
+    }
     const upload = await tx.dealerVirUpload.create({
       data: {
         dealershipId,
         createdBy: actorId,
         rows: [],
+        fileCount,
+        expectedPages,
         expiresAt: new Date(Date.now() + 2 * 60 * 60_000),
       },
     });
     return upload.id;
+  });
+}
+
+export async function recordDealerVirChunk(
+  actorId: string,
+  uploadId: string,
+  chunkKey: string,
+  rows: StoredVirRow[],
+) {
+  return phase4(actorId, financeRoles, async (tx) => {
+    const upload = await tx.dealerVirUpload.findFirst({
+      where: { id: uploadId, createdBy: actorId },
+      select: {
+        id: true,
+        status: true,
+        rows: true,
+        processedPages: true,
+        expectedPages: true,
+        expiresAt: true,
+      },
+    });
+    requireRule(
+      upload && upload.status === "PROCESSING" && upload.expiresAt > new Date(),
+      "This upload expired or stopped. Start a new upload.",
+    );
+    const priorChunk = await tx.dealerVirChunk.findUnique({
+      where: { uploadId_chunkKey: { uploadId, chunkKey } },
+    });
+    if (priorChunk) {
+      return {
+        processedPages: upload.processedPages,
+        expectedPages: upload.expectedPages,
+        processedBatches: await tx.dealerVirChunk.count({ where: { uploadId } }),
+      };
+    }
+    requireRule(
+      /^[0-9a-f-]{36}$/i.test(chunkKey) &&
+        rows.length > 0 &&
+        rows.length <= 40 &&
+        upload.processedPages + rows.length <= upload.expectedPages,
+      "Upload chunks must contain at most 40 VIR pages and match the expected total.",
+    );
+    const previous = upload.rows as unknown as StoredVirRow[];
+    const annotated = await annotateRows(tx, [...previous, ...rows]);
+    const sequence = (await tx.dealerVirChunk.count({ where: { uploadId } })) + 1;
+    await tx.dealerVirChunk.create({
+      data: { uploadId, chunkKey, sequence, pageCount: rows.length },
+    });
+    await tx.dealerVirUpload.update({
+      where: { id: uploadId },
+      data: { rows: json(annotated), processedPages: upload.processedPages + rows.length },
+    });
+    return {
+      processedPages: upload.processedPages + rows.length,
+      expectedPages: upload.expectedPages,
+      processedBatches: sequence,
+    };
   });
 }
 
@@ -204,20 +287,25 @@ async function annotateRows(tx: Tx, rows: StoredVirRow[]) {
 export async function finishDealerVirUpload(
   actorId: string,
   uploadId: string,
-  rows: StoredVirRow[],
 ): Promise<DealerVirPreview> {
   return phase4(actorId, financeRoles, async (tx) => {
     const upload = await tx.dealerVirUpload.findFirst({
       where: { id: uploadId, createdBy: actorId, status: "PROCESSING" },
-      include: { dealership: true },
+      include: {
+        dealership: true,
+        chunks: { orderBy: { sequence: "asc" } },
+      },
     });
     requireRule(upload && upload.dealership.active, "This upload is no longer available.");
-    requireRule(rows.length > 0 && rows.length <= 40, "Upload between 1 and 40 VIR pages.");
-    const annotated = await annotateRows(tx, rows);
+    requireRule(
+      upload.processedPages === upload.expectedPages &&
+        (upload.rows as unknown[]).length === upload.expectedPages,
+      `Only ${upload.processedPages} of ${upload.expectedPages} VIR pages were processed. Continue the remaining batches.`,
+    );
+    const annotated = upload.rows as unknown as StoredVirRow[];
     await tx.dealerVirUpload.update({
       where: { id: upload.id },
       data: {
-        rows: json(annotated),
         status: "REVIEW",
         billingVersion: upload.dealership.version,
       },
@@ -225,6 +313,10 @@ export async function finishDealerVirUpload(
     return {
       uploadId,
       dealershipId: upload.dealershipId,
+      fileCount: upload.fileCount,
+      uploadedPages: upload.expectedPages,
+      processedPages: upload.processedPages,
+      processedBatches: upload.chunks.length,
       expiresAt: upload.expiresAt.toISOString(),
       rows: annotated.map(
         ({

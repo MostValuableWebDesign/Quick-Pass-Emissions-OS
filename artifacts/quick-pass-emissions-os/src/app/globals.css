@@ -865,6 +865,318 @@ main#main {
   justify-content: flex-end;
   margin-top: 20px;
 }
+.dealer-directory-filters .form-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 260px) auto;
+  align-items: end;
+  margin-top: 0;
+}
+.dealer-directory-filters .form-footer {
+  align-self: end;
+  margin-top: 0;
+}
+.dealer-directory-caption,
+.dealer-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.dealer-directory-caption {
+  margin: 25px 2px 12px;
+}
+.dealer-directory-caption h2,
+.dealer-section-heading h2,
+.dealer-section-heading h3 {
+  margin: 0;
+}
+.dealer-directory-caption > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.dealer-directory-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.dealer-directory-card {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  min-width: 0;
+  padding: 20px;
+}
+.dealer-directory-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dealer-directory-name {
+  display: inline-block;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+}
+.dealer-directory-name:hover {
+  color: var(--link);
+  text-decoration: underline;
+}
+.dealer-directory-card-heading p {
+  margin: 5px 0 0;
+  font-size: 12px;
+}
+.dealer-directory-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.dealer-directory-metrics > div {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+}
+.dealer-directory-metrics > div > span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.dealer-directory-metrics strong,
+.dealer-directory-metrics a,
+.dealer-directory-metrics small {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.dealer-directory-metrics small {
+  color: var(--muted);
+}
+.dealer-directory-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.dealer-workspace {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+  margin-top: 20px;
+}
+.dealer-section-nav {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.dealer-section-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.dealer-section-link:hover {
+  background: var(--soft);
+}
+.dealer-section-link[aria-current="page"] {
+  color: var(--primary);
+  background: var(--soft);
+  box-shadow: inset 3px 0 0 var(--action);
+}
+.dealer-section-link > span {
+  display: grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 99px;
+  color: var(--muted);
+  background: var(--bg);
+  font-size: 10px;
+}
+.dealer-workspace-content {
+  min-width: 0;
+}
+.dealer-overview {
+  display: grid;
+  gap: 14px;
+}
+.dealer-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.dealer-summary-card {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  padding: 17px;
+}
+.dealer-summary-card > span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.dealer-summary-card > strong {
+  font-size: 20px;
+  line-height: 1.2;
+}
+.dealer-summary-card > small {
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.dealer-overview-card,
+.dealer-contacts {
+  padding: 22px;
+}
+.dealer-primary-contact {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  padding-top: 15px;
+}
+.dealer-primary-contact > strong {
+  font-size: 16px;
+}
+.dealer-primary-contact > span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.dealer-contact-actions,
+.dealer-contact-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 10px;
+}
+.dealer-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+.dealer-contact-card {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+}
+.dealer-contact-card h3 {
+  font-size: 15px;
+}
+.dealer-contact-card .muted {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+.dealer-contact-links {
+  display: grid;
+  justify-items: start;
+  margin-top: 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.dealer-contact-links > span {
+  color: var(--muted);
+}
+.dealer-contact-card details {
+  border-top: 1px solid var(--line);
+  padding-top: 11px;
+}
+.dealer-invoice-list {
+  display: grid;
+}
+.dealer-invoice-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+.dealer-invoice-row:last-child {
+  border-bottom: 0;
+}
+.dealer-invoice-row > div {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+.dealer-invoice-row > div > span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.dealer-unbilled-list {
+  display: grid;
+  gap: 8px;
+}
+.dealer-unbilled-list .check-row {
+  align-items: flex-start;
+  padding: 10px 0;
+}
+@media (max-width: 900px) {
+  .dealer-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dealer-section-nav {
+    position: static;
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .dealer-section-link {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .dealer-section-link[aria-current="page"] {
+    box-shadow: inset 0 -3px 0 var(--action);
+  }
+}
+@media (max-width: 680px) {
+  .dealer-directory-filters .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dealer-directory-grid,
+  .dealer-contact-grid,
+  .dealer-summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dealer-directory-card {
+    padding: 16px;
+  }
+  .dealer-section-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .dealer-directory-card-actions > .button {
+    flex: 1 1 auto;
+  }
+}
 .employee-list-toolbar {
   display: flex;
   align-items: center;

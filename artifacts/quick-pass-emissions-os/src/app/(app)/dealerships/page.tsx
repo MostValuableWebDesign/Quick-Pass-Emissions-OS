@@ -4,7 +4,7 @@ import { dealerOverview } from "@/modules/finance/service";
 import { PageHeader, Empty } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { DirectoryAddDialog } from "@/components/directory-add-dialog";
-import { DemoNotice, RecordId } from "@/components/phase3";
+import { DemoNotice, Money, RecordId } from "@/components/phase3";
 import { DealershipFields } from "@/components/dealership-fields";
 import { saveDealer } from "@/app/phase4-actions";
 import { Button } from "@/components/ui/button";
@@ -25,11 +25,9 @@ export default async function Dealers({
   return (
     <>
       <PageHeader
-        title="Dealerships & contacts"
-        description="Billing accounts, contact records, completed services, and owner-authorized terms."
-      />
-      <DemoNotice demo={data.demo} />
-      <div className="directory-add-toolbar vir-toolbar">
+        title="Dealerships"
+        description="Partner accounts, contact details, and invoice status."
+      >
         <DealerVirUpload dealers={virDealers} />
         <DirectoryAddDialog title="Add dealership">
           <ActionForm action={saveDealer} submit="Add dealership">
@@ -37,12 +35,10 @@ export default async function Dealers({
             <DealershipFields />
           </ActionForm>
         </DirectoryAddDialog>
-      </div>
-      <section className="card space-top">
-        <div className="card-heading">
-          <h2>{scope === "active" ? "Active dealership partners" : "Dealership directory"}</h2>
-        </div>
-        <form className="card-body form-grid" method="get">
+      </PageHeader>
+      <DemoNotice demo={data.demo} />
+      <section className="card card-body space-top dealer-directory-filters">
+        <form className="form-grid" method="get">
           <Field label="Search dealership, contact, email or phone">
             <input name="q" defaultValue={q} maxLength={160} />
           </Field>
@@ -57,73 +53,90 @@ export default async function Dealers({
             <Button type="submit">Search dealerships</Button>
           </div>
         </form>
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Account</th>
-                <th>Phone</th>
-                <th>Contacts</th>
-                <th>Terms</th>
-                <th>Partnership</th>
-                <th>Billing</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.dealers.map((d) => (
-                <tr key={d.id}>
-                  <td>
-                    <RecordLink className="task-name" href={`/dealerships/${d.id}`}>
+      </section>
+      <div className="dealer-directory-caption">
+        <h2>
+          {scope === "active"
+            ? "Active partners"
+            : scope === "archived"
+              ? "Archived dealerships"
+              : "All dealerships"}
+        </h2>
+        <span>{data.dealers.length} shown</span>
+      </div>
+      {data.dealers.length ? (
+        <section className="dealer-directory-grid" aria-label="Dealership accounts">
+          {data.dealers.map((d) => {
+            const contact = d.contacts[0];
+            const contactEmail = contact?.email || d.email;
+            const contactPhone = contact?.phone || d.phone;
+            return (
+              <article className="card dealer-directory-card" key={d.id}>
+                <div className="dealer-directory-card-heading">
+                  <div>
+                    <RecordLink className="dealer-directory-name" href={`/dealerships/${d.id}`}>
                       {d.name}
                     </RecordLink>
-                  </td>
-                  <td>{d.phone ? <a href={`tel:${d.phone}`}>{d.phone}</a> : "—"}</td>
-                  <td>
-                    {d.email && (
-                      <small>
-                        <a href={`mailto:${d.email}`}>{d.email}</a>
-                      </small>
+                    <p className="muted">
+                      {contact?.name || (d.email ? "Billing contact" : "Contact not added")}
+                    </p>
+                  </div>
+                  <span className={`badge ${d.active ? "green" : "neutral"}`}>
+                    {d.active ? "Active" : "Archived"}
+                  </span>
+                </div>
+                <div className="dealer-directory-metrics">
+                  <div>
+                    <span>Contact</span>
+                    {contactEmail ? (
+                      <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
+                    ) : (
+                      <strong>Not provided</strong>
                     )}
-                    {d.contacts.length
-                      ? d.contacts.map((c) => (
-                          <div key={c.id}>
-                            {c.name}
-                            {c.email && (
-                              <small>
-                                <a href={`mailto:${c.email}`}>{c.email}</a>
-                              </small>
-                            )}
-                          </div>
-                        ))
-                      : !d.email
-                        ? "None entered"
-                        : null}
-                  </td>
-                  <td>
-                    {d.termsDays === null
-                      ? "Owner configuration required"
-                      : `Net ${d.termsDays} days`}
-                  </td>
-                  <td>{d.active ? "Active" : "Archived"}</td>
-                  <td>
-                    {d.active && (
-                      <RecordLink href={`/dealerships/${d.id}#create-invoice`}>
-                        Create invoice
-                      </RecordLink>
+                  </div>
+                  <div>
+                    <span>Phone</span>
+                    {contactPhone ? (
+                      <a href={`tel:${contactPhone}`}>{contactPhone}</a>
+                    ) : (
+                      <strong>Not provided</strong>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {!data.dealers.length && (
-          <Empty
-            title="No dealerships found"
-            text="Add an account using verified business details."
-          />
-        )}
-      </section>
+                  </div>
+                  <div>
+                    <span>Balance due</span>
+                    <strong>
+                      <Money cents={d.outstandingCents} />
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Latest invoice</span>
+                    <strong>{d.latestInvoice?.status ?? "No invoices yet"}</strong>
+                    {d.latestInvoice && <small>{d.latestInvoice.number}</small>}
+                  </div>
+                </div>
+                <div className="dealer-directory-card-actions">
+                  <RecordLink className="button button-outline" href={`/dealerships/${d.id}`}>
+                    Open account
+                  </RecordLink>
+                  {d.active && (
+                    <RecordLink
+                      className="button button-primary"
+                      href={`/dealerships/${d.id}?section=services#create-invoice`}
+                    >
+                      Create invoice
+                    </RecordLink>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      ) : (
+        <Empty
+          title="No dealerships found"
+          text="Adjust your search or add a dealership partner."
+        />
+      )}
     </>
   );
 }

@@ -12,11 +12,13 @@ export function RecordLink({
   className,
   children,
   "aria-label": ariaLabel,
+  "aria-current": ariaCurrent,
 }: {
   href: string;
   className?: string;
   children: React.ReactNode;
   "aria-label"?: string;
+  "aria-current"?: React.AriaAttributes["aria-current"];
 }) {
   const role = useContext(NavRoleContext);
   const pathname = usePathname();
@@ -29,7 +31,12 @@ export function RecordLink({
   if (role && matchRoute(destination) && !safeReturnPath(destination, role))
     return <span className={className?.replace(/\btext-link\b/g, "").trim()}>{children}</span>;
   return (
-    <Link className={className} aria-label={ariaLabel} href={withReturn(href, from, role)}>
+    <Link
+      className={className}
+      aria-label={ariaLabel}
+      aria-current={ariaCurrent}
+      href={withReturn(href, from, role)}
+    >
       {children}
     </Link>
   );

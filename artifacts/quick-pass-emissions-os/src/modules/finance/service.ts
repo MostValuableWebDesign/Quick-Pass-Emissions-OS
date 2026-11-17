@@ -720,8 +720,9 @@ export async function dealerOverview(
   scope: "active" | "all" | "archived" = "active",
 ) {
   const search = z.string().max(160).parse(query);
-  return phase4(actorId, financeRoles, async (tx) => ({
-    dealers: await tx.dealership.findMany({
+  return phase4(actorId, financeRoles, async (tx) => {
+    const asOf = businessDate();
+    const dealers = await tx.dealership.findMany({
       where: {
         ...(scope === "all" ? {} : { active: scope === "active" }),
         ...(search
@@ -748,45 +749,123 @@ export async function dealerOverview(
       },
       orderBy: { name: "asc" },
       take: 100,
-      include: { contacts: { where: { active: true } } },
-    }),
-    demo: (await tx.employee.count({ where: { demo: true } })) > 0,
-  }));
-}
-export async function dealerDetail(actorId: string, key: string) {
-  return phase4(actorId, financeRoles, async (tx) => ({
-    unbilled: await tx.dealerService.findMany({
-      where: { dealershipId: id.parse(key), invoiceId: null, voidDate: null },
-      orderBy: [{ date: "asc" }, { id: "asc" }],
-      take: 100,
-    }),
-    dealer: await tx.dealership.findUnique({
-      where: { id: id.parse(key) },
       include: {
-        contacts: { orderBy: { createdAt: "asc" } },
-        services: {
-          orderBy: [{ date: "desc" }, { id: "asc" }],
-          take: 100,
-          include: { invoice: { select: { id: true, number: true } } },
-        },
-        invoices: { orderBy: { createdAt: "desc" }, take: 100, include: { payments: true } },
-        virRecords: {
-          orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-          take: 100,
-          select: {
-            id: true,
-            date: true,
-            certificate: true,
-            testNumber: true,
-            outcome: true,
-            billing: true,
-            serviceId: true,
-          },
+        contacts: { where: { active: true }, orderBy: { createdAt: "asc" } },
+        invoices: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: { payments: { where: { date: { lte: asOf } } } },
         },
       },
-    }),
-    demo: (await tx.employee.count({ where: { demo: true } })) > 0,
-  }));
+    });
+    const balances = await dealerOutstandingBalances(
+      tx,
+      dealers.map((dealer) => dealer.id),
+      asOf,
+    );
+    return {
+      dealers: dealers.map((dealer) => {
+        const latest = dealer.invoices[0];
+        const summary = latest
+          ? receivable(
+              { ...latest, state: latest.approvedAt ? latest.state : "DRAFT" },
+              latest.payments,
+              asOf,
+            )
+          : null;
+        return {
+          id: dealer.id,
+          name: dealer.name,
+          active: dealer.active,
+          phone: dealer.phone,
+          email: dealer.email,
+          contacts: dealer.contacts,
+          outstandingCents: balances.get(dealer.id) ?? 0,
+          latestInvoice: latest ? { number: latest.number, status: summary!.status } : null,
+        };
+      }),
+      demo: (await tx.employee.count({ where: { demo: true } })) > 0,
+    };
+  });
+}
+
+async function dealerOutstandingBalances(tx: Tx, dealershipIds: string[], asOf: string) {
+  const balances = new Map(dealershipIds.map((dealerId) => [dealerId, 0]));
+  if (!dealershipIds.length) return balances;
+  const invoices = await tx.dealerInvoice.findMany({
+    where: {
+      dealershipId: { in: dealershipIds },
+      issueDate: { lte: asOf },
+      state: { not: "DRAFT" },
+      OR: [{ voidDate: null }, { voidDate: { gt: asOf } }],
+    },
+    select: {
+      dealershipId: true,
+      state: true,
+      totalCents: true,
+      dueDate: true,
+      issueDate: true,
+      voidDate: true,
+      payments: {
+        where: { date: { lte: asOf } },
+        select: { amountCents: true, date: true },
+      },
+    },
+  });
+  for (const invoice of invoices) {
+    const summary = receivable(invoice, invoice.payments, asOf);
+    if (summary.recognized)
+      balances.set(
+        invoice.dealershipId,
+        (balances.get(invoice.dealershipId) ?? 0) + summary.remainingCents,
+      );
+  }
+  return balances;
+}
+
+export async function dealerDetail(actorId: string, key: string) {
+  return phase4(actorId, financeRoles, async (tx) => {
+    const dealerId = id.parse(key);
+    const [unbilled, dealer] = await Promise.all([
+      tx.dealerService.findMany({
+        where: { dealershipId: dealerId, invoiceId: null, voidDate: null },
+        orderBy: [{ date: "asc" }, { id: "asc" }],
+        take: 100,
+      }),
+      tx.dealership.findUnique({
+        where: { id: id.parse(key) },
+        include: {
+          contacts: { orderBy: { createdAt: "asc" } },
+          services: {
+            orderBy: [{ date: "desc" }, { id: "asc" }],
+            take: 100,
+            include: { invoice: { select: { id: true, number: true } } },
+          },
+          invoices: { orderBy: { createdAt: "desc" }, take: 100, include: { payments: true } },
+          virRecords: {
+            orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+            take: 100,
+            select: {
+              id: true,
+              date: true,
+              certificate: true,
+              testNumber: true,
+              outcome: true,
+              billing: true,
+              serviceId: true,
+            },
+          },
+        },
+      }),
+    ]);
+    const asOf = businessDate();
+    const balances = await dealerOutstandingBalances(tx, dealer ? [dealer.id] : [], asOf);
+    return {
+      unbilled,
+      dealer: dealer ? { ...dealer, outstandingCents: balances.get(dealer.id) ?? 0 } : null,
+      demo: (await tx.employee.count({ where: { demo: true } })) > 0,
+    };
+  });
 }
 export async function invoiceOverview(
   actorId: string,

@@ -41,7 +41,9 @@ export function InvoiceEmailComposer({
   const [recipient, setRecipient] = useState(defaultContact?.email ?? "");
   const [contactName, setContactName] = useState(defaultContact?.name ?? "");
   const [paymentInstructions, setPaymentInstructions] = useState("");
-  const [senderName, setSenderName] = useState(sender.name);
+  const [senderName, setSenderName] = useState(
+    sender.name === "Quick Pass Emissions" ? "" : sender.name,
+  );
   const [senderEmail, setSenderEmail] = useState(sender.email);
   const [senderPhone, setSenderPhone] = useState("");
   const [confirmingDraft, setConfirmingDraft] = useState(false);
@@ -55,7 +57,6 @@ export function InvoiceEmailComposer({
   const draftReady = !!(
     contactName.trim() &&
     paymentInstructions.trim() &&
-    senderName.trim() &&
     senderEmail.trim()
   );
 
@@ -137,12 +138,12 @@ export function InvoiceEmailComposer({
             />
           </div>
           <div className="field">
-            <label htmlFor={`${prefix}-sender-name`}>Your name</label>
+            <label htmlFor={`${prefix}-sender-name`}>Your name (optional)</label>
             <input
               id={`${prefix}-sender-name`}
               name="senderName"
               maxLength={160}
-              required
+              placeholder="Leave blank to use the business name"
               value={senderName}
               onChange={(event) => setSenderName(event.target.value)}
             />

@@ -51,6 +51,18 @@ describe("manual dealership invoice emails", () => {
     expect(draft.body).not.toContain("555-0100");
   });
 
+  it("includes the company name once when no personal sender name is entered", () => {
+    const draft = buildInvoiceEmail(invoice, {
+      ...signature,
+      senderName: "",
+      senderPhone: "",
+      senderEmail: invoiceIssuer.email,
+    });
+    expect(draft.body.match(/Quick Pass Emissions/g)).toHaveLength(1);
+    expect(draft.body).toContain("quickpassemissions.com");
+    expect(draft.body).toContain("qpemissions@gmail.com");
+  });
+
   it("lets an unapproved draft create a Gmail draft with a PDF attached", () => {
     const html = renderToStaticMarkup(
       createElement(InvoiceEmailComposer, {

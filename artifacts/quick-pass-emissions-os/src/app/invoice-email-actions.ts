@@ -22,7 +22,7 @@ const requestSchema = z.object({
   recipient: z.email().max(254),
   contactName: z.string().trim().min(1).max(160),
   paymentInstructions: z.string().trim().min(1).max(500),
-  senderName: z.string().trim().min(1).max(160),
+  senderName: z.string().trim().max(160).default(""),
   senderPhone: z.string().trim().max(50).default(""),
 });
 

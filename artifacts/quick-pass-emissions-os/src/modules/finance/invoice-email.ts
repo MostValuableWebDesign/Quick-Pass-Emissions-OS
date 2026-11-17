@@ -56,7 +56,7 @@ export function buildInvoiceEmail(invoice: InvoiceEmailDetails, signature: Invoi
       "Thank you for your business. We appreciate the opportunity to serve your dealership.",
       "",
       "Best,",
-      signature.senderName.trim(),
+      ...(signature.senderName.trim() ? [signature.senderName.trim()] : []),
       "Quick Pass Emissions",
       invoiceIssuer.website,
       ...(signature.senderPhone.trim() ? [signature.senderPhone.trim()] : []),

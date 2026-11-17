@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import { InvoiceEmailComposer } from "@/components/invoice-email-composer";
 import {
   buildInvoiceEmail,
-  gmailInvoiceDraftUrl,
   invoiceServicePeriod,
 } from "@/modules/finance/invoice-email";
 import { invoiceIssuer } from "@/modules/finance/invoice-document";
@@ -45,20 +44,6 @@ describe("manual dealership invoice emails", () => {
     expect(draft.body).not.toMatch(/\[[^\]]+\]/);
   });
 
-  it("encodes all draft data as Gmail query values rather than extra recipients or parameters", () => {
-    const draft = buildInvoiceEmail(invoice, {
-      ...signature,
-      paymentInstructions: "https://example.test/pay?a=1&b=2",
-    });
-    const url = new URL(gmailInvoiceDraftUrl("billing@example.test", draft.subject, draft.body));
-    expect(url.origin).toBe("https://mail.google.com");
-    expect(url.searchParams.get("to")).toBe("billing@example.test");
-    expect(url.searchParams.get("su")).toBe(draft.subject);
-    expect(url.searchParams.get("body")).toBe(draft.body);
-    expect(url.searchParams.has("b")).toBe(false);
-    expect(url.searchParams.has("attachment")).toBe(false);
-  });
-
   it("uses one business date for a single-day service period and omits an absent signature phone", () => {
     expect(invoiceServicePeriod(["2026-10-03", "2026-10-03"])).toBe("Oct 3, 2026");
     const draft = buildInvoiceEmail(invoice, { ...signature, senderPhone: "" });
@@ -66,7 +51,7 @@ describe("manual dealership invoice emails", () => {
     expect(draft.body).not.toContain("555-0100");
   });
 
-  it("lets an unapproved draft open a manual invoice email", () => {
+  it("lets an unapproved draft create a Gmail draft with a PDF attached", () => {
     const html = renderToStaticMarkup(
       createElement(InvoiceEmailComposer, {
         invoiceId: "fixture-invoice",
@@ -78,14 +63,14 @@ describe("manual dealership invoice emails", () => {
       }),
     );
     expect(html).toContain('href="/api/invoices/fixture-invoice/pdf"');
-    expect(html).toContain("Open Gmail draft");
-    expect(html).toContain("Attach the downloaded PDF");
-    expect(html).toContain("does not send email or mark this invoice as sent");
+    expect(html).toContain("Create Gmail draft");
+    expect(html).toContain("with the invoice PDF attached");
+    expect(html).toContain("It will not send until you review and send it in Gmail.");
     expect(html).toContain('value="billing@example.test"');
     expect(html).toContain("Payment instructions or payment link");
     expect(html).toContain("This invoice remains a draft in the app.");
     expect(html).toContain('value="qpemissions@gmail.com"');
-    expect(html).toContain("confirm Gmail is sending from qpemissions@gmail.com");
+    expect(html).toContain("Creates a draft in qpemissions@gmail.com");
     expect(html).toContain('readOnly=""');
   });
 
@@ -100,7 +85,7 @@ describe("manual dealership invoice emails", () => {
       }),
     );
     expect(html).toContain("Download invoice PDF");
-    expect(html).not.toContain("Open Gmail draft");
+    expect(html).not.toContain("Create Gmail draft");
     expect(html).not.toContain("Recipient email");
   });
 

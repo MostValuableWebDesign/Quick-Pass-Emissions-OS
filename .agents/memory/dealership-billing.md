@@ -9,11 +9,11 @@ The user needs to bill partnered auto dealerships and said: “Email invoices re
 
 **How to apply:** Treat invoice preparation, the dealership billing contact, actual email delivery, and delivery tracking as related work. Do not equate a saved delivery record with an email having been sent or invent a recurring cadence.
 
-The user chose Gmail and manual sending, then dismissed the Gmail connection and instructed us to continue without it.
+The user chose on-demand Gmail drafts and later connected `qpemissions@gmail.com`.
 
-**Why:** The user selected click-to-send rather than a recurring schedule and did not authorize a Gmail integration.
+**Why:** The user wants to prepare invoice emails on demand while retaining final review and send control in Gmail.
 
-**How to apply:** Keep the unconnected workflow explicit: download the invoice, open the Gmail draft, attach and send manually, then record actual external delivery. Opening the draft is not proof of sending. A connected sending workflow requires a later user-approved connection.
+**How to apply:** Create a Gmail draft with the generated invoice PDF attached only after the user confirms the visible recipient. The user reviews and sends it in Gmail; draft creation alone does not send mail or change invoice accounting state.
 
 Dealership VIR uploads should tally inspections and prepare draft invoices. The user chose “OCR plus manual review” for scanned PDFs.
 
@@ -49,7 +49,7 @@ Quick Pass dealership invoices should reference `qpemissions@gmail.com` and `qui
 
 **Why:** The user specified the business sender address and website for invoice documents and delivery.
 
-**How to apply:** Include both in invoice PDFs and the email signature. Gmail drafts are manual and cannot force the actual From account; clearly remind the sender to verify it before sending.
+**How to apply:** Include both in invoice PDFs and the email signature. Before creating a draft, verify the connected Gmail mailbox is `qpemissions@gmail.com`; keep final sending in Gmail under the user's control.
 
 The owner wants to prepare an invoice email from an unpaid draft after reviewing its billing snapshot, without a separate approval or delivery-record panel.
 

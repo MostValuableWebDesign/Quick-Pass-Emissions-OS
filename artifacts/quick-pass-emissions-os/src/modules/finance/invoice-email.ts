@@ -65,13 +65,3 @@ export function buildInvoiceEmail(invoice: InvoiceEmailDetails, signature: Invoi
   };
 }
 
-export function gmailInvoiceDraftUrl(recipient: string, subject: string, body: string) {
-  const query = new URLSearchParams({
-    view: "cm",
-    fs: "1",
-    to: recipient.trim(),
-    su: subject,
-    body,
-  });
-  return `https://mail.google.com/mail/?${query.toString()}`;
-}

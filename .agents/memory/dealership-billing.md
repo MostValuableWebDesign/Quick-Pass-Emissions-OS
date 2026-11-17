@@ -32,3 +32,9 @@ Dealership invoices should be tailored to each recipient using their official we
 **Why:** The user asked for dealership-specific invoice designs referenced from their five partner websites. Customer branding must not imply that the dealership issued the invoice.
 
 **How to apply:** Use reviewed local branding assets, not live website requests during PDF creation. Public contact information is not permission to overwrite saved billing contacts, addresses, rates, payment instructions or terms.
+
+Dealerships are billed monthly, with payment due within 30 days.
+
+**Why:** The user clarified the business's billing cycle and due period.
+
+**How to apply:** Keep monthly invoice grouping/cadence distinct from Net 30 payment terms. Current invoice preparation and sending remain manual unless the user explicitly authorizes automation.

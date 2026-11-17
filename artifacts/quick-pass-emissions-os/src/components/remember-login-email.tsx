@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { ReactNode } from "react";
 
 const REMEMBERED_EMAIL_KEY = "quick-pass:remembered-login-email";
 
@@ -13,7 +14,7 @@ function saveRememberedEmail(value: string) {
   }
 }
 
-export function RememberLoginEmail() {
+export function RememberLoginEmail({ children }: { children: ReactNode }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const checkboxRef = useRef<HTMLInputElement>(null);
 
@@ -51,6 +52,7 @@ export function RememberLoginEmail() {
           required
         />
       </label>
+      {children}
       <label className="login-remember-email">
         <input
           ref={checkboxRef}

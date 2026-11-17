@@ -106,10 +106,10 @@ test("professional login branding, responsive form, keyboard access, errors and 
   }
   await email.focus();
   await page.keyboard.press("Tab");
-  await expect(rememberEmail).toBeFocused();
-  await page.keyboard.press("Tab");
   await expect(password).toBeFocused();
   await expect(password).toHaveCSS("outline-color", "rgb(0, 120, 189)");
+  await page.keyboard.press("Tab");
+  await expect(rememberEmail).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(submit).toBeFocused();
   await submit.hover();

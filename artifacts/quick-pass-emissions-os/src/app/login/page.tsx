@@ -34,19 +34,20 @@ export default async function Login({
           </p>
           <h2 id="sign-in-heading">Sign in.</h2>
           <p className="muted">Welcome back to Quick Pass Emissions.</p>
-          <RememberLoginEmail />
-          <label className="field">
-            <span>Password</span>
-            <input
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              placeholder="Enter your password"
-              minLength={12}
-              maxLength={128}
-              required
-            />
-          </label>
+          <RememberLoginEmail>
+            <label className="field">
+              <span>Password</span>
+              <input
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                minLength={12}
+                maxLength={128}
+                required
+              />
+            </label>
+          </RememberLoginEmail>
           {error && (
             <p role="alert" className="error-text">
               {error}

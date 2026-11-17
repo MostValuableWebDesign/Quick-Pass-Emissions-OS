@@ -79,6 +79,8 @@ async function markInvoiceSent(
   });
   revalidatePath(`/invoices/${invoiceId}`);
   revalidatePath("/invoices");
+  revalidatePath("/dealerships");
+  revalidatePath(`/dealerships/${latest.invoice.dealershipId}`);
 }
 
 export async function sendInvoiceFromGmail(

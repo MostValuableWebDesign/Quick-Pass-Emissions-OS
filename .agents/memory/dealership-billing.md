@@ -63,6 +63,12 @@ The owner sends invoice emails from the app after reviewing the billing snapshot
 
 **How to apply:** Allow a manual confirmed send for unpaid, non-void invoices. Sending issues a draft and records it as sent only after Gmail confirms. Never send automatically.
 
+Confirmed Gmail sends may be performed by the invoice creator; legacy separate-review database constraints must not block that transition.
+
+**Why:** The owner chose no separate approval. An older database constraint prevented an actually sent email from leaving Draft. Gmail also replaced the supplied Message-ID, making that identifier alone insufficient for recovery.
+
+**How to apply:** Keep database constraints consistent with owner-confirmed sending. When the Message-ID lookup misses, verify the uniquely numbered invoice attachment in Gmail Sent before retrying; never resend solely because the app still says Draft.
+
 Invoices of any status may be archived and restored; permanent deletion is limited to unsent drafts with no payments.
 
 **Why:** The user approved archiving all invoices while allowing deletion only for drafts, preserving sent, paid and voided financial history.

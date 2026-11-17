@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { Download, Mail } from "lucide-react";
 import {
   buildInvoiceEmail,
@@ -27,8 +27,15 @@ export function InvoiceEmailComposer({
   ineligibleMessage?: string;
 }) {
   const prefix = useId();
+  const confirmation = useRef<HTMLDialogElement>(null);
+  const approvedSend = useRef(false);
+  const [confirmingSend, setConfirmingSend] = useState(false);
   const [state, formAction, pending] = useActionState<InvoiceGmailSendState | null, FormData>(
-    sendInvoiceFromGmail,
+    async (previous, data) => {
+      const result = await sendInvoiceFromGmail(previous, data);
+      setConfirmingSend(false);
+      return result;
+    },
     null,
   );
   const emailContacts = contacts.filter((contact) => contact.email);
@@ -50,7 +57,11 @@ export function InvoiceEmailComposer({
   const senderEmail = sender.email;
   const [senderPhone, setSenderPhone] = useState("");
   const [includeBcc, setIncludeBcc] = useState(true);
-  const [confirmingSend, setConfirmingSend] = useState(false);
+  useEffect(() => {
+    const dialog = confirmation.current;
+    if (confirmingSend && dialog && !dialog.open) dialog.showModal();
+    else if (!confirmingSend && dialog?.open) dialog.close();
+  }, [confirmingSend]);
   const emailPreview = buildInvoiceEmail(invoice, {
     contactName,
     paymentInstructions,
@@ -73,9 +84,11 @@ export function InvoiceEmailComposer({
           className="form-grid"
           action={formAction}
           onSubmit={(event) => {
-            if (!confirmingSend) {
+            if (!approvedSend.current) {
               event.preventDefault();
               setConfirmingSend(true);
+            } else {
+              approvedSend.current = false;
             }
           }}
         >
@@ -224,14 +237,25 @@ export function InvoiceEmailComposer({
               {pending ? "Sending…" : "Send invoice"}
             </button>
           </div>
-          {confirmingSend && !state?.ok && !state?.uncertain && (
-            <div
-              className="field wide card card-body"
-              role="group"
-              aria-labelledby={`${prefix}-confirm`}
-            >
-              <h3 id={`${prefix}-confirm`}>Confirm invoice send</h3>
-              <p>
+          <dialog
+            ref={confirmation}
+            className="employee-removal-confirmation"
+            role="alertdialog"
+            aria-labelledby={`${prefix}-confirm`}
+            aria-describedby={`${prefix}-confirm-description`}
+            onCancel={(event) => {
+              event.preventDefault();
+              if (!pending) setConfirmingSend(false);
+            }}
+            onClose={() => setConfirmingSend(false)}
+            onClick={(event) => {
+              if (!pending && event.target === confirmation.current) setConfirmingSend(false);
+            }}
+          >
+            <div className="card-body">
+              <p className="employee-removal-eyebrow">Invoice email</p>
+              <h2 id={`${prefix}-confirm`}>Send this invoice?</h2>
+              <p id={`${prefix}-confirm-description`}>
                 Send invoice <strong>{invoice.number}</strong> to <strong>{recipient}</strong>, with
                 the PDF attached? This sends the email now
                 {isDraft ? " and issues the invoice" : ""}. The app will record it as sent.
@@ -249,16 +273,25 @@ export function InvoiceEmailComposer({
                 <button
                   className="button button-secondary"
                   type="button"
+                  autoFocus
+                  disabled={pending}
                   onClick={() => setConfirmingSend(false)}
                 >
                   Cancel
                 </button>
-                <button className="button" type="submit" disabled={pending}>
+                <button
+                  className="button"
+                  type="submit"
+                  disabled={pending}
+                  onClick={() => {
+                    approvedSend.current = true;
+                  }}
+                >
                   {pending ? "Sending…" : "Confirm and send invoice"}
                 </button>
               </div>
             </div>
-          )}
+          </dialog>
           {state && (
             <div className="field wide" role={state.ok ? "status" : "alert"} aria-live="polite">
               <p>{state.message}</p>

@@ -19,7 +19,43 @@ export async function findSentGmailMessage(connectors: ReplitConnectors, message
   );
   if (!response.ok) throw new Error("Could not check Gmail Sent for a duplicate invoice email.");
   const result = (await response.json()) as GmailMessageList;
-  return result.messages?.find((message) => message.id)?.id ?? null;
+  const exact = result.messages?.find((message) => message.id)?.id;
+  if (exact) return exact;
+
+  // Gmail can replace the supplied Message-ID. Match the uniquely numbered PDF
+  // in Sent as well, so reconciliation never requires sending another email.
+  const number = messageId.match(/^<([a-zA-Z0-9_-]+)@quickpassemissions\.com>$/)?.[1];
+  if (!number) return null;
+  const filename = `Quick-Pass-${number.toUpperCase()}.pdf`;
+  const fallbackQuery = new URLSearchParams({
+    q: `from:${invoiceIssuer.email} filename:"${filename}"`,
+    labelIds: "SENT",
+    maxResults: "20",
+  });
+  const fallback = await connectors.proxy(
+    "google-mail",
+    `/gmail/v1/users/me/messages?${fallbackQuery.toString()}`,
+    { method: "GET" },
+  );
+  if (!fallback.ok) throw new Error("Could not check sent invoice attachments.");
+  const candidates = (await fallback.json()) as GmailMessageList & { nextPageToken?: string };
+  type Part = { filename?: string; parts?: Part[] };
+  const hasInvoice = (part: Part): boolean =>
+    part.filename === filename || !!part.parts?.some(hasInvoice);
+  for (const candidate of candidates.messages ?? []) {
+    if (!candidate.id) continue;
+    const metadata = await connectors.proxy(
+      "google-mail",
+      `/gmail/v1/users/me/messages/${encodeURIComponent(candidate.id)}?format=full`,
+      { method: "GET" },
+    );
+    if (!metadata.ok) throw new Error("Could not verify a sent invoice attachment.");
+    const message = (await metadata.json()) as { labelIds?: string[]; payload?: Part };
+    if (message.labelIds?.includes("SENT") && message.payload && hasInvoice(message.payload))
+      return candidate.id;
+  }
+  if (candidates.nextPageToken) throw new Error("Too many sent invoice matches to verify safely.");
+  return null;
 }
 
 function wrapBase64(value: string) {

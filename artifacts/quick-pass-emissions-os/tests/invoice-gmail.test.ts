@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import type { ReplitConnectors } from "@replit/connectors-sdk";
 import { Buffer } from "node:buffer";
 import {
   invoiceGmailMessageId,
   invoiceGmailRawMessage,
+  findSentGmailMessage,
 } from "../src/modules/finance/invoice-gmail";
 import { invoiceBccEmail } from "../src/modules/finance/invoice-email";
 
@@ -60,5 +62,57 @@ describe("invoice Gmail MIME message", () => {
         includeBcc: false,
       }),
     ).toThrow("Enter one valid recipient email.");
+  });
+});
+
+describe("sent invoice reconciliation", () => {
+  const response = (value: unknown) => Response.json(value);
+  const attachment = "Quick-Pass-QP-2026-0002.pdf";
+  const messageId = invoiceGmailMessageId("QP-2026-0002");
+  const connector = (proxy: ReturnType<typeof vi.fn>) => ({ proxy }) as unknown as ReplitConnectors;
+
+  it("finds the sent PDF even when Gmail replaced the original message ID", async () => {
+    const proxy = vi
+      .fn()
+      .mockResolvedValueOnce(response({ messages: [] }))
+      .mockResolvedValueOnce(response({ messages: [{ id: "sent-message" }] }))
+      .mockResolvedValueOnce(
+        response({
+          labelIds: ["SENT"],
+          payload: { parts: [{ filename: attachment }] },
+        }),
+      );
+    expect(await findSentGmailMessage(connector(proxy), messageId)).toBe("sent-message");
+    expect(decodeURIComponent(proxy.mock.calls[1][1])).toContain(attachment);
+  });
+
+  it("does not mistake a different invoice or a draft email for a sent invoice", async () => {
+    const proxy = vi
+      .fn()
+      .mockResolvedValueOnce(response({ messages: [] }))
+      .mockResolvedValueOnce(response({ messages: [{ id: "other" }, { id: "draft" }] }))
+      .mockResolvedValueOnce(
+        response({
+          labelIds: ["SENT"],
+          payload: { filename: "Quick-Pass-QP-2026-0001.pdf" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        response({
+          labelIds: ["DRAFT"],
+          payload: { filename: attachment },
+        }),
+      );
+    expect(await findSentGmailMessage(connector(proxy), messageId)).toBeNull();
+  });
+
+  it("blocks another send when the attachment check cannot be completed", async () => {
+    const proxy = vi
+      .fn()
+      .mockResolvedValueOnce(response({ messages: [] }))
+      .mockResolvedValueOnce(new Response(null, { status: 503 }));
+    await expect(findSentGmailMessage(connector(proxy), messageId)).rejects.toThrow(
+      "Could not check",
+    );
   });
 });

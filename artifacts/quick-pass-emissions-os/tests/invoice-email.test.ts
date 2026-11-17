@@ -87,6 +87,9 @@ describe("manual dealership invoice emails", () => {
     expect(html).toContain('name="includeBcc"');
     expect(html).toContain('checked=""');
     expect(html).toContain('readOnly=""');
+    expect(html).toContain("<dialog");
+    expect(html).toContain('role="alertdialog"');
+    expect(html).toContain("Send this invoice?");
   });
 
   it("does not offer payment-due email drafts for ineligible invoices", () => {

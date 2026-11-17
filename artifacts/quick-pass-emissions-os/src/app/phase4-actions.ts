@@ -1,17 +1,24 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 import { z } from "zod";
 import { currentUser } from "@/lib/access";
 import { fields } from "@/lib/validation";
 import { BusinessError } from "@/modules/phase4";
 import * as finance from "@/modules/finance/service";
+import { findSentGmailMessage, invoiceGmailMessageId } from "@/modules/finance/invoice-gmail";
+import { invoiceIssuer } from "@/modules/finance/invoice-document";
 import type { ActionState } from "./actions";
-async function perform(work: (actorId: string) => Promise<unknown>): Promise<ActionState> {
+async function perform(
+  work: (actorId: string) => Promise<unknown>,
+  successMessage = "Saved successfully.",
+): Promise<ActionState> {
   const actor = await currentUser();
   try {
     await work(actor.id);
     revalidatePath("/", "layout");
-    return { ok: true, message: "Saved successfully." };
+    return { ok: true, message: successMessage };
   } catch (error) {
     if (error instanceof BusinessError) return { ok: false, message: error.message };
     if (error instanceof z.ZodError)
@@ -71,4 +78,84 @@ export async function createInvoice(_: ActionState, form: FormData) {
   return perform((actor) =>
     finance.createInvoice(actor, { ...fields(form), serviceIds: form.getAll("serviceIds") }),
   );
+}
+export async function setDealerInvoiceArchived(_: ActionState, form: FormData) {
+  const archived = form.get("archived") === "true";
+  return perform(
+    (actor) =>
+      finance.setInvoiceArchived(actor, {
+        ...fields(form),
+        archived,
+      }),
+    archived ? "Invoice archived." : "Invoice restored to the active list.",
+  );
+}
+export async function deleteDraftInvoice(_: ActionState, form: FormData): Promise<ActionState> {
+  const actor = await currentUser();
+  const parsed = z
+    .object({
+      id: z.string().trim().min(1).max(64),
+      version: z.coerce.number().int().nonnegative(),
+    })
+    .safeParse(fields(form));
+  if (!parsed.success)
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the invoice." };
+
+  try {
+    const detail = await finance.invoiceDetail(actor.id, parsed.data.id);
+    const invoice = detail.invoice;
+    if (!invoice) return { ok: false, message: "Invoice not found." };
+    if (invoice.version !== parsed.data.version)
+      return { ok: false, message: "Invoice changed. Refresh and review it before deleting." };
+    if (
+      invoice.state !== "DRAFT" ||
+      invoice.approvedAt ||
+      invoice.sentDate ||
+      invoice.deliveryReference ||
+      invoice.payments.length > 0
+    )
+      return {
+        ok: false,
+        message: "Only unsent draft invoices with no payments can be deleted.",
+      };
+
+    const connectors = new ReplitConnectors();
+    const profileResponse = await connectors.proxy("google-mail", "/gmail/v1/users/me/profile", {
+      method: "GET",
+    });
+    if (!profileResponse.ok)
+      return {
+        ok: false,
+        message: "Could not verify Gmail Sent. The draft was not deleted.",
+      };
+    const profile = (await profileResponse.json()) as { emailAddress?: string };
+    if (profile.emailAddress?.toLowerCase() !== invoiceIssuer.email)
+      return {
+        ok: false,
+        message: "Connect qpemissions@gmail.com to verify the draft was not sent.",
+      };
+    const priorMessageId = await findSentGmailMessage(
+      connectors,
+      invoiceGmailMessageId(invoice.number),
+    );
+    if (priorMessageId)
+      return {
+        ok: false,
+        message: "Gmail Sent contains an email for this invoice. Archive it instead of deleting.",
+      };
+    await finance.deleteDraftInvoice(actor.id, parsed.data);
+  } catch (error) {
+    if (error instanceof BusinessError) return { ok: false, message: error.message };
+    if (error instanceof z.ZodError)
+      return { ok: false, message: error.issues[0]?.message ?? "Check the invoice." };
+    return {
+      ok: false,
+      message: "Could not safely delete this draft. It was left unchanged.",
+    };
+  }
+
+  revalidatePath("/invoices");
+  revalidatePath("/dealerships");
+  revalidatePath("/", "layout");
+  redirect("/invoices");
 }

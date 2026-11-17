@@ -1,4 +1,5 @@
 import { RecordLink } from "@/components/record-link";
+import Link from "next/link";
 import { currentUser } from "@/lib/access";
 import { businessDate } from "@/lib/time";
 import { invoiceOverview, paymentOverview } from "@/modules/finance/service";
@@ -16,25 +17,62 @@ export default async function Invoices({
     params = await searchParams,
     q = params.q ?? "",
     isPayments = params.view === "payments",
+    isArchived = params.view === "archived",
     data = isPayments
       ? await paymentOverview(actor.id, q)
-      : await invoiceOverview(actor.id, q);
+      : await invoiceOverview(actor.id, q, isArchived ? "archived" : "active");
   return (
     <>
       <PageHeader
-        title={isPayments ? "Dealership payments" : "Dealership invoices"}
+        title={
+          isPayments
+            ? "Dealership payments"
+            : isArchived
+              ? "Archived invoices"
+              : "Dealership invoices"
+        }
         description={
           isPayments
             ? "Review received dealership payments and reversals."
-            : "Draft, approve, record external delivery, and track received payments. Create drafts from a dealership’s completed services."
+            : "Active invoices are shown by default. Archived invoices stay in history and reports."
         }
-      />
+      >
+        <Link
+          className={`button ${!isPayments && !isArchived ? "" : "button-secondary"}`}
+          aria-current={!isPayments && !isArchived ? "page" : undefined}
+          href={q ? `/invoices?q=${encodeURIComponent(q)}` : "/invoices"}
+        >
+          Active invoices
+        </Link>
+        <Link
+          className={`button ${isArchived ? "" : "button-secondary"}`}
+          aria-current={isArchived ? "page" : undefined}
+          href={`/invoices?view=archived${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+        >
+          Archived invoices
+        </Link>
+        <Link
+          className={`button ${isPayments ? "" : "button-secondary"}`}
+          aria-current={isPayments ? "page" : undefined}
+          href={`/invoices?view=payments${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+        >
+          Payments
+        </Link>
+      </PageHeader>
       <DemoNotice demo={data.demo} />
       <section className="card card-body">
         <form className="form-grid" method="get">
-          <Field label={isPayments ? "Search reference, invoice number or dealership" : "Search invoice number or dealership"}>
+          <Field
+            label={
+              isPayments
+                ? "Search reference, invoice number or dealership"
+                : "Search invoice number or dealership"
+            }
+          >
             <input name="q" defaultValue={q} maxLength={160} />
-            {isPayments && <input type="hidden" name="view" value="payments" />}
+            {(isPayments || isArchived) && (
+              <input type="hidden" name="view" value={isPayments ? "payments" : "archived"} />
+            )}
           </Field>
           <div className="form-footer">
             <Button type="submit">{isPayments ? "Search payments" : "Search invoices"}</Button>
@@ -69,14 +107,12 @@ export default async function Invoices({
                     </td>
                     <td>{payment.reference}</td>
                     <td>
-                      <Money cents={payment.reversesId ? -payment.amountCents : payment.amountCents} />
+                      <Money
+                        cents={payment.reversesId ? -payment.amountCents : payment.amountCents}
+                      />
                     </td>
                     <td>
-                      {payment.reversesId
-                        ? "Reversal"
-                        : payment.reversal
-                          ? "Reversed"
-                          : "Received"}
+                      {payment.reversesId ? "Reversal" : payment.reversal ? "Reversed" : "Received"}
                     </td>
                   </tr>
                 ))}
@@ -90,7 +126,7 @@ export default async function Invoices({
       ) : (
         <section className="card space-top">
           <div className="card-heading">
-            <h2>Invoices · latest 100 matches</h2>
+            <h2>{isArchived ? "Archived invoices" : "Active invoices"}</h2>
           </div>
           <div className="table-scroll">
             <table>
@@ -129,7 +165,8 @@ export default async function Invoices({
                         <Money cents={s.remainingCents} />
                       </td>
                       <td>
-                        {s.status}
+                        {i.archivedAt ? "Archived" : s.status}
+                        {i.archivedAt && <small>Retained in reports and history</small>}
                         {s.paidCents > 0 && s.remainingCents > 0 && (
                           <small>Partial payment recorded</small>
                         )}
@@ -142,7 +179,9 @@ export default async function Invoices({
           </div>
           {!data.invoices.length && (
             <p className="card-body muted">
-              No invoice records match. Open a dealership to record services and draft an invoice.
+              {isArchived
+                ? "No archived invoices match this search."
+                : "No active invoices match. Open a dealership to record services and draft an invoice."}
             </p>
           )}
         </section>

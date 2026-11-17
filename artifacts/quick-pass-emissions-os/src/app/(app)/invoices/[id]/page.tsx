@@ -32,6 +32,57 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
         description={`${summary.status} · Issued ${i.issueDate} · Due ${i.dueDate}${i.sentDate ? ` · Sent ${i.sentDate}` : ""}`}
       />
       <DemoNotice demo={data.demo} />
+      <section className="card card-body space-top" aria-labelledby="invoice-record-actions">
+        <h2 id="invoice-record-actions">Invoice record</h2>
+        <p className="muted">
+          Archiving hides an invoice from the active list but keeps it in reports and history.
+          Unsent draft services become available for billing again only if the draft is deleted.
+        </p>
+        {i.archivedAt ? (
+          <>
+            <p className="notice warning">
+              Archived {formatDate(i.archivedAt)} · retained in history.
+            </p>
+            <ActionForm action={actions.setDealerInvoiceArchived} submit="Restore invoice">
+              <input type="hidden" name="id" value={i.id} />
+              <input type="hidden" name="version" value={i.version} />
+              <input type="hidden" name="archived" value="false" />
+            </ActionForm>
+          </>
+        ) : (
+          <ActionForm
+            action={actions.setDealerInvoiceArchived}
+            submit="Archive invoice"
+            confirmEyebrow="Invoice records"
+            confirmTitle="Archive this invoice?"
+            confirmConfirmLabel="Archive invoice"
+            confirmCancelLabel="Keep active"
+            confirmOnSubmit={`Archive invoice ${i.number}? It will leave the active list, but its payment history, service rows, and report totals will be retained. You can restore it later.`}
+          >
+            <input type="hidden" name="id" value={i.id} />
+            <input type="hidden" name="version" value={i.version} />
+            <input type="hidden" name="archived" value="true" />
+          </ActionForm>
+        )}
+        {i.state === "DRAFT" &&
+          !i.approvedAt &&
+          !i.sentDate &&
+          !i.deliveryReference &&
+          i.payments.length === 0 && (
+            <ActionForm
+              action={actions.deleteDraftInvoice}
+              submit="Delete draft invoice"
+              confirmEyebrow="Permanent invoice deletion"
+              confirmTitle="Delete this draft permanently?"
+              confirmConfirmLabel="Delete permanently"
+              confirmCancelLabel="Keep draft"
+              confirmOnSubmit={`Permanently delete draft ${i.number}? It has no payments and has not been sent. Its service rows will be released for billing again. An audit record will remain; this cannot be undone.`}
+            >
+              <input type="hidden" name="id" value={i.id} />
+              <input type="hidden" name="version" value={i.version} />
+            </ActionForm>
+          )}
+      </section>
       <section className="card card-body">
         <h2>Billing snapshot</h2>
         <InvoiceCustomerBrand
@@ -115,13 +166,17 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
         contacts={snap.contacts}
         sender={{ name: invoiceIssuer.name, email: invoiceIssuer.email }}
         isDraft={i.state === "DRAFT"}
-        eligible={(i.state === "DRAFT" || i.state === "APPROVED") && emailBalanceCents > 0}
+        eligible={
+          !i.archivedAt && (i.state === "DRAFT" || i.state === "APPROVED") && emailBalanceCents > 0
+        }
         ineligibleMessage={
-          i.state === "SENT"
-            ? "This invoice has already been sent."
-            : i.state === "VOIDED"
-              ? "Voided invoices cannot be sent."
-              : "This invoice has no unpaid balance."
+          i.archivedAt
+            ? "This invoice is archived. Restore it before sending."
+            : i.state === "SENT"
+              ? "This invoice has already been sent."
+              : i.state === "VOIDED"
+                ? "Voided invoices cannot be sent."
+                : "This invoice has no unpaid balance."
         }
       />
       {i.approvedAt && i.state !== "VOIDED" && summary.remainingCents > 0 && (

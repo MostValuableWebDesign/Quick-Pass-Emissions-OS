@@ -1326,6 +1326,7 @@ model DealerInvoice {
   deliveryReference String?
   voidDate          String?
   voidReason        String?
+  archivedAt        DateTime?
   version           Int                 @default(0)
   createdAt         DateTime            @default(now())
   lines             DealerInvoiceLine[]
@@ -1333,6 +1334,7 @@ model DealerInvoice {
   payments          DealerPayment[]
 
   @@index([dealershipId, issueDate])
+  @@index([archivedAt, createdAt])
 }
 
 model DealerInvoiceLine {

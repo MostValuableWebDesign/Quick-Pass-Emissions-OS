@@ -1,7 +1,26 @@
 import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
+import type { ReplitConnectors } from "@replit/connectors-sdk";
 import { invoiceIssuer } from "./invoice-document";
 import { invoiceBccEmail } from "./invoice-email";
+
+type GmailMessageList = { messages?: { id?: string }[] };
+
+export async function findSentGmailMessage(connectors: ReplitConnectors, messageId: string) {
+  const query = new URLSearchParams({
+    q: `rfc822msgid:${messageId.replace(/[<>]/g, "")}`,
+    labelIds: "SENT",
+    maxResults: "1",
+  });
+  const response = await connectors.proxy(
+    "google-mail",
+    `/gmail/v1/users/me/messages?${query.toString()}`,
+    { method: "GET" },
+  );
+  if (!response.ok) throw new Error("Could not check Gmail Sent for a duplicate invoice email.");
+  const result = (await response.json()) as GmailMessageList;
+  return result.messages?.find((message) => message.id)?.id ?? null;
+}
 
 function wrapBase64(value: string) {
   return value.match(/.{1,76}/g)?.join("\r\n") ?? "";

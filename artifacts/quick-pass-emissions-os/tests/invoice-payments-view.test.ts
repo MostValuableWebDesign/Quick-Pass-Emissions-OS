@@ -20,7 +20,8 @@ vi.mock("@/components/phase3", () => ({
   Money: ({ cents }: { cents: number }) => createElement("span", { "data-cents": cents }, cents),
 }));
 vi.mock("@/components/shared", () => ({
-  PageHeader: ({ title }: { title: string }) => createElement("h1", null, title),
+  PageHeader: ({ title, children }: { title: string; children?: ReactNode }) =>
+    createElement("header", null, createElement("h1", null, title), children),
 }));
 vi.mock("@/components/action-form", () => ({
   Field: ({ label, children }: { label: string; children: ReactNode }) =>
@@ -63,7 +64,9 @@ describe("dealership billing views", () => {
   });
 
   it("opens searchable payment history and represents reversals separately", async () => {
-    const page = await Invoices({ searchParams: Promise.resolve({ view: "payments", q: "Fixture" }) });
+    const page = await Invoices({
+      searchParams: Promise.resolve({ view: "payments", q: "Fixture" }),
+    });
     const html = renderToStaticMarkup(page);
     expect(mocks.payments).toHaveBeenCalledWith("fixture-owner", "Fixture");
     expect(mocks.invoices).not.toHaveBeenCalled();
@@ -77,10 +80,23 @@ describe("dealership billing views", () => {
   });
 
   it("keeps the existing invoice view as the default", async () => {
-    const html = renderToStaticMarkup(await Invoices({ searchParams: Promise.resolve({ q: "dealer" }) }));
-    expect(mocks.invoices).toHaveBeenCalledWith("fixture-owner", "dealer");
+    const html = renderToStaticMarkup(
+      await Invoices({ searchParams: Promise.resolve({ q: "dealer" }) }),
+    );
+    expect(mocks.invoices).toHaveBeenCalledWith("fixture-owner", "dealer", "active");
     expect(mocks.payments).not.toHaveBeenCalled();
     expect(html).toContain("Dealership invoices");
     expect(html).not.toContain('name="view"');
+  });
+
+  it("shows the archived invoice view and preserves its search", async () => {
+    const page = await Invoices({
+      searchParams: Promise.resolve({ view: "archived", q: "Fixture" }),
+    });
+    const html = renderToStaticMarkup(page);
+    expect(mocks.invoices).toHaveBeenCalledWith("fixture-owner", "Fixture", "archived");
+    expect(html).toContain("Archived invoices");
+    expect(html).toContain('name="view" value="archived"');
+    expect(html).toContain('href="/invoices?view=archived&amp;q=Fixture"');
   });
 });

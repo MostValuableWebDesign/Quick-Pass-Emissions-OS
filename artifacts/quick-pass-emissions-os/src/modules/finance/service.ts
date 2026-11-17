@@ -276,24 +276,29 @@ export async function createInvoiceInTransaction(tx: Tx, actorId: string, input:
   );
   currentPast(data.issueDate);
   const year = data.issueDate.slice(0, 4);
+  const existingNumbers = (
+    await tx.dealerInvoice.findMany({
+      where: { number: { startsWith: `QP-${year}-` } },
+      select: { number: true },
+    })
+  ).map((invoice) => invoice.number);
+  const deletedInvoiceAudits = await tx.auditLog.findMany({
+    where: { action: "DEALER_INVOICE_DELETED" },
+    select: { details: true },
+  });
+  const deletedNumbers = deletedInvoiceAudits.flatMap(({ details }) => {
+    if (!details || typeof details !== "object" || Array.isArray(details)) return [];
+    const number = (details as Record<string, unknown>).number;
+    return typeof number === "string" ? [number] : [];
+  });
   const number =
     data.number ||
-    formatInvoiceNumber(
-      year,
-      nextInvoiceSequence(
-        year,
-        (
-          await tx.dealerInvoice.findMany({
-            where: { number: { startsWith: `QP-${year}-` } },
-            select: { number: true },
-          })
-        ).map((invoice) => invoice.number),
-      ),
-    );
+    formatInvoiceNumber(year, nextInvoiceSequence(year, [...existingNumbers, ...deletedNumbers]));
   requireRule(
     isInvoiceNumberForYear(number, year),
     `Invoice number must use QP-${year}-0001 format for its issue year.`,
   );
+  requireRule(!deletedNumbers.includes(number), "Invoice number was used by a deleted draft.");
   const dealer = await tx.dealership.findUnique({
     where: { id: data.dealershipId },
     include: { contacts: { where: { active: true }, orderBy: { createdAt: "asc" } } },
@@ -409,8 +414,8 @@ export async function reviewInvoice(actorId: string, input: unknown) {
       include: { payments: true, lines: true },
     });
     requireRule(
-      row?.version === data.version && row.state !== "VOIDED",
-      "Invoice changed or is voided. Refresh and review it.",
+      row?.version === data.version && row.state !== "VOIDED" && !row.archivedAt,
+      "Invoice changed, is archived, or is voided. Restore it if needed, then refresh and review.",
     );
     requireRule(data.date >= row.issueDate, "Action date cannot precede issue date.");
     if (data.decision === "APPROVE") {
@@ -477,9 +482,7 @@ export async function reviewInvoice(actorId: string, input: unknown) {
 }
 /** A confirmed Gmail send is the issue/approval action for an otherwise-unapproved draft. */
 export async function recordGmailInvoiceSent(actorId: string, input: unknown) {
-  const data = z
-    .object({ id, version, date: dateString, reference: label })
-    .parse(input);
+  const data = z.object({ id, version, date: dateString, reference: label }).parse(input);
   return phase4(actorId, reviewers, async (tx) => {
     currentPast(data.date);
     const row = await tx.dealerInvoice.findUnique({
@@ -488,8 +491,10 @@ export async function recordGmailInvoiceSent(actorId: string, input: unknown) {
     });
     if (row?.state === "SENT" && row.deliveryReference === data.reference) return row;
     requireRule(
-      row?.version === data.version && (row.state === "DRAFT" || row.state === "APPROVED"),
-      "Invoice changed or is no longer available to send. Refresh and review it.",
+      row?.version === data.version &&
+        (row.state === "DRAFT" || row.state === "APPROVED") &&
+        !row.archivedAt,
+      "Invoice changed, is archived, or is no longer available to send. Restore it if needed, then refresh.",
     );
     requireRule(data.date >= row.issueDate, "Send date cannot precede the invoice date.");
     requireRule(
@@ -522,6 +527,63 @@ export async function recordGmailInvoiceSent(actorId: string, input: unknown) {
     return sent;
   });
 }
+
+export async function setInvoiceArchived(actorId: string, input: unknown) {
+  const data = z.object({ id, version, archived: z.boolean() }).parse(input);
+  return phase4(actorId, financeRoles, async (tx) => {
+    const row = await tx.dealerInvoice.findUnique({ where: { id: data.id } });
+    requireRule(row?.version === data.version, "Invoice changed. Refresh and review it.");
+    if (Boolean(row.archivedAt) === data.archived) return row;
+    const updated = await tx.dealerInvoice.update({
+      where: { id: row.id },
+      data: {
+        archivedAt: data.archived ? new Date() : null,
+        version: { increment: 1 },
+      },
+    });
+    await audit(
+      tx,
+      actorId,
+      data.archived ? "DEALER_INVOICE_ARCHIVED" : "DEALER_INVOICE_RESTORED",
+      row.id,
+      { number: row.number },
+    );
+    return updated;
+  });
+}
+
+export async function deleteDraftInvoice(actorId: string, input: unknown) {
+  const data = z.object({ id, version }).parse(input);
+  return phase4(actorId, financeRoles, async (tx) => {
+    const row = await tx.dealerInvoice.findUnique({
+      where: { id: data.id },
+      include: { payments: true, lines: true },
+    });
+    requireRule(
+      row &&
+        row.version === data.version &&
+        row.state === "DRAFT" &&
+        !row.approvedAt &&
+        !row.sentDate &&
+        !row.deliveryReference &&
+        row.payments.length === 0,
+      "Only an unsent draft with no payments can be deleted. Refresh and review the invoice.",
+    );
+    await audit(tx, actorId, "DEALER_INVOICE_DELETED", row.id, {
+      number: row.number,
+      dealershipId: row.dealershipId,
+      totalCents: row.totalCents,
+      serviceIds: row.lines.map((line) => line.serviceId),
+    });
+    await tx.dealerService.updateMany({
+      where: { invoiceId: row.id },
+      data: { invoiceId: null },
+    });
+    await tx.dealerInvoiceLine.deleteMany({ where: { invoiceId: row.id } });
+    await tx.dealerInvoice.delete({ where: { id: row.id } });
+  });
+}
+
 export async function recordDealerPayment(actorId: string, input: unknown) {
   const data = z
     .object({
@@ -726,18 +788,25 @@ export async function dealerDetail(actorId: string, key: string) {
     demo: (await tx.employee.count({ where: { demo: true } })) > 0,
   }));
 }
-export async function invoiceOverview(actorId: string, query = "") {
+export async function invoiceOverview(
+  actorId: string,
+  query = "",
+  scope: "active" | "archived" = "active",
+) {
   const search = z.string().max(160).parse(query);
   return phase4(actorId, financeRoles, async (tx) => ({
     invoices: await tx.dealerInvoice.findMany({
-      where: search
-        ? {
-            OR: [
-              { number: { contains: search, mode: "insensitive" } },
-              { dealership: { name: { contains: search, mode: "insensitive" } } },
-            ],
-          }
-        : {},
+      where: {
+        archivedAt: scope === "archived" ? { not: null } : null,
+        ...(search
+          ? {
+              OR: [
+                { number: { contains: search, mode: "insensitive" } },
+                { dealership: { name: { contains: search, mode: "insensitive" } } },
+              ],
+            }
+          : {}),
+      },
       orderBy: { createdAt: "desc" },
       take: 100,
       include: { dealership: { select: { name: true } }, payments: true },

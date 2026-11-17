@@ -63,6 +63,12 @@ The owner sends invoice emails from the app after reviewing the billing snapshot
 
 **How to apply:** Allow a manual confirmed send for unpaid, non-void invoices. Sending issues a draft and records it as sent only after Gmail confirms. Never send automatically.
 
+Invoices of any status may be archived and restored; permanent deletion is limited to unsent drafts with no payments.
+
+**Why:** The user approved archiving all invoices while allowing deletion only for drafts, preserving sent, paid and voided financial history.
+
+**How to apply:** Keep archived invoices in reports/history but out of the active list. Before deleting a draft, verify Gmail Sent, release its service allocations for rebilling, retain an audit tombstone, and never reuse its invoice number.
+
 The Quick Pass inbox reads `qpemissions@gmail.com` live and stores only team annotations: topic, importance, follow-up status and notes.
 
 **Why:** The user wants to triage incoming business email in the app without creating another stored copy of message content.

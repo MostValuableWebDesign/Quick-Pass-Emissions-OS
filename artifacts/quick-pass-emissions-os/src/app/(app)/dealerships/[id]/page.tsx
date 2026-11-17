@@ -11,16 +11,12 @@ import { DateField, AmountField } from "@/components/finance";
 import { DealershipFields } from "@/components/dealership-fields";
 import { ContactPhoneField } from "@/components/contact-phone-field";
 import * as actions from "@/app/phase4-actions";
-import { marketingOptions } from "@/modules/marketing/service";
-import { ServiceSourceFields } from "@/components/marketing-client";
-import { sourceOptions } from "@/components/marketing";
 import { DealerVirUpload } from "@/components/dealer-vir-upload";
 export default async function Dealer({ params }: { params: Promise<{ id: string }> }) {
   const actor = await currentUser(),
     data = await dealerDetail(actor.id, (await params).id),
     d = data.dealer;
   if (!d) notFound();
-  const marketing = await marketingOptions(actor.id);
   const management = true,
     unbilled = data.unbilled;
   return (
@@ -187,33 +183,6 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
           </details>
         ))}
       </section>
-      {d.active && (
-        <section className="card card-body space-top">
-          <h2>Record completed service</h2>
-          <p className="muted">
-            Manual service evidence only. Do not enter vehicle owner personal data. Service amounts
-            require review during invoice approval.
-          </p>
-          <ActionForm action={actions.recordService} submit="Record completed service">
-            <input type="hidden" name="dealershipId" value={d.id} />
-            <DateField label="Service completion date" />
-            <TextField name="description" label="Service description" />
-            <AmountField label="Completed quantity · whole units" name="quantity" max={100000} />
-            <AmountField
-              label="Agreed unit rate · integer USD cents"
-              name="unitCents"
-              value={d.defaultRateCents}
-            />
-            <TextField name="reference" label="Unique service source reference" />
-            <TextField name="evidence" label="Completion evidence / external record" area />
-            <ServiceSourceFields
-              sources={sourceOptions}
-              campaigns={marketing.campaigns}
-              isOwner={actor.role === "OWNER"}
-            />
-          </ActionForm>
-        </section>
-      )}
       <section className="card space-top">
         <div className="card-heading">
           <h2>Completed services · latest 100</h2>
@@ -315,7 +284,8 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
                 businessDate(),
               ).status
             }{" "}
-            · <Money cents={i.totalCents} />
+            {i.archivedAt ? "· archived · " : "· "}
+            <Money cents={i.totalCents} />
           </p>
         ))}
       </section>

@@ -94,6 +94,81 @@ if (enabled) {
     await f.reviewInvoice(owner, decision(i.id));
     return db.dealerInvoice.findUniqueOrThrow({ where: { id: i.id } });
   }
+  it("archives and restores invoices, and safely deletes only unsent drafts", async () => {
+    const d = await dealer();
+    const s = await service(d.id);
+    const year = today.slice(0, 4);
+    const invoice = await f.createInvoice(book, {
+      dealershipId: d.id,
+      number: `QP-${year}-0001`,
+      issueDate: today,
+      serviceIds: [s.id],
+      notes: "Archive fixture",
+    });
+
+    await f.setInvoiceArchived(book, {
+      id: invoice.id,
+      version: invoice.version,
+      archived: true,
+    });
+    expect((await f.invoiceOverview(book)).invoices.map((row) => row.id)).not.toContain(invoice.id);
+    expect((await f.invoiceOverview(book, "", "archived")).invoices.map((row) => row.id)).toContain(
+      invoice.id,
+    );
+    await expect(
+      f.recordGmailInvoiceSent(book, {
+        id: invoice.id,
+        version: invoice.version + 1,
+        date: today,
+        reference: `GMAIL:${randomUUID()}`,
+      }),
+    ).rejects.toThrow("archived");
+
+    await f.setInvoiceArchived(owner, {
+      id: invoice.id,
+      version: invoice.version + 1,
+      archived: false,
+    });
+    expect((await f.invoiceOverview(book)).invoices.map((row) => row.id)).toContain(invoice.id);
+
+    await f.deleteDraftInvoice(book, { id: invoice.id, version: invoice.version + 2 });
+    expect(await db.dealerInvoice.findUnique({ where: { id: invoice.id } })).toBeNull();
+    expect(
+      (await db.dealerService.findUniqueOrThrow({ where: { id: s.id } })).invoiceId,
+    ).toBeNull();
+    expect(
+      await db.auditLog.findFirst({
+        where: { action: "DEALER_INVOICE_DELETED", entityId: invoice.id },
+      }),
+    ).not.toBeNull();
+
+    const nextService = await service(d.id);
+    const next = await f.createInvoice(book, {
+      dealershipId: d.id,
+      number: "",
+      issueDate: today,
+      serviceIds: [nextService.id],
+      notes: "Sequence fixture",
+    });
+    expect(next.number).toBe(`QP-${year}-0002`);
+    await expect(
+      f.createInvoice(book, {
+        dealershipId: d.id,
+        number: `QP-${year}-0001`,
+        issueDate: today,
+        serviceIds: [await service(d.id).then((row) => row.id)],
+        notes: "Do not reuse deleted number",
+      }),
+    ).rejects.toThrow("used by a deleted draft");
+  });
+
+  it("prevents deletion of approved or paid invoices", async () => {
+    const invoice = await approved();
+    await expect(
+      f.deleteDraftInvoice(book, { id: invoice.id, version: invoice.version }),
+    ).rejects.toThrow("Only an unsent draft");
+  });
+
   it("rejects overlapping backdated invoice reissues and preserves historical receivables", async () => {
     const old = await approved();
     const line = await db.dealerInvoiceLine.findFirstOrThrow({ where: { invoiceId: old.id } });

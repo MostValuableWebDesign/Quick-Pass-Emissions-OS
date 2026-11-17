@@ -17,12 +17,20 @@ export function ActionForm({
   submit = "Save changes",
   className = "form-grid",
   confirmOnSubmit,
+  confirmEyebrow = "Staff change",
+  confirmTitle = "Confirm employee removal",
+  confirmConfirmLabel = "Remove from active staff",
+  confirmCancelLabel = "Keep employee",
 }: {
   action: (state: ActionState, data: FormData) => Promise<ActionState>;
   children?: React.ReactNode;
   submit?: string;
   className?: string;
   confirmOnSubmit?: string;
+  confirmEyebrow?: string;
+  confirmTitle?: string;
+  confirmConfirmLabel?: string;
+  confirmCancelLabel?: string;
 }) {
   const closeAddDialog = useContext(DirectoryAddDialogContext);
   const form = useRef<HTMLFormElement>(null);
@@ -120,9 +128,9 @@ export function ActionForm({
               !
             </span>
             <div>
-              <p className="employee-removal-eyebrow">Staff change</p>
+              <p className="employee-removal-eyebrow">{confirmEyebrow}</p>
               <h2 id={confirmationTitleId} className="employee-removal-title">
-                Confirm employee removal
+                {confirmTitle}
               </h2>
               <p id={confirmationDescriptionId} className="employee-removal-description">
                 {confirmOnSubmit}
@@ -136,10 +144,10 @@ export function ActionForm({
               autoFocus
               onClick={cancelRemoval}
             >
-              Keep employee
+              {confirmCancelLabel}
             </button>
             <button type="button" className="employee-removal-confirm" onClick={confirmRemoval}>
-              Remove from active staff
+              {confirmConfirmLabel}
             </button>
           </div>
         </dialog>

@@ -10,7 +10,11 @@ import { receivable } from "@/modules/finance/rules";
 import { invoiceSnapshotSchema, invoiceIssuer } from "@/modules/finance/invoice-document";
 import { createInvoicePdf } from "@/modules/finance/invoice-pdf";
 import { buildInvoiceEmail } from "@/modules/finance/invoice-email";
-import { invoiceGmailMessageId, invoiceGmailRawMessage } from "@/modules/finance/invoice-gmail";
+import {
+  findSentGmailMessage,
+  invoiceGmailMessageId,
+  invoiceGmailRawMessage,
+} from "@/modules/finance/invoice-gmail";
 
 export type InvoiceGmailSendState = {
   ok: boolean;
@@ -28,28 +32,11 @@ const requestSchema = z.object({
   senderPhone: z.string().trim().max(50).default(""),
 });
 
-type GmailMessageList = { messages?: { id?: string }[] };
 type GmailMessageMetadata = { payload?: { headers?: { name?: string; value?: string }[] } };
 
 function recipientMatchesHeader(value: string | undefined, target: string) {
   const addresses = value?.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? [];
   return addresses.some((address) => address.toLowerCase() === target.toLowerCase());
-}
-
-async function findSentGmailMessage(connectors: ReplitConnectors, messageId: string) {
-  const query = new URLSearchParams({
-    q: `rfc822msgid:${messageId.replace(/[<>]/g, "")}`,
-    labelIds: "SENT",
-    maxResults: "1",
-  });
-  const response = await connectors.proxy(
-    "google-mail",
-    `/gmail/v1/users/me/messages?${query.toString()}`,
-    { method: "GET" },
-  );
-  if (!response.ok) throw new Error("Could not check Gmail Sent for a duplicate invoice email.");
-  const result = (await response.json()) as GmailMessageList;
-  return result.messages?.find((message) => message.id)?.id ?? null;
 }
 
 async function sentRecipientMatches(
@@ -64,8 +51,9 @@ async function sentRecipientMatches(
   );
   if (!response.ok) return false;
   const result = (await response.json()) as GmailMessageMetadata;
-  const toHeader = result.payload?.headers?.find((header) => header.name?.toLowerCase() === "to")
-    ?.value;
+  const toHeader = result.payload?.headers?.find(
+    (header) => header.name?.toLowerCase() === "to",
+  )?.value;
   return recipientMatchesHeader(toHeader, target);
 }
 
@@ -108,6 +96,11 @@ export async function sendInvoiceFromGmail(
     const detail = await finance.invoiceDetail(actor.id, data.invoiceId);
     const invoice = detail.invoice;
     if (!invoice) return { ok: false, message: "Invoice not found." };
+    if (invoice.archivedAt)
+      return {
+        ok: false,
+        message: "Restore this archived invoice before sending it.",
+      };
     if (invoice.state === "SENT")
       return { ok: true, sent: true, message: "This invoice has already been sent." };
     if (invoice.state === "VOIDED")
@@ -131,11 +124,9 @@ export async function sendInvoiceFromGmail(
       };
 
     const connectors = new ReplitConnectors();
-    const profileResponse = await connectors.proxy(
-      "google-mail",
-      "/gmail/v1/users/me/profile",
-      { method: "GET" },
-    );
+    const profileResponse = await connectors.proxy("google-mail", "/gmail/v1/users/me/profile", {
+      method: "GET",
+    });
     if (!profileResponse.ok)
       return { ok: false, message: "Unable to verify the connected Gmail account." };
     const profile = (await profileResponse.json()) as { emailAddress?: string };
@@ -212,15 +203,11 @@ export async function sendInvoiceFromGmail(
 
     let sendResponse: Response;
     try {
-      sendResponse = await connectors.proxy(
-        "google-mail",
-        "/gmail/v1/users/me/messages/send",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ raw }),
-        },
-      );
+      sendResponse = await connectors.proxy("google-mail", "/gmail/v1/users/me/messages/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raw }),
+      });
     } catch {
       return {
         ok: false,

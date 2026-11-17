@@ -80,6 +80,12 @@ describe("role-filtered navigation", () => {
     expect(matchRoute("/summaries")?.title).toBe("Summary archive");
     expect(matchRoute("/summaries/example-id")?.title).toBe("Summary");
   });
+  it("adds a management-only inbox and resolves email detail routes", () => {
+    for (const role of ["OWNER", "ADMIN"]) expect(hrefs(role)).toContain("/inbox");
+    expect(hrefs("EMPLOYEE")).not.toContain("/inbox");
+    expect(matchRoute("/inbox/message_123")?.title).toBe("Email");
+    expect(activeNavHref("/inbox/message_123", "OWNER")).toBe("/inbox");
+  });
   it("omits the retired Product roadmap tab and route", () => {
     expect(hrefs("OWNER")).not.toContain("/roadmap");
     expect(matchRoute("/roadmap")).toBeUndefined();

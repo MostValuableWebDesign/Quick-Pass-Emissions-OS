@@ -41,6 +41,7 @@ import {
   ChevronDown,
   Map,
   Video,
+  Mail,
   ArrowLeft,
   type LucideIcon,
 } from "lucide-react";
@@ -93,6 +94,7 @@ const ICONS: Record<IconKey, LucideIcon> = {
   shield: ShieldCheck,
   camera: Video,
   map: Map,
+  mail: Mail,
 };
 
 const MOBILE_QUERY = "(max-width: 680px)";

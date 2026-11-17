@@ -51,8 +51,14 @@ Quick Pass dealership invoices should reference `qpemissions@gmail.com` and `qui
 
 **How to apply:** Include both in invoice PDFs and the email signature. Verify the connected Gmail mailbox is `qpemissions@gmail.com` before sending and use it as the From address.
 
-The owner wants to prepare an invoice email from an unpaid draft after reviewing its billing snapshot, without a separate approval or delivery-record panel.
+The owner sends invoice emails from the app after reviewing the billing snapshot, without a separate approval or delivery-record panel.
 
 **Why:** The user explicitly chose composing invoice emails without separate approval and asked to remove the review/delivery panel.
 
-**How to apply:** Allow a manual email draft for unpaid, non-void invoices, but do not send it, mark it sent, or silently change accounting state. Keep the draft status and explain that drafts remain outside receivables.
+**How to apply:** Allow a manual confirmed send for unpaid, non-void invoices. Sending issues a draft and records it as sent only after Gmail confirms. Never send automatically.
+
+The Quick Pass inbox reads `qpemissions@gmail.com` live and stores only team annotations: topic, importance, follow-up status and notes.
+
+**Why:** The user wants to triage incoming business email in the app without creating another stored copy of message content.
+
+**How to apply:** Restrict inbox access to finance managers, fetch messages on demand, and never persist bodies or attachments. For removal, use the reversible Gmail Trash action only after explicit confirmation; the current standard Gmail connector lacks `gmail.modify`, so actual Trash requires a custom OAuth client configured with that scope.

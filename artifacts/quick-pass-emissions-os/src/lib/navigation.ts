@@ -39,6 +39,7 @@ export type IconKey =
   | "settings"
   | "camera"
   | "shield"
+  | "mail"
   | "map";
 
 export type NavItem = {
@@ -64,6 +65,11 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/analytics", label: "Analytics", icon: "chart", roles: MANAGERS },
       { href: "/overview", label: "Owner exceptions", icon: "gauge", roles: OWNER_ONLY },
     ],
+  },
+  {
+    id: "communications",
+    label: "Communications",
+    items: [{ href: "/inbox", label: "Inbox", icon: "mail", roles: FINANCE }],
   },
   {
     id: "emissions",
@@ -442,6 +448,7 @@ export const ROUTES: RouteDef[] = [
   detail("/vendors/:id", "Service & Support", "/vendors", OPERATORS),
   detail("/dealerships/:id", "Dealership account", "/dealerships", FINANCE),
   detail("/invoices/:id", "Invoice", "/invoices", FINANCE),
+  detail("/inbox/:id", "Email", "/inbox", FINANCE),
   detail("/rentals/:id", "Rental agreement", "/rentals", FINANCE),
   detail("/summaries/:id", "Summary", "/summaries", OWNER_ONLY),
   detail("/marketing/campaigns/:id", "Campaign", "/marketing", MANAGERS),

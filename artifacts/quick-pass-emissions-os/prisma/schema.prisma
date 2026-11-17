@@ -21,6 +21,13 @@ enum Role {
   BOOKKEEPER
 }
 
+enum InboxImportance {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
 model MarketingCampaign {
   id            String                 @id @default(cuid())
   name          String
@@ -205,6 +212,7 @@ model User {
   notifications          Notification[]
   reminderEvents         ReminderEvent[]
   performancePanelLayout PerformancePanelLayout?
+  gmailInboxEdits        GmailInboxAnnotation[] @relation("GmailInboxAnnotationEditor")
 }
 
 model PerformancePanelLayout {
@@ -546,6 +554,24 @@ model ReminderEvent {
 
   @@index([userId, alertAt, readAt])
   @@index([userId, startsAt, completedAt, cancelledAt])
+}
+
+model GmailInboxAnnotation {
+  id           String          @id @default(cuid())
+  accountEmail String
+  messageId    String
+  threadId     String          @default("")
+  category     String          @default("Uncategorized")
+  importance   InboxImportance @default(NORMAL)
+  followUp     Boolean         @default(false)
+  notes        String          @default("")
+  updatedById  String?
+  updatedBy    User?           @relation("GmailInboxAnnotationEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@unique([accountEmail, messageId])
+  @@index([accountEmail, followUp, importance])
 }
 
 model AuditLog {

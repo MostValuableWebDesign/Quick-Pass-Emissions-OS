@@ -283,6 +283,36 @@ if (enabled) {
     await f.reviewInvoice(manager, decision(i.id, 1, "SENT"));
     expect((await db.dealerInvoice.findUniqueOrThrow({ where: { id: i.id } })).state).toBe("SENT");
   });
+  it("issues and marks a draft invoice sent from the confirmed Gmail send action", async () => {
+    const i = await draft();
+    const reference = "GMAIL:message-fixture";
+    const sent = await f.recordGmailInvoiceSent(manager, {
+      id: i.id,
+      version: i.version,
+      date: today,
+      reference,
+    });
+    expect(sent.state).toBe("SENT");
+    expect(sent.approvedBy).toBe(manager);
+    expect(sent.approvedAt).toBeTruthy();
+    expect(sent.sentDate).toBe(today);
+    expect(sent.deliveryReference).toBe(reference);
+    const repeated = await f.recordGmailInvoiceSent(owner, {
+      id: i.id,
+      version: i.version,
+      date: today,
+      reference,
+    });
+    expect(repeated.version).toBe(sent.version);
+    await expect(
+      f.recordGmailInvoiceSent(owner, {
+        id: i.id,
+        version: i.version,
+        date: today,
+        reference: "GMAIL:duplicate",
+      }),
+    ).rejects.toThrow("no longer available");
+  });
   it("serializes payments, rejects overpayment and retains full reversals", async () => {
     const i = await approved();
     const results = await Promise.allSettled([

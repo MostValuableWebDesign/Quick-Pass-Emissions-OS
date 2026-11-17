@@ -29,7 +29,7 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
     <>
       <PageHeader
         title={`Invoice ${i.number}`}
-        description={`${summary.status} · Issued ${i.issueDate} · Due ${i.dueDate}`}
+        description={`${summary.status} · Issued ${i.issueDate} · Due ${i.dueDate}${i.sentDate ? ` · Sent ${i.sentDate}` : ""}`}
       />
       <DemoNotice demo={data.demo} />
       <section className="card card-body">
@@ -45,11 +45,6 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
         </p>
         <p>{i.notes}</p>
         <p className="muted">This retained snapshot does not change when the account is edited.</p>
-        {i.deliveryReference && (
-          <p>
-            External delivery: {i.sentDate} · {i.deliveryReference}
-          </p>
-        )}
         {i.voidDate && (
           <p className="notice warning">
             Voided {i.voidDate} · {i.voidReason}
@@ -102,7 +97,8 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
           </p>
           {i.state === "DRAFT" && (
             <p className="muted">
-              Drafts remain outside receivables until approved; you can still prepare an email.
+              Drafts remain outside receivables until sent. Sending from this page sends the email
+              and issues the invoice.
             </p>
           )}
         </div>
@@ -119,7 +115,14 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
         contacts={snap.contacts}
         sender={{ name: invoiceIssuer.name, email: invoiceIssuer.email }}
         isDraft={i.state === "DRAFT"}
-        eligible={i.state !== "VOIDED" && emailBalanceCents > 0}
+        eligible={(i.state === "DRAFT" || i.state === "APPROVED") && emailBalanceCents > 0}
+        ineligibleMessage={
+          i.state === "SENT"
+            ? "This invoice has already been sent."
+            : i.state === "VOIDED"
+              ? "Voided invoices cannot be sent."
+              : "This invoice has no unpaid balance."
+        }
       />
       {i.approvedAt && i.state !== "VOIDED" && summary.remainingCents > 0 && (
         <section className="card card-body space-top">

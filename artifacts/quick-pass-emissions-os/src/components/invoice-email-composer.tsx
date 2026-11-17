@@ -4,8 +4,8 @@ import { useActionState, useId, useState } from "react";
 import { Download, Mail } from "lucide-react";
 import { buildInvoiceEmail, type InvoiceEmailDetails } from "@/modules/finance/invoice-email";
 import {
-  createInvoiceGmailDraft,
-  type InvoiceGmailDraftState,
+  sendInvoiceFromGmail,
+  type InvoiceGmailSendState,
 } from "@/app/invoice-email-actions";
 
 export function InvoiceEmailComposer({
@@ -15,6 +15,7 @@ export function InvoiceEmailComposer({
   sender,
   isDraft = false,
   eligible,
+  ineligibleMessage,
 }: {
   invoiceId: string;
   invoice: InvoiceEmailDetails;
@@ -22,10 +23,11 @@ export function InvoiceEmailComposer({
   sender: { name: string; email: string };
   isDraft?: boolean;
   eligible: boolean;
+  ineligibleMessage?: string;
 }) {
   const prefix = useId();
-  const [state, formAction, pending] = useActionState<InvoiceGmailDraftState | null, FormData>(
-    createInvoiceGmailDraft,
+  const [state, formAction, pending] = useActionState<InvoiceGmailSendState | null, FormData>(
+    sendInvoiceFromGmail,
     null,
   );
   const emailContacts = contacts.filter((contact) => contact.email);
@@ -44,10 +46,10 @@ export function InvoiceEmailComposer({
   const [senderName, setSenderName] = useState(
     sender.name === "Quick Pass Emissions" ? "" : sender.name,
   );
-  const [senderEmail, setSenderEmail] = useState(sender.email);
+  const senderEmail = sender.email;
   const [senderPhone, setSenderPhone] = useState("");
-  const [confirmingDraft, setConfirmingDraft] = useState(false);
-  const draft = buildInvoiceEmail(invoice, {
+  const [confirmingSend, setConfirmingSend] = useState(false);
+  const emailPreview = buildInvoiceEmail(invoice, {
     contactName,
     paymentInstructions,
     senderName,
@@ -62,7 +64,7 @@ export function InvoiceEmailComposer({
 
   return (
     <section className="card card-body space-top" aria-labelledby={`${prefix}-heading`}>
-      <h2 id={`${prefix}-heading`}>Create invoice email</h2>
+      <h2 id={`${prefix}-heading`}>Send invoice email</h2>
       <p>
         <a className="button" href={`/api/invoices/${encodeURIComponent(invoiceId)}/pdf`} download>
           <Download size={17} aria-hidden="true" /> Download invoice PDF
@@ -73,9 +75,9 @@ export function InvoiceEmailComposer({
           className="form-grid"
           action={formAction}
           onSubmit={(event) => {
-            if (!confirmingDraft) {
+            if (!confirmingSend) {
               event.preventDefault();
-              setConfirmingDraft(true);
+              setConfirmingSend(true);
             }
           }}
         >
@@ -172,7 +174,7 @@ export function InvoiceEmailComposer({
           </div>
           <div className="field wide">
             <label htmlFor={`${prefix}-subject`}>Subject</label>
-            <input id={`${prefix}-subject`} readOnly value={draft.subject} />
+            <input id={`${prefix}-subject`} readOnly value={emailPreview.subject} />
           </div>
           <details className="field wide">
             <summary>Preview invoice email</summary>
@@ -184,7 +186,7 @@ export function InvoiceEmailComposer({
               readOnly
               value={
                 draftReady
-                  ? draft.body
+                  ? emailPreview.body
                   : "Complete the contact name, payment instructions, and signature to preview your message."
               }
               rows={20}
@@ -192,37 +194,37 @@ export function InvoiceEmailComposer({
           </details>
           <div className="form-footer">
             <p className="muted">
-              {isDraft && "This invoice remains a draft in the app. "}
-              Creates a draft in qpemissions@gmail.com with the invoice PDF attached. It will not
-              send until you review and send it in Gmail.
+              {isDraft && "Sending issues this draft invoice. "}
+              Sends directly from qpemissions@gmail.com with the invoice PDF attached, then records
+              the invoice as sent.
             </p>
             <button
               className="button"
               type="submit"
-              disabled={!draftReady || !recipient.trim() || pending || !!state?.ok || confirmingDraft}
+              disabled={!draftReady || !recipient.trim() || pending || !!state?.ok || confirmingSend || !!state?.uncertain}
             >
               <Mail size={17} aria-hidden="true" />
-              {pending ? "Creating draft…" : "Create Gmail draft"}
+              {pending ? "Sending…" : "Send invoice"}
             </button>
           </div>
-          {confirmingDraft && !state?.ok && (
+          {confirmingSend && !state?.ok && !state?.uncertain && (
             <div className="field wide card card-body" role="group" aria-labelledby={`${prefix}-confirm`}>
-              <h3 id={`${prefix}-confirm`}>Confirm Gmail draft</h3>
+              <h3 id={`${prefix}-confirm`}>Confirm invoice send</h3>
               <p>
-                Create a draft to <strong>{recipient}</strong> for invoice{" "}
-                <strong>{invoice.number}</strong>, with the invoice PDF attached? This will not send
-                the email or change the invoice status.
+                Send invoice <strong>{invoice.number}</strong> to <strong>{recipient}</strong>, with
+                the PDF attached? This sends the email now
+                {isDraft ? " and issues the invoice" : ""}. The app will record it as sent.
               </p>
               <div className="form-footer">
                 <button
                   className="button button-secondary"
                   type="button"
-                  onClick={() => setConfirmingDraft(false)}
+                  onClick={() => setConfirmingSend(false)}
                 >
                   Cancel
                 </button>
                 <button className="button" type="submit" disabled={pending}>
-                  {pending ? "Creating draft…" : "Confirm and create draft"}
+                  {pending ? "Sending…" : "Confirm and send invoice"}
                 </button>
               </div>
             </div>
@@ -234,16 +236,15 @@ export function InvoiceEmailComposer({
               aria-live="polite"
             >
               <p>{state.message}</p>
-              {state.ok && state.draftsUrl && (
-                <a className="button" href={state.draftsUrl} target="_blank" rel="noreferrer">
-                  Open Gmail Drafts
-                </a>
-              )}
             </div>
           )}
         </form>
       ) : (
-        <p className="muted">Invoice emails are unavailable for voided or fully paid invoices.</p>
+        <p className="muted" role={state?.ok && state.sent ? "status" : undefined}>
+          {state?.ok && state.sent
+            ? state.message
+            : (ineligibleMessage ?? "Invoice email is unavailable.")}
+        </p>
       )}
     </section>
   );

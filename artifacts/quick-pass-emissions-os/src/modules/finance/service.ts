@@ -475,6 +475,53 @@ export async function reviewInvoice(actorId: string, input: unknown) {
     await audit(tx, actorId, `DEALER_INVOICE_${data.decision}`, row.id, data);
   });
 }
+/** A confirmed Gmail send is the issue/approval action for an otherwise-unapproved draft. */
+export async function recordGmailInvoiceSent(actorId: string, input: unknown) {
+  const data = z
+    .object({ id, version, date: dateString, reference: label })
+    .parse(input);
+  return phase4(actorId, reviewers, async (tx) => {
+    currentPast(data.date);
+    const row = await tx.dealerInvoice.findUnique({
+      where: { id: data.id },
+      include: { payments: true, lines: true },
+    });
+    if (row?.state === "SENT" && row.deliveryReference === data.reference) return row;
+    requireRule(
+      row?.version === data.version && (row.state === "DRAFT" || row.state === "APPROVED"),
+      "Invoice changed or is no longer available to send. Refresh and review it.",
+    );
+    requireRule(data.date >= row.issueDate, "Send date cannot precede the invoice date.");
+    requireRule(
+      row.payments.every((payment) => payment.date >= data.date),
+      "A payment is dated before the send date. Review the invoice history before sending.",
+    );
+    if (row.state === "DRAFT")
+      await assertBillingHistory(
+        tx,
+        row.lines.map((line) => line.serviceId),
+        row.issueDate,
+        row.id,
+      );
+    const sent = await tx.dealerInvoice.update({
+      where: { id: row.id },
+      data: {
+        state: "SENT",
+        approvedBy: row.approvedBy ?? actorId,
+        approvedAt: row.approvedAt ?? new Date(),
+        sentDate: data.date,
+        deliveryReference: data.reference,
+        version: { increment: 1 },
+      },
+    });
+    await audit(tx, actorId, "DEALER_INVOICE_SENT", row.id, {
+      date: data.date,
+      reference: data.reference,
+      issuedWithSend: row.state === "DRAFT",
+    });
+    return sent;
+  });
+}
 export async function recordDealerPayment(actorId: string, input: unknown) {
   const data = z
     .object({

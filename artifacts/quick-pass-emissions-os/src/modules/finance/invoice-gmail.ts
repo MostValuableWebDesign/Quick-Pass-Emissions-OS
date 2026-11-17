@@ -17,6 +17,7 @@ export function invoiceGmailRawMessage(input: {
   const safeNumber = input.invoiceNumber.replace(/[^a-zA-Z0-9_-]/g, "_");
   const filename = `Quick-Pass-${safeNumber}.pdf`;
   const boundary = `qp-invoice-${randomUUID().replaceAll("-", "")}`;
+  const messageId = invoiceGmailMessageId(input.invoiceNumber);
   const subject = Buffer.from(input.subject, "utf8").toString("base64");
   const textBody = wrapBase64(Buffer.from(input.body, "utf8").toString("base64"));
   const attachment = wrapBase64(Buffer.from(input.pdf).toString("base64"));
@@ -24,6 +25,7 @@ export function invoiceGmailRawMessage(input: {
     `From: ${invoiceIssuer.name} <${invoiceIssuer.email}>`,
     `To: ${input.to}`,
     `Subject: =?UTF-8?B?${subject}?=`,
+    `Message-ID: ${messageId}`,
     "MIME-Version: 1.0",
     `Content-Type: multipart/mixed; boundary="${boundary}"`,
     "",
@@ -42,4 +44,9 @@ export function invoiceGmailRawMessage(input: {
     "",
   ].join("\r\n");
   return Buffer.from(message, "utf8").toString("base64url");
+}
+
+export function invoiceGmailMessageId(invoiceNumber: string) {
+  const safeNumber = invoiceNumber.replace(/[^a-zA-Z0-9_-]/g, "_").toLowerCase();
+  return `<${safeNumber}@quickpassemissions.com>`;
 }

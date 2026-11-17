@@ -130,6 +130,30 @@
 .login-professional .field {
   margin-top: 23px;
 }
+.login-remember-email {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  color: var(--login-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.login-remember-email input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--login-action);
+  cursor: pointer;
+}
+.login-remember-email input:focus-visible {
+  outline: 2px solid var(--login-focus);
+  outline-offset: 3px;
+}
+.login-remember-email:focus-within {
+  color: var(--login-ink);
+}
 .login-professional .field > span {
   color: var(--login-ink);
   font-size: 12px;

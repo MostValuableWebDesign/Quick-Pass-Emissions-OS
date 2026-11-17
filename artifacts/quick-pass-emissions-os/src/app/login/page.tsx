@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoginBrand } from "@/components/login-brand";
+import { RememberLoginEmail } from "@/components/remember-login-email";
 import "./login.css";
 import "./login-brand.css";
 // Native form POSTs need their real same-origin identity. Keep external referrers
@@ -33,18 +34,7 @@ export default async function Login({
           </p>
           <h2 id="sign-in-heading">Sign in.</h2>
           <p className="muted">Welcome back to Quick Pass Emissions.</p>
-          <label className="field">
-            <span>Email address</span>
-            <input
-              name="email"
-              type="email"
-              autoComplete="username"
-              placeholder="name@company.com"
-              spellCheck={false}
-              autoCapitalize="none"
-              required
-            />
-          </label>
+          <RememberLoginEmail />
           <label className="field">
             <span>Password</span>
             <input

@@ -33,13 +33,31 @@ test("professional login branding, responsive form, keyboard access, errors and 
   await expect(form).toHaveAttribute("method", "post");
   await expect(form).toHaveAttribute("action", "/api/sign-in");
   const email = page.getByLabel("Email address", { exact: true });
+  const rememberEmail = page.getByLabel("Remember email on this device", { exact: true });
   const password = page.getByLabel("Password", { exact: true });
   const submit = page.getByRole("button", { name: "Sign in", exact: true });
   await expect(email).toHaveAttribute("autocomplete", "username");
+  await expect(rememberEmail).not.toBeChecked();
   await expect(password).toHaveAttribute("autocomplete", "current-password");
   await expect(password).toHaveAttribute("type", "password");
   await expect(password).toHaveValue("");
   await expect(page.locator(".login-service-art")).toHaveCount(0);
+  await email.fill("owner@example.test");
+  await rememberEmail.check();
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("quick-pass:remembered-login-email")))
+    .toBe("owner@example.test");
+  await expect
+    .poll(() => page.evaluate(() => Object.keys(localStorage)))
+    .toEqual(["quick-pass:remembered-login-email"]);
+  await page.reload();
+  await expect(email).toHaveValue("owner@example.test");
+  await expect(rememberEmail).toBeChecked();
+  await rememberEmail.uncheck();
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("quick-pass:remembered-login-email")))
+    .toBeNull();
+  await email.fill("");
   expect(await submit.evaluate((button) => getComputedStyle(button).backgroundColor)).toBe(
     "rgb(0, 120, 189)",
   );
@@ -87,6 +105,8 @@ test("professional login branding, responsive form, keyboard access, errors and 
       });
   }
   await email.focus();
+  await page.keyboard.press("Tab");
+  await expect(rememberEmail).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(password).toBeFocused();
   await expect(password).toHaveCSS("outline-color", "rgb(0, 120, 189)");

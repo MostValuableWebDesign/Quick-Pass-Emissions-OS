@@ -4,9 +4,9 @@ import { businessDate, formatDate } from "@/lib/time";
 import { invoiceDetail } from "@/modules/finance/service";
 import { receivable } from "@/modules/finance/rules";
 import { PageHeader } from "@/components/shared";
-import { ActionForm, Field } from "@/components/action-form";
-import { DemoNotice, RecordId, Money } from "@/components/phase3";
-import { PaymentFields, ReviewFields } from "@/components/finance";
+import { ActionForm } from "@/components/action-form";
+import { DemoNotice, Money } from "@/components/phase3";
+import { PaymentFields } from "@/components/finance";
 import { InvoiceEmailComposer } from "@/components/invoice-email-composer";
 import { invoiceIssuer, invoiceSnapshotSchema } from "@/modules/finance/invoice-document";
 import { InvoiceCustomerBrand } from "@/components/invoice-customer-brand";
@@ -21,6 +21,8 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
       i.payments,
       businessDate(),
     ),
+    emailBalanceCents =
+      i.state === "DRAFT" ? Math.max(0, i.totalCents - summary.paidCents) : summary.remainingCents,
     management = true;
   const snap = invoiceSnapshotSchema.parse(i.snapshot);
   return (
@@ -99,7 +101,9 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
             <Money cents={summary.remainingCents} />
           </p>
           {i.state === "DRAFT" && (
-            <p className="muted">Drafts are excluded from receivables until approved.</p>
+            <p className="muted">
+              Drafts remain outside receivables until approved; you can still prepare an email.
+            </p>
           )}
         </div>
       </section>
@@ -110,34 +114,13 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
           dealershipName: snap.name,
           dueDate: i.dueDate,
           serviceDates: i.lines.map((line) => line.date),
-          remainingCents: summary.remainingCents,
+          remainingCents: emailBalanceCents,
         }}
         contacts={snap.contacts}
         sender={{ name: invoiceIssuer.name, email: invoiceIssuer.email }}
-        eligible={!!i.approvedAt && i.state !== "VOIDED" && summary.remainingCents > 0}
+        isDraft={i.state === "DRAFT"}
+        eligible={i.state !== "VOIDED" && emailBalanceCents > 0}
       />
-      {management && i.state !== "VOIDED" && (
-        <section className="card card-body space-top">
-          <h2>Review & delivery record</h2>
-          <p className="muted">
-            Approval requires a different owner or manager. Mark sent only after actual external
-            delivery. This action records delivery and does not send an invoice. To correct an
-            invoice, reverse any payments, void it, then create a replacement from the retained
-            services.
-          </p>
-          <ActionForm action={actions.reviewInvoice} submit="Record invoice decision">
-            <RecordId id={i.id} version={i.version} />
-            <Field label="Invoice decision">
-              <select name="decision">
-                <option value="APPROVE">Approve draft</option>
-                <option value="SENT">Record externally sent</option>
-                <option value="VOID">Void invoice</option>
-              </select>
-            </Field>
-            <ReviewFields />
-          </ActionForm>
-        </section>
-      )}
       {i.approvedAt && i.state !== "VOIDED" && summary.remainingCents > 0 && (
         <section className="card card-body space-top">
           <h2>Record received payment</h2>

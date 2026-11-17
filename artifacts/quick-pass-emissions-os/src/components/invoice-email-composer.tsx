@@ -13,12 +13,14 @@ export function InvoiceEmailComposer({
   invoice,
   contacts,
   sender,
+  isDraft = false,
   eligible,
 }: {
   invoiceId: string;
   invoice: InvoiceEmailDetails;
   contacts: { name: string; email: string; purpose?: string }[];
   sender: { name: string; email: string };
+  isDraft?: boolean;
   eligible: boolean;
 }) {
   const prefix = useId();
@@ -54,7 +56,7 @@ export function InvoiceEmailComposer({
 
   return (
     <section className="card card-body space-top" aria-labelledby={`${prefix}-heading`}>
-      <h2 id={`${prefix}-heading`}>Invoice PDF & email</h2>
+      <h2 id={`${prefix}-heading`}>Create invoice email</h2>
       <p>
         <a className="button" href={`/api/invoices/${encodeURIComponent(invoiceId)}/pdf`} download>
           <Download size={17} aria-hidden="true" /> Download invoice PDF
@@ -179,10 +181,10 @@ export function InvoiceEmailComposer({
           </details>
           <div className="form-footer">
             <p className="muted">
+              {isDraft && "This invoice remains a draft in the app. "}
               Gmail is not connected. Attach the downloaded PDF and confirm Gmail is sending from
               qpemissions@gmail.com. Attachments and the From account are not set by this app.
-              Opening a draft does not send email or mark this invoice as sent. Record delivery
-              below only after you send it.
+              Opening a draft does not send email or mark this invoice as sent.
             </p>
             <button className="button" type="submit" disabled={!draftReady || !recipient.trim()}>
               <Mail size={17} aria-hidden="true" /> Open Gmail draft
@@ -190,10 +192,7 @@ export function InvoiceEmailComposer({
           </div>
         </form>
       ) : (
-        <p className="muted">
-          Payment-due emails are available for approved, non-voided invoices with an outstanding
-          balance.
-        </p>
+        <p className="muted">Invoice emails are unavailable for voided or fully paid invoices.</p>
       )}
     </section>
   );

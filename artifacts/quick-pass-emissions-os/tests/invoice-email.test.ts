@@ -66,11 +66,12 @@ describe("manual dealership invoice emails", () => {
     expect(draft.body).not.toContain("555-0100");
   });
 
-  it("shows a protected PDF download and manual attachment warning for approved invoices", () => {
+  it("lets an unapproved draft open a manual invoice email", () => {
     const html = renderToStaticMarkup(
       createElement(InvoiceEmailComposer, {
         invoiceId: "fixture-invoice",
         invoice,
+        isDraft: true,
         eligible: true,
         contacts: [{ name: "Fixture Billing", email: "billing@example.test" }],
         sender: { name: invoiceIssuer.name, email: invoiceIssuer.email },
@@ -82,6 +83,7 @@ describe("manual dealership invoice emails", () => {
     expect(html).toContain("does not send email or mark this invoice as sent");
     expect(html).toContain('value="billing@example.test"');
     expect(html).toContain("Payment instructions or payment link");
+    expect(html).toContain("This invoice remains a draft in the app.");
     expect(html).toContain('value="qpemissions@gmail.com"');
     expect(html).toContain("confirm Gmail is sending from qpemissions@gmail.com");
     expect(html).toContain('readOnly=""');

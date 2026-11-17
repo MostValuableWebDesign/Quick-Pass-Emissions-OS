@@ -50,3 +50,9 @@ Quick Pass dealership invoices should reference `qpemissions@gmail.com` and `qui
 **Why:** The user specified the business sender address and website for invoice documents and delivery.
 
 **How to apply:** Include both in invoice PDFs and the email signature. Gmail drafts are manual and cannot force the actual From account; clearly remind the sender to verify it before sending.
+
+The owner wants to prepare an invoice email from an unpaid draft after reviewing its billing snapshot, without a separate approval or delivery-record panel.
+
+**Why:** The user explicitly chose composing invoice emails without separate approval and asked to remove the review/delivery panel.
+
+**How to apply:** Allow a manual email draft for unpaid, non-void invoices, but do not send it, mark it sent, or silently change accounting state. Keep the draft status and explain that drafts remain outside receivables.

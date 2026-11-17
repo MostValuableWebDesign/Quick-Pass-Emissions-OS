@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 
 const mocks = vi.hoisted(() => ({ actor: vi.fn(), detail: vi.fn(), pdf: vi.fn() }));
 vi.mock("@/lib/access", () => ({ currentUser: mocks.actor }));
@@ -28,6 +29,13 @@ const fixture = () => ({
 });
 
 describe("private invoice PDF download", () => {
+  it("registers the invoice API with the Quick Pass preview service", () => {
+    const artifact = readFileSync(".replit-artifact/artifact.toml", "utf8");
+    const webService = artifact.split("[[services]]")[1];
+    expect(webService).toMatch(/name\s*=\s*"web"/);
+    const paths = webService.match(/paths\s*=\s*\[([^\]]*)\]/)?.[1];
+    expect(paths).toContain('"/api/invoices"');
+  });
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-10-11T14:00:00Z"));

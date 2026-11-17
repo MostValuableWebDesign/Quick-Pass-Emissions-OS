@@ -241,9 +241,9 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
         <section className="card card-body space-top" id="create-invoice">
           <h2>Auto dealership invoices</h2>
           <p className="muted">
-            Select 1–100 completed services. Totals and due date use authorized terms. A different
-            owner or manager must approve. Void and recreate to correct a draft. The oldest 100
-            unbilled services are offered first.
+            Select saved unbilled services to create an invoice. Services from a deleted draft
+            appear here again—no PDF upload is needed. Review the new draft, then send its invoice
+            email. The oldest 100 unbilled services are shown first.
           </p>
           <ActionForm action={actions.createInvoice} submit="Create invoice draft">
             <input type="hidden" name="dealershipId" value={d.id} />

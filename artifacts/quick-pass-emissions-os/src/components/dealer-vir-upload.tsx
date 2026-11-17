@@ -19,6 +19,7 @@ import type {
   DealerVirRow,
 } from "@/modules/finance/dealer-vir-types";
 import "./dealer-vir-upload.css";
+import { DealerVirRecoveryNotice } from "./dealer-vir-recovery-notice";
 
 const MAX_FILES = 100;
 const MAX_BYTES = 150_000_000;
@@ -544,6 +545,9 @@ export function DealerVirUpload({
             </div>
           ) : (
             <div className="vir-review">
+              {preview.rows.some((row) => row.duplicate) && (
+                <DealerVirRecoveryNotice dealershipId={preview.dealershipId} />
+              )}
               <div className="vir-tally" data-testid="status-vir-tally">
                 <div>
                   <span>Processed</span>

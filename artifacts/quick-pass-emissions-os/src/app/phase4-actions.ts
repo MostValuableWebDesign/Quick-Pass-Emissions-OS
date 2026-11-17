@@ -75,9 +75,16 @@ export async function reviewEntry(_: ActionState, form: FormData) {
   return perform((actor) => finance.reviewEntry(actor, fields(form)));
 }
 export async function createInvoice(_: ActionState, form: FormData) {
-  return perform((actor) =>
-    finance.createInvoice(actor, { ...fields(form), serviceIds: form.getAll("serviceIds") }),
-  );
+  let invoiceId: string | undefined;
+  const result = await perform(async (actor) => {
+    const invoice = await finance.createInvoice(actor, {
+      ...fields(form),
+      serviceIds: form.getAll("serviceIds"),
+    });
+    invoiceId = invoice.id;
+  });
+  if (result.ok && invoiceId) redirect(`/invoices/${invoiceId}`);
+  return result;
 }
 export async function setDealerInvoiceArchived(_: ActionState, form: FormData) {
   const archived = form.get("archived") === "true";

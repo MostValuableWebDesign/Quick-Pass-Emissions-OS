@@ -278,7 +278,11 @@ async function annotateRows(tx: Tx, rows: StoredVirRow[]) {
           (warning) =>
             !warning.startsWith("Already recorded") && !warning.startsWith("Free retest"),
         ),
-        ...(duplicate ? ["Already recorded. This report will be skipped."] : []),
+        ...(duplicate
+          ? [
+              "Already recorded; no new copy will be imported. If its draft was deleted, invoice the saved unbilled services instead.",
+            ]
+          : []),
         ...(freeRetest ? ["Free retest or zero-fee inspection. Not billable."] : []),
       ],
     };

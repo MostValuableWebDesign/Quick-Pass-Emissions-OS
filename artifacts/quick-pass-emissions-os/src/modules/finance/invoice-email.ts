@@ -1,3 +1,5 @@
+import { invoiceIssuer } from "./invoice-document";
+
 export type InvoiceEmailDetails = {
   number: string;
   dealershipName: string;
@@ -16,7 +18,10 @@ export type InvoiceEmailSignature = {
 
 export function invoiceDate(date: string) {
   return new Intl.DateTimeFormat("en-US", {
-    timeZone: "UTC", month: "short", day: "numeric", year: "numeric",
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   }).format(new Date(`${date}T12:00:00.000Z`));
 }
 
@@ -53,6 +58,7 @@ export function buildInvoiceEmail(invoice: InvoiceEmailDetails, signature: Invoi
       "Best,",
       signature.senderName.trim(),
       "Quick Pass Emissions",
+      invoiceIssuer.website,
       ...(signature.senderPhone.trim() ? [signature.senderPhone.trim()] : []),
       signature.senderEmail.trim(),
     ].join("\n"),
@@ -60,6 +66,12 @@ export function buildInvoiceEmail(invoice: InvoiceEmailDetails, signature: Invoi
 }
 
 export function gmailInvoiceDraftUrl(recipient: string, subject: string, body: string) {
-  const query = new URLSearchParams({ view: "cm", fs: "1", to: recipient.trim(), su: subject, body });
+  const query = new URLSearchParams({
+    view: "cm",
+    fs: "1",
+    to: recipient.trim(),
+    su: subject,
+    body,
+  });
   return `https://mail.google.com/mail/?${query.toString()}`;
 }

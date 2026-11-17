@@ -9,6 +9,12 @@ export const invoiceDocumentPalette = {
   soft: "#f5f8fb",
 } as const;
 
+export const invoiceIssuer = {
+  name: "Quick Pass Emissions",
+  email: "qpemissions@gmail.com",
+  website: "quickpassemissions.com",
+} as const;
+
 export const invoiceSnapshotSchema = z.object({
   name: z.string(),
   code: z.string().default(""),

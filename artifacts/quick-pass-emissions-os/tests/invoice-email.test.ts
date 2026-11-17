@@ -2,7 +2,12 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { InvoiceEmailComposer } from "@/components/invoice-email-composer";
-import { buildInvoiceEmail, gmailInvoiceDraftUrl, invoiceServicePeriod } from "@/modules/finance/invoice-email";
+import {
+  buildInvoiceEmail,
+  gmailInvoiceDraftUrl,
+  invoiceServicePeriod,
+} from "@/modules/finance/invoice-email";
+import { invoiceIssuer } from "@/modules/finance/invoice-document";
 
 const invoice = {
   number: "INV-104",
@@ -24,16 +29,27 @@ describe("manual dealership invoice emails", () => {
     const draft = buildInvoiceEmail(invoice, signature);
     expect(draft.subject).toBe("Quick Pass Emissions — Payment Due for Fixture & Sons Motors");
     for (const text of [
-      "Hi Fixture Billing,", "Oct 1, 2026 to Oct 3, 2026", "INV-104",
-      "Outstanding balance: $120.00", "Payment due date: Oct 20, 2026",
-      signature.paymentInstructions, signature.senderName, signature.senderPhone, signature.senderEmail,
+      "Hi Fixture Billing,",
+      "Oct 1, 2026 to Oct 3, 2026",
+      "INV-104",
+      "Outstanding balance: $120.00",
+      "Payment due date: Oct 20, 2026",
+      signature.paymentInstructions,
+      signature.senderName,
+      signature.senderPhone,
+      signature.senderEmail,
+      invoiceIssuer.website,
       "If payment has already been sent, please reply with the payment date and reference number",
-    ]) expect(draft.body).toContain(text);
+    ])
+      expect(draft.body).toContain(text);
     expect(draft.body).not.toMatch(/\[[^\]]+\]/);
   });
 
   it("encodes all draft data as Gmail query values rather than extra recipients or parameters", () => {
-    const draft = buildInvoiceEmail(invoice, { ...signature, paymentInstructions: "https://example.test/pay?a=1&b=2" });
+    const draft = buildInvoiceEmail(invoice, {
+      ...signature,
+      paymentInstructions: "https://example.test/pay?a=1&b=2",
+    });
     const url = new URL(gmailInvoiceDraftUrl("billing@example.test", draft.subject, draft.body));
     expect(url.origin).toBe("https://mail.google.com");
     expect(url.searchParams.get("to")).toBe("billing@example.test");
@@ -51,38 +67,54 @@ describe("manual dealership invoice emails", () => {
   });
 
   it("shows a protected PDF download and manual attachment warning for approved invoices", () => {
-    const html = renderToStaticMarkup(createElement(InvoiceEmailComposer, {
-      invoiceId: "fixture-invoice", invoice, eligible: true,
-      contacts: [{ name: "Fixture Billing", email: "billing@example.test" }],
-      sender: { name: signature.senderName, email: signature.senderEmail },
-    }));
+    const html = renderToStaticMarkup(
+      createElement(InvoiceEmailComposer, {
+        invoiceId: "fixture-invoice",
+        invoice,
+        eligible: true,
+        contacts: [{ name: "Fixture Billing", email: "billing@example.test" }],
+        sender: { name: invoiceIssuer.name, email: invoiceIssuer.email },
+      }),
+    );
     expect(html).toContain('href="/api/invoices/fixture-invoice/pdf"');
     expect(html).toContain("Open Gmail draft");
     expect(html).toContain("Attach the downloaded PDF");
     expect(html).toContain("does not send email or mark this invoice as sent");
     expect(html).toContain('value="billing@example.test"');
     expect(html).toContain("Payment instructions or payment link");
+    expect(html).toContain('value="qpemissions@gmail.com"');
+    expect(html).toContain("confirm Gmail is sending from qpemissions@gmail.com");
+    expect(html).toContain('readOnly=""');
   });
 
   it("does not offer payment-due email drafts for ineligible invoices", () => {
-    const html = renderToStaticMarkup(createElement(InvoiceEmailComposer, {
-      invoiceId: "fixture-invoice", invoice, eligible: false, contacts: [],
-      sender: { name: signature.senderName, email: signature.senderEmail },
-    }));
+    const html = renderToStaticMarkup(
+      createElement(InvoiceEmailComposer, {
+        invoiceId: "fixture-invoice",
+        invoice,
+        eligible: false,
+        contacts: [],
+        sender: { name: signature.senderName, email: signature.senderEmail },
+      }),
+    );
     expect(html).toContain("Download invoice PDF");
     expect(html).not.toContain("Open Gmail draft");
     expect(html).not.toContain("Recipient email");
   });
 
   it("requires choosing a contact rather than guessing among multiple non-billing recipients", () => {
-    const html = renderToStaticMarkup(createElement(InvoiceEmailComposer, {
-      invoiceId: "fixture-invoice", invoice, eligible: true,
-      contacts: [
-        { name: "Sales", email: "sales@example.test", purpose: "Sales" },
-        { name: "Service", email: "service@example.test", purpose: "Service" },
-      ],
-      sender: { name: signature.senderName, email: signature.senderEmail },
-    }));
+    const html = renderToStaticMarkup(
+      createElement(InvoiceEmailComposer, {
+        invoiceId: "fixture-invoice",
+        invoice,
+        eligible: true,
+        contacts: [
+          { name: "Sales", email: "sales@example.test", purpose: "Sales" },
+          { name: "Service", email: "service@example.test", purpose: "Service" },
+        ],
+        sender: { name: signature.senderName, email: signature.senderEmail },
+      }),
+    );
     expect(html.match(/<input[^>]*type="email"[^>]*value="([^"]*)"/)?.[1]).toBe("");
   });
 });

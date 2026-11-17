@@ -8,7 +8,7 @@ import { ActionForm, Field } from "@/components/action-form";
 import { DemoNotice, RecordId, Money } from "@/components/phase3";
 import { PaymentFields, ReviewFields } from "@/components/finance";
 import { InvoiceEmailComposer } from "@/components/invoice-email-composer";
-import { invoiceSnapshotSchema } from "@/modules/finance/invoice-document";
+import { invoiceIssuer, invoiceSnapshotSchema } from "@/modules/finance/invoice-document";
 import { InvoiceCustomerBrand } from "@/components/invoice-customer-brand";
 import * as actions from "@/app/phase4-actions";
 export default async function Invoice({ params }: { params: Promise<{ id: string }> }) {
@@ -42,9 +42,7 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
           Terms: net {snap.termsDays} days · {snap.termsReference}
         </p>
         <p>{i.notes}</p>
-        <p className="muted">
-          This retained snapshot does not change when the account is edited.
-        </p>
+        <p className="muted">This retained snapshot does not change when the account is edited.</p>
         {i.deliveryReference && (
           <p>
             External delivery: {i.sentDate} · {i.deliveryReference}
@@ -115,7 +113,7 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
           remainingCents: summary.remainingCents,
         }}
         contacts={snap.contacts}
-        sender={{ name: actor.name, email: actor.email }}
+        sender={{ name: invoiceIssuer.name, email: invoiceIssuer.email }}
         eligible={!!i.approvedAt && i.state !== "VOIDED" && summary.remainingCents > 0}
       />
       {management && i.state !== "VOIDED" && (

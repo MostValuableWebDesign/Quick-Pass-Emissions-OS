@@ -1,7 +1,11 @@
 import { PDFDocument, PDFName, PDFRawStream } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 import { createInvoicePdf } from "@/modules/finance/invoice-pdf";
-import { invoiceSnapshotSchema, type InvoicePdfDetails } from "@/modules/finance/invoice-document";
+import {
+  invoiceIssuer,
+  invoiceSnapshotSchema,
+  type InvoicePdfDetails,
+} from "@/modules/finance/invoice-document";
 import { dealershipInvoiceBrands } from "@/modules/finance/dealership-invoice-branding";
 import { invoiceDesignFixture } from "./fixtures/invoice-design";
 
@@ -115,6 +119,8 @@ describe("invoice PDF generation", () => {
       const text = await pdfText(bytes);
       for (const expected of [
         "QUICK PASS",
+        invoiceIssuer.email,
+        invoiceIssuer.website,
         brand.displayName,
         fixture.snapshot.billingAddress,
         "billing@example.test",

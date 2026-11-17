@@ -44,3 +44,9 @@ Dealership invoice numbers use `QP-YYYY-NNNN` (for example, `QP-2026-0001`), wit
 **Why:** The user specified the invoice-number format.
 
 **How to apply:** Use the issue-date year, increment the yearly sequence, preserve existing invoice identifiers, and reject manually entered numbers that do not match the format or issue year.
+
+Quick Pass dealership invoices should reference `qpemissions@gmail.com` and `quickpassemissions.com`.
+
+**Why:** The user specified the business sender address and website for invoice documents and delivery.
+
+**How to apply:** Include both in invoice PDFs and the email signature. Gmail drafts are manual and cannot force the actual From account; clearly remind the sender to verify it before sending.

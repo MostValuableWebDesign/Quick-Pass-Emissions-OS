@@ -8,7 +8,7 @@ import {
   type PDFImage,
   type PDFPage,
 } from "pdf-lib";
-import { invoiceDocumentPalette, type InvoicePdfDetails } from "./invoice-document";
+import { invoiceDocumentPalette, invoiceIssuer, type InvoicePdfDetails } from "./invoice-document";
 import { invoiceDate, invoiceMoney, invoiceServicePeriod } from "./invoice-email";
 import { dealershipInvoiceBrand, type DealershipInvoiceBrand } from "./dealership-invoice-branding";
 
@@ -157,6 +157,14 @@ export async function createInvoicePdf(invoice: InvoicePdfDetails) {
     X,
     H - 76,
     8.5,
+    regular,
+    pdfColor("#C7DCEC"),
+  );
+  text(
+    `${invoiceIssuer.email}  ·  ${invoiceIssuer.website}`,
+    X,
+    H - 91,
+    7.5,
     regular,
     pdfColor("#C7DCEC"),
   );
@@ -401,7 +409,7 @@ export async function createInvoicePdf(invoice: InvoicePdfDetails) {
       color: lineColor,
     });
     sheet.drawRectangle({ x: X, y: 43.5, width: 40, height: 1.5, color: accent });
-    const left = `Quick Pass Emissions  |  Invoice ${invoice.number}${invoice.demo ? "  |  DEMONSTRATION" : ""}`;
+    const left = `${invoiceIssuer.name}  |  ${invoiceIssuer.email}  |  ${invoiceIssuer.website}`;
     sheet.drawText(fit(left, regular, 7.5, 250), {
       x: X,
       y: 30,

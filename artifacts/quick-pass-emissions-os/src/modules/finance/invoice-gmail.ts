@@ -32,6 +32,7 @@ export function invoiceGmailRawMessage(input: {
   body: string;
   invoiceNumber: string;
   pdf: Uint8Array;
+  includeBcc: boolean;
 }) {
   if (!input.to || /[\r\n]/.test(input.to)) throw new Error("Enter one valid recipient email.");
   const safeNumber = input.invoiceNumber.replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -44,7 +45,7 @@ export function invoiceGmailRawMessage(input: {
   const message = [
     `From: ${invoiceIssuer.name} <${invoiceIssuer.email}>`,
     `To: ${input.to}`,
-    `Bcc: ${invoiceBccEmail}`,
+    ...(input.includeBcc ? [`Bcc: ${invoiceBccEmail}`] : []),
     `Subject: =?UTF-8?B?${subject}?=`,
     `Message-ID: ${messageId}`,
     "MIME-Version: 1.0",

@@ -7,10 +7,7 @@ import {
   invoiceBccEmail,
   type InvoiceEmailDetails,
 } from "@/modules/finance/invoice-email";
-import {
-  sendInvoiceFromGmail,
-  type InvoiceGmailSendState,
-} from "@/app/invoice-email-actions";
+import { sendInvoiceFromGmail, type InvoiceGmailSendState } from "@/app/invoice-email-actions";
 
 export function InvoiceEmailComposer({
   invoiceId,
@@ -52,6 +49,7 @@ export function InvoiceEmailComposer({
   );
   const senderEmail = sender.email;
   const [senderPhone, setSenderPhone] = useState("");
+  const [includeBcc, setIncludeBcc] = useState(true);
   const [confirmingSend, setConfirmingSend] = useState(false);
   const emailPreview = buildInvoiceEmail(invoice, {
     contactName,
@@ -60,11 +58,7 @@ export function InvoiceEmailComposer({
     senderEmail,
     senderPhone,
   });
-  const draftReady = !!(
-    contactName.trim() &&
-    paymentInstructions.trim() &&
-    senderEmail.trim()
-  );
+  const draftReady = !!(contactName.trim() && paymentInstructions.trim() && senderEmail.trim());
 
   return (
     <section className="card card-body space-top" aria-labelledby={`${prefix}-heading`}>
@@ -165,9 +159,18 @@ export function InvoiceEmailComposer({
               readOnly
             />
           </div>
-          <p className="field wide muted">
-            Blind copy on invoices: <strong>{invoiceBccEmail}</strong> (not visible to the dealership)
-          </p>
+          <label className="check-row wide">
+            <input
+              name="includeBcc"
+              type="checkbox"
+              checked={includeBcc}
+              onChange={(event) => setIncludeBcc(event.currentTarget.checked)}
+            />
+            <span>
+              Blind copy this invoice to <strong>{invoiceBccEmail}</strong>
+              <small>Hidden from the dealership recipient.</small>
+            </span>
+          </label>
           <div className="field">
             <label htmlFor={`${prefix}-sender-phone`}>Phone in signature (optional)</label>
             <input
@@ -208,14 +211,25 @@ export function InvoiceEmailComposer({
             <button
               className="button"
               type="submit"
-              disabled={!draftReady || !recipient.trim() || pending || !!state?.ok || confirmingSend || !!state?.uncertain}
+              disabled={
+                !draftReady ||
+                !recipient.trim() ||
+                pending ||
+                !!state?.ok ||
+                confirmingSend ||
+                !!state?.uncertain
+              }
             >
               <Mail size={17} aria-hidden="true" />
               {pending ? "Sending…" : "Send invoice"}
             </button>
           </div>
           {confirmingSend && !state?.ok && !state?.uncertain && (
-            <div className="field wide card card-body" role="group" aria-labelledby={`${prefix}-confirm`}>
+            <div
+              className="field wide card card-body"
+              role="group"
+              aria-labelledby={`${prefix}-confirm`}
+            >
               <h3 id={`${prefix}-confirm`}>Confirm invoice send</h3>
               <p>
                 Send invoice <strong>{invoice.number}</strong> to <strong>{recipient}</strong>, with
@@ -223,7 +237,13 @@ export function InvoiceEmailComposer({
                 {isDraft ? " and issues the invoice" : ""}. The app will record it as sent.
               </p>
               <p>
-                Blind copy: <strong>{invoiceBccEmail}</strong> (hidden from the dealership)
+                {includeBcc ? (
+                  <>
+                    Blind copy: <strong>{invoiceBccEmail}</strong> (hidden from the dealership)
+                  </>
+                ) : (
+                  "No blind copy will be sent."
+                )}
               </p>
               <div className="form-footer">
                 <button
@@ -240,11 +260,7 @@ export function InvoiceEmailComposer({
             </div>
           )}
           {state && (
-            <div
-              className="field wide"
-              role={state.ok ? "status" : "alert"}
-              aria-live="polite"
-            >
+            <div className="field wide" role={state.ok ? "status" : "alert"} aria-live="polite">
               <p>{state.message}</p>
             </div>
           )}

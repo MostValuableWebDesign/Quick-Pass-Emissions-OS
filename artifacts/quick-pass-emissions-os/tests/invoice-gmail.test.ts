@@ -8,9 +8,7 @@ import { invoiceBccEmail } from "../src/modules/finance/invoice-email";
 
 describe("invoice Gmail MIME message", () => {
   it("uses one stable message ID per invoice for duplicate-send checks", () => {
-    expect(invoiceGmailMessageId("QP-2026-0001")).toBe(
-      "<qp-2026-0001@quickpassemissions.com>",
-    );
+    expect(invoiceGmailMessageId("QP-2026-0001")).toBe("<qp-2026-0001@quickpassemissions.com>");
   });
 
   it("creates a base64url draft message with the PDF attached", () => {
@@ -20,6 +18,7 @@ describe("invoice Gmail MIME message", () => {
       body: "Hello billing team",
       invoiceNumber: "QP-2026-0001",
       pdf: Buffer.from("%PDF-demo"),
+      includeBcc: true,
     });
     const message = Buffer.from(raw, "base64url").toString("utf8");
 
@@ -34,6 +33,22 @@ describe("invoice Gmail MIME message", () => {
     expect(message).toContain(Buffer.from("%PDF-demo").toString("base64"));
   });
 
+  it("omits the blind-copy header when the sender opts out", () => {
+    const raw = invoiceGmailRawMessage({
+      to: "billing@example.com",
+      subject: "Invoice QP-2026-0001",
+      body: "Hello billing team",
+      invoiceNumber: "QP-2026-0001",
+      pdf: Buffer.from("%PDF-demo"),
+      includeBcc: false,
+    });
+    const message = Buffer.from(raw, "base64url").toString("utf8");
+
+    expect(message).toContain("To: billing@example.com");
+    expect(message).not.toContain("Bcc:");
+    expect(message).not.toContain(invoiceBccEmail);
+  });
+
   it("rejects recipient header injection", () => {
     expect(() =>
       invoiceGmailRawMessage({
@@ -42,6 +57,7 @@ describe("invoice Gmail MIME message", () => {
         body: "Message",
         invoiceNumber: "QP-2026-0001",
         pdf: new Uint8Array([1]),
+        includeBcc: false,
       }),
     ).toThrow("Enter one valid recipient email.");
   });

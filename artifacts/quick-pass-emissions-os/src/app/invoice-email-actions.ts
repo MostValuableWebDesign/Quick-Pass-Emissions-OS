@@ -30,6 +30,10 @@ const requestSchema = z.object({
   paymentInstructions: z.string().trim().min(1).max(500),
   senderName: z.string().trim().max(160).default(""),
   senderPhone: z.string().trim().max(50).default(""),
+  includeBcc: z
+    .literal("on")
+    .optional()
+    .transform((value) => value === "on"),
 });
 
 type GmailMessageMetadata = { payload?: { headers?: { name?: string; value?: string }[] } };
@@ -181,7 +185,10 @@ export async function sendInvoiceFromGmail(
         remainingCents,
       },
       {
-        ...data,
+        contactName: data.contactName,
+        paymentInstructions: data.paymentInstructions,
+        senderName: data.senderName,
+        senderPhone: data.senderPhone,
         senderEmail: invoiceIssuer.email,
       },
     );
@@ -199,6 +206,7 @@ export async function sendInvoiceFromGmail(
       body: email.body,
       invoiceNumber: invoice.number,
       pdf,
+      includeBcc: data.includeBcc,
     });
 
     let sendResponse: Response;

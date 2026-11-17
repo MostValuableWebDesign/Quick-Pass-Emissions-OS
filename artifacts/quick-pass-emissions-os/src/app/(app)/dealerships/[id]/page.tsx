@@ -13,6 +13,7 @@ import { ContactPhoneField } from "@/components/contact-phone-field";
 import { DirectoryAddDialog } from "@/components/directory-add-dialog";
 import * as actions from "@/app/phase4-actions";
 import { DealerVirUpload } from "@/components/dealer-vir-upload";
+import { SelectAllServices } from "@/components/select-all-services";
 const sections = [
   { id: "overview", label: "Overview" },
   { id: "contacts", label: "Contacts" },
@@ -478,15 +479,20 @@ export default async function Dealer({
                     <DateField name="issueDate" label="Invoice issue date" />
                     <TextField name="notes" label="Invoice notes" required={false} area />
                     <fieldset className="field wide dealer-unbilled-list">
-                      <legend>Unbilled completed services</legend>
-                      {unbilled.map((service) => (
-                        <label className="check-row" key={service.id}>
-                          <input type="checkbox" name="serviceIds" value={service.id} />
-                          {service.date} · {service.description} · {service.quantity} ×{" "}
-                          <Money cents={service.unitCents} />
-                        </label>
-                      ))}
-                      {!unbilled.length && <p>No unbilled services recorded.</p>}
+                      <legend>Select completed services to invoice</legend>
+                      {unbilled.length ? (
+                        <SelectAllServices>
+                          {unbilled.map((service) => (
+                            <label className="check-row" key={service.id}>
+                              <input type="checkbox" name="serviceIds" value={service.id} />
+                              {service.date} · {service.description} · {service.quantity} ×{" "}
+                              <Money cents={service.unitCents} />
+                            </label>
+                          ))}
+                        </SelectAllServices>
+                      ) : (
+                        <p>No unbilled services recorded.</p>
+                      )}
                     </fieldset>
                   </ActionForm>
                 </section>

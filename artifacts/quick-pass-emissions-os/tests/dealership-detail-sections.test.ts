@@ -197,7 +197,8 @@ describe("dealership detail sections", () => {
     const html = renderToStaticMarkup(await page("services"));
     expect(html).toContain("Completed services");
     expect(html).toContain("Create invoice from saved services");
-    expect(html).toContain("Unbilled completed services");
+    expect(html).toContain("Select completed services to invoice");
+    expect(html).toContain("Select all listed services");
     expect(html).toContain("QP-2026-0001");
     expect(html).not.toContain("Authorize dealership terms");
   });

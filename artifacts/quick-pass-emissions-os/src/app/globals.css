@@ -1139,6 +1139,28 @@ main#main {
   align-items: flex-start;
   padding: 10px 0;
 }
+.dealer-unbilled-picker {
+  display: grid;
+  gap: 8px;
+}
+.dealer-select-all {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 0 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dealer-select-all input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--action);
+  flex: 0 0 auto;
+}
 @media (max-width: 900px) {
   .dealer-workspace {
     grid-template-columns: minmax(0, 1fr);

@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
 import { invoiceIssuer } from "./invoice-document";
+import { invoiceBccEmail } from "./invoice-email";
 
 function wrapBase64(value: string) {
   return value.match(/.{1,76}/g)?.join("\r\n") ?? "";
@@ -24,6 +25,7 @@ export function invoiceGmailRawMessage(input: {
   const message = [
     `From: ${invoiceIssuer.name} <${invoiceIssuer.email}>`,
     `To: ${input.to}`,
+    `Bcc: ${invoiceBccEmail}`,
     `Subject: =?UTF-8?B?${subject}?=`,
     `Message-ID: ${messageId}`,
     "MIME-Version: 1.0",

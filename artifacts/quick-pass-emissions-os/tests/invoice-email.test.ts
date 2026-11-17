@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { InvoiceEmailComposer } from "@/components/invoice-email-composer";
 import {
   buildInvoiceEmail,
+  invoiceBccEmail,
   invoiceServicePeriod,
 } from "@/modules/finance/invoice-email";
 import { invoiceIssuer } from "@/modules/finance/invoice-document";
@@ -82,6 +83,9 @@ describe("manual dealership invoice emails", () => {
     expect(html).toContain("Payment instructions or payment link");
     expect(html).toContain("Sending issues this draft invoice.");
     expect(html).toContain('value="qpemissions@gmail.com"');
+    expect(html).toContain(
+      `Blind copy on invoices: <strong>${invoiceBccEmail}</strong> (not visible to the dealership)`,
+    );
     expect(html).toContain('readOnly=""');
   });
 

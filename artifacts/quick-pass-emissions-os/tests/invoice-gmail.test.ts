@@ -4,6 +4,7 @@ import {
   invoiceGmailMessageId,
   invoiceGmailRawMessage,
 } from "../src/modules/finance/invoice-gmail";
+import { invoiceBccEmail } from "../src/modules/finance/invoice-email";
 
 describe("invoice Gmail MIME message", () => {
   it("uses one stable message ID per invoice for duplicate-send checks", () => {
@@ -25,6 +26,7 @@ describe("invoice Gmail MIME message", () => {
     expect(raw).toMatch(/^[A-Za-z0-9_-]+$/);
     expect(message).toContain("From: Quick Pass Emissions <qpemissions@gmail.com>");
     expect(message).toContain("To: billing@example.com");
+    expect(message).toContain(`Bcc: ${invoiceBccEmail}`);
     expect(message).toContain("Message-ID: <qp-2026-0001@quickpassemissions.com>");
     expect(message).toContain('filename="Quick-Pass-QP-2026-0001.pdf"');
     expect(message).toContain(Buffer.from("Invoice QP-2026-0001").toString("base64"));

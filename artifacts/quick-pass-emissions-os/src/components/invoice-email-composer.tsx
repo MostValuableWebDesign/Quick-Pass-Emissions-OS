@@ -2,7 +2,11 @@
 
 import { useActionState, useId, useState } from "react";
 import { Download, Mail } from "lucide-react";
-import { buildInvoiceEmail, type InvoiceEmailDetails } from "@/modules/finance/invoice-email";
+import {
+  buildInvoiceEmail,
+  invoiceBccEmail,
+  type InvoiceEmailDetails,
+} from "@/modules/finance/invoice-email";
 import {
   sendInvoiceFromGmail,
   type InvoiceGmailSendState,
@@ -161,6 +165,9 @@ export function InvoiceEmailComposer({
               readOnly
             />
           </div>
+          <p className="field wide muted">
+            Blind copy on invoices: <strong>{invoiceBccEmail}</strong> (not visible to the dealership)
+          </p>
           <div className="field">
             <label htmlFor={`${prefix}-sender-phone`}>Phone in signature (optional)</label>
             <input
@@ -214,6 +221,9 @@ export function InvoiceEmailComposer({
                 Send invoice <strong>{invoice.number}</strong> to <strong>{recipient}</strong>, with
                 the PDF attached? This sends the email now
                 {isDraft ? " and issues the invoice" : ""}. The app will record it as sent.
+              </p>
+              <p>
+                Blind copy: <strong>{invoiceBccEmail}</strong> (hidden from the dealership)
               </p>
               <div className="form-footer">
                 <button

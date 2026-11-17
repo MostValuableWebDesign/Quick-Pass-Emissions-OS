@@ -51,6 +51,12 @@ Quick Pass dealership invoices should reference `qpemissions@gmail.com` and `qui
 
 **How to apply:** Include both in invoice PDFs and the email signature. Verify the connected Gmail mailbox is `qpemissions@gmail.com` before sending and use it as the From address.
 
+Every dealership invoice email must BCC `askforjay@gmail.com`, while keeping that address hidden from the dealership recipient and visible in the sender's confirmation.
+
+**Why:** The user explicitly requested a blind copy on dealership invoices.
+
+**How to apply:** Add the fixed BCC to each manually confirmed invoice email and show it in the in-app confirmation; do not expose it in the visible To field or customer-facing body.
+
 The owner sends invoice emails from the app after reviewing the billing snapshot, without a separate approval or delivery-record panel.
 
 **Why:** The user explicitly chose composing invoice emails without separate approval and asked to remove the review/delivery panel.

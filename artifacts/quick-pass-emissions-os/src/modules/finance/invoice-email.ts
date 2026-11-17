@@ -1,5 +1,7 @@
 import { invoiceIssuer } from "./invoice-document";
 
+export const invoiceBccEmail = "askforjay@gmail.com";
+
 export type InvoiceEmailDetails = {
   number: string;
   dealershipName: string;

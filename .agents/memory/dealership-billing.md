@@ -38,3 +38,9 @@ Dealerships are billed monthly, with payment due within 30 days.
 **Why:** The user clarified the business's billing cycle and due period.
 
 **How to apply:** Keep monthly invoice grouping/cadence distinct from Net 30 payment terms. Current invoice preparation and sending remain manual unless the user explicitly authorizes automation.
+
+Dealership invoice numbers use `QP-YYYY-NNNN` (for example, `QP-2026-0001`), with a yearly sequence.
+
+**Why:** The user specified the invoice-number format.
+
+**How to apply:** Use the issue-date year, increment the yearly sequence, preserve existing invoice identifiers, and reject manually entered numbers that do not match the format or issue year.

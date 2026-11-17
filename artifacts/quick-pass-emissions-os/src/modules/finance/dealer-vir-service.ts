@@ -5,6 +5,7 @@ import { dateString } from "@/lib/validation";
 import { phase4, financeRoles, audit, requireRule, type Tx } from "../phase4";
 import { stationConfig } from "../station/service";
 import { createInvoiceInTransaction } from "./service";
+import { isInvoiceNumberForYear } from "./invoice-number";
 import {
   cleanVirIdentifier,
   virReportKey,
@@ -349,6 +350,12 @@ export async function commitDealerVirUpload(
   input: unknown,
 ): Promise<DealerVirResult> {
   const data = virReviewSchema.parse(input);
+  if (data.createDraft && data.invoiceNumber) {
+    requireRule(
+      isInvoiceNumberForYear(data.invoiceNumber, data.issueDate.slice(0, 4)),
+      `Invoice number must use QP-${data.issueDate.slice(0, 4)}-0001 format for its issue year.`,
+    );
+  }
   return phase4(actorId, financeRoles, async (tx) => {
     const upload = await tx.dealerVirUpload.findFirst({
       where: { id: data.uploadId, dealershipId: data.dealershipId, createdBy: actorId },

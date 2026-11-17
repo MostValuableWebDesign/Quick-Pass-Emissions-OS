@@ -751,10 +751,11 @@ export function DealerVirUpload({
                       <input
                         value={invoiceNumber}
                         maxLength={40}
-                        placeholder="Auto-numbered if blank"
+                        placeholder={`QP-${issueDate.slice(0, 4)}-0001`}
                         onChange={(e) => setInvoiceNumber(e.target.value)}
                         data-testid="input-vir-invoice-number"
                       />
+                      <small>Leave blank to assign the next QP-year-sequence number.</small>
                     </label>
                     <label className="field">
                       <span>Issue date</span>

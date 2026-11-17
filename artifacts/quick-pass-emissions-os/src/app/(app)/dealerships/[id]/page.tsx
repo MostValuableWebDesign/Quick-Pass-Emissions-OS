@@ -278,7 +278,16 @@ export default async function Dealer({ params }: { params: Promise<{ id: string 
           </p>
           <ActionForm action={actions.createInvoice} submit="Create invoice draft">
             <input type="hidden" name="dealershipId" value={d.id} />
-            <TextField name="number" label="Unique invoice number" />
+            <Field label="Invoice number · optional">
+              <input
+                name="number"
+                maxLength={40}
+                placeholder={`QP-${businessDate().slice(0, 4)}-0001`}
+              />
+            </Field>
+            <p className="muted">
+              Leave blank to assign the next QP-year-sequence number automatically.
+            </p>
             <DateField name="issueDate" label="Invoice issue date" />
             <TextField name="notes" label="Invoice notes" required={false} area />
             <fieldset className="field wide">

@@ -77,13 +77,15 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
     .fill("E2E manual completed service evidence");
   await save(f, "Record completed service");
   f = form(book, "Create invoice draft");
-  await f.getByLabel("Unique invoice number").fill("E2E-INV-001");
   await f.getByLabel("Invoice issue date").fill("2026-02-02");
   await f.locator('input[name="serviceIds"]').check();
   await save(f, "Create invoice draft");
-  await book.getByRole("link", { name: "E2E-INV-001", exact: true }).last().click();
+  const invoiceNumberLink = book.getByRole("link", { name: /^QP-2026-\d{4,}$/ }).last();
+  const invoiceNumber = (await invoiceNumberLink.textContent())?.trim();
+  if (!invoiceNumber) throw new Error("Auto-generated invoice number was not shown.");
+  await invoiceNumberLink.click();
   await expect(
-    book.getByRole("heading", { name: "Invoice E2E-INV-001", exact: true }),
+    book.getByRole("heading", { name: `Invoice ${invoiceNumber}`, exact: true }),
   ).toBeVisible();
   const invoiceUrl = book.url();
   await expect(
@@ -123,11 +125,11 @@ test("dealer billing, reviewed terms and invoice, receipts, reversals, aging and
   await expect(
     book.getByRole("heading", { name: "Finance reports & exports", exact: true }),
   ).toBeVisible();
-  await expect(book.getByRole("link", { name: "E2E-INV-001", exact: true })).toBeVisible();
+  await expect(book.getByRole("link", { name: invoiceNumber, exact: true })).toBeVisible();
   await expect(
     book
       .locator("tr")
-      .filter({ has: book.getByRole("link", { name: "E2E-INV-001", exact: true }) })
+      .filter({ has: book.getByRole("link", { name: invoiceNumber, exact: true }) })
       .getByRole("cell", { name: "91+ days", exact: true }),
   ).toBeVisible();
   await book.goto("/finance");

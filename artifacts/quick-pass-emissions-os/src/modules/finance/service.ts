@@ -9,6 +9,7 @@ import {
   formatContactAddress,
 } from "@/lib/contact-address";
 import { uniqueReceiptReference } from "./references";
+import { formatInvoiceNumber, isInvoiceNumberForYear, nextInvoiceSequence } from "./invoice-number";
 import { id, dateString } from "@/lib/validation";
 import { businessDate, addDays } from "@/lib/time";
 import { label, reason, notes, optionalId, version } from "../maintenance/validation";
@@ -263,7 +264,7 @@ export async function createInvoiceInTransaction(tx: Tx, actorId: string, input:
   const data = z
     .object({
       dealershipId: id,
-      number: label,
+      number: z.string().trim().max(40).optional().default(""),
       issueDate: dateString,
       serviceIds: z.array(id).min(1).max(100),
       notes,
@@ -274,6 +275,25 @@ export async function createInvoiceInTransaction(tx: Tx, actorId: string, input:
     "Select distinct services.",
   );
   currentPast(data.issueDate);
+  const year = data.issueDate.slice(0, 4);
+  const number =
+    data.number ||
+    formatInvoiceNumber(
+      year,
+      nextInvoiceSequence(
+        year,
+        (
+          await tx.dealerInvoice.findMany({
+            where: { number: { startsWith: `QP-${year}-` } },
+            select: { number: true },
+          })
+        ).map((invoice) => invoice.number),
+      ),
+    );
+  requireRule(
+    isInvoiceNumberForYear(number, year),
+    `Invoice number must use QP-${year}-0001 format for its issue year.`,
+  );
   const dealer = await tx.dealership.findUnique({
     where: { id: data.dealershipId },
     include: { contacts: { where: { active: true }, orderBy: { createdAt: "asc" } } },
@@ -286,7 +306,7 @@ export async function createInvoiceInTransaction(tx: Tx, actorId: string, input:
     "Owner-authorized terms and tax settings are required.",
   );
   requireRule(
-    !(await tx.dealerInvoice.count({ where: { number: data.number } })),
+    !(await tx.dealerInvoice.count({ where: { number } })),
     "Invoice number already exists.",
   );
   const services = await tx.dealerService.findMany({
@@ -308,7 +328,7 @@ export async function createInvoiceInTransaction(tx: Tx, actorId: string, input:
   const row = await tx.dealerInvoice.create({
     data: {
       dealershipId: dealer.id,
-      number: data.number,
+      number,
       issueDate: data.issueDate,
       dueDate: addDays(data.issueDate, dealer.termsDays),
       subtotalCents: totals.subtotalCents,

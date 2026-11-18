@@ -1,5 +1,3 @@
-import { invoiceIssuer } from "./invoice-document";
-
 export const invoiceBccEmail = "askforjay@gmail.com";
 
 export type InvoiceEmailDetails = {
@@ -78,9 +76,7 @@ export function buildInvoiceEmail(
       "Best,",
       ...(signature.senderName.trim() ? [signature.senderName.trim()] : []),
       "Quick Pass Emissions",
-      invoiceIssuer.website,
       ...(signature.senderPhone.trim() ? [signature.senderPhone.trim()] : []),
-      signature.senderEmail.trim(),
     ].join("\n"),
   };
 }

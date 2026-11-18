@@ -37,11 +37,11 @@ describe("manual dealership invoice emails", () => {
       signature.paymentInstructions,
       signature.senderName,
       signature.senderPhone,
-      signature.senderEmail,
-      invoiceIssuer.website,
       "If payment has already been sent, please reply with the payment date and reference number",
     ])
       expect(draft.body).toContain(text);
+    expect(draft.body).not.toContain(signature.senderEmail);
+    expect(draft.body).not.toContain(invoiceIssuer.website);
     expect(draft.body).not.toMatch(/\[[^\]]+\]/);
   });
 
@@ -75,8 +75,8 @@ describe("manual dealership invoice emails", () => {
       senderEmail: invoiceIssuer.email,
     });
     expect(draft.body.match(/Quick Pass Emissions/g)).toHaveLength(1);
-    expect(draft.body).toContain("quickpassemissions.com");
-    expect(draft.body).toContain("qpemissions@gmail.com");
+    expect(draft.body).not.toContain("quickpassemissions.com");
+    expect(draft.body).not.toContain("qpemissions@gmail.com");
   });
 
   it("lets an unapproved draft send a Gmail invoice with a PDF attached", () => {

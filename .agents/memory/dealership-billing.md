@@ -51,11 +51,11 @@ Dealership invoice numbers use `QP-YYYY-NNNN` (for example, `QP-2026-0001`), wit
 
 **How to apply:** Use the issue-date year, increment the yearly sequence, preserve existing invoice identifiers, and reject manually entered numbers that do not match the format or issue year.
 
-Quick Pass dealership invoices should reference `qpemissions@gmail.com` and `quickpassemissions.com`.
+Quick Pass invoice PDFs reference the website; the email address is the Gmail From identity, not a repeated line in the email sign-off.
 
-**Why:** The user specified the business sender address and website for invoice documents and delivery.
+**Why:** The user specified the sender address and website, then asked to remove both from the email's “Best,” sign-off.
 
-**How to apply:** Include both in invoice PDFs and the email signature. Verify the connected Gmail mailbox is `qpemissions@gmail.com` before sending and use it as the From address.
+**How to apply:** Keep both business details on invoice PDFs, but do not append them to the email sign-off. Verify the connected Gmail mailbox is `qpemissions@gmail.com` and use it as the From address.
 
 Invoice BCC to `askforjay@gmail.com` is optional for each email and must remain hidden from the dealership recipient.
 

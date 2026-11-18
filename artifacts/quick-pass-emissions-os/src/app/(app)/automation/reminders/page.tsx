@@ -7,6 +7,7 @@ import { ActionForm, Field } from "@/components/action-form";
 import { lowVolumeSettings } from "@/modules/automation/low-volume";
 import { saveLowVolumeAlert } from "@/app/low-volume-actions";
 import { formatDate } from "@/lib/time";
+import { staffingSchedule } from "@/modules/automation/staffing-job";
 
 export default async function AutomationReminders() {
   const user = await requireRole(["OWNER"]);
@@ -54,11 +55,36 @@ export default async function AutomationReminders() {
           does not contact Clinton or change employee pay.
         </p>
         <p className="muted">
-          Unattended scheduling requires setup: run the existing jobs command every minute using an
-          independent scheduled service. The workspace preview alone is not a reliable scheduler.
           Checks can retry until 2:15 PM, counting only tests through 2:00 PM. The alert displays
           the actual check time. Missing, stale or incomplete data never counts as zero.
         </p>
+        <details>
+          <summary>Unattended schedule setup</summary>
+          <p>
+            Activate a separate Scheduled deployment in Publishing. Do not replace the web
+            deployment. Saving alert settings does not activate the scheduler.
+          </p>
+          <dl>
+            <dt>Schedule</dt>
+            <dd>
+              <code>{staffingSchedule.cron}</code>
+            </dd>
+            <dt>Time zone</dt>
+            <dd>{staffingSchedule.timezone}</dd>
+            <dt>Build command</dt>
+            <dd>
+              <code>{staffingSchedule.build}</code>
+            </dd>
+            <dt>Run command</dt>
+            <dd>
+              <code>{staffingSchedule.run}</code>
+            </dd>
+          </dl>
+          <p className="muted">
+            Use the same business database and Gmail connection as the app. Confirm a completed
+            check here before relying on alerts. An open workspace is not an independent scheduler.
+          </p>
+        </details>
         {staffing.latest ? (
           <p role="status">
             Last check: {formatDate(staffing.latest.at)} · {staffing.latest.details.message}

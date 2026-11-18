@@ -25,6 +25,9 @@
     "seed:demo": "tsx scripts/seed.ts",
     "jobs": "tsx scripts/database.ts check && tsx scripts/jobs.ts",
     "owner-email-job": "tsx scripts/owner-email-job.ts",
+    "staffing:build": "prisma generate",
+    "staffing:check": "tsx scripts/staffing-job.ts",
+    "staffing:setup-check": "tsx scripts/staffing-job.ts --check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "recover-account": "tsx scripts/database.ts check && tsx scripts/recover-account.ts"

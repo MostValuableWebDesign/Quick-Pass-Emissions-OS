@@ -25,3 +25,13 @@ connection and instructed continuation without it.
 Recurring email must use the owner-saved recipient and enabled policy. No live
 messages should be sent just to test the implementation. A saved policy or open
 preview is not proof of an independently scheduled check.
+
+Use a staffing-only scheduled process rather than starting unrelated automation
+as a side effect of activating this alert.
+
+**Why:** The user's scheduling approval is for the staffing check, not a new
+schedule for other business emails, operational duties, access controls or syncs.
+
+**How to apply:** Preserve the web deployment. Activation of an independent
+scheduled deployment remains separate from saving/enabling the alert policy;
+do not claim it is running until an actual scheduled execution is verified.

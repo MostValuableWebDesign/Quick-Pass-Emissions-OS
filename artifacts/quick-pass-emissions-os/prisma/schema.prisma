@@ -1166,6 +1166,15 @@ enum InvoiceState {
   VOIDED
 }
 
+enum StripeInvoicePaymentState {
+  CREATING
+  OPEN
+  PAID
+  VOID
+  FAILED
+  REVIEW
+}
+
 enum FinanceDirection {
   REVENUE
   EXPENSE
@@ -1204,6 +1213,7 @@ model Dealership {
   invoices          DealerInvoice[]
   addressSource     String            @default("MANUAL")
   addressProviderId String            @default("")
+  stripeCustomerId  String?           @unique
   virUploads        DealerVirUpload[]
   virRecords        DealerVirRecord[]
 }
@@ -1332,6 +1342,7 @@ model DealerInvoice {
   lines             DealerInvoiceLine[]
   services          DealerService[]     @relation("AllocatedServices")
   payments          DealerPayment[]
+  stripePaymentLink DealerInvoicePaymentLink?
 
   @@index([dealershipId, issueDate])
   @@index([archivedAt, createdAt])
@@ -1362,11 +1373,27 @@ model DealerPayment {
   evidence    String
   createdBy   String
   reversesId  String?        @unique
+  stripeInvoiceId String?   @unique
   reverses    DealerPayment? @relation("DealerPaymentReversal", fields: [reversesId], references: [id], onDelete: Restrict)
   reversal    DealerPayment? @relation("DealerPaymentReversal")
   createdAt   DateTime       @default(now())
 
   @@index([date])
+}
+
+model DealerInvoicePaymentLink {
+  id               String                    @id @default(cuid())
+  invoiceId        String                    @unique
+  invoice          DealerInvoice             @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  stripeInvoiceId  String?                   @unique
+  stripeCustomerId String?
+  hostedUrl        String?
+  amountCents      Int
+  requestId        String                    @unique
+  state            StripeInvoicePaymentState @default(CREATING)
+  reviewReason     String?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
 }
 
 model FinanceEntry {

@@ -69,7 +69,7 @@ export function InvoiceEmailComposer({
     senderEmail,
     senderPhone,
   });
-  const draftReady = !!(contactName.trim() && paymentInstructions.trim() && senderEmail.trim());
+  const draftReady = !!(contactName.trim() && senderEmail.trim());
 
   return (
     <section className="card card-body space-top" aria-labelledby={`${prefix}-heading`}>
@@ -140,15 +140,15 @@ export function InvoiceEmailComposer({
             />
           </div>
           <div className="field wide">
-            <label htmlFor={`${prefix}-payment`}>Payment instructions or payment link</label>
+            <label htmlFor={`${prefix}-payment`}>Additional payment note (optional)</label>
             <textarea
               id={`${prefix}-payment`}
               name="paymentInstructions"
               maxLength={500}
-              required
               value={paymentInstructions}
               onChange={(event) => setPaymentInstructions(event.target.value)}
             />
+            <small>A unique Stripe payment link for the remaining balance is added when sent.</small>
           </div>
           <div className="field">
             <label htmlFor={`${prefix}-sender-name`}>Your name (optional)</label>
@@ -210,7 +210,7 @@ export function InvoiceEmailComposer({
               value={
                 draftReady
                   ? emailPreview.body
-                  : "Complete the contact name, payment instructions, and signature to preview your message."
+                  : "Complete the contact name and signature to preview your message."
               }
               rows={20}
             />

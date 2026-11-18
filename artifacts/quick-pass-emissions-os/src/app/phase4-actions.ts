@@ -7,6 +7,7 @@ import { currentUser } from "@/lib/access";
 import { fields } from "@/lib/validation";
 import { BusinessError } from "@/modules/phase4";
 import * as finance from "@/modules/finance/service";
+import * as stripePayments from "@/modules/finance/stripe-payments";
 import { findSentGmailMessage, invoiceGmailMessageId } from "@/modules/finance/invoice-gmail";
 import { invoiceIssuer } from "@/modules/finance/invoice-document";
 import type { ActionState } from "./actions";
@@ -55,13 +56,25 @@ export async function voidService(_: ActionState, form: FormData) {
   return perform((actor) => finance.voidService(actor, fields(form)));
 }
 export async function reviewInvoice(_: ActionState, form: FormData) {
-  return perform((actor) => finance.reviewInvoice(actor, fields(form)));
+  const data = fields(form);
+  return perform(async (actor) => {
+    if (data.decision === "VOID") await stripePayments.voidInvoicePaymentLink(actor, String(data.id));
+    await finance.reviewInvoice(actor, data);
+  });
 }
 export async function recordDealerPayment(_: ActionState, form: FormData) {
-  return perform((actor) => finance.recordDealerPayment(actor, fields(form)));
+  const data = fields(form);
+  return perform(async (actor) => {
+    await stripePayments.voidInvoicePaymentLink(actor, String(data.invoiceId));
+    await finance.recordDealerPayment(actor, data);
+  });
 }
 export async function reverseDealerPayment(_: ActionState, form: FormData) {
-  return perform((actor) => finance.reverseDealerPayment(actor, fields(form)));
+  const data = fields(form);
+  return perform(async (actor) => {
+    await stripePayments.voidPaymentLinkForReceipt(actor, String(data.id));
+    await finance.reverseDealerPayment(actor, data);
+  });
 }
 export async function recordEntry(_: ActionState, form: FormData) {
   return perform((actor) =>
@@ -89,12 +102,34 @@ export async function createInvoice(_: ActionState, form: FormData) {
 export async function setDealerInvoiceArchived(_: ActionState, form: FormData) {
   const archived = form.get("archived") === "true";
   return perform(
-    (actor) =>
-      finance.setInvoiceArchived(actor, {
+    async (actor) => {
+      const data = fields(form);
+      if (archived) await stripePayments.voidInvoicePaymentLink(actor, String(data.id));
+      await finance.setInvoiceArchived(actor, {
         ...fields(form),
         archived,
-      }),
+      });
+    },
     archived ? "Invoice archived." : "Invoice restored to the active list.",
+  );
+}
+export async function createInvoicePaymentLink(_: ActionState, form: FormData) {
+  return perform(
+    async (actor) => {
+      const data = z
+        .object({
+          invoiceId: z.string().trim().min(1).max(64),
+          customerEmail: z.email().max(254),
+        })
+        .parse(fields(form));
+      await stripePayments.createInvoicePaymentLink(
+        actor,
+        data.invoiceId,
+        data.customerEmail,
+      );
+      revalidatePath(`/invoices/${data.invoiceId}`);
+    },
+    "The secure payment link is ready.",
   );
 }
 export async function deleteDraftInvoice(_: ActionState, form: FormData): Promise<ActionState> {
@@ -150,6 +185,7 @@ export async function deleteDraftInvoice(_: ActionState, form: FormData): Promis
         ok: false,
         message: "Gmail Sent contains an email for this invoice. Archive it instead of deleting.",
       };
+    await stripePayments.voidInvoicePaymentLink(actor.id, invoice.id);
     await finance.deleteDraftInvoice(actor.id, parsed.data);
   } catch (error) {
     if (error instanceof BusinessError) return { ok: false, message: error.message };

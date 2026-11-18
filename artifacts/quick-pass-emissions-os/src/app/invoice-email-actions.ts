@@ -10,6 +10,8 @@ import { receivable } from "@/modules/finance/rules";
 import { invoiceSnapshotSchema, invoiceIssuer } from "@/modules/finance/invoice-document";
 import { createInvoicePdf } from "@/modules/finance/invoice-pdf";
 import { buildInvoiceEmail } from "@/modules/finance/invoice-email";
+import { createInvoicePaymentLink } from "@/modules/finance/stripe-payments";
+import { BusinessError } from "@/modules/phase4";
 import {
   findSentGmailMessage,
   invoiceGmailMessageId,
@@ -27,7 +29,7 @@ const requestSchema = z.object({
   invoiceId: z.string().trim().min(1).max(64),
   recipient: z.email().max(254),
   contactName: z.string().trim().min(1).max(160),
-  paymentInstructions: z.string().trim().min(1).max(500),
+  paymentInstructions: z.string().trim().max(500).default(""),
   senderName: z.string().trim().max(160).default(""),
   senderPhone: z.string().trim().max(50).default(""),
   includeBcc: z
@@ -178,6 +180,12 @@ export async function sendInvoiceFromGmail(
     }
 
     const snapshot = invoiceSnapshotSchema.parse(invoice.snapshot);
+    const paymentLink = await createInvoicePaymentLink(
+      actor.id,
+      invoice.id,
+      data.recipient,
+      true,
+    );
     const email = buildInvoiceEmail(
       {
         number: invoice.number,
@@ -193,6 +201,7 @@ export async function sendInvoiceFromGmail(
         senderPhone: data.senderPhone,
         senderEmail: invoiceIssuer.email,
       },
+      paymentLink.hostedUrl ?? undefined,
     );
     const pdf = await createInvoicePdf({
       ...invoice,
@@ -270,7 +279,8 @@ export async function sendInvoiceFromGmail(
       sent: true,
       message: `Invoice ${invoice.number} was sent to ${data.recipient} from qpemissions@gmail.com and marked as sent.`,
     };
-  } catch {
+  } catch (error) {
+    if (error instanceof BusinessError) return { ok: false, message: error.message };
     return {
       ok: false,
       message: "Unable to send the invoice. No email send was confirmed.",

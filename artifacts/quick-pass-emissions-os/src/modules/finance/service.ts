@@ -412,13 +412,19 @@ export async function reviewInvoice(actorId: string, input: unknown) {
     currentPast(data.date);
     const row = await tx.dealerInvoice.findUnique({
       where: { id: data.id },
-      include: { payments: true, lines: true },
+      include: { payments: true, lines: true, stripePaymentLink: true },
     });
     requireRule(
       row?.version === data.version && row.state !== "VOIDED" && !row.archivedAt,
       "Invoice changed, is archived, or is voided. Restore it if needed, then refresh and review.",
     );
     requireRule(data.date >= row.issueDate, "Action date cannot precede issue date.");
+    if (data.decision === "VOID")
+      requireRule(
+        !row.stripePaymentLink ||
+          !["CREATING", "OPEN", "REVIEW"].includes(row.stripePaymentLink.state),
+        "Void the active Stripe payment page before voiding this invoice.",
+      );
     if (data.decision === "APPROVE") {
       requireRule(
         row.state === "DRAFT" && row.createdBy !== actorId,
@@ -488,9 +494,32 @@ export async function recordGmailInvoiceSent(actorId: string, input: unknown) {
     currentPast(data.date);
     const row = await tx.dealerInvoice.findUnique({
       where: { id: data.id },
-      include: { payments: true, lines: true },
+      include: { payments: true, lines: true, stripePaymentLink: true },
     });
     if (row?.state === "SENT" && row.deliveryReference === data.reference) return row;
+    if (
+      row?.state === "SENT" &&
+      row.deliveryReference?.startsWith("STRIPE:") &&
+      row.payments.some((payment) => payment.stripeInvoiceId)
+    ) {
+      requireRule(
+        !row.archivedAt && row.payments.every((payment) => payment.date >= data.date),
+        "Invoice delivery date conflicts with the recorded payment. Refresh and review the history.",
+      );
+      const sent = await tx.dealerInvoice.update({
+        where: { id: row.id },
+        data: {
+          sentDate: data.date,
+          deliveryReference: data.reference,
+          version: { increment: 1 },
+        },
+      });
+      await audit(tx, actorId, "DEALER_INVOICE_GMAIL_DELIVERY_CONFIRMED", row.id, {
+        date: data.date,
+        reference: data.reference,
+      });
+      return sent;
+    }
     requireRule(
       row?.version === data.version &&
         (row.state === "DRAFT" || row.state === "APPROVED") &&
@@ -532,9 +561,18 @@ export async function recordGmailInvoiceSent(actorId: string, input: unknown) {
 export async function setInvoiceArchived(actorId: string, input: unknown) {
   const data = z.object({ id, version, archived: z.boolean() }).parse(input);
   return phase4(actorId, financeRoles, async (tx) => {
-    const row = await tx.dealerInvoice.findUnique({ where: { id: data.id } });
+    const row = await tx.dealerInvoice.findUnique({
+      where: { id: data.id },
+      include: { stripePaymentLink: true },
+    });
     requireRule(row?.version === data.version, "Invoice changed. Refresh and review it.");
     if (Boolean(row.archivedAt) === data.archived) return row;
+    if (data.archived)
+      requireRule(
+        !row.stripePaymentLink ||
+          !["CREATING", "OPEN", "REVIEW"].includes(row.stripePaymentLink.state),
+        "Void the active Stripe payment page before archiving this invoice.",
+      );
     const updated = await tx.dealerInvoice.update({
       where: { id: row.id },
       data: {
@@ -558,7 +596,7 @@ export async function deleteDraftInvoice(actorId: string, input: unknown) {
   return phase4(actorId, financeRoles, async (tx) => {
     const row = await tx.dealerInvoice.findUnique({
       where: { id: data.id },
-      include: { payments: true, lines: true },
+      include: { payments: true, lines: true, stripePaymentLink: true },
     });
     requireRule(
       row &&
@@ -569,6 +607,11 @@ export async function deleteDraftInvoice(actorId: string, input: unknown) {
         !row.deliveryReference &&
         row.payments.length === 0,
       "Only an unsent draft with no payments can be deleted. Refresh and review the invoice.",
+    );
+    requireRule(
+      !row.stripePaymentLink ||
+        !["CREATING", "OPEN", "REVIEW"].includes(row.stripePaymentLink.state),
+      "Void the Stripe payment page before deleting this draft.",
     );
     await audit(tx, actorId, "DEALER_INVOICE_DELETED", row.id, {
       number: row.number,
@@ -599,11 +642,16 @@ export async function recordDealerPayment(actorId: string, input: unknown) {
     currentPast(data.date);
     const row = await tx.dealerInvoice.findUnique({
       where: { id: data.invoiceId },
-      include: { payments: true },
+      include: { payments: true, stripePaymentLink: true },
     });
     requireRule(
       row && row.approvedAt && row.state !== "VOIDED",
       "Choose an approved, active invoice.",
+    );
+    requireRule(
+      !row.stripePaymentLink ||
+        !["CREATING", "OPEN", "REVIEW"].includes(row.stripePaymentLink.state),
+      "The Stripe payment page must be closed before recording an outside payment.",
     );
     requireRule(
       data.date >= row.issueDate && (!row.sentDate || data.date >= row.sentDate),
@@ -628,11 +676,23 @@ export async function reverseDealerPayment(actorId: string, input: unknown) {
     currentPast(data.date);
     const payment = await tx.dealerPayment.findUnique({
       where: { id: data.id },
-      include: { reversal: true, invoice: { include: { payments: true } } },
+      include: {
+        reversal: true,
+        invoice: { include: { payments: true, stripePaymentLink: true } },
+      },
     });
     requireRule(
       payment && payment.amountCents > 0 && !payment.reversal && payment.invoice.state !== "VOIDED",
       "Choose an unreversed payment on an active invoice.",
+    );
+    requireRule(
+      !payment.stripeInvoiceId,
+      "Refund this Stripe payment in Stripe before recording a reversal.",
+    );
+    requireRule(
+      !payment.invoice.stripePaymentLink ||
+        !["CREATING", "OPEN", "REVIEW"].includes(payment.invoice.stripePaymentLink.state),
+      "The Stripe payment page must be closed before reversing an outside payment.",
     );
     requireRule(
       payment.invoice.payments.every((p) => p.date <= data.date),
@@ -928,6 +988,7 @@ export async function invoiceDetail(actorId: string, key: string) {
       include: {
         lines: { orderBy: [{ date: "asc" }, { id: "asc" }] },
         payments: { orderBy: { createdAt: "asc" }, include: { reversal: true } },
+        stripePaymentLink: true,
       },
     }),
     history: await tx.auditLog.findMany({

@@ -39,7 +39,11 @@ export function invoiceServicePeriod(dates: string[]) {
   return first === last ? invoiceDate(first) : `${invoiceDate(first)} to ${invoiceDate(last)}`;
 }
 
-export function buildInvoiceEmail(invoice: InvoiceEmailDetails, signature: InvoiceEmailSignature) {
+export function buildInvoiceEmail(
+  invoice: InvoiceEmailDetails,
+  signature: InvoiceEmailSignature,
+  paymentUrl?: string,
+) {
   return {
     subject: `Quick Pass Emissions — Payment Due for ${invoice.dealershipName}`,
     body: [
@@ -51,7 +55,18 @@ export function buildInvoiceEmail(invoice: InvoiceEmailDetails, signature: Invoi
       `- Outstanding balance: ${invoiceMoney(invoice.remainingCents)}`,
       `- Payment due date: ${invoiceDate(invoice.dueDate)}`,
       "",
-      `Please submit payment using ${signature.paymentInstructions.trim()}. If payment has already been sent, please reply with the payment date and reference number so we can update your account.`,
+      ...(paymentUrl
+        ? [
+            `Pay securely online using Stripe: ${paymentUrl}`,
+            ...(signature.paymentInstructions.trim()
+              ? [signature.paymentInstructions.trim()]
+              : []),
+          ]
+        : [
+            signature.paymentInstructions.trim() ||
+              "A secure, invoice-specific Stripe payment link will be added when this invoice is sent.",
+          ]),
+      "If payment has already been sent, please reply with the payment date and reference number so we can update your account.",
       "",
       "If you have any questions or need a breakdown of the vehicles tested, please let us know.",
       "",

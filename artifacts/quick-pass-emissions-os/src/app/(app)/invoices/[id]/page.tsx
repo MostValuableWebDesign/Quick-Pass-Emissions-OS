@@ -25,6 +25,14 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
       i.state === "DRAFT" ? Math.max(0, i.totalCents - summary.paidCents) : summary.remainingCents,
     management = true;
   const snap = invoiceSnapshotSchema.parse(i.snapshot);
+  const paymentContact =
+    snap.contacts.find((contact) => /billing|invoic|accounts? payable/i.test(contact.purpose)) ??
+    snap.contacts.find((contact) => contact.email);
+  const onlinePaymentLink = i.stripePaymentLink;
+  const linkMatchesBalance =
+    onlinePaymentLink?.state === "OPEN" &&
+    !!onlinePaymentLink.hostedUrl &&
+    onlinePaymentLink.amountCents === summary.remainingCents;
   return (
     <>
       <PageHeader
@@ -154,6 +162,63 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
           )}
         </div>
       </section>
+      {i.state === "SENT" && !i.archivedAt && summary.remainingCents > 0 && (
+        <section className="card card-body space-top" aria-labelledby="stripe-payment-heading">
+          <h2 id="stripe-payment-heading">Online payment</h2>
+          {onlinePaymentLink?.state === "REVIEW" ? (
+            <p className="notice warning">
+              {onlinePaymentLink.reviewReason ??
+                "Stripe confirmed a payment that needs review before it can be recorded."}
+            </p>
+          ) : onlinePaymentLink?.state === "PAID" ? (
+            <p className="notice success">Stripe confirmed this invoice payment.</p>
+          ) : (
+            <>
+              {linkMatchesBalance ? (
+                <p>
+                  <a
+                    className="button"
+                    href={onlinePaymentLink.hostedUrl!}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open secure Stripe payment page
+                  </a>
+                  <span className="muted">
+                    {" "}
+                    · For <Money cents={onlinePaymentLink.amountCents} />
+                  </span>
+                </p>
+              ) : (
+                <p className="muted">
+                  {onlinePaymentLink?.state === "CREATING"
+                    ? "Stripe is preparing the payment page."
+                    : onlinePaymentLink?.state === "OPEN"
+                      ? "The balance changed; refresh the link to match the current amount due."
+                      : "Create a Stripe-hosted payment page for the remaining balance."}
+                </p>
+              )}
+              <ActionForm
+                action={actions.createInvoicePaymentLink}
+                submit={linkMatchesBalance ? "Refresh payment link" : "Create payment link"}
+              >
+                <input type="hidden" name="invoiceId" value={i.id} />
+                <div className="field wide">
+                  <label htmlFor="stripe-payment-email">Billing email for Stripe</label>
+                  <input
+                    id="stripe-payment-email"
+                    name="customerEmail"
+                    type="email"
+                    maxLength={254}
+                    required
+                    defaultValue={paymentContact?.email ?? ""}
+                  />
+                </div>
+              </ActionForm>
+            </>
+          )}
+        </section>
+      )}
       <InvoiceEmailComposer
         invoiceId={i.id}
         invoice={{

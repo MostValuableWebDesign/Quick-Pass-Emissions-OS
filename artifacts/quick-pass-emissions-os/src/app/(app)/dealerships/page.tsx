@@ -110,8 +110,16 @@ export default async function Dealers({
                   </div>
                   <div>
                     <span>Latest invoice</span>
-                    <strong>{d.latestInvoice?.status ?? "No invoices yet"}</strong>
-                    {d.latestInvoice && <small>{d.latestInvoice.number}</small>}
+                    {d.latestInvoice ? (
+                      <RecordLink href={`/invoices/${d.latestInvoice.id}`}>
+                        <strong>{d.latestInvoice.status}</strong>
+                        <small>
+                          {d.latestInvoice.number} · <Money cents={d.latestInvoice.totalCents} />
+                        </small>
+                      </RecordLink>
+                    ) : (
+                      <strong>No invoices yet</strong>
+                    )}
                   </div>
                 </div>
                 <div className="dealer-directory-card-actions">

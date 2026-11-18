@@ -848,7 +848,14 @@ export async function dealerOverview(
           email: dealer.email,
           contacts: dealer.contacts,
           outstandingCents: balances.get(dealer.id) ?? 0,
-          latestInvoice: latest ? { number: latest.number, status: summary!.status } : null,
+          latestInvoice: latest
+            ? {
+                id: latest.id,
+                number: latest.number,
+                status: summary!.status,
+                totalCents: latest.totalCents,
+              }
+            : null,
         };
       }),
       demo: (await tx.employee.count({ where: { demo: true } })) > 0,

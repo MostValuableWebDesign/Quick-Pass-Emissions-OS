@@ -47,7 +47,12 @@ describe("dealership partner directory", () => {
           termsDays: 14,
           contacts: [{ id: "billing", name: "Billing contact", email: "billing@example.test" }],
           outstandingCents: 22500,
-          latestInvoice: { number: "QP-2026-0001", status: "Sent" },
+          latestInvoice: {
+            id: "invoice-fixture",
+            number: "QP-2026-0001",
+            status: "Draft",
+            totalCents: 4500,
+          },
         },
       ],
     });
@@ -72,6 +77,9 @@ describe("dealership partner directory", () => {
     expect(html).toContain("Active partners");
     expect(html).toContain("Balance due");
     expect(html).toContain("QP-2026-0001");
+    expect(html).toContain('href="/invoices/invoice-fixture"');
+    expect(html).toContain("Draft");
+    expect(html).toContain("$45.00");
     expect(html).toContain("Upload VIR PDFs");
     expect(html).toContain('href="tel:555-0100"');
     expect(html).toContain('href="mailto:billing@example.test"');

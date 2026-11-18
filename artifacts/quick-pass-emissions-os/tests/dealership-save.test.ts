@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
       findMany: vi.fn(),
     },
     dealerContact: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+    dealerInvoice: { findMany: vi.fn() },
     employee: { count: vi.fn() },
   },
 }));
@@ -46,6 +47,7 @@ describe("simplified dealership records", () => {
     mocks.tx.dealership.count.mockResolvedValue(0);
     mocks.tx.dealership.findMany.mockResolvedValue([]);
     mocks.tx.employee.count.mockResolvedValue(0);
+    mocks.tx.dealerInvoice.findMany.mockResolvedValue([]);
     mocks.tx.dealership.create.mockImplementation(async ({ data }) => ({ id: dealerId, ...data }));
     mocks.tx.dealership.update.mockImplementation(async ({ data }) => ({ id: dealerId, ...data }));
     mocks.tx.dealerContact.update.mockImplementation(async ({ data }) => ({ ...data }));
@@ -150,5 +152,39 @@ describe("simplified dealership records", () => {
     expect(mocks.tx.dealership.findMany).toHaveBeenLastCalledWith(
       expect.objectContaining({ where: {} }),
     );
+  });
+
+  it("puts a newly created draft invoice, amount, and account link on its dealership card data", async () => {
+    const dealer = {
+      id: dealerId,
+      name: "Fixture Motors",
+      active: true,
+      phone: "",
+      email: "",
+      contacts: [],
+      invoices: [
+        {
+          id: "draft-invoice-id",
+          number: "QP-2026-0042",
+          state: "DRAFT",
+          approvedAt: null,
+          totalCents: 4500,
+          issueDate: "2026-11-18",
+          dueDate: "2026-12-18",
+          voidDate: null,
+          payments: [],
+        },
+      ],
+    };
+    mocks.tx.dealership.findMany.mockResolvedValue([dealer]);
+    mocks.tx.dealerInvoice.findMany.mockResolvedValue([]);
+    mocks.tx.employee.count.mockResolvedValue(0);
+    const overview = await dealerOverview("owner");
+    expect(overview.dealers[0].latestInvoice).toEqual({
+      id: "draft-invoice-id",
+      number: "QP-2026-0042",
+      status: "Draft",
+      totalCents: 4500,
+    });
   });
 });

@@ -8,6 +8,10 @@ const mocks = vi.hoisted(() => ({
   revalidate: vi.fn(),
   paymentLink: vi.fn(),
   raw: vi.fn(),
+  beginResend: vi.fn(),
+  finishResend: vi.fn(),
+  failResend: vi.fn(),
+  findResend: vi.fn(),
 }));
 vi.mock("@replit/connectors-sdk", () => ({
   ReplitConnectors: class {
@@ -20,6 +24,9 @@ vi.mock("@/lib/time", () => ({ businessDate: () => "2026-11-17" }));
 vi.mock("@/modules/finance/service", () => ({
   invoiceDetail: mocks.detail,
   recordGmailInvoiceSent: mocks.record,
+  beginInvoiceResend: mocks.beginResend,
+  finishInvoiceResend: mocks.finishResend,
+  updateInvoiceResendFailure: mocks.failResend,
 }));
 vi.mock("@/modules/finance/invoice-document", () => ({
   invoiceIssuer: { email: "qpemissions@gmail.com" },
@@ -33,6 +40,7 @@ vi.mock("@/modules/finance/stripe-payments", () => ({
 }));
 vi.mock("@/modules/finance/invoice-gmail", () => ({
   findSentGmailMessage: mocks.findSent,
+  findSentGmailResendMessage: mocks.findResend,
   invoiceGmailMessageId: () => "<qp-2026-0002@quickpassemissions.com>",
   invoiceGmailRawMessage: mocks.raw,
 }));
@@ -68,6 +76,79 @@ const form = () => {
 };
 
 describe("confirmed Gmail invoice send", () => {
+  it("uses the remaining balance on a partially paid resend without recording another payment", async () => {
+    mocks.detail.mockResolvedValue({
+      invoice: {
+        ...invoice,
+        state: "SENT",
+        approvedAt: new Date(),
+        payments: [{ amountCents: 500, date: "2026-11-17" }],
+      },
+      demo: false,
+    });
+    const requestId = "6ee9130f-05e8-4fe0-89dc-b675990ac918";
+    mocks.beginResend.mockResolvedValue({
+      status: "READY",
+      attempt: { id: "attempt", requestId, createdAt: new Date() },
+    });
+    mocks.findResend.mockResolvedValue(null);
+    const data = form();
+    data.set("sendMode", "RESEND");
+    data.set("resendRequestId", requestId);
+    expect(await sendInvoiceFromGmail(null, data)).toMatchObject({ ok: true, sent: true });
+    expect(mocks.raw).toHaveBeenCalledWith(
+      expect.objectContaining({ body: expect.stringContaining("Outstanding balance: $10.00") }),
+    );
+    expect(mocks.record).not.toHaveBeenCalled();
+  });
+  it("resends the same sent invoice without issuing another invoice", async () => {
+    mocks.detail.mockResolvedValue({
+      invoice: { ...invoice, state: "SENT", approvedAt: new Date() },
+      demo: false,
+    });
+    const requestId = "6ee9130f-05e8-4fe0-89dc-b675990ac918";
+    mocks.beginResend.mockResolvedValue({
+      status: "READY",
+      attempt: { id: "attempt", requestId, createdAt: new Date() },
+    });
+    mocks.findResend.mockResolvedValue(null);
+    const data = form();
+    data.set("sendMode", "RESEND");
+    data.set("resendRequestId", requestId);
+    const result = await sendInvoiceFromGmail(null, data);
+    expect(result.ok).toBe(true);
+    expect(mocks.finishResend).toHaveBeenCalledWith("owner", {
+      requestId,
+      gmailMessageId: "confirmed-gmail-id",
+    });
+    expect(mocks.record).not.toHaveBeenCalled();
+    expect(mocks.raw).toHaveBeenCalledWith(
+      expect.objectContaining({ resendRequestId: requestId, invoiceNumber: invoice.number }),
+    );
+  });
+  it("does not send another email when an earlier resend is uncertain", async () => {
+    mocks.detail.mockResolvedValue({
+      invoice: { ...invoice, state: "SENT", approvedAt: new Date() },
+      demo: false,
+    });
+    const requestId = "6ee9130f-05e8-4fe0-89dc-b675990ac918";
+    mocks.beginResend.mockResolvedValue({
+      status: "RECONCILE",
+      attempt: {
+        id: "attempt",
+        requestId,
+        recipient: "billing@example.com",
+        createdAt: new Date(),
+      },
+    });
+    mocks.findResend.mockResolvedValue(null);
+    const data = form();
+    data.set("sendMode", "RESEND");
+    data.set("resendRequestId", requestId);
+    expect(await sendInvoiceFromGmail(null, data)).toMatchObject({ ok: false, uncertain: true });
+    expect(mocks.proxy.mock.calls.some((call) => call[1].endsWith("/send"))).toBe(false);
+    expect(mocks.record).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     vi.resetAllMocks();
     mocks.detail.mockResolvedValue({ invoice, demo: false });

@@ -81,6 +81,12 @@ Invoices of any status may be archived and restored; permanent deletion is limit
 
 **How to apply:** Keep archived invoices in reports/history but out of the active list. Before deleting a draft, verify Gmail Sent, release its service allocations for rebilling, retain an audit tombstone, and never reuse its invoice number.
 
+Intentional resends must be distinguished from retries of the same email attempt.
+
+**Why:** The user requested both resending existing invoices and recreating deleted drafts from saved VIRs. A matching invoice attachment alone proves an earlier email, not a particular resend.
+
+**How to apply:** Reconcile a resend using its unique delivery-attempt identity, recipient and attachment. Preserve the original bill and reports; unresolved delivery must block a new send until checked.
+
 The Quick Pass inbox reads `qpemissions@gmail.com` live and stores only team annotations: topic, importance, follow-up status and notes.
 
 **Why:** The user wants to triage incoming business email in the app without creating another stored copy of message content.

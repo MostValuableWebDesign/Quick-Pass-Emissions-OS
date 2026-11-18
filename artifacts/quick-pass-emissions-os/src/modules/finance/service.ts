@@ -608,6 +608,14 @@ export async function beginInvoiceResend(actorId: string, input: unknown) {
       if (existing.state === "SENT") return { status: "SENT" as const, attempt: existing };
       if (existing.state === "PREPARING" || existing.state === "UNCERTAIN")
         return { status: "RECONCILE" as const, attempt: existing };
+      const otherPending = await tx.dealerInvoiceEmailResend.findFirst({
+        where: {
+          invoiceId: data.invoiceId,
+          id: { not: existing.id },
+          state: { in: ["PREPARING", "UNCERTAIN"] },
+        },
+      });
+      if (otherPending) return { status: "RECONCILE" as const, attempt: otherPending };
       const attempt = await tx.dealerInvoiceEmailResend.update({
         where: { id: existing.id },
         data: { state: "PREPARING", createdBy: actorId },

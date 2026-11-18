@@ -52,6 +52,21 @@ describe("manual dealership invoice emails", () => {
     expect(draft.body).not.toContain("555-0100");
   });
 
+  it("uses a paid invoice-copy subject and does not promise a payment link on a zero balance", () => {
+    const draft = buildInvoiceEmail(
+      { ...invoice, remainingCents: 0 },
+      {
+        ...signature,
+        paymentInstructions: "",
+      },
+    );
+    expect(draft.subject).toContain("Invoice Copy");
+    expect(draft.subject).not.toContain("Payment Due");
+    expect(draft.body).toContain("Outstanding balance: $0.00");
+    expect(draft.body).toContain("No balance remains due");
+    expect(draft.body).not.toContain("Stripe payment link will be added");
+  });
+
   it("includes the company name once when no personal sender name is entered", () => {
     const draft = buildInvoiceEmail(invoice, {
       ...signature,
@@ -105,6 +120,25 @@ describe("manual dealership invoice emails", () => {
     expect(html).toContain("Download invoice PDF");
     expect(html).not.toContain('type="submit"');
     expect(html).not.toContain("Recipient email");
+  });
+
+  it("offers a confirmed resend without creating another invoice", () => {
+    const html = renderToStaticMarkup(
+      createElement(InvoiceEmailComposer, {
+        invoiceId: "fixture-invoice",
+        invoice,
+        isResend: true,
+        resendRequestId: "6ee9130f-05e8-4fe0-89dc-b675990ac918",
+        eligible: true,
+        contacts: [{ name: "Fixture Billing", email: "billing@example.test" }],
+        sender: { name: invoiceIssuer.name, email: invoiceIssuer.email },
+      }),
+    );
+    expect(html).toContain("Resend invoice email");
+    expect(html).toContain('name="sendMode" value="RESEND"');
+    expect(html).toContain('name="resendRequestId"');
+    expect(html).toContain("This does not create a second invoice.");
+    expect(html).toContain("Confirm and resend invoice");
   });
 
   it("requires choosing a contact rather than guessing among multiple non-billing recipients", () => {

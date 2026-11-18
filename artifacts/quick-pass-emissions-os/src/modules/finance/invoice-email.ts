@@ -45,7 +45,7 @@ export function buildInvoiceEmail(
   paymentUrl?: string,
 ) {
   return {
-    subject: `Quick Pass Emissions — Payment Due for ${invoice.dealershipName}`,
+    subject: `Quick Pass Emissions — ${invoice.remainingCents > 0 ? "Payment Due" : "Invoice Copy"} for ${invoice.dealershipName}`,
     body: [
       `Hi ${signature.contactName.trim()},`,
       "",
@@ -60,10 +60,15 @@ export function buildInvoiceEmail(
             `Pay securely online using Stripe: ${paymentUrl}`,
             ...(signature.paymentInstructions.trim() ? [signature.paymentInstructions.trim()] : []),
           ]
-        : [
-            signature.paymentInstructions.trim() ||
-              "A secure, invoice-specific Stripe payment link will be added when this invoice is sent.",
-          ]),
+        : invoice.remainingCents > 0
+          ? [
+              signature.paymentInstructions.trim() ||
+                "A secure, invoice-specific Stripe payment link will be added when this invoice is sent.",
+            ]
+          : [
+              signature.paymentInstructions.trim() ||
+                "No balance remains due on this invoice as of the date of this email.",
+            ]),
       "If payment has already been sent, please reply with the payment date and reference number so we can update your account.",
       "",
       "If you have any questions or need a breakdown of the vehicles tested, please let us know.",

@@ -258,6 +258,9 @@ export default async function Dealer({
                     <tbody>
                       {d.virRecords.map((report) => {
                         const service = d.services.find((item) => item.id === report.serviceId);
+                        const readyService = data.unbilled.find(
+                          (item) => item.id === report.serviceId,
+                        );
                         return (
                           <tr key={report.id}>
                             <td>{report.date}</td>
@@ -275,8 +278,16 @@ export default async function Dealer({
                                 <RecordLink href={`/invoices/${service.invoice.id}`}>
                                   {service.invoice.number}
                                 </RecordLink>
+                              ) : readyService ? (
+                                <RecordLink
+                                  href={`/dealerships/${d.id}?section=services#create-invoice`}
+                                >
+                                  Ready to invoice · saved report
+                                </RecordLink>
+                              ) : service?.voidDate ? (
+                                "Service voided"
                               ) : (
-                                "Unbilled service"
+                                "Saved service"
                               )}
                             </td>
                           </tr>
@@ -483,11 +494,19 @@ export default async function Dealer({
                       {unbilled.length ? (
                         <SelectAllServices>
                           {unbilled.map((service) => (
-                            <label className="check-row" key={service.id}>
-                              <input type="checkbox" name="serviceIds" value={service.id} />
-                              {service.date} · {service.description} · {service.quantity} ×{" "}
-                              <Money cents={service.unitCents} />
-                            </label>
+                            <div className="dealer-saved-service" key={service.id}>
+                              <label className="check-row">
+                                <input type="checkbox" name="serviceIds" value={service.id} />
+                                {service.date} · {service.description} · {service.quantity} ×{" "}
+                                <Money cents={service.unitCents} />
+                              </label>
+                              {service.virReportCount > 0 && (
+                                <small>
+                                  {service.virReportCount} saved VIR reports · these are reused, not
+                                  counted again
+                                </small>
+                              )}
+                            </div>
                           ))}
                         </SelectAllServices>
                       ) : (

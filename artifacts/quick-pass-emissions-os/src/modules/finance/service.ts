@@ -579,6 +579,151 @@ export async function recordGmailInvoiceSent(actorId: string, input: unknown) {
   });
 }
 
+const invoiceResendInput = z.object({
+  invoiceId: id,
+  requestId: z.uuid(),
+  recipient: z
+    .email()
+    .max(254)
+    .transform((value) => value.toLowerCase()),
+});
+
+/** Atomically reserve one deliberate resend or return a prior uncertain attempt for reconciliation. */
+export async function beginInvoiceResend(actorId: string, input: unknown) {
+  const data = invoiceResendInput.parse(input);
+  return phase4(actorId, financeRoles, async (tx) => {
+    const invoice = await tx.dealerInvoice.findUnique({ where: { id: data.invoiceId } });
+    requireRule(
+      invoice?.state === "SENT" && invoice.approvedAt && !invoice.archivedAt,
+      "Only an active, previously sent invoice can be resent.",
+    );
+    const existing = await tx.dealerInvoiceEmailResend.findUnique({
+      where: { requestId: data.requestId },
+    });
+    if (existing) {
+      requireRule(
+        existing.invoiceId === data.invoiceId && existing.recipient === data.recipient,
+        "This resend confirmation does not match the saved request.",
+      );
+      if (existing.state === "SENT") return { status: "SENT" as const, attempt: existing };
+      if (existing.state === "PREPARING" || existing.state === "UNCERTAIN")
+        return { status: "RECONCILE" as const, attempt: existing };
+      const attempt = await tx.dealerInvoiceEmailResend.update({
+        where: { id: existing.id },
+        data: { state: "PREPARING", createdBy: actorId },
+      });
+      await audit(tx, actorId, "DEALER_INVOICE_RESEND_RETRY", data.invoiceId, {
+        attemptId: attempt.id,
+        requestId: data.requestId,
+      });
+      return { status: "READY" as const, attempt };
+    }
+    const unresolved = await tx.dealerInvoiceEmailResend.findFirst({
+      where: { invoiceId: data.invoiceId, state: { in: ["PREPARING", "UNCERTAIN"] } },
+      orderBy: { createdAt: "desc" },
+    });
+    if (unresolved) return { status: "RECONCILE" as const, attempt: unresolved };
+    const attempt = await tx.dealerInvoiceEmailResend.create({
+      data: {
+        invoiceId: data.invoiceId,
+        requestId: data.requestId,
+        recipient: data.recipient,
+        createdBy: actorId,
+      },
+    });
+    await audit(tx, actorId, "DEALER_INVOICE_RESEND_STARTED", data.invoiceId, {
+      attemptId: attempt.id,
+      recipient: data.recipient,
+    });
+    return { status: "READY" as const, attempt };
+  });
+}
+
+export async function invoiceResendAttempt(actorId: string, attemptId: string) {
+  const key = id.parse(attemptId);
+  return readAsActor(actorId, financeRoles, (tx) =>
+    tx.dealerInvoiceEmailResend.findUnique({ where: { id: key } }),
+  );
+}
+
+export async function finishInvoiceResend(actorId: string, input: unknown) {
+  const data = z.object({ requestId: z.uuid(), gmailMessageId: label }).parse(input);
+  return phase4(actorId, financeRoles, async (tx) => {
+    const attempt = await tx.dealerInvoiceEmailResend.findUnique({
+      where: { requestId: data.requestId },
+      include: { invoice: true },
+    });
+    requireRule(attempt, "Invoice resend request not found.");
+    if (attempt.state === "SENT") {
+      requireRule(attempt.gmailMessageId === data.gmailMessageId, "Resend status already differs.");
+      return attempt;
+    }
+    requireRule(
+      attempt.state === "PREPARING" || attempt.state === "UNCERTAIN",
+      "This resend request is no longer active.",
+    );
+    const updated = await tx.dealerInvoiceEmailResend.update({
+      where: { id: attempt.id },
+      data: { state: "SENT", gmailMessageId: data.gmailMessageId, sentAt: new Date() },
+    });
+    await audit(tx, actorId, "DEALER_INVOICE_RESEND_SENT", attempt.invoiceId, {
+      attemptId: attempt.id,
+      gmailMessageId: data.gmailMessageId,
+      recipient: attempt.recipient,
+    });
+    return updated;
+  });
+}
+
+export async function updateInvoiceResendFailure(
+  actorId: string,
+  requestId: string,
+  state: "UNCERTAIN" | "FAILED",
+) {
+  const key = z.uuid().parse(requestId);
+  return phase4(actorId, financeRoles, async (tx) => {
+    const attempt = await tx.dealerInvoiceEmailResend.findUnique({ where: { requestId: key } });
+    requireRule(attempt, "Invoice resend request not found.");
+    if (attempt.state === "SENT") return attempt;
+    const updated = await tx.dealerInvoiceEmailResend.update({
+      where: { id: attempt.id },
+      data: { state },
+    });
+    await audit(
+      tx,
+      actorId,
+      state === "UNCERTAIN" ? "DEALER_INVOICE_RESEND_UNCERTAIN" : "DEALER_INVOICE_RESEND_FAILED",
+      attempt.invoiceId,
+      { attemptId: attempt.id },
+    );
+    return updated;
+  });
+}
+
+/** Only after the manager has checked Gmail Sent may an uncertain resend be released. */
+export async function resolveInvoiceResendNotSent(actorId: string, input: unknown) {
+  const data = z.object({ id, confirmNoEmail: z.literal("true") }).parse(input);
+  return phase4(actorId, ["OWNER", "ADMIN"], async (tx) => {
+    const attempt = await tx.dealerInvoiceEmailResend.findUnique({ where: { id: data.id } });
+    requireRule(
+      attempt && (attempt.state === "UNCERTAIN" || attempt.state === "PREPARING"),
+      "Only an unresolved resend can be released. Refresh and check its status.",
+    );
+    requireRule(
+      attempt.updatedAt.getTime() < Date.now() - 90_000,
+      "This resend may still be running. Wait 90 seconds, then check Gmail Sent again.",
+    );
+    await tx.dealerInvoiceEmailResend.update({
+      where: { id: attempt.id },
+      data: { state: "FAILED" },
+    });
+    await audit(tx, actorId, "DEALER_INVOICE_RESEND_RELEASED", attempt.invoiceId, {
+      attemptId: attempt.id,
+      reason: "Owner/manager confirmed after checking Gmail Sent that no resend was sent.",
+    });
+  });
+}
+
 export async function setInvoiceArchived(actorId: string, input: unknown) {
   const data = z.object({ id, version, archived: z.boolean() }).parse(input);
   return phase4(actorId, financeRoles, async (tx) => {
@@ -900,7 +1045,7 @@ async function dealerOutstandingBalances(tx: Tx, dealershipIds: string[], asOf: 
 export async function dealerDetail(actorId: string, key: string) {
   return readAsActor(actorId, financeRoles, async (tx) => {
     const dealerId = id.parse(key);
-    const [unbilled, dealer] = await Promise.all([
+    const [unbilledRows, dealer] = await Promise.all([
       tx.dealerService.findMany({
         where: { dealershipId: dealerId, invoiceId: null, voidDate: null },
         orderBy: [{ date: "asc" }, { id: "asc" }],
@@ -932,6 +1077,18 @@ export async function dealerDetail(actorId: string, key: string) {
         },
       }),
     ]);
+    const virCounts = unbilledRows.length
+      ? await tx.dealerVirRecord.groupBy({
+          by: ["serviceId"],
+          where: { serviceId: { in: unbilledRows.map((service) => service.id) } },
+          _count: { _all: true },
+        })
+      : [];
+    const virCountsByService = new Map(virCounts.map((item) => [item.serviceId, item._count._all]));
+    const unbilled = unbilledRows.map((service) => ({
+      ...service,
+      virReportCount: virCountsByService.get(service.id) ?? 0,
+    }));
     const asOf = businessDate();
     const balances = await dealerOutstandingBalances(tx, dealer ? [dealer.id] : [], asOf);
     return {
@@ -1002,6 +1159,7 @@ export async function invoiceDetail(actorId: string, key: string) {
         lines: { orderBy: [{ date: "asc" }, { id: "asc" }] },
         payments: { orderBy: { createdAt: "asc" }, include: { reversal: true } },
         stripePaymentLink: true,
+        emailResends: { orderBy: { createdAt: "desc" }, take: 1 },
       },
     }),
     history: await tx.auditLog.findMany({

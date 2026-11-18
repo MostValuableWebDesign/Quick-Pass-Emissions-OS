@@ -1139,6 +1139,14 @@ main#main {
   align-items: flex-start;
   padding: 10px 0;
 }
+.dealer-saved-service {
+  display: grid;
+  gap: 3px;
+}
+.dealer-saved-service > small {
+  color: var(--muted);
+  padding-left: 25px;
+}
 .dealer-unbilled-picker {
   display: grid;
   gap: 8px;

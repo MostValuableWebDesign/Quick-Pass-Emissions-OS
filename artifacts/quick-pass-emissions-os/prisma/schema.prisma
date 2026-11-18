@@ -212,7 +212,7 @@ model User {
   notifications          Notification[]
   reminderEvents         ReminderEvent[]
   performancePanelLayout PerformancePanelLayout?
-  gmailInboxEdits        GmailInboxAnnotation[] @relation("GmailInboxAnnotationEditor")
+  gmailInboxEdits        GmailInboxAnnotation[]  @relation("GmailInboxAnnotationEditor")
 }
 
 model PerformancePanelLayout {
@@ -1175,6 +1175,13 @@ enum StripeInvoicePaymentState {
   REVIEW
 }
 
+enum DealerInvoiceResendState {
+  PREPARING
+  SENT
+  UNCERTAIN
+  FAILED
+}
+
 enum FinanceDirection {
   REVENUE
   EXPENSE
@@ -1315,34 +1322,35 @@ model DealerService {
 }
 
 model DealerInvoice {
-  id                String              @id @default(cuid())
-  number            String              @unique
-  dealershipId      String
-  dealership        Dealership          @relation(fields: [dealershipId], references: [id], onDelete: Restrict)
-  issueDate         String
-  dueDate           String
-  state             InvoiceState        @default(DRAFT)
-  subtotalCents     Int
-  taxBps            Int
-  taxCents          Int
-  totalCents        Int
-  snapshot          Json
-  notes             String
-  createdBy         String
-  approvedBy        String?
-  approvedAt        DateTime?
-  sentDate          String?
-  deliveryReference String?
-  stripePaymentToken String?            @unique
-  voidDate          String?
-  voidReason        String?
-  archivedAt        DateTime?
-  version           Int                 @default(0)
-  createdAt         DateTime            @default(now())
-  lines             DealerInvoiceLine[]
-  services          DealerService[]     @relation("AllocatedServices")
-  payments          DealerPayment[]
-  stripePaymentLink DealerInvoicePaymentLink?
+  id                 String                     @id @default(cuid())
+  number             String                     @unique
+  dealershipId       String
+  dealership         Dealership                 @relation(fields: [dealershipId], references: [id], onDelete: Restrict)
+  issueDate          String
+  dueDate            String
+  state              InvoiceState               @default(DRAFT)
+  subtotalCents      Int
+  taxBps             Int
+  taxCents           Int
+  totalCents         Int
+  snapshot           Json
+  notes              String
+  createdBy          String
+  approvedBy         String?
+  approvedAt         DateTime?
+  sentDate           String?
+  deliveryReference  String?
+  stripePaymentToken String?                    @unique
+  voidDate           String?
+  voidReason         String?
+  archivedAt         DateTime?
+  version            Int                        @default(0)
+  createdAt          DateTime                   @default(now())
+  lines              DealerInvoiceLine[]
+  services           DealerService[]            @relation("AllocatedServices")
+  payments           DealerPayment[]
+  stripePaymentLink  DealerInvoicePaymentLink?
+  emailResends       DealerInvoiceEmailResend[]
 
   @@index([dealershipId, issueDate])
   @@index([archivedAt, createdAt])
@@ -1364,20 +1372,20 @@ model DealerInvoiceLine {
 }
 
 model DealerPayment {
-  id          String         @id @default(cuid())
-  invoiceId   String
-  invoice     DealerInvoice  @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
-  amountCents Int
-  date        String
-  reference   String         @unique
-  evidence    String
-  createdBy   String
-  reversesId  String?        @unique
-  stripeInvoiceId String?   @unique
-  stripePaymentIntentId String? @unique
-  reverses    DealerPayment? @relation("DealerPaymentReversal", fields: [reversesId], references: [id], onDelete: Restrict)
-  reversal    DealerPayment? @relation("DealerPaymentReversal")
-  createdAt   DateTime       @default(now())
+  id                    String         @id @default(cuid())
+  invoiceId             String
+  invoice               DealerInvoice  @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  amountCents           Int
+  date                  String
+  reference             String         @unique
+  evidence              String
+  createdBy             String
+  reversesId            String?        @unique
+  stripeInvoiceId       String?        @unique
+  stripePaymentIntentId String?        @unique
+  reverses              DealerPayment? @relation("DealerPaymentReversal", fields: [reversesId], references: [id], onDelete: Restrict)
+  reversal              DealerPayment? @relation("DealerPaymentReversal")
+  createdAt             DateTime       @default(now())
 
   @@index([date])
 }
@@ -1396,6 +1404,22 @@ model DealerInvoicePaymentLink {
   requestStartedAt DateTime                  @default(now())
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
+}
+
+model DealerInvoiceEmailResend {
+  id             String                   @id @default(cuid())
+  invoiceId      String
+  invoice        DealerInvoice            @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  requestId      String                   @unique
+  recipient      String
+  state          DealerInvoiceResendState @default(PREPARING)
+  gmailMessageId String?
+  createdBy      String
+  sentAt         DateTime?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@index([invoiceId, createdAt])
 }
 
 model FinanceEntry {

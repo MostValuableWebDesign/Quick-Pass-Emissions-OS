@@ -3,8 +3,10 @@ import type { ReplitConnectors } from "@replit/connectors-sdk";
 import { Buffer } from "node:buffer";
 import {
   invoiceGmailMessageId,
+  invoiceGmailResendMessageId,
   invoiceGmailRawMessage,
   findSentGmailMessage,
+  findSentGmailResendMessage,
 } from "../src/modules/finance/invoice-gmail";
 import { invoiceBccEmail } from "../src/modules/finance/invoice-email";
 
@@ -33,6 +35,28 @@ describe("invoice Gmail MIME message", () => {
     expect(message).toContain(Buffer.from("Invoice QP-2026-0001").toString("base64"));
     expect(message).toContain(Buffer.from("Hello billing team").toString("base64"));
     expect(message).toContain(Buffer.from("%PDF-demo").toString("base64"));
+  });
+
+  it("marks a resend with its unique attempt key and message ID", () => {
+    const requestId = "6ee9130f-05e8-4fe0-89dc-b675990ac918";
+    const message = Buffer.from(
+      invoiceGmailRawMessage({
+        to: "billing@example.com",
+        subject: "Invoice copy",
+        body: "Same invoice",
+        invoiceNumber: "QP-2026-0001",
+        pdf: Buffer.from("%PDF-demo"),
+        includeBcc: false,
+        resendRequestId: requestId,
+      }),
+      "base64url",
+    ).toString("utf8");
+    expect(message).toContain(`X-Quick-Pass-Resend-ID: ${requestId}`);
+    expect(message).toContain(
+      `Message-ID: ${invoiceGmailResendMessageId("QP-2026-0001", requestId)}`,
+    );
+    expect(message).toContain('filename="Quick-Pass-QP-2026-0001.pdf"');
+    expect(message).not.toContain("Bcc:");
   });
 
   it("omits the blind-copy header when the sender opts out", () => {
@@ -114,5 +138,57 @@ describe("sent invoice reconciliation", () => {
     await expect(findSentGmailMessage(connector(proxy), messageId)).rejects.toThrow(
       "Could not check",
     );
+  });
+
+  it("reconciles only the matching resend marker, recipient, and invoice attachment", async () => {
+    const requestId = "6ee9130f-05e8-4fe0-89dc-b675990ac918";
+    const createdAt = new Date("2026-11-18T10:00:00.000Z");
+    const proxy = vi
+      .fn()
+      .mockResolvedValueOnce(response({ messages: [{ id: "resend-message" }] }))
+      .mockResolvedValueOnce(
+        response({
+          labelIds: ["SENT"],
+          payload: {
+            headers: [
+              { name: "X-Quick-Pass-Resend-ID", value: requestId },
+              { name: "To", value: "Billing <billing@example.com>" },
+            ],
+            parts: [{ filename: attachment }],
+          },
+        }),
+      );
+    expect(
+      await findSentGmailResendMessage(connector(proxy), {
+        requestId,
+        invoiceNumber: "QP-2026-0002",
+        recipient: "billing@example.com",
+        createdAt,
+      }),
+    ).toBe("resend-message");
+
+    const mismatch = vi
+      .fn()
+      .mockResolvedValueOnce(response({ messages: [{ id: "wrong-recipient" }] }))
+      .mockResolvedValueOnce(
+        response({
+          labelIds: ["SENT"],
+          payload: {
+            headers: [
+              { name: "X-Quick-Pass-Resend-ID", value: requestId },
+              { name: "To", value: "other@example.com" },
+            ],
+            parts: [{ filename: attachment }],
+          },
+        }),
+      );
+    expect(
+      await findSentGmailResendMessage(connector(mismatch), {
+        requestId,
+        invoiceNumber: "QP-2026-0002",
+        recipient: "billing@example.com",
+        createdAt,
+      }),
+    ).toBeNull();
   });
 });

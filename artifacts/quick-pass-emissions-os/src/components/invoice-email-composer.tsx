@@ -15,6 +15,8 @@ export function InvoiceEmailComposer({
   contacts,
   sender,
   isDraft = false,
+  isResend = false,
+  resendRequestId,
   eligible,
   ineligibleMessage,
 }: {
@@ -23,6 +25,8 @@ export function InvoiceEmailComposer({
   contacts: { name: string; email: string; purpose?: string }[];
   sender: { name: string; email: string };
   isDraft?: boolean;
+  isResend?: boolean;
+  resendRequestId?: string;
   eligible: boolean;
   ineligibleMessage?: string;
 }) {
@@ -73,7 +77,7 @@ export function InvoiceEmailComposer({
 
   return (
     <section className="card card-body space-top" aria-labelledby={`${prefix}-heading`}>
-      <h2 id={`${prefix}-heading`}>Send invoice email</h2>
+      <h2 id={`${prefix}-heading`}>{isResend ? "Resend invoice email" : "Send invoice email"}</h2>
       <p>
         <a className="button" href={`/api/invoices/${encodeURIComponent(invoiceId)}/pdf`} download>
           <Download size={17} aria-hidden="true" /> Download invoice PDF
@@ -93,6 +97,10 @@ export function InvoiceEmailComposer({
           }}
         >
           <input type="hidden" name="invoiceId" value={invoiceId} />
+          <input type="hidden" name="sendMode" value={isResend ? "RESEND" : "ISSUE"} />
+          {isResend && resendRequestId && (
+            <input type="hidden" name="resendRequestId" value={resendRequestId} />
+          )}
           {emailContacts.length > 0 && (
             <div className="field wide">
               <label htmlFor={`${prefix}-contact`}>Choose a billing contact</label>
@@ -149,7 +157,9 @@ export function InvoiceEmailComposer({
               onChange={(event) => setPaymentInstructions(event.target.value)}
             />
             <small>
-              A unique Stripe payment link for the remaining balance is added when sent.
+              {invoice.remainingCents > 0
+                ? "A unique Stripe payment link for the remaining balance is added when sent."
+                : "No payment link is added because no balance is outstanding."}
             </small>
           </div>
           <div className="field">
@@ -219,9 +229,9 @@ export function InvoiceEmailComposer({
           </details>
           <div className="form-footer">
             <p className="muted">
-              {isDraft && "Sending issues this draft invoice. "}
-              Sends directly from qpemissions@gmail.com with the invoice PDF attached, then records
-              the invoice as sent.
+              {isResend
+                ? "Sends this same invoice number and its saved VIR report totals again. It does not create another invoice."
+                : `${isDraft ? "Sending issues this draft invoice. " : ""}Sends directly from qpemissions@gmail.com with the invoice PDF attached, then records the invoice as sent.`}
             </p>
             <button
               className="button"
@@ -236,7 +246,7 @@ export function InvoiceEmailComposer({
               }
             >
               <Mail size={17} aria-hidden="true" />
-              {pending ? "Sending…" : "Send invoice"}
+              {pending ? "Sending…" : isResend ? "Resend invoice" : "Send invoice"}
             </button>
           </div>
           <dialog
@@ -256,11 +266,23 @@ export function InvoiceEmailComposer({
           >
             <div className="card-body">
               <p className="employee-removal-eyebrow">Invoice email</p>
-              <h2 id={`${prefix}-confirm`}>Send this invoice?</h2>
+              <h2 id={`${prefix}-confirm`}>
+                {isResend ? "Resend this invoice?" : "Send this invoice?"}
+              </h2>
               <p id={`${prefix}-confirm-description`}>
-                Send invoice <strong>{invoice.number}</strong> to <strong>{recipient}</strong>, with
-                the PDF attached? This sends the email now
-                {isDraft ? " and issues the invoice" : ""}. The app will record it as sent.
+                {isResend ? (
+                  <>
+                    Send the existing invoice <strong>{invoice.number}</strong> and the same saved
+                    VIR report totals to <strong>{recipient}</strong> again? This does not create a
+                    second invoice.
+                  </>
+                ) : (
+                  <>
+                    Send invoice <strong>{invoice.number}</strong> to <strong>{recipient}</strong>,
+                    with the PDF attached? This sends the email now
+                    {isDraft ? " and issues the invoice" : ""}. The app will record it as sent.
+                  </>
+                )}
               </p>
               <p>
                 {includeBcc ? (
@@ -289,7 +311,11 @@ export function InvoiceEmailComposer({
                     approvedSend.current = true;
                   }}
                 >
-                  {pending ? "Sending…" : "Confirm and send invoice"}
+                  {pending
+                    ? "Sending…"
+                    : isResend
+                      ? "Confirm and resend invoice"
+                      : "Confirm and send invoice"}
                 </button>
               </div>
             </div>

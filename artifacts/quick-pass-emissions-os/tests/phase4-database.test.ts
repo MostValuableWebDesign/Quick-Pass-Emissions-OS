@@ -161,6 +161,64 @@ if (enabled) {
       }),
     ).rejects.toThrow("used by a deleted draft");
   });
+  it("reserves resend attempts idempotently and requires Sent-folder reconciliation before retry", async () => {
+    const invoice = await approved();
+    const sent = await f.recordGmailInvoiceSent(book, {
+      id: invoice.id,
+      version: invoice.version,
+      date: today,
+      reference: `GMAIL:${randomUUID()}`,
+    });
+    const requestId = randomUUID();
+    const first = await f.beginInvoiceResend(book, {
+      invoiceId: sent.id,
+      requestId,
+      recipient: "billing@example.test",
+    });
+    expect(first.status).toBe("READY");
+    const sameAttempt = await f.beginInvoiceResend(book, {
+      invoiceId: sent.id,
+      requestId,
+      recipient: "billing@example.test",
+    });
+    expect(sameAttempt).toMatchObject({ status: "RECONCILE", attempt: { id: first.attempt.id } });
+    const competing = await f.beginInvoiceResend(book, {
+      invoiceId: sent.id,
+      requestId: randomUUID(),
+      recipient: "billing@example.test",
+    });
+    expect(competing).toMatchObject({ status: "RECONCILE", attempt: { id: first.attempt.id } });
+
+    await f.updateInvoiceResendFailure(book, requestId, "UNCERTAIN");
+    await db.dealerInvoiceEmailResend.update({
+      where: { id: first.attempt.id },
+      data: { updatedAt: new Date(Date.now() - 120_000) },
+    });
+    await f.resolveInvoiceResendNotSent(book, {
+      id: first.attempt.id,
+      confirmNoEmail: "true",
+    });
+    const retry = await f.beginInvoiceResend(book, {
+      invoiceId: sent.id,
+      requestId: randomUUID(),
+      recipient: "billing@example.test",
+    });
+    expect(retry.status).toBe("READY");
+
+    const completed = await f.finishInvoiceResend(book, {
+      requestId: retry.attempt.requestId,
+      gmailMessageId: "gmail-resend-123",
+    });
+    expect(completed).toMatchObject({ state: "SENT", gmailMessageId: "gmail-resend-123" });
+    await expect(
+      f.beginInvoiceResend(book, {
+        invoiceId: sent.id,
+        requestId: randomUUID(),
+        recipient: "billing@example.test",
+      }),
+    ).resolves.toMatchObject({ status: "READY" });
+    expect((await f.invoiceDetail(book, sent.id)).invoice?.state).toBe("SENT");
+  });
 
   it("prevents deletion of approved or paid invoices", async () => {
     const invoice = await approved();

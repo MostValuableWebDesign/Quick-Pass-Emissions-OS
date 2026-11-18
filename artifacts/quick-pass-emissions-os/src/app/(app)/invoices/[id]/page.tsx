@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { notFound } from "next/navigation";
 import { currentUser } from "@/lib/access";
 import { businessDate, formatDate } from "@/lib/time";
@@ -11,6 +12,7 @@ import { InvoiceEmailComposer } from "@/components/invoice-email-composer";
 import { invoiceIssuer, invoiceSnapshotSchema } from "@/modules/finance/invoice-document";
 import { InvoiceCustomerBrand } from "@/components/invoice-customer-brand";
 import * as actions from "@/app/phase4-actions";
+import { checkInvoiceResend, resolveInvoiceResendNotSent } from "@/app/invoice-email-actions";
 export default async function Invoice({ params }: { params: Promise<{ id: string }> }) {
   const actor = await currentUser(),
     data = await invoiceDetail(actor.id, (await params).id),
@@ -26,6 +28,8 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
     management = true;
   const snap = invoiceSnapshotSchema.parse(i.snapshot);
   const onlinePaymentLink = i.stripePaymentLink;
+  const latestResend = i.emailResends[0];
+  const resendUnresolved = latestResend && ["PREPARING", "UNCERTAIN"].includes(latestResend.state);
   return (
     <>
       <PageHeader
@@ -232,19 +236,60 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
         contacts={snap.contacts}
         sender={{ name: invoiceIssuer.name, email: invoiceIssuer.email }}
         isDraft={i.state === "DRAFT"}
+        isResend={i.state === "SENT"}
+        resendRequestId={i.state === "SENT" ? randomUUID() : undefined}
         eligible={
-          !i.archivedAt && (i.state === "DRAFT" || i.state === "APPROVED") && emailBalanceCents > 0
+          !i.archivedAt &&
+          !resendUnresolved &&
+          (i.state === "SENT" ||
+            ((i.state === "DRAFT" || i.state === "APPROVED") && emailBalanceCents > 0))
         }
         ineligibleMessage={
           i.archivedAt
             ? "This invoice is archived. Restore it before sending."
-            : i.state === "SENT"
-              ? "This invoice has already been sent."
-              : i.state === "VOIDED"
-                ? "Voided invoices cannot be sent."
-                : "This invoice has no unpaid balance."
+            : resendUnresolved
+              ? "A previous resend needs to be checked before another email can be sent."
+              : i.state === "SENT"
+                ? "This sent invoice cannot be resent in its current state."
+                : i.state === "VOIDED"
+                  ? "Voided invoices cannot be sent."
+                  : "This invoice has no unpaid balance."
         }
       />
+      {latestResend && (
+        <section className="card card-body space-top" aria-labelledby="invoice-resend-status">
+          <h2 id="invoice-resend-status">Invoice resend history</h2>
+          <p>
+            {latestResend.state} · {latestResend.recipient} ·{" "}
+            {formatDate(latestResend.sentAt ?? latestResend.createdAt)}
+          </p>
+          {resendUnresolved && (
+            <>
+              <p className="notice warning">
+                Check Gmail Sent before starting another resend. An uncertain attempt is blocked
+                from sending again until it is reconciled.
+              </p>
+              <ActionForm action={checkInvoiceResend} submit="Check Gmail Sent">
+                <input type="hidden" name="invoiceId" value={i.id} />
+                <input type="hidden" name="attemptId" value={latestResend.id} />
+              </ActionForm>
+              <ActionForm
+                action={resolveInvoiceResendNotSent}
+                submit="I checked Sent; allow another resend"
+                confirmEyebrow="Invoice email"
+                confirmTitle="Release this resend attempt?"
+                confirmConfirmLabel="Confirm no email was sent"
+                confirmCancelLabel="Keep it blocked"
+                confirmOnSubmit="Only continue after checking the connected Gmail Sent folder and confirming this resend is not there. If the email was sent, releasing it could allow a duplicate."
+              >
+                <input type="hidden" name="invoiceId" value={i.id} />
+                <input type="hidden" name="attemptId" value={latestResend.id} />
+                <input type="hidden" name="confirmNoEmail" value="true" />
+              </ActionForm>
+            </>
+          )}
+        </section>
+      )}
       {i.approvedAt && i.state !== "VOIDED" && summary.remainingCents > 0 && (
         <section className="card card-body space-top">
           <h2>Record received payment</h2>

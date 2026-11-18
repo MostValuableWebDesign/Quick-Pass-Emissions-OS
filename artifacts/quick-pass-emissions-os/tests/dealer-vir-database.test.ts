@@ -122,6 +122,49 @@ if (enabled) {
     const upload = await db.dealerVirUpload.findUniqueOrThrow({ where: { id: p.uploadId } });
     expect(upload.rows).toEqual([]);
   });
+  it("rebuilds a deleted invoice draft from the same saved VIR service without duplicating reports", async () => {
+    const finance = await import("../src/modules/finance/service");
+    const upload = await preview([row("ZZ123489", past, 605)]);
+    const original = await service.commitDealerVirUpload(owner, commit(upload));
+    const originalInvoice = await db.dealerInvoice.findUniqueOrThrow({
+      where: { id: original.invoiceId! },
+      include: { lines: true },
+    });
+    const savedServiceId = originalInvoice.lines[0].serviceId;
+    const reportsBefore = await db.dealerVirRecord.findMany({
+      where: { serviceId: savedServiceId },
+    });
+    expect(reportsBefore).toHaveLength(1);
+
+    await finance.deleteDraftInvoice(owner, {
+      id: originalInvoice.id,
+      version: originalInvoice.version,
+    });
+    const available = await finance.dealerDetail(owner, dealer);
+    expect(available.unbilled).toContainEqual(
+      expect.objectContaining({ id: savedServiceId, virReportCount: 1 }),
+    );
+
+    const recreated = await finance.createInvoice(owner, {
+      dealershipId: dealer,
+      number: "",
+      issueDate: today,
+      serviceIds: [savedServiceId],
+      notes: "Recreated from the already saved VIR",
+    });
+    const reportsAfter = await db.dealerVirRecord.findMany({
+      where: { serviceId: savedServiceId },
+    });
+    expect(reportsAfter.map((report) => report.id)).toEqual(
+      reportsBefore.map((report) => report.id),
+    );
+    expect(
+      await db.dealerInvoiceLine.findMany({
+        where: { invoiceId: recreated.id },
+        select: { serviceId: true, quantity: true, amountCents: true },
+      }),
+    ).toEqual([{ serviceId: savedServiceId, quantity: 1, amountCents: 2000 }]);
+  });
   it("fills missing owner-authorized $15 terms and bills two reviewed VIRs at $30", async () => {
     const finance = await import("../src/modules/finance/service");
     await db.dealership.update({

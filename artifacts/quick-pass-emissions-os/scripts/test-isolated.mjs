@@ -91,8 +91,8 @@ try {
   created = true;
   console.log("Created a separate temporary test database. Business data is not used.");
   if (!browser) {
-    // Apply the unchanged Phase 4 baseline first, retain genuine-shaped sentinel snapshots,
-    // then upgrade with the additive Phase 5 migration. Never move/remove workspace migrations.
+    // Apply all migrations except this change, retain genuine-shaped sentinel snapshots,
+    // then verify this additive migration. Never move/remove workspace migrations.
     upgradeDir = await fs.mkdtemp(path.join(os.tmpdir(), "quick-pass-upgrade-"));
     await fs.copyFile(
       path.join(app, "prisma/schema.prisma"),
@@ -100,7 +100,7 @@ try {
     );
     await fs.mkdir(path.join(upgradeDir, "migrations"));
     for (const entry of await fs.readdir(path.join(app, "prisma/migrations"))) {
-      if (/^\d{12}_.+$/.test(entry) && entry >= "202610100006_") continue;
+      if (/^\d{12}_.+$/.test(entry) && entry >= "202611180002_invoice_resends") continue;
       await fs.cp(
         path.join(app, "prisma/migrations", entry),
         path.join(upgradeDir, "migrations", entry),
@@ -227,7 +227,7 @@ try {
     });
     if (before !== after) throw new Error("Upgrade changed a sentinel snapshot.");
     console.log(
-      "Phase 4 → Phase 5 + storage + station history + business import upgrade retained approved payroll, approved invoice and signed reversal sentinel snapshots.",
+      "The latest additive invoice resend migration retained approved payroll, approved invoice and signed reversal sentinel snapshots.",
     );
     await fixture.$disconnect();
   }

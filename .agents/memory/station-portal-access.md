@@ -3,7 +3,7 @@ name: Station portal access boundaries
 description: Owner-triggered portal counts are authorized; identity, payroll and unattended automation remain separate evidence boundaries.
 ---
 
-The user authorized efficient read-only, owner-triggered portal lookup: “you might have to scan or export which ever is effecient . its not a api.” This includes loading the current count on Performance view and date selection, as explicitly requested. Prefer the original export with a matching portal total; no unattended polling is authorized.
+The user authorized efficient read-only, owner-triggered portal lookup: “you might have to scan or export which ever is effecient . its not a api.” This includes loading the current count on Performance view and date selection, as explicitly requested. Prefer the original export with a matching portal total; general unattended polling is not authorized. The later owner-requested 2 PM staffing alert is a narrow exception; see staffing-alerts.md.
 
 **Why:** Authorized read-only discovery established that an original report can be parsed, but its export omits identifiers present in on-page detail links and provides no payment evidence or timezone/cutoff guarantee. The export included more rows than the displayed first page; that observation is not a perpetual all-page guarantee.
 

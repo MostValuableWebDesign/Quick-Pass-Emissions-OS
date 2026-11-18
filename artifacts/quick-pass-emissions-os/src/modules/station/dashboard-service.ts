@@ -24,6 +24,7 @@ import { captureRefreshHistory } from "./history/service";
 import { retentionInTransaction } from "./vehicle-retention-service";
 import { sourceVisits } from "./source-visits";
 import { includeReportedInspections } from "./report-counts";
+import { reportThroughMinute } from "./report-cutoff";
 
 const SNAPSHOT = "STATION_PERFORMANCE_DAY_CACHED";
 const PLAN = "STATION_PERFORMANCE_PAY_PLAN";
@@ -249,7 +250,12 @@ export function resolveDashboardQuery(
 }
 
 /** Cache-only read: rendering/navigation never logs into the external portal. */
-export async function readDashboard(actorId: string, input: unknown, now = new Date()) {
+export async function readDashboard(
+  actorId: string,
+  input: unknown,
+  now = new Date(),
+  cutoff?: { date: string; minute: number },
+) {
   let query = validateQuery(input);
   const today = businessDate(now);
   return stationTransaction(actorId, async (tx, hash) => {
@@ -294,6 +300,8 @@ export async function readDashboard(actorId: string, input: unknown, now = new D
     const rawDays = includeReportedInspections(
       [...snapshots.values()],
       await sourceVisits(tx, [hash]),
+    ).map((day) =>
+      cutoff?.date === day.date ? reportThroughMinute(day, cutoff.minute) : day,
     );
     const savedPace = await tx.auditLog.findFirst({
       where: { entityId: hash, action: PACE_SETTINGS_ACTION },
@@ -391,13 +399,18 @@ export async function loadDashboard(
   actorId: string,
   input: unknown,
   refresh = false,
+  cutoff?: { date: string; minute: number },
 ): Promise<DashboardData> {
   const query = validateQuery(input);
   const resumableTrend = supportsTrendBackfill(query);
   const initial = await readDashboard(actorId, query);
   // Continue missing history before re-fetching cached days. Foreground backfill uses refresh=false.
   const needed = pendingDashboardSourceDates(initial, refresh);
-  if (!needed.length) return { ...initial, sourceStatus: "cached" };
+  if (!needed.length)
+    return {
+      ...(cutoff ? await readDashboard(actorId, query, new Date(), cutoff) : initial),
+      sourceStatus: "cached",
+    };
   let sourceStarted = false;
   let sourceSaved = false;
   let sourceBlocked = false;
@@ -459,7 +472,7 @@ export async function loadDashboard(
         ? error.message
         : "Unable to retrieve station data. Saved values are unchanged.";
   }
-  const result = await readDashboard(actorId, query);
+  const result = await readDashboard(actorId, query, new Date(), cutoff);
   return {
     ...result,
     ...(result.backfill

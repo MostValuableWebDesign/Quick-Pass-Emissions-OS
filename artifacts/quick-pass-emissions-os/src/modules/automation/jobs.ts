@@ -1,6 +1,7 @@
 import { runGoogleAnalytics } from "../analytics/sync";
 import { runDoorAccess } from "../security/service";
 import { runOwnerEmails } from "./owner-email";
+import { runLowVolumeAlerts } from "./low-volume";
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -215,6 +216,7 @@ export async function processAutomation(
   }
 }
 export async function runAutomation(now = new Date()) {
+  const lowVolume = await runLowVolumeAlerts(now);
   await enqueueAutomation(now);
   let completed = 0,
     failed = 0;
@@ -231,5 +233,6 @@ export async function runAutomation(now = new Date()) {
     ownerEmail: await runOwnerEmails(now),
     doorAccess: await runDoorAccess(now),
     googleAnalytics: await runGoogleAnalytics(now),
+    lowVolume,
   };
 }

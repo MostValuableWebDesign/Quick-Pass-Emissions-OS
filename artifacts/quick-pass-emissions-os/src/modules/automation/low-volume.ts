@@ -5,6 +5,7 @@ import { businessDate } from "@/lib/time";
 import { automation } from "./transaction";
 import { loadDashboard } from "../station/dashboard-service";
 import { lowVolumeCount, lowVolumeMessage, lowVolumeWindow } from "./low-volume-rules";
+import { readAsActor } from "@/lib/read-as-actor";
 
 const ACTION = "LOW_VOLUME_ALERT_SETTINGS";
 const schema = z.object({
@@ -14,7 +15,7 @@ const schema = z.object({
 type Settings = z.infer<typeof schema>;
 
 export async function lowVolumeSettings(actorId: string) {
-  return automation(actorId, ["OWNER"], async (tx) => {
+  return readAsActor(actorId, ["OWNER"], async (tx) => {
     const [saved, latest] = await Promise.all([
       tx.auditLog.findFirst({
         where: { actorId, action: ACTION },

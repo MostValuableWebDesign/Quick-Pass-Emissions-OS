@@ -21,8 +21,8 @@ vi.mock("@/lib/db", () => ({
     notification: { findUnique: mocks.notification, createMany: mocks.claim },
   },
 }));
-vi.mock("@/modules/automation/transaction", () => ({
-  automation: async (_id: string, _roles: string[], work: (tx: unknown) => unknown) =>
+vi.mock("@/lib/read-as-actor", () => ({
+  readAsActor: async (_id: string, _roles: string[], work: (tx: unknown) => unknown) =>
     work({ auditLog: { findFirst: mocks.settings } }),
 }));
 vi.mock("@/modules/station/dashboard-service", () => ({ loadDashboard: mocks.dashboard }));

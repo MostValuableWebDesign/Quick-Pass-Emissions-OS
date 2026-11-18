@@ -4,6 +4,7 @@ import { id } from "@/lib/validation";
 import { phase3, managers, audit, requireRule, type Tx } from "../phase3";
 import { activeVendor } from "../maintenance/service";
 import * as r from "./rules";
+import { readAsActor } from "@/lib/read-as-actor";
 
 // Directory contact fields displayed to owners and management.
 export const operationalSelect = {
@@ -47,7 +48,7 @@ export async function directory(
 ) {
   const search = (query.search ?? "").trim().slice(0, 160);
   const category = query.category ? r.category.parse(query.category) : null;
-  return phase3(actorId, managers, async (tx) => {
+  return readAsActor(actorId, managers, async (tx) => {
     const providers = await tx.vendor.findMany({
       where: {
         ...(query.archived ? {} : { active: true }),
@@ -83,7 +84,7 @@ export async function directory(
   });
 }
 export async function providerDetail(actorId: string, vendorId: string) {
-  return phase3(actorId, managers, async (tx) => {
+  return readAsActor(actorId, managers, async (tx) => {
     const provider = await tx.vendor.findUnique({
       where: { id: id.parse(vendorId) },
       select: operationalSelect,
@@ -291,7 +292,7 @@ export async function targetProviders(
   actorId: string,
   target: { equipmentId?: string; bayId?: string },
 ) {
-  return phase3(actorId, managers, async (tx) => {
+  return readAsActor(actorId, managers, async (tx) => {
     const associations = await tx.supportAssociation.findMany({
       where: target.equipmentId
         ? { equipmentId: id.parse(target.equipmentId) }
@@ -302,7 +303,7 @@ export async function targetProviders(
   });
 }
 export async function ticketSupport(actorId: string, ticketId: string) {
-  return phase3(actorId, managers, async (tx, actor) => {
+  return readAsActor(actorId, managers, async (tx, actor) => {
     const ticket = await ticketAccess(tx, actor, id.parse(ticketId));
     const assigned = ticket.vendorId
       ? await tx.vendor.findUnique({

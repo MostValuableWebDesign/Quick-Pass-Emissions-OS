@@ -6,6 +6,7 @@ import { dateString, id, timeString } from "@/lib/validation";
 import { businessDate } from "@/lib/time";
 import { parseReport, digest, range } from "./report";
 import { reconcileStationCount } from "../payroll/service";
+import { readAsActor } from "@/lib/read-as-actor";
 
 const reason = z.string().trim().min(1).max(2000);
 const integer = z.coerce.number().int().min(0).max(2147483647);
@@ -27,6 +28,13 @@ export async function stationTransaction<T>(
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(7183507)`;
     return work(tx, stationConfig().hash);
   });
+}
+/** Owner-only station snapshot, without any writer advisory locks. */
+export async function readStation<T>(
+  actorId: string,
+  work: (tx: Tx, hash: string) => Promise<T>,
+) {
+  return readAsActor(actorId, ["OWNER"], (tx) => work(tx, stationConfig().hash), 60000);
 }
 export const scheduleInput = z
   .object({

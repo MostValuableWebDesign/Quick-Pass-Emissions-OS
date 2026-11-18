@@ -5,6 +5,7 @@ import { id, dateString } from "../../lib/validation";
 import { businessDate, dueInstant } from "../../lib/time";
 import { phase3, managers, requireRule, audit, type Tx } from "../phase3";
 import * as v from "./validation";
+import { readAsActor } from "@/lib/read-as-actor";
 export async function activeEmployee(tx: Tx, employeeId: string | null) {
   if (!employeeId) return;
   const row = await tx.employee.findUnique({ where: { id: employeeId }, include: { user: true } });
@@ -412,7 +413,7 @@ export async function savePlan(actorId: string, input: unknown) {
   });
 }
 export async function maintenanceOverview(actorId: string) {
-  return phase3(actorId, managers, async (tx) => {
+  return readAsActor(actorId, managers, async (tx) => {
     const tickets = await tx.maintenanceTicket.findMany({
       where: {},
       select: {
@@ -454,7 +455,7 @@ export async function maintenanceOverview(actorId: string) {
   });
 }
 export async function ticketDetail(actorId: string, ticketId: string) {
-  return phase3(actorId, managers, async (tx) => {
+  return readAsActor(actorId, managers, async (tx) => {
     const access = { id: id.parse(ticketId) };
     return {
       management: true as const,
@@ -471,48 +472,65 @@ export async function ticketDetail(actorId: string, ticketId: string) {
     };
   });
 }
-export async function registry(actorId: string) {
-  return phase3(actorId, managers, async (tx) => ({
+export async function registry(actorId: string, scope: "all" | "bays" | "equipment" = "all") {
+  return readAsActor(actorId, managers, async (tx) => ({
     bays: await tx.carwashBay.findMany({
       orderBy: { slot: "asc" },
       include: {
         responsible: { select: { user: { select: { name: true } } } },
         equipment: true,
-        downtime: { orderBy: { startedAt: "desc" }, take: 20 },
+        supportAssociations: {
+          select: { vendor: { select: { id: true, name: true, active: true } } },
+        },
+        downtime: { orderBy: { startedAt: "desc" }, take: scope === "equipment" ? 0 : 20 },
         tickets: {
           orderBy: { createdAt: "desc" },
-          take: 20,
+          take: scope === "equipment" ? 0 : 20,
           select: { id: true, title: true, status: true, targetDate: true },
         },
         plans: {
           where: { active: true },
+          ...(scope === "equipment" ? { take: 0 } : {}),
           select: { id: true, title: true, nextDueDate: true, intervalDays: true },
         },
         _count: { select: { tickets: true, plans: true } },
       },
     }),
-    equipment: await tx.equipment.findMany({
-      orderBy: { name: "asc" },
-      include: { bay: true, vendor: true, downtime: { orderBy: { startedAt: "desc" }, take: 20 } },
-    }),
-    vendors: await tx.vendor.findMany({ orderBy: { name: "asc" } }),
+    equipment:
+      scope === "bays"
+        ? []
+        : await tx.equipment.findMany({
+            orderBy: { name: "asc" },
+            include: {
+              bay: true,
+              vendor: true,
+              downtime: { orderBy: { startedAt: "desc" }, take: 20 },
+              supportAssociations: {
+                select: { vendor: { select: { id: true, name: true, active: true } } },
+              },
+            },
+          }),
+    vendors: scope === "bays" ? [] : await tx.vendor.findMany({ orderBy: { name: "asc" } }),
     employees: await tx.employee.findMany({
       where: { user: { active: true, role: { not: "BOOKKEEPER" } } },
       select: { id: true, user: { select: { name: true } } },
     }),
-    plans: await tx.maintenancePlan.findMany({
-      include: {
-        bay: true,
-        equipment: true,
-        employee: { select: { user: { select: { name: true } } } },
-      },
-      orderBy: { nextDueDate: "asc" },
-    }),
+    plans:
+      scope !== "all"
+        ? []
+        : await tx.maintenancePlan.findMany({
+            include: {
+              bay: true,
+              equipment: true,
+              employee: { select: { user: { select: { name: true } } } },
+            },
+            orderBy: { nextDueDate: "asc" },
+          }),
     demo: (await tx.employee.count({ where: { demo: true } })) > 0,
   }));
 }
 export async function maintenanceSummary(actorId: string) {
-  return phase3(actorId, managers, async (tx) => ({
+  return readAsActor(actorId, managers, async (tx) => ({
     openTickets: await tx.maintenanceTicket.count({
       where: { status: { notIn: ["COMPLETED", "CANCELLED"] } },
     }),

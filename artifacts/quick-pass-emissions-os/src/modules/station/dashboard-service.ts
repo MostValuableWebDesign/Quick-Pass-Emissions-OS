@@ -2,7 +2,7 @@ import { z } from "zod";
 import { dateString } from "@/lib/validation";
 import { addDays, businessDate } from "@/lib/time";
 import { audit, requireRule, BusinessError } from "../phase2";
-import { stationTransaction } from "./service";
+import { readStation, stationTransaction } from "./service";
 import { portalRangeDays, PortalSession } from "./portal-client";
 import { buildDashboard, calendarDays, dashboardTrendRange } from "./dashboard-calculations";
 import { pendingDashboardSourceDates } from "./dashboard-refresh";
@@ -258,7 +258,7 @@ export async function readDashboard(
 ) {
   let query = validateQuery(input);
   const today = businessDate(now);
-  return stationTransaction(actorId, async (tx, hash) => {
+  return readStation(actorId, async (tx, hash) => {
     let allTimeStart: string | undefined;
     if (query.trendDays === "all") {
       const boundary = await tx.auditLog.findFirst({

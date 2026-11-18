@@ -21,3 +21,4 @@
 - [Manager schedule scope](manager-schedule-scope.md) — auto-populate proposed work blocks; do not treat the manager schedule as payroll timekeeping.
 - [Prisma runtime refresh](prisma-runtime-refresh.md) — database migrations do not refresh an already-loaded Prisma client; verify delegates and preview health separately.
 - [Staffing alerts](staffing-alerts.md) — 2 PM Eastern, configured open days, 50 or fewer paid tests; missing data cannot justify an early-departure alert.
+- [Read-only data access](read-only-data-access.md) — page reads must not wait on business write locks; preserve fresh permission checks and mutation serialization.

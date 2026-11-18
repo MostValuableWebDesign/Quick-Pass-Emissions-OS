@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readAsActor } from "@/lib/read-as-actor";
 import { serviceMarketing } from "../marketing/promotions";
 import { randomUUID } from "node:crypto";
 import { savedContactAddress } from "@/lib/address-provenance";
@@ -720,7 +721,7 @@ export async function dealerOverview(
   scope: "active" | "all" | "archived" = "active",
 ) {
   const search = z.string().max(160).parse(query);
-  return phase4(actorId, financeRoles, async (tx) => {
+  return readAsActor(actorId, financeRoles, async (tx) => {
     const asOf = businessDate();
     const dealers = await tx.dealership.findMany({
       where: {
@@ -824,7 +825,7 @@ async function dealerOutstandingBalances(tx: Tx, dealershipIds: string[], asOf: 
 }
 
 export async function dealerDetail(actorId: string, key: string) {
-  return phase4(actorId, financeRoles, async (tx) => {
+  return readAsActor(actorId, financeRoles, async (tx) => {
     const dealerId = id.parse(key);
     const [unbilled, dealer] = await Promise.all([
       tx.dealerService.findMany({
@@ -873,7 +874,7 @@ export async function invoiceOverview(
   scope: "active" | "archived" = "active",
 ) {
   const search = z.string().max(160).parse(query);
-  return phase4(actorId, financeRoles, async (tx) => ({
+  return readAsActor(actorId, financeRoles, async (tx) => ({
     invoices: await tx.dealerInvoice.findMany({
       where: {
         archivedAt: scope === "archived" ? { not: null } : null,
@@ -895,7 +896,7 @@ export async function invoiceOverview(
 }
 export async function paymentOverview(actorId: string, query = "") {
   const search = z.string().max(160).parse(query);
-  return phase4(actorId, financeRoles, async (tx) => ({
+  return readAsActor(actorId, financeRoles, async (tx) => ({
     payments: await tx.dealerPayment.findMany({
       where: search
         ? {
@@ -921,7 +922,7 @@ export async function paymentOverview(actorId: string, query = "") {
   }));
 }
 export async function invoiceDetail(actorId: string, key: string) {
-  return phase4(actorId, financeRoles, async (tx) => ({
+  return readAsActor(actorId, financeRoles, async (tx) => ({
     invoice: await tx.dealerInvoice.findUnique({
       where: { id: id.parse(key) },
       include: {
@@ -1007,7 +1008,7 @@ export async function report(tx: Tx, start: string, end: string) {
 export async function financeReport(actorId: string, input: unknown) {
   const range = reportRange.parse(input);
   currentPast(range.end);
-  return phase4(actorId, financeRoles, async (tx) => ({
+  return readAsActor(actorId, financeRoles, async (tx) => ({
     ...(await report(tx, range.start, range.end)),
     ...range,
     demo: (await tx.employee.count({ where: { demo: true } })) > 0,

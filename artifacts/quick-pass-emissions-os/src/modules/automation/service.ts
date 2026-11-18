@@ -5,6 +5,7 @@ import { automation } from "./transaction";
 import { forecastInput, policyInput, scheduleInput } from "./rules";
 import { currentPolicies, visibleReminders } from "./reminders";
 import { overview } from "./overview";
+import { readAsActor } from "@/lib/read-as-actor";
 
 export async function saveSchedule(actorId: string, raw: unknown) {
   const v = scheduleInput.parse(raw);
@@ -98,7 +99,7 @@ export async function saveForecastPolicy(actorId: string, raw: unknown) {
   });
 }
 export async function automationSettings(actorId: string) {
-  return automation(actorId, ["OWNER"], async (tx) => ({
+  return readAsActor(actorId, ["OWNER"], async (tx) => ({
     schedules: await tx.summarySchedule.findMany({
       orderBy: [{ key: "asc" }, { revision: "desc" }],
     }),
@@ -122,10 +123,10 @@ export async function automationSettings(actorId: string) {
   }));
 }
 export async function ownerOverview(actorId: string) {
-  return automation(actorId, ["OWNER"], (tx) => overview(tx));
+  return readAsActor(actorId, ["OWNER"], (tx) => overview(tx));
 }
 export async function summaryArchive(actorId: string) {
-  return automation(actorId, ["OWNER"], (tx) =>
+  return readAsActor(actorId, ["OWNER"], (tx) =>
     tx.savedSummary.findMany({
       select: { id: true, generatedAt: true, periodStart: true, periodEnd: true, scheduleId: true },
       orderBy: [{ generatedAt: "desc" }, { id: "asc" }],
@@ -133,17 +134,17 @@ export async function summaryArchive(actorId: string) {
   );
 }
 export async function summaryDetail(actorId: string, id: string) {
-  return automation(actorId, ["OWNER"], async (tx) => {
+  return readAsActor(actorId, ["OWNER"], async (tx) => {
     const summary = await tx.savedSummary.findUnique({ where: { id } });
     requireRule(summary, "Summary does not exist.");
     return summary;
   });
 }
 export async function remindersForUser(actorId: string) {
-  return automation(actorId, ["OWNER", "ADMIN"], (tx, actor) => visibleReminders(tx, actor));
+  return readAsActor(actorId, ["OWNER", "ADMIN"], (tx, actor) => visibleReminders(tx, actor));
 }
 export async function automationInbox(actorId: string) {
-  return automation(actorId, ["OWNER", "ADMIN"], async (tx, actor) => ({
+  return readAsActor(actorId, ["OWNER", "ADMIN"], async (tx, actor) => ({
     reminders: await visibleReminders(tx, actor),
     summaries:
       actor.role === "OWNER"

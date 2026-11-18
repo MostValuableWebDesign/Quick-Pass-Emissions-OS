@@ -3,10 +3,11 @@ import { dateString } from "@/lib/validation";
 import { audit, requireRule } from "../phase2";
 import { automation } from "../automation/transaction";
 import { paydayCalendar } from "./payday-rules";
+import { readAsActor } from "@/lib/read-as-actor";
 export const PAYDAY_ACKNOWLEDGED = "PAYDAY_REMINDER_ACKNOWLEDGED";
 const entity = (date: string) => `payday:${date}`;
 export async function readPaydayAlert(actorId: string, now?: Date) {
-  return automation(actorId, ["OWNER", "ADMIN"], async (tx) => {
+  return readAsActor(actorId, ["OWNER", "ADMIN"], async (tx) => {
     const snapshot = paydayCalendar(now ?? new Date());
     if (!snapshot.alert) return snapshot;
     const acknowledged = await tx.auditLog.findFirst({

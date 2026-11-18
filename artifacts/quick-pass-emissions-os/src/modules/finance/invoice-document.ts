@@ -55,4 +55,5 @@ export type InvoicePdfDetails = {
   totalCents: number;
   paidCents: number;
   remainingCents: number;
+  paymentUrl?: string;
 };

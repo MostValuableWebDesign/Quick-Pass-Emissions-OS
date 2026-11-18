@@ -1,4 +1,4 @@
-import { PDFDocument, PDFName, PDFRawStream } from "pdf-lib";
+import { PDFArray, PDFDict, PDFDocument, PDFName, PDFRawStream, PDFString } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 import { createInvoicePdf } from "@/modules/finance/invoice-pdf";
 import {
@@ -68,6 +68,20 @@ describe("invoice PDF generation", () => {
     expect(document.getTitle()).toContain("Invoice INV-104");
     expect(document.getPageCount()).toBe(1);
     expect(document.getPages()[0].getSize()).toEqual({ width: 612, height: 792 });
+  });
+
+  it("embeds a clickable secure payment link when the invoice has an active balance", async () => {
+    const url = `https://quickpassemissions.com/api/invoices/pay/${"a".repeat(72)}`;
+    const document = await PDFDocument.load(
+      await createInvoicePdf({ ...invoicePdfFixture, paymentUrl: url }),
+    );
+    const annotations = document.getPages()[0].node.Annots();
+    expect(annotations).toBeInstanceOf(PDFArray);
+    expect(annotations?.size()).toBe(1);
+    const annotation = document.context.lookup(annotations!.get(0), PDFDict);
+    const action = annotation.lookup(PDFName.of("A"), PDFDict);
+    expect(action.lookup(PDFName.of("URI"), PDFString).decodeText()).toBe(url);
+    expect(await pdfText(await document.save())).toContain("Pay this invoice securely online");
   });
 
   it("paginates long service tables and notes", async () => {

@@ -4,6 +4,7 @@ import { invoiceDetail } from "@/modules/finance/service";
 import { receivable } from "@/modules/finance/rules";
 import { invoiceSnapshotSchema } from "@/modules/finance/invoice-document";
 import { createInvoicePdf } from "@/modules/finance/invoice-pdf";
+import { paymentAppUrl } from "@/modules/finance/stripe-api";
 import { BusinessError } from "@/modules/phase4";
 
 export const runtime = "nodejs";
@@ -26,6 +27,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       demo: data.demo,
       paidCents: summary.paidCents,
       remainingCents: summary.remainingCents,
+      paymentUrl:
+        invoice.state === "SENT" &&
+        !invoice.archivedAt &&
+        summary.remainingCents > 0 &&
+        invoice.stripePaymentToken
+          ? `${paymentAppUrl()}/api/invoices/pay/${invoice.stripePaymentToken}`
+          : undefined,
     });
     const filename = invoice.number.replace(/[^a-zA-Z0-9_-]/g, "_") || "invoice";
     return new Response(new Uint8Array(bytes), {
@@ -37,7 +45,9 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     });
   } catch (error) {
     return new Response(
-      error instanceof BusinessError ? error.message : "Unable to generate this invoice PDF. Your invoice has not been changed.",
+      error instanceof BusinessError
+        ? error.message
+        : "Unable to generate this invoice PDF. Your invoice has not been changed.",
       { status: error instanceof BusinessError ? 403 : 500, headers },
     );
   }

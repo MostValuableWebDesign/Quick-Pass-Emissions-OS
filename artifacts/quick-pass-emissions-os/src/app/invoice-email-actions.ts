@@ -309,6 +309,7 @@ export async function sendInvoiceFromGmail(
       demo: detail.demo,
       paidCents: balance.paidCents,
       remainingCents,
+      paymentUrl: paymentLink?.hostedUrl,
     });
     const raw = invoiceGmailRawMessage({
       to: data.recipient,

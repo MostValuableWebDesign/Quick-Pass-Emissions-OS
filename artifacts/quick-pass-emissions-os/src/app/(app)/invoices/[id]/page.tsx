@@ -162,6 +162,10 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
       {i.state === "SENT" && !i.archivedAt && (
         <section className="card card-body space-top" aria-labelledby="stripe-payment-heading">
           <h2 id="stripe-payment-heading">Online payment</h2>
+          <p className="muted">
+            The invoice PDF includes a clickable payment link when one is active. Sending an invoice
+            with a balance creates the invoice-specific link automatically.
+          </p>
           {onlinePaymentLink?.state === "REVIEW" ? (
             <p className="notice warning">
               {onlinePaymentLink.reviewReason ??

@@ -3,6 +3,9 @@ import path from "node:path";
 import {
   PDFDocument,
   StandardFonts,
+  PDFName,
+  PDFNumber,
+  PDFString,
   rgb,
   type PDFFont,
   type PDFImage,
@@ -85,6 +88,20 @@ function domain(url: string) {
   }
 }
 
+function safePaymentUrl(value: string) {
+  const url = new URL(value);
+  if (
+    url.protocol !== "https:" ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    !/^\/api\/invoices\/pay\/[a-f0-9-]{72}$/.test(url.pathname)
+  )
+    throw new Error("Invoice payment URL is not a valid secure payment link.");
+  return url.toString();
+}
+
 export async function createInvoicePdf(invoice: InvoicePdfDetails) {
   const document = await PDFDocument.create();
   const regular = await document.embedFont(StandardFonts.Helvetica);
@@ -145,6 +162,33 @@ export async function createInvoicePdf(invoice: InvoicePdfDetails) {
     page.drawRectangle({ x: X, y: y - 2, width: 3, height: 11, color: accent });
     text(label, X + 9, y, 8.5, bold, heading);
     y -= 17;
+  };
+  const paymentLink = (url: string, label: string) => {
+    const width = bold.widthOfTextAtSize(label, 9);
+    text(label, X + 9, y, 9, bold, blue);
+    page.drawLine({
+      start: { x: X + 9, y: y - 1.5 },
+      end: { x: X + 9 + width, y: y - 1.5 },
+      thickness: 0.5,
+      color: blue,
+    });
+    const annotation = document.context.obj({
+      Type: PDFName.of("Annot"),
+      Subtype: PDFName.of("Link"),
+      Rect: [
+        PDFNumber.of(X + 8),
+        PDFNumber.of(y - 3),
+        PDFNumber.of(X + 11 + width),
+        PDFNumber.of(y + 11),
+      ],
+      Border: [PDFNumber.of(0), PDFNumber.of(0), PDFNumber.of(0)],
+      A: {
+        Type: PDFName.of("Action"),
+        S: PDFName.of("URI"),
+        URI: PDFString.of(url),
+      },
+    });
+    page.node.addAnnot(document.context.register(annotation));
   };
 
   // ---------- Issuer masthead (Quick Pass always issues) ----------
@@ -393,6 +437,19 @@ export async function createInvoicePdf(invoice: InvoicePdfDetails) {
   text(`Please reference invoice ${invoice.number}`, X, y + 40, 8, regular, muted);
   text(`with payment. Due ${invoiceDate(invoice.dueDate)}.`, X, y + 28, 8, regular, muted);
   y -= 34;
+
+  if (invoice.paymentUrl && invoice.remainingCents > 0 && invoice.status !== "VOIDED") {
+    const url = safePaymentUrl(invoice.paymentUrl);
+    sectionLabel("PAY ONLINE");
+    paymentLink(url, "Pay this invoice securely online");
+    y -= 15;
+    paragraph(
+      "The payment page checks the current balance before opening Stripe.",
+      8.5,
+      regular,
+      muted,
+    );
+  }
 
   if (invoice.notes) {
     sectionLabel("INVOICE NOTES");

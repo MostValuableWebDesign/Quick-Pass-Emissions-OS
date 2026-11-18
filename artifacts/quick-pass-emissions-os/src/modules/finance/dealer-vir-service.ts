@@ -1,5 +1,4 @@
 import { Prisma } from "@prisma/client";
-import { randomUUID } from "node:crypto";
 import { businessDate, addDays } from "@/lib/time";
 import { dateString } from "@/lib/validation";
 import { phase4, financeRoles, audit, requireRule, type Tx } from "../phase4";
@@ -504,9 +503,8 @@ export async function commitDealerVirUpload(
     const invoice = data.createDraft
       ? await createInvoiceInTransaction(tx, actorId, {
           dealershipId: data.dealershipId,
-          number:
-            data.invoiceNumber ||
-            `VIR-${data.issueDate.replaceAll("-", "")}-${randomUUID().slice(0, 8).toUpperCase()}`,
+          // The shared invoice service allocates the owner's QP-YYYY-NNNN sequence.
+          number: data.invoiceNumber,
           issueDate: data.issueDate,
           serviceIds,
           notes: `Created from ${billable.length} reviewed VIR reports.`,

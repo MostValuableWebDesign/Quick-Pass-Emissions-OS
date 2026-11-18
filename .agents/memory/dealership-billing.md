@@ -39,6 +39,12 @@ Dealerships are billed monthly, with payment due within 30 days.
 
 **How to apply:** Keep monthly invoice grouping/cadence distinct from Net 30 payment terms. Current invoice preparation and sending remain manual unless the user explicitly authorizes automation.
 
+All dealerships are charged $15 per car, with 0% tax and Net 30 terms.
+
+**Why:** The user stated “all dealerships are 15$” after a newly added partner was blocked by a missing rate; they previously confirmed the tax and due period.
+
+**How to apply:** Include these owner-authorized terms when creating a dealership, not just for the existing partner list. Preserve historical services and invoice snapshots when correcting current billing settings.
+
 Dealership invoice numbers use `QP-YYYY-NNNN` (for example, `QP-2026-0001`), with a yearly sequence.
 
 **Why:** The user specified the invoice-number format.

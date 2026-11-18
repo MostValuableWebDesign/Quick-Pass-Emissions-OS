@@ -122,6 +122,61 @@ if (enabled) {
     const upload = await db.dealerVirUpload.findUniqueOrThrow({ where: { id: p.uploadId } });
     expect(upload.rows).toEqual([]);
   });
+  it("fills missing owner-authorized $15 terms and bills two reviewed VIRs at $30", async () => {
+    const finance = await import("../src/modules/finance/service");
+    await db.dealership.update({
+      where: { id: dealer },
+      data: {
+        defaultRateCents: null,
+        termsDays: null,
+        taxBps: null,
+        termsAuthorizedAt: null,
+        termsAuthorizedBy: null,
+        termsReference: null,
+      },
+    });
+    expect(await finance.applyStandardDealershipRate(owner)).toEqual({ updated: 1, total: 1 });
+    const p = await preview([row(), row("ZZ123457", past, 620, "1M8GDM9AXKP042789")]);
+    expect(p).toMatchObject({ rateCents: 1500, termsReady: true });
+    const result = await service.commitDealerVirUpload(owner, commit(p));
+    expect(
+      await db.dealerInvoice.findUniqueOrThrow({ where: { id: result.invoiceId! } }),
+    ).toMatchObject({ totalCents: 3000, taxCents: 0, dueDate: addDays(today, 30) });
+    expect(await finance.applyStandardDealershipRate(owner)).toEqual({ updated: 0, total: 1 });
+  });
+  it("keeps an existing invoice's saved prices when applying the current $15 rate", async () => {
+    const result = await service.commitDealerVirUpload(owner, commit(await preview([row()])));
+    const before = await db.dealerInvoice.findUniqueOrThrow({
+      where: { id: result.invoiceId! },
+      include: { lines: true },
+    });
+    const finance = await import("../src/modules/finance/service");
+    await finance.applyStandardDealershipRate(owner);
+    expect(
+      await db.dealerInvoice.findUniqueOrThrow({
+        where: { id: result.invoiceId! },
+        include: { lines: true },
+      }),
+    ).toEqual(before);
+    expect(
+      (await db.dealership.findUniqueOrThrow({ where: { id: dealer } })).defaultRateCents,
+    ).toBe(1500);
+  });
+  it("creates future dealership partners with the standing $15, Net 30, zero-tax terms", async () => {
+    const finance = await import("../src/modules/finance/service");
+    const created = await finance.saveDealer(owner, {
+      name: "New fixture dealership",
+      billingAddress: "Fixture address",
+      version: 0,
+    });
+    expect(created).toMatchObject({
+      defaultRateCents: 1500,
+      termsDays: 30,
+      taxBps: 0,
+      termsAuthorizedBy: owner,
+    });
+    expect(created.termsAuthorizedAt).toBeInstanceOf(Date);
+  });
   it("returns the prior result on a repeated save without another invoice", async () => {
     const p = await preview([row()]);
     const first = await service.commitDealerVirUpload(owner, commit(p));
@@ -189,11 +244,12 @@ if (enabled) {
   });
   it("rolls back services and VIR records when invoice creation fails", async () => {
     const p1 = await preview([row()]);
-    const input1 = { ...commit(p1), invoiceNumber: "EXISTING" };
+    const invoiceNumber = `QP-${today.slice(0, 4)}-0001`;
+    const input1 = { ...commit(p1), invoiceNumber };
     await service.commitDealerVirUpload(owner, input1);
     const p2 = await preview([row("ZZ123458", past, 650, "1M8GDM9AXKP042790")]);
     await expect(
-      service.commitDealerVirUpload(owner, { ...commit(p2), invoiceNumber: "EXISTING" }),
+      service.commitDealerVirUpload(owner, { ...commit(p2), invoiceNumber }),
     ).rejects.toThrow("already exists");
     expect(await db.dealerService.count()).toBe(1);
     expect(await db.dealerVirRecord.count()).toBe(1);

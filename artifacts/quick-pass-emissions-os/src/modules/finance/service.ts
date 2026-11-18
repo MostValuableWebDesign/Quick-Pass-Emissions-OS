@@ -10,6 +10,7 @@ import {
   formatContactAddress,
 } from "@/lib/contact-address";
 import { uniqueReceiptReference } from "./references";
+import { STANDARD_DEALERSHIP_TERMS } from "./dealership-terms";
 import { closeInvoicePaymentLink } from "./stripe-payments";
 import { formatInvoiceNumber, isInvoiceNumberForYear, nextInvoiceSequence } from "./invoice-number";
 import { id, dateString } from "@/lib/validation";
@@ -129,9 +130,56 @@ export async function saveDealer(actorId: string, input: unknown) {
           where: { id: key },
           data: { ...saved, version: { increment: 1 } },
         })
-      : await tx.dealership.create({ data: saved });
-    await audit(tx, actorId, "DEALER_SAVED", row.id, { before, ...saved, reason: why });
+      : await tx.dealership.create({
+          data: {
+            ...saved,
+            ...STANDARD_DEALERSHIP_TERMS,
+            termsAuthorizedBy: actorId,
+            termsAuthorizedAt: new Date(),
+          },
+        });
+    await audit(tx, actorId, "DEALER_SAVED", row.id, {
+      before,
+      ...saved,
+      ...(!key ? STANDARD_DEALERSHIP_TERMS : {}),
+      reason: why,
+    });
     return row;
+  });
+}
+/** Apply the owner's standing rate without rewriting existing services or invoice snapshots. */
+export async function applyStandardDealershipRate(actorId: string) {
+  return phase4(actorId, ["OWNER"], async (tx) => {
+    const dealers = await tx.dealership.findMany();
+    let updated = 0;
+    for (const before of dealers) {
+      if (
+        before.defaultRateCents === STANDARD_DEALERSHIP_TERMS.defaultRateCents &&
+        before.termsDays !== null &&
+        before.taxBps !== null &&
+        before.termsAuthorizedAt
+      )
+        continue;
+      const data = {
+        defaultRateCents: STANDARD_DEALERSHIP_TERMS.defaultRateCents,
+        termsDays: before.termsDays ?? STANDARD_DEALERSHIP_TERMS.termsDays,
+        taxBps: before.taxBps ?? STANDARD_DEALERSHIP_TERMS.taxBps,
+        termsReference: before.termsReference || STANDARD_DEALERSHIP_TERMS.termsReference,
+        termsAuthorizedBy: actorId,
+        termsAuthorizedAt: new Date(),
+      };
+      await tx.dealership.update({
+        where: { id: before.id, version: before.version },
+        data: { ...data, version: { increment: 1 } },
+      });
+      await audit(tx, actorId, "DEALER_TERMS_AUTHORIZED", before.id, {
+        before,
+        ...data,
+        reason: "Owner confirmed all dealerships are $15 per car.",
+      });
+      updated++;
+    }
+    return { updated, total: dealers.length };
   });
 }
 export async function saveContact(actorId: string, input: unknown) {

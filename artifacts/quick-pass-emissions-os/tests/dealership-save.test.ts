@@ -25,6 +25,10 @@ vi.mock("@/modules/phase4", () => ({
   },
   audit: mocks.audit,
 }));
+vi.mock("@/lib/read-as-actor", () => ({
+  readAsActor: async (_actor: string, _roles: string[], work: (tx: unknown) => unknown) =>
+    work(mocks.tx),
+}));
 import { dealerOverview, saveContact, saveDealer } from "@/modules/finance/service";
 
 const dealerId = "c1234567890123456789012345";
@@ -52,6 +56,13 @@ describe("simplified dealership records", () => {
     expect(saved.code).toMatch(/^DLR-[a-f0-9-]{36}$/);
     expect(saved.phone).toBe("555-0100");
     expect(saved.active).toBe(true);
+    expect(saved).toMatchObject({
+      defaultRateCents: 1500,
+      termsDays: 30,
+      taxBps: 0,
+      termsAuthorizedBy: "owner",
+    });
+    expect(saved.termsAuthorizedAt).toBeInstanceOf(Date);
     expect(mocks.audit).toHaveBeenCalledWith(
       mocks.tx,
       "owner",
@@ -74,6 +85,7 @@ describe("simplified dealership records", () => {
       where: { id: dealerId },
       data: expect.objectContaining({ code: "LEGACY-CODE", phone: "555-0101", active: false }),
     });
+    expect(mocks.tx.dealership.update.mock.calls[0][0].data).not.toHaveProperty("defaultRateCents");
   });
 
   it("allows an entered phone number to be cleared", async () => {

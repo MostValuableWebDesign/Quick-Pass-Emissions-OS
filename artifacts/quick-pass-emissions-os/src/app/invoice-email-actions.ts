@@ -10,7 +10,7 @@ import { receivable } from "@/modules/finance/rules";
 import { invoiceSnapshotSchema, invoiceIssuer } from "@/modules/finance/invoice-document";
 import { createInvoicePdf } from "@/modules/finance/invoice-pdf";
 import { buildInvoiceEmail } from "@/modules/finance/invoice-email";
-import { createInvoicePaymentLink } from "@/modules/finance/stripe-payments";
+import { prepareInvoicePaymentLink } from "@/modules/finance/stripe-payments";
 import { BusinessError } from "@/modules/phase4";
 import {
   findSentGmailMessage,
@@ -180,12 +180,7 @@ export async function sendInvoiceFromGmail(
     }
 
     const snapshot = invoiceSnapshotSchema.parse(invoice.snapshot);
-    const paymentLink = await createInvoicePaymentLink(
-      actor.id,
-      invoice.id,
-      data.recipient,
-      true,
-    );
+    const paymentLink = await prepareInvoicePaymentLink(actor.id, invoice.id);
     const email = buildInvoiceEmail(
       {
         number: invoice.number,

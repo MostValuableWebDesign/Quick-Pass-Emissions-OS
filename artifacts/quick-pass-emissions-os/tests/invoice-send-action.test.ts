@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   record: vi.fn(),
   findSent: vi.fn(),
   revalidate: vi.fn(),
+  paymentLink: vi.fn(),
+  raw: vi.fn(),
 }));
 vi.mock("@replit/connectors-sdk", () => ({
   ReplitConnectors: class {
@@ -26,10 +28,13 @@ vi.mock("@/modules/finance/invoice-document", () => ({
 vi.mock("@/modules/finance/invoice-pdf", () => ({
   createInvoicePdf: async () => new Uint8Array([1]),
 }));
+vi.mock("@/modules/finance/stripe-payments", () => ({
+  prepareInvoicePaymentLink: mocks.paymentLink,
+}));
 vi.mock("@/modules/finance/invoice-gmail", () => ({
   findSentGmailMessage: mocks.findSent,
   invoiceGmailMessageId: () => "<qp-2026-0002@quickpassemissions.com>",
-  invoiceGmailRawMessage: () => "encoded-message",
+  invoiceGmailRawMessage: mocks.raw,
 }));
 
 import { sendInvoiceFromGmail } from "@/app/invoice-email-actions";
@@ -68,6 +73,10 @@ describe("confirmed Gmail invoice send", () => {
     mocks.detail.mockResolvedValue({ invoice, demo: false });
     mocks.record.mockResolvedValue({ ...invoice, state: "SENT" });
     mocks.findSent.mockResolvedValue(null);
+    mocks.paymentLink.mockResolvedValue({
+      hostedUrl: "https://app.example.test/api/invoices/pay/test-token",
+    });
+    mocks.raw.mockReturnValue("encoded-message");
     mocks.proxy.mockImplementation(async (_service: string, path: string) =>
       Response.json(
         path.endsWith("/profile")
@@ -82,6 +91,11 @@ describe("confirmed Gmail invoice send", () => {
   it("records confirmed sends and refreshes both invoice and dealership views", async () => {
     const result = await sendInvoiceFromGmail(null, form());
     expect(result).toMatchObject({ ok: true, sent: true });
+    expect(mocks.raw).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.stringContaining("https://app.example.test/api/invoices/pay/test-token"),
+      }),
+    );
     expect(mocks.record).toHaveBeenCalledWith("owner", {
       id: invoice.id,
       version: 0,
@@ -95,6 +109,13 @@ describe("confirmed Gmail invoice send", () => {
       "/dealerships/fixture-dealer",
     ])
       expect(mocks.revalidate).toHaveBeenCalledWith(path);
+  });
+
+  it("never sends Gmail if an exact-balance payment link cannot be prepared", async () => {
+    mocks.paymentLink.mockRejectedValue(new Error("provider unavailable"));
+    expect(await sendInvoiceFromGmail(null, form())).toMatchObject({ ok: false });
+    expect(mocks.proxy.mock.calls.some((call) => call[1].endsWith("/messages/send"))).toBe(false);
+    expect(mocks.record).not.toHaveBeenCalled();
   });
 
   it("reconciles an existing sent email without sending another", async () => {

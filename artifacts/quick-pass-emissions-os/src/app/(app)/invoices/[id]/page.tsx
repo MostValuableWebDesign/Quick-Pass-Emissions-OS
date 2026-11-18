@@ -25,14 +25,7 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
       i.state === "DRAFT" ? Math.max(0, i.totalCents - summary.paidCents) : summary.remainingCents,
     management = true;
   const snap = invoiceSnapshotSchema.parse(i.snapshot);
-  const paymentContact =
-    snap.contacts.find((contact) => /billing|invoic|accounts? payable/i.test(contact.purpose)) ??
-    snap.contacts.find((contact) => contact.email);
   const onlinePaymentLink = i.stripePaymentLink;
-  const linkMatchesBalance =
-    onlinePaymentLink?.state === "OPEN" &&
-    !!onlinePaymentLink.hostedUrl &&
-    onlinePaymentLink.amountCents === summary.remainingCents;
   return (
     <>
       <PageHeader
@@ -162,7 +155,7 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
           )}
         </div>
       </section>
-      {i.state === "SENT" && !i.archivedAt && summary.remainingCents > 0 && (
+      {i.state === "SENT" && !i.archivedAt && (
         <section className="card card-body space-top" aria-labelledby="stripe-payment-heading">
           <h2 id="stripe-payment-heading">Online payment</h2>
           {onlinePaymentLink?.state === "REVIEW" ? (
@@ -170,15 +163,19 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
               {onlinePaymentLink.reviewReason ??
                 "Stripe confirmed a payment that needs review before it can be recorded."}
             </p>
-          ) : onlinePaymentLink?.state === "PAID" ? (
-            <p className="notice success">Stripe confirmed this invoice payment.</p>
+          ) : summary.remainingCents === 0 ? (
+            <p className="notice success">
+              {onlinePaymentLink?.state === "PAID"
+                ? "Stripe confirmed this invoice payment."
+                : "This invoice has no unpaid balance."}
+            </p>
           ) : (
             <>
-              {linkMatchesBalance ? (
+              {i.stripePaymentToken && summary.remainingCents > 0 ? (
                 <p>
                   <a
                     className="button"
-                    href={onlinePaymentLink.hostedUrl!}
+                    href={`/api/invoices/pay/${i.stripePaymentToken}`}
                     target="_blank"
                     rel="noreferrer"
                   >
@@ -186,7 +183,7 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
                   </a>
                   <span className="muted">
                     {" "}
-                    · For <Money cents={onlinePaymentLink.amountCents} />
+                    · For <Money cents={summary.remainingCents} />
                   </span>
                 </p>
               ) : (
@@ -198,24 +195,28 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
                       : "Create a Stripe-hosted payment page for the remaining balance."}
                 </p>
               )}
-              <ActionForm
-                action={actions.createInvoicePaymentLink}
-                submit={linkMatchesBalance ? "Refresh payment link" : "Create payment link"}
-              >
-                <input type="hidden" name="invoiceId" value={i.id} />
-                <div className="field wide">
-                  <label htmlFor="stripe-payment-email">Billing email for Stripe</label>
-                  <input
-                    id="stripe-payment-email"
-                    name="customerEmail"
-                    type="email"
-                    maxLength={254}
-                    required
-                    defaultValue={paymentContact?.email ?? ""}
-                  />
-                </div>
-              </ActionForm>
+              {!i.stripePaymentToken && summary.remainingCents > 0 && (
+                <ActionForm action={actions.createInvoicePaymentLink} submit="Create payment link">
+                  <input type="hidden" name="invoiceId" value={i.id} />
+                </ActionForm>
+              )}
             </>
+          )}
+          {onlinePaymentLink?.stripeInvoiceId && (
+            <ActionForm action={actions.refreshInvoicePayment} submit="Check Stripe payment status">
+              <input type="hidden" name="invoiceId" value={i.id} />
+            </ActionForm>
+          )}
+          {onlinePaymentLink && ["CREATING", "OPEN"].includes(onlinePaymentLink.state) && (
+            <ActionForm
+              action={actions.cancelInvoicePaymentLink}
+              submit="Cancel online payment"
+              confirmTitle="Cancel this online payment request?"
+              confirmOnSubmit="The app will verify Stripe has not received payment, close any unpaid payment page, and disable the old email link. Your invoice and manual payment history will remain."
+              confirmConfirmLabel="Cancel online payment"
+            >
+              <input type="hidden" name="invoiceId" value={i.id} />
+            </ActionForm>
           )}
         </section>
       )}
@@ -248,8 +249,8 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
         <section className="card card-body space-top">
           <h2>Record received payment</h2>
           <p className="muted">
-            Record confirmed external receipts in chronological order. No bank or payment processor
-            is connected.
+            Record cash, check or other confirmed receipts in chronological order. Any unpaid Stripe
+            payment page is closed before the balance changes.
           </p>
           <ActionForm action={actions.recordDealerPayment} submit="Record dealership payment">
             <input type="hidden" name="invoiceId" value={i.id} />
@@ -269,18 +270,25 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
               {p.evidence}
               {p.reversesId ? " · Full reversal" : ""}
             </p>
-            {management && p.amountCents > 0 && !p.reversal && i.state !== "VOIDED" && (
-              <details>
-                <summary>Reverse this receipt</summary>
-                <ActionForm
-                  action={actions.reverseDealerPayment}
-                  submit="Reverse dealership payment"
-                >
-                  <input type="hidden" name="id" value={p.id} />
-                  <PaymentFields reversal />
-                </ActionForm>
-              </details>
+            {p.stripeInvoiceId && (
+              <p className="muted">Confirmed by Stripe. Refunds are managed in Stripe.</p>
             )}
+            {management &&
+              p.amountCents > 0 &&
+              !p.reversal &&
+              !p.stripeInvoiceId &&
+              i.state !== "VOIDED" && (
+                <details>
+                  <summary>Reverse this receipt</summary>
+                  <ActionForm
+                    action={actions.reverseDealerPayment}
+                    submit="Reverse dealership payment"
+                  >
+                    <input type="hidden" name="id" value={p.id} />
+                    <PaymentFields reversal />
+                  </ActionForm>
+                </details>
+              )}
           </div>
         ))}
       </section>
@@ -289,7 +297,7 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
         {data.history.map((h) => (
           <p key={h.id}>
             {formatDate(h.createdAt)} · {h.action.replaceAll("_", " ").toLowerCase()} ·{" "}
-            {h.actor?.name ?? "Former user"}
+            {h.actor?.name ?? (h.action.includes("STRIPE") ? "Stripe" : "Former user")}
           </p>
         ))}
       </section>

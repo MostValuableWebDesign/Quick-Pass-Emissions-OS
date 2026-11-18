@@ -58,9 +58,7 @@ export function buildInvoiceEmail(
       ...(paymentUrl
         ? [
             `Pay securely online using Stripe: ${paymentUrl}`,
-            ...(signature.paymentInstructions.trim()
-              ? [signature.paymentInstructions.trim()]
-              : []),
+            ...(signature.paymentInstructions.trim() ? [signature.paymentInstructions.trim()] : []),
           ]
         : [
             signature.paymentInstructions.trim() ||
@@ -81,4 +79,3 @@ export function buildInvoiceEmail(
     ].join("\n"),
   };
 }
-

@@ -1,522 +1,87 @@
 import { randomUUID } from "node:crypto";
-import { Prisma, StripeInvoicePaymentState } from "@prisma/client";
-import { ReplitConnectors } from "@replit/connectors-sdk";
-import { businessDate } from "@/lib/time";
+import { Prisma } from "@prisma/client";
+import type { DealerInvoice, DealerPayment, DealerInvoicePaymentLink } from "@prisma/client";
 import { db } from "@/lib/db";
+import { businessDate } from "@/lib/time";
 import { readAsActor } from "@/lib/read-as-actor";
-import { BusinessError, financeRoles, phase4, requireRule } from "../phase4";
-import { receivable, sumCents } from "./rules";
+import { uniqueReceiptReference } from "./references";
+import { BusinessError, financeRoles, phase4, requireRule, type Tx } from "../phase4";
+import {
+  ensurePaymentWebhook,
+  paymentAppUrl,
+  stripeApi,
+  stripeForm,
+  verifiedInvoicePayment,
+  type StripeInvoice,
+} from "./stripe-api";
 
-type StripeObject = {
-  id: string;
-  status?: string;
-  customer?: string | { id: string } | null;
-  hosted_invoice_url?: string | null;
-  amount_due?: number;
-  amount_paid?: number;
-  currency?: string;
-  due_date?: number | null;
-  status_transitions?: { paid_at?: number | null };
-  metadata?: Record<string, string>;
-};
-
-type StripeEvent = {
-  id: string;
-  type: string;
-  data?: { object?: { id?: string } };
-};
-
-type StripeWebhookEndpoint = {
-  id: string;
-  url: string;
-  status: string;
-  enabled_events: string[];
-};
-
-class StripePaymentApiError extends Error {
-  constructor(readonly status: number) {
-    super("Stripe payment request failed.");
-  }
-}
-
-function connector() {
-  return new ReplitConnectors();
-}
-
-async function stripeRequest<T>(
-  path: string,
-  method: "GET" | "POST" | "DELETE",
-  params?: URLSearchParams,
-  idempotencyKey?: string,
-): Promise<T> {
-  const response = await connector().proxy("stripe", path, {
-    method,
-    headers: {
-      ...(params ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
-      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
-    },
-    ...(params ? { body: params.toString() } : {}),
-  });
-  let body: unknown;
-  try {
-    body = await response.json();
-  } catch {
-    body = null;
-  }
-  if (!response.ok) throw new StripePaymentApiError(response.status);
-  return body as T;
-}
-
-function form(values: Record<string, string | number | boolean>) {
-  return new URLSearchParams(
-    Object.entries(values).map(([key, value]) => [key, String(value)]),
-  );
-}
-
-function dueTimestamp(date: string) {
-  const timestamp = Date.parse(`${date}T12:00:00.000Z`);
-  requireRule(Number.isFinite(timestamp), "Invoice due date is invalid.");
-  return Math.floor(timestamp / 1000);
-}
-
-function invoiceBalance(invoice: {
-  state: string;
-  approvedAt: Date | null;
-  totalCents: number;
-  issueDate: string;
-  dueDate: string;
-  voidDate: string | null;
-  payments: { amountCents: number; date: string }[];
-}) {
-  const summary = receivable(
-    { ...invoice, state: invoice.approvedAt ? invoice.state : "DRAFT" },
-    invoice.payments,
-    businessDate(),
-  );
-  return invoice.state === "DRAFT"
-    ? Math.max(0, invoice.totalCents - summary.paidCents)
-    : summary.remainingCents;
-}
-
-function publicHost() {
-  const value = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
-  requireRule(
-    value && /^[A-Za-z0-9.-]+(?::\d+)?$/.test(value),
-    "Stripe payment notifications are not configured for this app address.",
-  );
-  return value;
-}
-
-async function ensurePaymentWebhook() {
-  const url = `https://${publicHost()}/api/invoices/stripe-webhook`;
-  const endpoints = await stripeRequest<{ data: StripeWebhookEndpoint[] }>(
-    "/v1/webhook_endpoints?limit=100",
-    "GET",
-  );
-  const existing = endpoints.data.find(
-    (endpoint) =>
-      endpoint.url === url &&
-      endpoint.status === "enabled" &&
-      endpoint.enabled_events.includes("invoice.paid"),
-  );
-  if (existing) return;
-  const params = new URLSearchParams();
-  params.set("url", url);
-  params.set("description", "Quick Pass invoice payment confirmation");
-  params.set("enabled_events[0]", "invoice.paid");
-  await stripeRequest<StripeWebhookEndpoint>("/v1/webhook_endpoints", "POST", params);
-}
-
-async function getOrCreateCustomer(input: {
-  dealershipId: string;
-  dealershipName: string;
-  customerEmail: string;
-  stripeCustomerId: string | null;
-  requestId: string;
-}) {
-  if (input.stripeCustomerId) {
-    try {
-      return await stripeRequest<{ id: string }>(
-        `/v1/customers/${encodeURIComponent(input.stripeCustomerId)}`,
-        "POST",
-        form({ name: input.dealershipName, email: input.customerEmail }),
-      );
-    } catch (error) {
-      if (!(error instanceof StripePaymentApiError) || error.status !== 404) throw error;
-    }
-  }
-
-  const query = new URLSearchParams({
-    query: `metadata['quick_pass_dealership_id']:'${input.dealershipId}'`,
-    limit: "1",
-  });
-  const matches = await stripeRequest<{ data: { id: string }[] }>(
-    `/v1/customers/search?${query.toString()}`,
-    "GET",
-  );
-  const customer =
-    matches.data[0] ??
-    (await stripeRequest<{ id: string }>(
-      "/v1/customers",
-      "POST",
-      form({
-        name: input.dealershipName,
-        email: input.customerEmail,
-        "metadata[quick_pass_dealership_id]": input.dealershipId,
-      }),
-      `qp-dealership-${input.dealershipId}`,
-    ));
-  if (matches.data[0])
-    await stripeRequest(
-      `/v1/customers/${encodeURIComponent(customer.id)}`,
-      "POST",
-      form({ name: input.dealershipName, email: input.customerEmail }),
-    );
-  return customer;
-}
-
-async function reservePaymentLink(
-  actorId: string,
-  invoiceId: string,
-  customerEmail: string,
-  allowUnsent: boolean,
+export function remainingInvoiceCents(
+  invoice: Pick<DealerInvoice, "totalCents"> & {
+    payments: Pick<DealerPayment, "amountCents">[];
+  },
 ) {
-  return phase4(actorId, financeRoles, async (tx) => {
+  return (
+    invoice.totalCents - invoice.payments.reduce((sum, payment) => sum + payment.amountCents, 0)
+  );
+}
+
+function payable(invoice: DealerInvoice & { payments: DealerPayment[] }) {
+  requireRule(
+    invoice.state === "SENT" &&
+      !!invoice.approvedAt &&
+      !invoice.archivedAt &&
+      remainingInvoiceCents(invoice) > 0,
+    "This invoice is not available for online payment. Contact Quick Pass Emissions.",
+  );
+}
+
+/** Draft email preparation creates only an unpayable app URL, not a Stripe invoice. */
+export async function prepareInvoicePaymentLink(actorId: string, invoiceId: string) {
+  const origin = paymentAppUrl();
+  const token = await phase4(actorId, financeRoles, async (tx) => {
     const invoice = await tx.dealerInvoice.findUnique({
       where: { id: invoiceId },
-      include: { payments: true, dealership: true, stripePaymentLink: true },
+      include: { payments: true },
+    });
+    requireRule(
+      invoice &&
+        !invoice.archivedAt &&
+        invoice.state !== "VOIDED" &&
+        remainingInvoiceCents(invoice) > 0,
+      "Only an active invoice with an unpaid balance can receive a payment link.",
+    );
+    if (invoice.stripePaymentToken) return invoice.stripePaymentToken;
+    const token = randomUUID() + randomUUID();
+    await tx.dealerInvoice.update({
+      where: { id: invoiceId },
+      data: { stripePaymentToken: token },
+    });
+    return token;
+  });
+  // Runs only from an explicit owner action; no email or charge is sent by Stripe.
+  await ensurePaymentWebhook();
+  return { hostedUrl: `${origin}/api/invoices/pay/${token}` };
+}
+
+export async function createInvoicePaymentLink(actorId: string, invoiceId: string) {
+  await readAsActor(actorId, financeRoles, async (tx) => {
+    const invoice = await tx.dealerInvoice.findUnique({
+      where: { id: invoiceId },
+      include: { payments: true },
     });
     requireRule(invoice, "Invoice not found.");
-    requireRule(!invoice.archivedAt && invoice.state !== "VOIDED", "Restore this invoice before taking payment.");
-    requireRule(
-      allowUnsent
-        ? invoice.state === "DRAFT" || invoice.state === "APPROVED"
-        : invoice.state === "SENT",
-      "Only a sent invoice can have an online payment link.",
-    );
-    const amountCents = invoiceBalance(invoice);
-    requireRule(amountCents > 0, "This invoice has no unpaid balance.");
-    const current = invoice.stripePaymentLink;
-    if (current?.state === StripeInvoicePaymentState.PAID)
-      throw new BusinessError("Stripe already recorded payment for this invoice.");
-    if (current?.state === StripeInvoicePaymentState.CREATING)
-      requireRule(
-        current.updatedAt.getTime() < Date.now() - 5 * 60_000,
-        "The Stripe payment page is still being prepared. Refresh and try again shortly.",
-      );
-    requireRule(
-      current?.state !== StripeInvoicePaymentState.REVIEW,
-      "Review the Stripe payment discrepancy before making another invoice change.",
-    );
-    const requestId = randomUUID();
-    const link = await tx.dealerInvoicePaymentLink.upsert({
-      where: { invoiceId },
-      create: {
-        invoiceId,
-        requestId,
-        amountCents,
-        state: StripeInvoicePaymentState.CREATING,
-        stripeCustomerId: invoice.dealership.stripeCustomerId,
-      },
-      update: {
-        requestId,
-        amountCents,
-        state: StripeInvoicePaymentState.CREATING,
-        stripeInvoiceId: null,
-        hostedUrl: null,
-        reviewReason: null,
-        stripeCustomerId: invoice.dealership.stripeCustomerId,
-      },
-    });
-    return {
-      invoice,
-      link,
-      requestId,
-      amountCents,
-      dealership: invoice.dealership,
-      customerEmail,
-    };
+    payable(invoice);
   });
+  return prepareInvoicePaymentLink(actorId, invoiceId);
 }
 
-export async function createInvoicePaymentLink(
-  actorId: string,
-  invoiceId: string,
-  customerEmail: string,
-  allowUnsent = false,
-) {
-  const email = customerEmail.trim().toLowerCase();
-  requireRule(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), "Enter the dealership billing email.");
-  const existing = await readAsActor(actorId, financeRoles, (tx) =>
-    tx.dealerInvoice.findUnique({
-      where: { id: invoiceId },
-      include: { payments: true, stripePaymentLink: true },
-    }),
-  );
-  requireRule(existing, "Invoice not found.");
-  if (
-    existing.stripePaymentLink?.state === StripeInvoicePaymentState.OPEN &&
-    existing.stripePaymentLink.hostedUrl &&
-    existing.stripePaymentLink.amountCents === invoiceBalance(existing)
-  )
-    return existing.stripePaymentLink;
-  if (existing.stripePaymentLink?.state === StripeInvoicePaymentState.OPEN)
-    await voidInvoicePaymentLink(actorId, invoiceId);
-
-  const reservation = await reservePaymentLink(actorId, invoiceId, email, allowUnsent);
-  let stripeInvoiceId: string | undefined;
-  try {
-    await ensurePaymentWebhook();
-    const customer = await getOrCreateCustomer({
-      dealershipId: reservation.dealership.id,
-      dealershipName: reservation.dealership.name,
-      customerEmail: email,
-      stripeCustomerId: reservation.dealership.stripeCustomerId,
-      requestId: reservation.requestId,
-    });
-    await phase4(actorId, financeRoles, async (tx) => {
-      await tx.dealership.update({
-        where: { id: reservation.dealership.id },
-        data: { stripeCustomerId: customer.id },
-      });
-    });
-
-    const metadata = {
-      "metadata[quick_pass_invoice_id]": invoiceId,
-      "metadata[quick_pass_invoice_number]": reservation.invoice.number,
-      "metadata[quick_pass_payment_request_id]": reservation.requestId,
-    };
-    const stripeInvoice = await stripeRequest<StripeObject>(
-      "/v1/invoices",
-      "POST",
-      form({
-        customer: customer.id,
-        collection_method: "send_invoice",
-        due_date: dueTimestamp(reservation.invoice.dueDate),
-        auto_advance: false,
-        pending_invoice_items_behavior: "exclude",
-        description: `Quick Pass Emissions invoice ${reservation.invoice.number}`,
-        ...metadata,
-      }),
-      `qp-invoice-${reservation.requestId}`,
-    );
-    stripeInvoiceId = stripeInvoice.id;
-
-    await stripeRequest(
-      "/v1/invoiceitems",
-      "POST",
-      form({
-        customer: customer.id,
-        invoice: stripeInvoice.id,
-        amount: reservation.amountCents,
-        currency: "usd",
-        description: `Outstanding balance for Quick Pass invoice ${reservation.invoice.number}`,
-        "metadata[quick_pass_invoice_id]": invoiceId,
-        "metadata[quick_pass_payment_request_id]": reservation.requestId,
-      }),
-      `qp-invoice-item-${reservation.requestId}`,
-    );
-
-    const finalized = await stripeRequest<StripeObject>(
-      `/v1/invoices/${encodeURIComponent(stripeInvoice.id)}/finalize`,
-      "POST",
-      form({ auto_advance: false }),
-    );
-    requireRule(
-      finalized.status === "open" &&
-        finalized.currency === "usd" &&
-        finalized.amount_due === reservation.amountCents &&
-        !!finalized.hosted_invoice_url,
-      "Stripe did not confirm the exact invoice balance.",
-    );
-
-    return await phase4(actorId, financeRoles, async (tx) => {
-      const current = await tx.dealerInvoice.findUnique({
-        where: { id: invoiceId },
-        include: { payments: true, stripePaymentLink: true },
-      });
-      requireRule(
-        current &&
-          !current.archivedAt &&
-          current.state !== "VOIDED" &&
-          invoiceBalance(current) === reservation.amountCents &&
-          current.stripePaymentLink?.requestId === reservation.requestId,
-        "The invoice balance changed while Stripe prepared the payment page. Refresh it before sending.",
-      );
-      const saved = await tx.dealerInvoicePaymentLink.update({
-        where: { invoiceId },
-        data: {
-          stripeInvoiceId: finalized.id,
-          stripeCustomerId: customer.id,
-          hostedUrl: finalized.hosted_invoice_url!,
-          state: StripeInvoicePaymentState.OPEN,
-        },
-      });
-      await tx.auditLog.create({
-        data: {
-          actorId,
-          action: "DEALER_INVOICE_STRIPE_LINK_CREATED",
-          entityId: invoiceId,
-          details: {
-            invoiceNumber: current.number,
-            amountCents: reservation.amountCents,
-            stripeInvoiceId: finalized.id,
-          },
-        },
-      });
-      return saved;
-    });
-  } catch {
-    if (stripeInvoiceId) {
-      try {
-        const remote = await stripeRequest<StripeObject>(
-          `/v1/invoices/${encodeURIComponent(stripeInvoiceId)}`,
-          "GET",
-        );
-        if (remote.status === "open")
-          await stripeRequest(
-            `/v1/invoices/${encodeURIComponent(stripeInvoiceId)}/void`,
-            "POST",
-            new URLSearchParams(),
-          );
-        else if (remote.status === "draft")
-          await stripeRequest(`/v1/invoices/${encodeURIComponent(stripeInvoiceId)}`, "DELETE");
-      } catch {
-        // The saved CREATING state prevents a second link until the owner retries safely.
-      }
-    }
-    await db.dealerInvoicePaymentLink.updateMany({
-      where: { invoiceId, requestId: reservation.requestId, state: "CREATING" },
-      data: {
-        state: StripeInvoicePaymentState.FAILED,
-        stripeInvoiceId,
-        hostedUrl: null,
-      },
-    });
-    throw new BusinessError(
-      "Stripe could not prepare the exact-balance payment page. No invoice email was sent.",
-    );
-  }
-}
-
-async function reconcilePaidStripeInvoice(
-  stripeInvoice: StripeObject,
-  sourceEventId: string | null,
-) {
-  if (
-    stripeInvoice.status !== "paid" ||
-    stripeInvoice.currency !== "usd" ||
-    !stripeInvoice.id ||
-    !stripeInvoice.amount_paid ||
-    !stripeInvoice.status_transitions?.paid_at
-  )
-    return "ignored" as const;
-
+async function paymentWrite<T>(work: (tx: Tx) => Promise<T>) {
   return db.$transaction(
     async (tx) => {
+      // Match the existing finance mutation lock order. Read-only pages never use these.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(7183504)`;
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(7183505)`;
-      const link = await tx.dealerInvoicePaymentLink.findUnique({
-        where: { stripeInvoiceId: stripeInvoice.id },
-        include: { invoice: { include: { payments: true } } },
-      });
-      if (!link) return "ignored" as const;
-      if (
-        stripeInvoice.metadata?.quick_pass_invoice_id !== link.invoiceId ||
-        stripeInvoice.metadata?.quick_pass_payment_request_id !== link.requestId ||
-        (typeof stripeInvoice.customer === "string"
-          ? stripeInvoice.customer
-          : stripeInvoice.customer?.id) !== link.stripeCustomerId
-      )
-        return "ignored" as const;
-      const invoice = link.invoice;
-      const currentBalance = invoiceBalance(invoice);
-      if (
-        link.state === StripeInvoicePaymentState.PAID &&
-        (await tx.dealerPayment.findUnique({
-          where: { stripeInvoiceId: stripeInvoice.id },
-          select: { id: true },
-        }))
-      )
-        return "duplicate" as const;
-      if (
-        link.state !== StripeInvoicePaymentState.OPEN ||
-        invoice.state === "VOIDED" ||
-        invoice.archivedAt ||
-        stripeInvoice.amount_paid !== link.amountCents ||
-        stripeInvoice.amount_due !== link.amountCents ||
-        currentBalance !== link.amountCents
-      ) {
-        await tx.dealerInvoicePaymentLink.update({
-          where: { invoiceId: link.invoiceId },
-          data: {
-            state: StripeInvoicePaymentState.REVIEW,
-            reviewReason:
-              "Stripe confirmed a payment, but the invoice balance or link status changed. Review Stripe and the invoice before recording it.",
-          },
-        });
-        await tx.auditLog.create({
-          data: {
-            actorId: null,
-            action: "DEALER_INVOICE_STRIPE_PAYMENT_REVIEW",
-            entityId: link.invoiceId,
-            details: {
-              stripeInvoiceId: stripeInvoice.id,
-              eventId: sourceEventId,
-              receivedCents: stripeInvoice.amount_paid,
-              expectedCents: link.amountCents,
-            },
-          },
-        });
-        return "review" as const;
-      }
-
-      const paidDate = businessDate(new Date(stripeInvoice.status_transitions.paid_at * 1000));
-      await tx.dealerPayment.create({
-        data: {
-          invoiceId: link.invoiceId,
-          amountCents: stripeInvoice.amount_paid,
-          date: paidDate,
-          reference: `STRIPE:${stripeInvoice.id}`,
-          evidence: `Stripe confirmed online payment for invoice ${invoice.number}.`,
-          createdBy: "STRIPE",
-          stripeInvoiceId: stripeInvoice.id,
-        },
-      });
-      await tx.dealerInvoicePaymentLink.update({
-        where: { invoiceId: link.invoiceId },
-        data: { state: StripeInvoicePaymentState.PAID, reviewReason: null },
-      });
-      await tx.dealerInvoice.update({
-        where: { id: link.invoiceId },
-        data: {
-          ...(invoice.state === "DRAFT"
-            ? {
-                state: "SENT",
-                approvedAt: new Date(),
-                approvedBy: invoice.createdBy,
-                sentDate: paidDate,
-                deliveryReference: `STRIPE:${stripeInvoice.id}`,
-              }
-            : {}),
-          version: { increment: 1 },
-        },
-      });
-      await tx.auditLog.create({
-        data: {
-          actorId: null,
-          action: "DEALER_INVOICE_STRIPE_PAYMENT_RECORDED",
-          entityId: link.invoiceId,
-          details: {
-            invoiceNumber: invoice.number,
-            stripeInvoiceId: stripeInvoice.id,
-            eventId: sourceEventId,
-            amountCents: stripeInvoice.amount_paid,
-            date: paidDate,
-          },
-        },
-      });
-      return "recorded" as const;
+      return work(tx);
     },
     {
       maxWait: 10000,
@@ -526,82 +91,435 @@ async function reconcilePaidStripeInvoice(
   );
 }
 
-export async function voidInvoicePaymentLink(actorId: string, invoiceId: string) {
-  const link = await readAsActor(actorId, financeRoles, (tx) =>
-    tx.dealerInvoicePaymentLink.findUnique({ where: { invoiceId } }),
-  );
-  if (link?.state === StripeInvoicePaymentState.REVIEW)
-    throw new BusinessError("Review the Stripe payment discrepancy before changing this invoice.");
-  if (!link || link.state !== StripeInvoicePaymentState.OPEN || !link.stripeInvoiceId) {
+async function preparationStep<T>(
+  invoiceId: string,
+  requestId: string,
+  work: (tx: Tx, link: DealerInvoicePaymentLink) => Promise<T>,
+) {
+  return paymentWrite(async (tx) => {
+    const link = await tx.dealerInvoicePaymentLink.findUnique({ where: { invoiceId } });
     requireRule(
-      !link || link.state !== StripeInvoicePaymentState.CREATING,
-      "A Stripe payment page is being prepared. Try again after it finishes.",
+      link?.state === "CREATING" && link.requestId === requestId,
+      "This payment request was cancelled or changed. Open the invoice again.",
     );
-    return;
-  }
-  const remote = await stripeRequest<StripeObject>(
-    `/v1/invoices/${encodeURIComponent(link.stripeInvoiceId)}`,
-    "GET",
-  );
-  if (remote.status === "paid") {
-    await reconcilePaidStripeInvoice(remote, null);
-    throw new BusinessError(
-      "Stripe already received this payment. Refresh the invoice before recording another payment.",
-    );
-  }
-  if (remote.status === "open")
-    await stripeRequest(
-      `/v1/invoices/${encodeURIComponent(link.stripeInvoiceId)}/void`,
-      "POST",
-      new URLSearchParams(),
-    );
-  else if (remote.status === "draft")
-    await stripeRequest(`/v1/invoices/${encodeURIComponent(link.stripeInvoiceId)}`, "DELETE");
-  await phase4(actorId, financeRoles, async (tx) => {
-    const current = await tx.dealerInvoicePaymentLink.findUnique({ where: { invoiceId } });
-    if (current?.stripeInvoiceId === link.stripeInvoiceId && current.state === "OPEN") {
-      await tx.dealerInvoicePaymentLink.update({
-        where: { invoiceId },
-        data: { state: StripeInvoicePaymentState.VOID, hostedUrl: null },
-      });
-      await tx.auditLog.create({
-        data: {
-          actorId,
-          action: "DEALER_INVOICE_STRIPE_LINK_VOIDED",
-          entityId: invoiceId,
-          details: { stripeInvoiceId: link.stripeInvoiceId },
-        },
-      });
-    }
+    return work(tx, link);
   });
 }
 
-export async function voidPaymentLinkForReceipt(actorId: string, paymentId: string) {
-  const payment = await readAsActor(actorId, financeRoles, (tx) =>
-    tx.dealerPayment.findUnique({
-      where: { id: paymentId },
-      select: { invoiceId: true, stripeInvoiceId: true },
-    }),
-  );
-  requireRule(payment, "Payment not found.");
-  requireRule(
-    !payment.stripeInvoiceId,
-    "Stripe payments must be refunded through Stripe before they can be reversed here.",
-  );
-  await voidInvoicePaymentLink(actorId, payment.invoiceId);
+export async function paymentLinkAvailable(token: string) {
+  if (!/^[a-f0-9-]{72}$/.test(token)) return false;
+  const invoice = await db.dealerInvoice.findUnique({
+    where: { stripePaymentToken: token },
+    include: { payments: true },
+  });
+  if (!invoice) return false;
+  try {
+    payable(invoice);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-export async function receiveStripePaymentEvent(eventId: string) {
-  if (!/^evt_[A-Za-z0-9]+$/.test(eventId)) throw new BusinessError("Invalid Stripe event.");
-  const event = await stripeRequest<StripeEvent>(
-    `/v1/events/${encodeURIComponent(eventId)}`,
-    "GET",
+/** No payer inputs can choose the invoice, amount, currency, or dealership. */
+export async function startInvoicePayment(token: string) {
+  requireRule(/^[a-f0-9-]{72}$/.test(token), "This payment link is unavailable.");
+  const reservation = await paymentWrite(async (tx) => {
+    const invoice = await tx.dealerInvoice.findUnique({
+      where: { stripePaymentToken: token },
+      include: { payments: true, dealership: true, stripePaymentLink: true },
+    });
+    requireRule(invoice, "This payment link is unavailable.");
+    payable(invoice);
+    const current = invoice.stripePaymentLink;
+    requireRule(
+      current?.state !== "REVIEW",
+      "This payment needs review. Contact Quick Pass Emissions.",
+    );
+    if (current?.state === "OPEN") {
+      requireRule(
+        current.amountCents === remainingInvoiceCents(invoice),
+        "The balance changed. Contact Quick Pass Emissions.",
+      );
+      return { invoice, link: current, reuse: true };
+    }
+    requireRule(current?.state !== "PAID", "Payment has already been received.");
+    if (current?.state === "CREATING") {
+      requireRule(
+        current.updatedAt.getTime() < Date.now() - 90_000,
+        "The payment page is being prepared. Please try again in a moment.",
+      );
+      requireRule(
+        !!current.stripeInvoiceId ||
+          current.requestStartedAt.getTime() > Date.now() - 23 * 3600_000,
+        "This payment request needs review. Contact Quick Pass Emissions.",
+      );
+      await tx.dealerInvoicePaymentLink.update({
+        where: { invoiceId: invoice.id },
+        data: { state: "CREATING" },
+      });
+      return { invoice, link: current, reuse: false };
+    }
+    const link = await tx.dealerInvoicePaymentLink.upsert({
+      where: { invoiceId: invoice.id },
+      create: {
+        invoiceId: invoice.id,
+        amountCents: remainingInvoiceCents(invoice),
+        requestId: randomUUID(),
+      },
+      update: {
+        amountCents: remainingInvoiceCents(invoice),
+        requestId: randomUUID(),
+        requestStartedAt: new Date(),
+        state: "CREATING",
+        stripeInvoiceId: null,
+        stripeCustomerId: null,
+        hostedUrl: null,
+        reviewReason: null,
+      },
+    });
+    return { invoice, link, reuse: false };
+  });
+  const { invoice, link } = reservation;
+  if (reservation.reuse) {
+    const remote = await stripeApi<StripeInvoice>(`/v1/invoices/${link.stripeInvoiceId}`, "GET");
+    if (remote.status === "paid") {
+      await reconcilePaidStripeInvoice(remote, null);
+      throw new BusinessError("Payment has already been received.");
+    }
+    if (remote.status === "void") {
+      await paymentWrite(async (tx) => {
+        await tx.dealerInvoicePaymentLink.updateMany({
+          where: { invoiceId: invoice.id, requestId: link.requestId, state: "OPEN" },
+          data: { state: "VOID", hostedUrl: null },
+        });
+      });
+      return startInvoicePayment(token);
+    }
+    requireRule(
+      remote.status === "open" &&
+        remote.amount_due === link.amountCents &&
+        remote.amount_paid === 0 &&
+        remote.amount_remaining === link.amountCents &&
+        remote.currency === "usd" &&
+        remote.hosted_invoice_url,
+      "This payment page is unavailable. Contact Quick Pass Emissions.",
+    );
+    return remote.hosted_invoice_url;
+  }
+  const requestId = link.requestId;
+  const customerId = await preparationStep(invoice.id, requestId, async (tx, current) => {
+    if (current.stripeCustomerId) return current.stripeCustomerId;
+    const customer = await stripeApi<{ id: string }>(
+      "/v1/customers",
+      "POST",
+      stripeForm({
+        name: invoice.dealership.name,
+        "metadata[quick_pass_invoice_id]": invoice.id,
+      }),
+      `qp-customer-${requestId}`,
+    );
+    await tx.dealerInvoicePaymentLink.update({
+      where: { invoiceId: invoice.id },
+      data: { stripeCustomerId: customer.id },
+    });
+    return customer.id;
+  });
+  let remote = await preparationStep(invoice.id, requestId, async (tx, current) => {
+    if (current.stripeInvoiceId)
+      return stripeApi<StripeInvoice>(`/v1/invoices/${current.stripeInvoiceId}`, "GET");
+    const created = await stripeApi<StripeInvoice>(
+      "/v1/invoices",
+      "POST",
+      stripeForm({
+        customer: customerId,
+        collection_method: "send_invoice",
+        auto_advance: false,
+        // Past-due Quick Pass invoices remain due immediately. Original terms are not changed.
+        due_date: Math.max(
+          Math.floor(Date.parse(`${invoice.dueDate}T23:59:59Z`) / 1000),
+          Math.floor(link.requestStartedAt.getTime() / 1000) + 86400,
+        ),
+        pending_invoice_items_behavior: "exclude",
+        "payment_settings[payment_method_types][0]": "card",
+        description: `Payment for Quick Pass invoice ${invoice.number} (original due date ${invoice.dueDate})`,
+        "metadata[quick_pass_invoice_id]": invoice.id,
+        "metadata[quick_pass_payment_request_id]": requestId,
+      }),
+      `qp-invoice-${requestId}`,
+    );
+    await tx.dealerInvoicePaymentLink.update({
+      where: { invoiceId: invoice.id },
+      data: { stripeInvoiceId: created.id },
+    });
+    return created;
+  });
+  if (remote.status === "draft") {
+    if (remote.amount_due === 0) {
+      await preparationStep(invoice.id, requestId, async () =>
+        stripeApi(
+          "/v1/invoiceitems",
+          "POST",
+          stripeForm({
+            customer: customerId,
+            invoice: remote.id,
+            amount: link.amountCents,
+            currency: "usd",
+            description: `Unpaid balance — Quick Pass invoice ${invoice.number}`,
+          }),
+          `qp-invoice-item-${requestId}`,
+        ),
+      );
+    } else {
+      requireRule(
+        remote.amount_due === link.amountCents,
+        "Stripe's balance needs review. Contact Quick Pass Emissions.",
+      );
+    }
+  }
+  remote = await preparationStep(invoice.id, requestId, async (tx) => {
+    if (remote.status === "draft")
+      remote = await stripeApi<StripeInvoice>(
+        `/v1/invoices/${remote.id}/finalize`,
+        "POST",
+        stripeForm({ auto_advance: false }),
+        `qp-finalize-${requestId}`,
+      );
+    requireRule(
+      remote.status === "open" &&
+        remote.currency === "usd" &&
+        remote.amount_due === link.amountCents &&
+        remote.amount_remaining === link.amountCents &&
+        remote.amount_paid === 0 &&
+        remote.hosted_invoice_url?.startsWith("https://invoice.stripe.com/"),
+      "Stripe could not confirm the exact unpaid balance. Contact Quick Pass Emissions.",
+    );
+    const latest = await tx.dealerInvoice.findUnique({
+      where: { id: invoice.id },
+      include: { payments: true, stripePaymentLink: true },
+    });
+    requireRule(latest, "Invoice not found.");
+    payable(latest);
+    requireRule(
+      latest.stripePaymentLink?.requestId === requestId &&
+        latest.stripePaymentLink.state === "CREATING" &&
+        remainingInvoiceCents(latest) === link.amountCents,
+      "The invoice changed. Contact Quick Pass Emissions.",
+    );
+    await tx.dealerInvoicePaymentLink.update({
+      where: { invoiceId: invoice.id },
+      data: { state: "OPEN", hostedUrl: remote.hosted_invoice_url },
+    });
+    await tx.auditLog.create({
+      data: {
+        action: "DEALER_INVOICE_STRIPE_LINK_CREATED",
+        entityId: invoice.id,
+        details: { stripeInvoiceId: remote.id, amountCents: link.amountCents },
+      },
+    });
+    return remote;
+  });
+  return remote.hosted_invoice_url!;
+}
+
+/** The event body never constitutes proof: fetch both event and invoice from the connected account. */
+export async function receiveStripePaymentEvent(eventId: string, invoiceId: string) {
+  if (!/^evt_[A-Za-z0-9]+$/.test(eventId) || !/^in_[A-Za-z0-9]+$/.test(invoiceId)) return "ignored";
+  if (!(await db.dealerInvoicePaymentLink.findUnique({ where: { stripeInvoiceId: invoiceId } })))
+    return "ignored";
+  const event = await stripeApi<{
+    id: string;
+    type: string;
+    data: { object: { id: string } };
+  }>(`/v1/events/${eventId}`, "GET");
+  if (event.id !== eventId || event.type !== "invoice.paid" || event.data.object.id !== invoiceId)
+    return "ignored";
+  const remote = await stripeApi<StripeInvoice>(`/v1/invoices/${invoiceId}`, "GET");
+  return reconcilePaidStripeInvoice(remote, event.id);
+}
+
+async function reconcilePaidStripeInvoice(remote: StripeInvoice, eventId: string | null) {
+  if (remote.status !== "paid") return "ignored";
+  const intentId = await verifiedInvoicePayment(remote);
+  return paymentWrite(async (tx) => {
+    const link = await tx.dealerInvoicePaymentLink.findUnique({
+      where: { stripeInvoiceId: remote.id },
+      include: { invoice: { include: { payments: true } } },
+    });
+    if (!link) return "ignored";
+    if (await tx.dealerPayment.findUnique({ where: { stripeInvoiceId: remote.id } }))
+      return "duplicate";
+    requireRule(
+      remote.metadata.quick_pass_invoice_id === link.invoiceId &&
+        remote.metadata.quick_pass_payment_request_id === link.requestId &&
+        remote.customer === link.stripeCustomerId,
+      "Stripe payment identity does not match the saved request.",
+    );
+    const invoice = link.invoice;
+    if (
+      !["CREATING", "OPEN"].includes(link.state) ||
+      invoice.state !== "SENT" ||
+      invoice.archivedAt ||
+      !invoice.approvedAt ||
+      remote.currency !== "usd" ||
+      remote.amount_due !== link.amountCents ||
+      remote.amount_paid !== link.amountCents ||
+      remote.amount_remaining !== 0 ||
+      !intentId ||
+      !Number.isSafeInteger(remote.status_transitions.paid_at) ||
+      !remote.status_transitions.paid_at ||
+      remainingInvoiceCents(invoice) !== link.amountCents
+    ) {
+      await tx.dealerInvoicePaymentLink.update({
+        where: { invoiceId: invoice.id },
+        data: {
+          state: "REVIEW",
+          hostedUrl: null,
+          reviewReason:
+            "Stripe received payment, but its amount or invoice status needs review. No receipt was added.",
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          action: "DEALER_INVOICE_STRIPE_PAYMENT_REVIEW",
+          entityId: invoice.id,
+          details: { stripeInvoiceId: remote.id, eventId },
+        },
+      });
+      return "review";
+    }
+    const date = businessDate(new Date(remote.status_transitions.paid_at * 1000));
+    await uniqueReceiptReference(tx, `STRIPE:${remote.id}`);
+    await tx.dealerPayment.create({
+      data: {
+        invoiceId: invoice.id,
+        amountCents: link.amountCents,
+        date,
+        reference: `STRIPE:${remote.id}`,
+        evidence: `Stripe-confirmed payment for ${invoice.number}.`,
+        createdBy: "STRIPE",
+        stripeInvoiceId: remote.id,
+        stripePaymentIntentId: intentId,
+      },
+    });
+    await tx.dealerInvoicePaymentLink.update({
+      where: { invoiceId: invoice.id },
+      data: { state: "PAID", hostedUrl: null },
+    });
+    await tx.dealerInvoice.update({
+      where: { id: invoice.id },
+      data: { version: { increment: 1 } },
+    });
+    await tx.auditLog.create({
+      data: {
+        action: "DEALER_INVOICE_STRIPE_PAYMENT_RECORDED",
+        entityId: invoice.id,
+        details: { stripeInvoiceId: remote.id, eventId, amountCents: link.amountCents, date },
+      },
+    });
+    return "recorded";
+  });
+}
+
+/** Must run in the same locked mutation as the balance or lifecycle change. */
+export async function closeInvoicePaymentLink(tx: Tx, invoiceId: string) {
+  const link = await tx.dealerInvoicePaymentLink.findUnique({ where: { invoiceId } });
+  if (!link || link.state === "VOID" || link.state === "PAID") return;
+  requireRule(link.state !== "REVIEW", "This Stripe payment needs review before making changes.");
+  if (link.state === "CREATING")
+    requireRule(
+      link.updatedAt.getTime() < Date.now() - 90_000,
+      "The payment request may still be running. Wait 90 seconds, then cancel or try again.",
+    );
+  let remote: StripeInvoice | undefined;
+  if (link.stripeInvoiceId)
+    remote = await stripeApi<StripeInvoice>(`/v1/invoices/${link.stripeInvoiceId}`, "GET");
+  else if (link.stripeCustomerId) {
+    // An invoice create may have succeeded while its response was lost. Use the saved,
+    // request-specific customer and exact metadata; never assume an absent local ID means unpaid.
+    const found = await stripeApi<{ has_more: boolean; data: StripeInvoice[] }>(
+      `/v1/invoices?customer=${encodeURIComponent(link.stripeCustomerId)}&limit=100`,
+      "GET",
+    );
+    const matches = found.data.filter(
+      (invoice) =>
+        invoice.metadata.quick_pass_invoice_id === invoiceId &&
+        invoice.metadata.quick_pass_payment_request_id === link.requestId,
+    );
+    requireRule(
+      !found.has_more && matches.length <= 1,
+      "Stripe's request history needs review before cancellation.",
+    );
+    remote = matches[0];
+  }
+  // No saved customer means preparation never passed its separately committed first
+  // step, so no provider invoice could be created. The finance lock fences old workers.
+  if (remote) {
+    requireRule(
+      remote.customer === link.stripeCustomerId &&
+        remote.metadata.quick_pass_invoice_id === invoiceId &&
+        remote.metadata.quick_pass_payment_request_id === link.requestId,
+      "Stripe payment identity needs review before cancellation.",
+    );
+    requireRule(
+      remote.status !== "paid" && remote.amount_paid === 0,
+      "Stripe already received a payment. Refresh payment status before recording another receipt.",
+    );
+    if (remote.status === "draft") {
+      const deleted = await stripeApi<{ deleted: boolean }>(`/v1/invoices/${remote.id}`, "DELETE");
+      requireRule(deleted.deleted, "Stripe did not confirm cancellation.");
+    } else if (remote.status === "open" || remote.status === "uncollectible") {
+      const closed = await stripeApi<StripeInvoice>(
+        `/v1/invoices/${remote.id}/void`,
+        "POST",
+        stripeForm({}),
+        `qp-void-${link.requestId}`,
+      );
+      requireRule(closed.status === "void", "Stripe did not confirm cancellation.");
+    } else
+      requireRule(
+        remote.status === "void",
+        "Review this Stripe payment before changing the invoice.",
+      );
+  }
+  await tx.dealerInvoicePaymentLink.update({
+    where: { invoiceId },
+    data: { state: "VOID", hostedUrl: null, ...(remote ? { stripeInvoiceId: remote.id } : {}) },
+  });
+  await tx.auditLog.create({
+    data: {
+      action: "DEALER_INVOICE_STRIPE_LINK_VOIDED",
+      entityId: invoiceId,
+      details: { stripeInvoiceId: remote?.id ?? link.stripeInvoiceId },
+    },
+  });
+}
+
+export async function cancelInvoicePaymentLink(actorId: string, invoiceId: string) {
+  return phase4(actorId, financeRoles, async (tx) => {
+    const invoice = await tx.dealerInvoice.findUnique({ where: { id: invoiceId } });
+    requireRule(invoice, "Invoice not found.");
+    await closeInvoicePaymentLink(tx, invoiceId);
+    await tx.dealerInvoice.update({
+      where: { id: invoiceId },
+      data: { stripePaymentToken: null },
+    });
+    await tx.auditLog.create({
+      data: {
+        actorId,
+        action: "DEALER_INVOICE_ONLINE_PAYMENT_CANCELLED",
+        entityId: invoiceId,
+        details: { invoiceNumber: invoice.number },
+      },
+    });
+  });
+}
+
+export async function refreshInvoicePayment(actorId: string, invoiceId: string) {
+  const link = await readAsActor(actorId, financeRoles, (tx) =>
+    tx.dealerInvoicePaymentLink.findUnique({ where: { invoiceId } }),
   );
-  if (event.id !== eventId || event.type !== "invoice.paid" || !event.data?.object?.id)
-    return "ignored" as const;
-  const invoice = await stripeRequest<StripeObject>(
-    `/v1/invoices/${encodeURIComponent(event.data.object.id)}`,
-    "GET",
-  );
-  return reconcilePaidStripeInvoice(invoice, event.id);
+  if (!link?.stripeInvoiceId) return;
+  const remote = await stripeApi<StripeInvoice>(`/v1/invoices/${link.stripeInvoiceId}`, "GET");
+  await reconcilePaidStripeInvoice(remote, null);
 }

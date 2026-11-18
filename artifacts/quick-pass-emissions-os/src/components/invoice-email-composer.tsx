@@ -148,7 +148,9 @@ export function InvoiceEmailComposer({
               value={paymentInstructions}
               onChange={(event) => setPaymentInstructions(event.target.value)}
             />
-            <small>A unique Stripe payment link for the remaining balance is added when sent.</small>
+            <small>
+              A unique Stripe payment link for the remaining balance is added when sent.
+            </small>
           </div>
           <div className="field">
             <label htmlFor={`${prefix}-sender-name`}>Your name (optional)</label>

@@ -22,3 +22,4 @@
 - [Prisma runtime refresh](prisma-runtime-refresh.md) — database migrations do not refresh an already-loaded Prisma client; verify delegates and preview health separately.
 - [Staffing alerts](staffing-alerts.md) — 2 PM Eastern, configured open days, 50 or fewer paid tests; missing data cannot justify an early-departure alert.
 - [Read-only data access](read-only-data-access.md) — page reads must not wait on business write locks; preserve fresh permission checks and mutation serialization.
+- [Invoice payment boundaries](stripe-payment-boundaries.md) — variable Stripe amounts follow Quick Pass balances and explicit sending, using the installed API-proxy connection.

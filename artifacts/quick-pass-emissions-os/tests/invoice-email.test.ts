@@ -80,7 +80,7 @@ describe("manual dealership invoice emails", () => {
     expect(html).toContain("with the invoice PDF attached");
     expect(html).toContain("Sends directly from qpemissions@gmail.com");
     expect(html).toContain('value="billing@example.test"');
-    expect(html).toContain("Payment instructions or payment link");
+    expect(html).toContain("Additional payment note (optional)");
     expect(html).toContain("Sending issues this draft invoice.");
     expect(html).toContain('value="qpemissions@gmail.com"');
     expect(html).toContain(`Blind copy this invoice to <strong>${invoiceBccEmail}</strong>`);

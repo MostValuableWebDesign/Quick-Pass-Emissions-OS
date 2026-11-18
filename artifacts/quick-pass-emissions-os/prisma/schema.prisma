@@ -1213,7 +1213,6 @@ model Dealership {
   invoices          DealerInvoice[]
   addressSource     String            @default("MANUAL")
   addressProviderId String            @default("")
-  stripeCustomerId  String?           @unique
   virUploads        DealerVirUpload[]
   virRecords        DealerVirRecord[]
 }
@@ -1334,6 +1333,7 @@ model DealerInvoice {
   approvedAt        DateTime?
   sentDate          String?
   deliveryReference String?
+  stripePaymentToken String?            @unique
   voidDate          String?
   voidReason        String?
   archivedAt        DateTime?
@@ -1374,6 +1374,7 @@ model DealerPayment {
   createdBy   String
   reversesId  String?        @unique
   stripeInvoiceId String?   @unique
+  stripePaymentIntentId String? @unique
   reverses    DealerPayment? @relation("DealerPaymentReversal", fields: [reversesId], references: [id], onDelete: Restrict)
   reversal    DealerPayment? @relation("DealerPaymentReversal")
   createdAt   DateTime       @default(now())
@@ -1392,6 +1393,7 @@ model DealerInvoicePaymentLink {
   requestId        String                    @unique
   state            StripeInvoicePaymentState @default(CREATING)
   reviewReason     String?
+  requestStartedAt DateTime                  @default(now())
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
 }

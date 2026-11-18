@@ -10,6 +10,7 @@ import {
   formatContactAddress,
 } from "@/lib/contact-address";
 import { uniqueReceiptReference } from "./references";
+import { closeInvoicePaymentLink } from "./stripe-payments";
 import { formatInvoiceNumber, isInvoiceNumberForYear, nextInvoiceSequence } from "./invoice-number";
 import { id, dateString } from "@/lib/validation";
 import { businessDate, addDays } from "@/lib/time";
@@ -419,12 +420,6 @@ export async function reviewInvoice(actorId: string, input: unknown) {
       "Invoice changed, is archived, or is voided. Restore it if needed, then refresh and review.",
     );
     requireRule(data.date >= row.issueDate, "Action date cannot precede issue date.");
-    if (data.decision === "VOID")
-      requireRule(
-        !row.stripePaymentLink ||
-          !["CREATING", "OPEN", "REVIEW"].includes(row.stripePaymentLink.state),
-        "Void the active Stripe payment page before voiding this invoice.",
-      );
     if (data.decision === "APPROVE") {
       requireRule(
         row.state === "DRAFT" && row.createdBy !== actorId,
@@ -470,6 +465,7 @@ export async function reviewInvoice(actorId: string, input: unknown) {
       );
       // Void today; retain historical balances and all original snapshots/lines.
       requireRule(data.date === businessDate(), "Void using today's business date.");
+      if (row.stripePaymentLink) await closeInvoicePaymentLink(tx, row.id);
       await tx.dealerInvoice.update({
         where: { id: row.id },
         data: {
@@ -497,29 +493,6 @@ export async function recordGmailInvoiceSent(actorId: string, input: unknown) {
       include: { payments: true, lines: true, stripePaymentLink: true },
     });
     if (row?.state === "SENT" && row.deliveryReference === data.reference) return row;
-    if (
-      row?.state === "SENT" &&
-      row.deliveryReference?.startsWith("STRIPE:") &&
-      row.payments.some((payment) => payment.stripeInvoiceId)
-    ) {
-      requireRule(
-        !row.archivedAt && row.payments.every((payment) => payment.date >= data.date),
-        "Invoice delivery date conflicts with the recorded payment. Refresh and review the history.",
-      );
-      const sent = await tx.dealerInvoice.update({
-        where: { id: row.id },
-        data: {
-          sentDate: data.date,
-          deliveryReference: data.reference,
-          version: { increment: 1 },
-        },
-      });
-      await audit(tx, actorId, "DEALER_INVOICE_GMAIL_DELIVERY_CONFIRMED", row.id, {
-        date: data.date,
-        reference: data.reference,
-      });
-      return sent;
-    }
     requireRule(
       row?.version === data.version &&
         (row.state === "DRAFT" || row.state === "APPROVED") &&
@@ -567,12 +540,7 @@ export async function setInvoiceArchived(actorId: string, input: unknown) {
     });
     requireRule(row?.version === data.version, "Invoice changed. Refresh and review it.");
     if (Boolean(row.archivedAt) === data.archived) return row;
-    if (data.archived)
-      requireRule(
-        !row.stripePaymentLink ||
-          !["CREATING", "OPEN", "REVIEW"].includes(row.stripePaymentLink.state),
-        "Void the active Stripe payment page before archiving this invoice.",
-      );
+    if (data.archived && row.stripePaymentLink) await closeInvoicePaymentLink(tx, row.id);
     const updated = await tx.dealerInvoice.update({
       where: { id: row.id },
       data: {
@@ -608,11 +576,7 @@ export async function deleteDraftInvoice(actorId: string, input: unknown) {
         row.payments.length === 0,
       "Only an unsent draft with no payments can be deleted. Refresh and review the invoice.",
     );
-    requireRule(
-      !row.stripePaymentLink ||
-        !["CREATING", "OPEN", "REVIEW"].includes(row.stripePaymentLink.state),
-      "Void the Stripe payment page before deleting this draft.",
-    );
+    if (row.stripePaymentLink) await closeInvoicePaymentLink(tx, row.id);
     await audit(tx, actorId, "DEALER_INVOICE_DELETED", row.id, {
       number: row.number,
       dealershipId: row.dealershipId,
@@ -624,6 +588,8 @@ export async function deleteDraftInvoice(actorId: string, input: unknown) {
       data: { invoiceId: null },
     });
     await tx.dealerInvoiceLine.deleteMany({ where: { invoiceId: row.id } });
+    if (row.stripePaymentLink)
+      await tx.dealerInvoicePaymentLink.delete({ where: { invoiceId: row.id } });
     await tx.dealerInvoice.delete({ where: { id: row.id } });
   });
 }
@@ -649,11 +615,6 @@ export async function recordDealerPayment(actorId: string, input: unknown) {
       "Choose an approved, active invoice.",
     );
     requireRule(
-      !row.stripePaymentLink ||
-        !["CREATING", "OPEN", "REVIEW"].includes(row.stripePaymentLink.state),
-      "The Stripe payment page must be closed before recording an outside payment.",
-    );
-    requireRule(
       data.date >= row.issueDate && (!row.sentDate || data.date >= row.sentDate),
       "Payment cannot precede issue/delivery date.",
     );
@@ -664,6 +625,7 @@ export async function recordDealerPayment(actorId: string, input: unknown) {
       "Payment exceeds the outstanding invoice.",
     );
     await uniqueReceiptReference(tx, data.reference);
+    if (row.stripePaymentLink) await closeInvoicePaymentLink(tx, row.id);
     const payment = await tx.dealerPayment.create({ data: { ...data, createdBy: actorId } });
     await tx.dealerInvoice.update({ where: { id: row.id }, data: { version: { increment: 1 } } });
     await audit(tx, actorId, "DEALER_PAYMENT", payment.id, data);
@@ -690,15 +652,11 @@ export async function reverseDealerPayment(actorId: string, input: unknown) {
       "Refund this Stripe payment in Stripe before recording a reversal.",
     );
     requireRule(
-      !payment.invoice.stripePaymentLink ||
-        !["CREATING", "OPEN", "REVIEW"].includes(payment.invoice.stripePaymentLink.state),
-      "The Stripe payment page must be closed before reversing an outside payment.",
-    );
-    requireRule(
       payment.invoice.payments.every((p) => p.date <= data.date),
       "Reverse on or after the latest payment date.",
     );
     await uniqueReceiptReference(tx, data.reference);
+    if (payment.invoice.stripePaymentLink) await closeInvoicePaymentLink(tx, payment.invoiceId);
     const row = await tx.dealerPayment.create({
       data: {
         invoiceId: payment.invoiceId,

@@ -56,25 +56,13 @@ export async function voidService(_: ActionState, form: FormData) {
   return perform((actor) => finance.voidService(actor, fields(form)));
 }
 export async function reviewInvoice(_: ActionState, form: FormData) {
-  const data = fields(form);
-  return perform(async (actor) => {
-    if (data.decision === "VOID") await stripePayments.voidInvoicePaymentLink(actor, String(data.id));
-    await finance.reviewInvoice(actor, data);
-  });
+  return perform((actor) => finance.reviewInvoice(actor, fields(form)));
 }
 export async function recordDealerPayment(_: ActionState, form: FormData) {
-  const data = fields(form);
-  return perform(async (actor) => {
-    await stripePayments.voidInvoicePaymentLink(actor, String(data.invoiceId));
-    await finance.recordDealerPayment(actor, data);
-  });
+  return perform((actor) => finance.recordDealerPayment(actor, fields(form)));
 }
 export async function reverseDealerPayment(_: ActionState, form: FormData) {
-  const data = fields(form);
-  return perform(async (actor) => {
-    await stripePayments.voidPaymentLinkForReceipt(actor, String(data.id));
-    await finance.reverseDealerPayment(actor, data);
-  });
+  return perform((actor) => finance.reverseDealerPayment(actor, fields(form)));
 }
 export async function recordEntry(_: ActionState, form: FormData) {
   return perform((actor) =>
@@ -102,35 +90,38 @@ export async function createInvoice(_: ActionState, form: FormData) {
 export async function setDealerInvoiceArchived(_: ActionState, form: FormData) {
   const archived = form.get("archived") === "true";
   return perform(
-    async (actor) => {
-      const data = fields(form);
-      if (archived) await stripePayments.voidInvoicePaymentLink(actor, String(data.id));
-      await finance.setInvoiceArchived(actor, {
+    (actor) =>
+      finance.setInvoiceArchived(actor, {
         ...fields(form),
         archived,
-      });
-    },
+      }),
     archived ? "Invoice archived." : "Invoice restored to the active list.",
   );
 }
 export async function createInvoicePaymentLink(_: ActionState, form: FormData) {
-  return perform(
-    async (actor) => {
-      const data = z
-        .object({
-          invoiceId: z.string().trim().min(1).max(64),
-          customerEmail: z.email().max(254),
-        })
-        .parse(fields(form));
-      await stripePayments.createInvoicePaymentLink(
-        actor,
-        data.invoiceId,
-        data.customerEmail,
-      );
-      revalidatePath(`/invoices/${data.invoiceId}`);
-    },
-    "The secure payment link is ready.",
-  );
+  return perform(async (actor) => {
+    const data = z
+      .object({
+        invoiceId: z.string().trim().min(1).max(64),
+      })
+      .parse(fields(form));
+    await stripePayments.createInvoicePaymentLink(actor, data.invoiceId);
+    revalidatePath(`/invoices/${data.invoiceId}`);
+  }, "The secure payment link is ready.");
+}
+export async function refreshInvoicePayment(_: ActionState, form: FormData) {
+  return perform(async (actor) => {
+    const invoiceId = z.string().trim().min(1).max(64).parse(form.get("invoiceId"));
+    await stripePayments.refreshInvoicePayment(actor, invoiceId);
+    revalidatePath(`/invoices/${invoiceId}`);
+  }, "Payment status checked with Stripe.");
+}
+export async function cancelInvoicePaymentLink(_: ActionState, form: FormData) {
+  return perform(async (actor) => {
+    const invoiceId = z.string().trim().min(1).max(64).parse(form.get("invoiceId"));
+    await stripePayments.cancelInvoicePaymentLink(actor, invoiceId);
+    revalidatePath(`/invoices/${invoiceId}`);
+  }, "Online payment was safely cancelled. Existing email payment links are now disabled.");
 }
 export async function deleteDraftInvoice(_: ActionState, form: FormData): Promise<ActionState> {
   const actor = await currentUser();
@@ -185,7 +176,6 @@ export async function deleteDraftInvoice(_: ActionState, form: FormData): Promis
         ok: false,
         message: "Gmail Sent contains an email for this invoice. Archive it instead of deleting.",
       };
-    await stripePayments.voidInvoicePaymentLink(actor.id, invoice.id);
     await finance.deleteDraftInvoice(actor.id, parsed.data);
   } catch (error) {
     if (error instanceof BusinessError) return { ok: false, message: error.message };

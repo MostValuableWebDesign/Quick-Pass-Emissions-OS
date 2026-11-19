@@ -10,6 +10,56 @@
   display: grid;
   gap: 14px;
 }
+.vir-step-description {
+  margin: -8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.vir-workflow-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vir-workflow-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 600;
+}
+.vir-workflow-steps li > span {
+  display: grid;
+  flex: 0 0 21px;
+  width: 21px;
+  height: 21px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--soft);
+  font-size: 10px;
+  font-weight: 700;
+}
+.vir-workflow-steps li.is-current {
+  border-color: var(--action);
+  color: var(--text);
+  background: var(--soft);
+}
+.vir-workflow-steps li.is-current > span {
+  color: var(--surface);
+  background: var(--action);
+}
+.vir-workflow-steps li.is-complete > span {
+  color: var(--surface);
+  background: var(--success, var(--action));
+}
 .vir-drop {
   display: grid;
   justify-items: center;
@@ -277,6 +327,11 @@
   cursor: pointer;
 }
 @media (max-width: 767px) {
+  .vir-workflow-steps li {
+    flex-direction: column;
+    align-items: flex-start;
+    font-size: 10px;
+  }
   .vir-tally {
     grid-template-columns: repeat(2, 1fr);
   }

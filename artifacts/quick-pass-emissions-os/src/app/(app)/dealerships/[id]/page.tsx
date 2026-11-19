@@ -7,13 +7,13 @@ import { receivable } from "@/modules/finance/rules";
 import { Empty, PageHeader } from "@/components/shared";
 import { ActionForm, Field } from "@/components/action-form";
 import { DemoNotice, RecordId, TextField, Reason, Money } from "@/components/phase3";
-import { DateField, AmountField } from "@/components/finance";
+import { AmountField } from "@/components/finance";
 import { DealershipFields } from "@/components/dealership-fields";
 import { ContactPhoneField } from "@/components/contact-phone-field";
 import { DirectoryAddDialog } from "@/components/directory-add-dialog";
 import * as actions from "@/app/phase4-actions";
 import { DealerVirUpload } from "@/components/dealer-vir-upload";
-import { SelectAllServices } from "@/components/select-all-services";
+import { DealerInvoiceWorkflow } from "@/components/dealer-invoice-workflow";
 const sections = [
   { id: "overview", label: "Overview" },
   { id: "contacts", label: "Contacts" },
@@ -469,53 +469,13 @@ export default async function Dealer({
                 )}
               </section>
               {d.active && (
-                <section className="card card-body space-top" id="create-invoice">
-                  <h2>Create invoice from saved services</h2>
-                  <p className="muted">
-                    Select saved unbilled services to create a draft. Use Upload VIR PDFs above to
-                    add missing VINs or reuse reports from a deleted draft without importing them
-                    twice.
-                  </p>
-                  <ActionForm action={actions.createInvoice} submit="Create invoice draft">
-                    <input type="hidden" name="dealershipId" value={d.id} />
-                    <Field label="Invoice number · optional">
-                      <input
-                        name="number"
-                        maxLength={40}
-                        placeholder={`QP-${businessDate().slice(0, 4)}-0001`}
-                      />
-                    </Field>
-                    <p className="muted">
-                      Leave blank to assign the next QP-year-sequence number automatically.
-                    </p>
-                    <DateField name="issueDate" label="Invoice issue date" />
-                    <TextField name="notes" label="Invoice notes" required={false} area />
-                    <fieldset className="field wide dealer-unbilled-list">
-                      <legend>Select completed services to invoice</legend>
-                      {unbilled.length ? (
-                        <SelectAllServices>
-                          {unbilled.map((service) => (
-                            <div className="dealer-saved-service" key={service.id}>
-                              <label className="check-row">
-                                <input type="checkbox" name="serviceIds" value={service.id} />
-                                {service.date} · {service.description} · {service.quantity} ×{" "}
-                                <Money cents={service.unitCents} />
-                              </label>
-                              {service.virReportCount > 0 && (
-                                <small>
-                                  {service.virReportCount} saved VIR reports · these are reused, not
-                                  counted again
-                                </small>
-                              )}
-                            </div>
-                          ))}
-                        </SelectAllServices>
-                      ) : (
-                        <p>No unbilled services recorded.</p>
-                      )}
-                    </fieldset>
-                  </ActionForm>
-                </section>
+                <DealerInvoiceWorkflow
+                  dealershipId={d.id}
+                  services={unbilled}
+                  taxBps={d.taxBps}
+                  termsReady={!!d.termsAuthorizedAt && d.termsDays !== null && d.taxBps !== null}
+                  issueDate={businessDate()}
+                />
               )}
               <section className="card card-body space-top">
                 <h2>Invoice history</h2>

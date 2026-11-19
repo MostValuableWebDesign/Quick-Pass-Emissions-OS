@@ -34,6 +34,27 @@ type Billing = DealerVirReviewRow["billing"];
 
 class VirUploadUserError extends Error {}
 
+function WorkflowSteps({ step }: { step: number }) {
+  const labels = ["Upload reports", "Review tests", "Save / draft"];
+  return (
+    <ol className="vir-workflow-steps" aria-label="Invoice creation progress">
+      {labels.map((label, index) => {
+        const number = index + 1;
+        return (
+          <li
+            key={label}
+            className={number === step ? "is-current" : number < step ? "is-complete" : ""}
+            aria-current={number === step ? "step" : undefined}
+          >
+            <span>{number < step ? "✓" : number}</span>
+            {label}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 function money(cents: number) {
   return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
@@ -113,11 +134,18 @@ export function DealerVirUpload({
       })
     | null
   >(null);
+  const startedAt = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!busy) return;
-    setElapsed(0);
-    const t = setInterval(() => setElapsed((s) => s + 1), 1000);
+    if (!busy) {
+      startedAt.current = null;
+      return;
+    }
+    startedAt.current = Date.now();
+    const t = setInterval(() => {
+      if (startedAt.current !== null)
+        setElapsed(Math.floor((Date.now() - startedAt.current) / 1000));
+    }, 1000);
     return () => clearInterval(t);
   }, [busy]);
 
@@ -201,6 +229,7 @@ export function DealerVirUpload({
 
   async function open() {
     reset();
+    setElapsed(0);
     dialog.current?.showModal();
     if (resumeUploadId) {
       setBusy("preview");
@@ -232,6 +261,7 @@ export function DealerVirUpload({
 
   async function runPreview() {
     if (!dealer || !files.length || fileError) return;
+    setElapsed(0);
     setBusy("preview");
     setError("");
     setProgressMessage("Checking selected PDFs…");
@@ -378,6 +408,7 @@ export function DealerVirUpload({
 
   async function runCommit() {
     if (!preview || blockReason) return;
+    setElapsed(0);
     setBusy("commit");
     setError("");
     try {
@@ -508,6 +539,11 @@ export function DealerVirUpload({
 
           {!preview ? (
             <div className="vir-upload">
+              <WorkflowSteps step={1} />
+              <p className="vir-step-description">
+                Choose the dealership and upload its VIR PDFs. Larger uploads are split into
+                batches of up to 40 reports.
+              </p>
               {!dealershipId && (
                 <label className="field">
                   <span>Dealership</span>
@@ -596,6 +632,11 @@ export function DealerVirUpload({
             </div>
           ) : (
             <div className="vir-review">
+              <WorkflowSteps step={draftOn ? 3 : 2} />
+              <p className="vir-step-description">
+                Check each test against the report page. Then save the reviewed services or create
+                a draft invoice. Nothing is emailed or charged here.
+              </p>
               {preview.rows.some((row) => row.duplicate) && (
                 <DealerVirRecoveryNotice dealershipId={preview.dealershipId} />
               )}

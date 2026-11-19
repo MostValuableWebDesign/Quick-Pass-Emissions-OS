@@ -11,6 +11,7 @@ import {
 } from "@/lib/contact-address";
 import { uniqueReceiptReference } from "./references";
 import { STANDARD_DEALERSHIP_TERMS } from "./dealership-terms";
+import { invoiceLineDescription } from "./invoice-document";
 import { closeInvoicePaymentLink } from "./stripe-payments";
 import { formatInvoiceNumber, isInvoiceNumberForYear, nextInvoiceSequence } from "./invoice-number";
 import { id, dateString } from "@/lib/validation";
@@ -44,8 +45,8 @@ export function invoiceServiceDescription(description: string, value: unknown) {
       })
     : [];
   return inspections.length
-    ? `${description}\nInspection details:\n${inspections.join("\n")}`
-    : description;
+    ? invoiceLineDescription(`${description}\n${inspections.join("\n")}`)
+    : invoiceLineDescription(description);
 }
 export const categories = [
   "EMISSIONS",

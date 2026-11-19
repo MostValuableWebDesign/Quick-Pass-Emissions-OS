@@ -11,7 +11,12 @@ import {
   type PDFImage,
   type PDFPage,
 } from "pdf-lib";
-import { invoiceDocumentPalette, invoiceIssuer, type InvoicePdfDetails } from "./invoice-document";
+import {
+  invoiceDocumentPalette,
+  invoiceIssuer,
+  invoiceLineDescription,
+  type InvoicePdfDetails,
+} from "./invoice-document";
 import { invoiceDate, invoiceMoney, invoiceServicePeriod } from "./invoice-email";
 import { dealershipInvoiceBrand, type DealershipInvoiceBrand } from "./dealership-invoice-branding";
 
@@ -389,7 +394,7 @@ export async function createInvoicePdf(invoice: InvoicePdfDetails) {
     y -= 20;
   }
   for (const [index, item] of invoice.lines.entries()) {
-    const description = wrap(item.description, regular, 9, 225);
+    const description = wrap(invoiceLineDescription(item.description), regular, 9, 225);
     let offset = 0;
     let firstChunk = true;
     while (offset < description.length) {

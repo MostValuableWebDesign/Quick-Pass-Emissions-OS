@@ -15,6 +15,10 @@ export const invoiceIssuer = {
   website: "quickpassemissions.com",
 } as const;
 
+export function invoiceLineDescription(description: string) {
+  return description.replace(/\n(?:Inspection details|Vehicle VINs):\n?/g, "\n").trim();
+}
+
 export const invoiceSnapshotSchema = z.object({
   name: z.string(),
   code: z.string().default(""),

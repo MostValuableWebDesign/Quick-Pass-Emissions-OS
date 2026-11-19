@@ -125,7 +125,7 @@ if (enabled) {
       unitCents: 2000,
       amountCents: 4000,
       description:
-        "Emissions inspections\nInspection details:\nTest ID: 91106123456 · VIN: 1M8GDM9AXKP042788\nTest ID: 91106123457 · VIN: 1M8GDM9AXKP042789",
+        "Emissions inspections\nTest ID: 91106123456 · VIN: 1M8GDM9AXKP042788\nTest ID: 91106123457 · VIN: 1M8GDM9AXKP042789",
     });
     expect(await db.dealerVirRecord.count()).toBe(2);
     const upload = await db.dealerVirUpload.findUniqueOrThrow({ where: { id: p.uploadId } });
@@ -187,8 +187,7 @@ if (enabled) {
         serviceId: savedServiceId,
         quantity: 1,
         amountCents: 2000,
-        description:
-          "Emissions inspections\nInspection details:\nTest ID: 91106123489 · VIN: 1M8GDM9AXKP042788",
+        description: "Emissions inspections\nTest ID: 91106123489 · VIN: 1M8GDM9AXKP042788",
       },
     ]);
   });
@@ -227,8 +226,7 @@ if (enabled) {
     expect(
       await db.dealerInvoiceLine.findUniqueOrThrow({ where: { id: original.lines[0].id } }),
     ).toMatchObject({
-      description:
-        "Emissions inspections\nInspection details:\nTest ID: 91106123456 · VIN: 1M8GDM9AXKP042788",
+      description: "Emissions inspections\nTest ID: 91106123456 · VIN: 1M8GDM9AXKP042788",
     });
     expect(await db.dealerInvoice.count()).toBe(1);
     expect(await db.dealerVirRecord.count()).toBe(1);

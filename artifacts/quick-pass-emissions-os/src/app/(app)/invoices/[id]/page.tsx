@@ -13,6 +13,7 @@ import { invoiceIssuer, invoiceSnapshotSchema } from "@/modules/finance/invoice-
 import { InvoiceCustomerBrand } from "@/components/invoice-customer-brand";
 import { DealerVirUpload } from "@/components/dealer-vir-upload";
 import { pendingDealerVirReview } from "@/modules/finance/dealer-vir-service";
+import { invoiceLineDescription } from "@/modules/finance/invoice-document";
 import * as actions from "@/app/phase4-actions";
 import { checkInvoiceResend, resolveInvoiceResendNotSent } from "@/app/invoice-email-actions";
 export default async function Invoice({ params }: { params: Promise<{ id: string }> }) {
@@ -135,7 +136,9 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
               {i.lines.map((l) => (
                 <tr key={l.id}>
                   <td>{l.date}</td>
-                  <td style={{ whiteSpace: "pre-line" }}>{l.description}</td>
+                  <td style={{ whiteSpace: "pre-line" }}>
+                    {invoiceLineDescription(l.description)}
+                  </td>
                   <td>{l.quantity}</td>
                   <td>
                     <Money cents={l.unitCents} />

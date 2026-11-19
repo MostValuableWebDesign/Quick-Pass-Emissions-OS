@@ -101,7 +101,7 @@ if (enabled) {
       })),
     };
   }
-  it("makes one grouped service and a draft with exact count, rate, due date and persistent report breakdown", async () => {
+  it("includes a VIN paired with each test ID on the grouped invoice line", async () => {
     const p = await preview([row(), row("ZZ123457", past, 620, "1M8GDM9AXKP042789")]);
     expect(p.rows[0].vin).toBe("1M8GDM9AXKP042788");
     expect(JSON.stringify(p)).not.toContain("vinHash");
@@ -125,7 +125,7 @@ if (enabled) {
       unitCents: 2000,
       amountCents: 4000,
       description:
-        "Emissions inspections\nVehicle VINs:\nVIN: 1M8GDM9AXKP042788\nVIN: 1M8GDM9AXKP042789",
+        "Emissions inspections\nInspection details:\nTest ID: 91106123456 · VIN: 1M8GDM9AXKP042788\nTest ID: 91106123457 · VIN: 1M8GDM9AXKP042789",
     });
     expect(await db.dealerVirRecord.count()).toBe(2);
     const upload = await db.dealerVirUpload.findUniqueOrThrow({ where: { id: p.uploadId } });
@@ -139,7 +139,7 @@ if (enabled) {
       where: { id: result.invoiceId! },
       include: { lines: true },
     });
-    expect(invoice.lines[0].description).toContain("VIN: BADVIN");
+    expect(invoice.lines[0].description).toContain("Test ID: 91106123486 · VIN: BADVIN");
   });
   it("rebuilds a deleted invoice draft from the same saved VIR service without duplicating reports", async () => {
     const finance = await import("../src/modules/finance/service");
@@ -187,7 +187,8 @@ if (enabled) {
         serviceId: savedServiceId,
         quantity: 1,
         amountCents: 2000,
-        description: "Emissions inspections\nVehicle VINs:\nVIN: 1M8GDM9AXKP042788",
+        description:
+          "Emissions inspections\nInspection details:\nTest ID: 91106123489 · VIN: 1M8GDM9AXKP042788",
       },
     ]);
   });
@@ -215,12 +216,19 @@ if (enabled) {
 
     expect(updated).toMatchObject({ saved: 0, skipped: 1, vinUpdated: 1, invoiceId: null });
     expect(await db.dealerService.findUniqueOrThrow({ where: { id: serviceId } })).toMatchObject({
-      vehicleVins: ["1M8GDM9AXKP042788"],
+      vehicleVins: [
+        {
+          vin: "1M8GDM9AXKP042788",
+          testNumber: "91106123456",
+          certificate: "ZZ123456",
+        },
+      ],
     });
     expect(
       await db.dealerInvoiceLine.findUniqueOrThrow({ where: { id: original.lines[0].id } }),
     ).toMatchObject({
-      description: "Emissions inspections\nVehicle VINs:\nVIN: 1M8GDM9AXKP042788",
+      description:
+        "Emissions inspections\nInspection details:\nTest ID: 91106123456 · VIN: 1M8GDM9AXKP042788",
     });
     expect(await db.dealerInvoice.count()).toBe(1);
     expect(await db.dealerVirRecord.count()).toBe(1);

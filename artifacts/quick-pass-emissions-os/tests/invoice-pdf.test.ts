@@ -77,7 +77,7 @@ describe("invoice PDF generation", () => {
         {
           ...invoicePdfFixture.lines[0],
           description:
-            "Emissions inspections\nVehicle VINs:\nVIN: 1M8GDM9AXKP042788\nVIN: 1M8GDM9AXKP042789",
+            "Emissions inspections\nInspection details:\nTest ID: 91106123456 · VIN: 1M8GDM9AXKP042788\nTest ID: 91106123457 · VIN: 1M8GDM9AXKP042789",
           quantity: 2,
         },
       ],
@@ -94,7 +94,7 @@ describe("invoice PDF generation", () => {
       lines: [
         {
           ...invoicePdfFixture.lines[0],
-          description: `Emissions inspections\nVehicle VINs:\n${vins.map((vin) => `VIN: ${vin}`).join("\n")}`,
+          description: `Emissions inspections\nInspection details:\n${vins.map((vin, index) => `Test ID: ${index + 1} · VIN: ${vin}`).join("\n")}`,
           quantity: vins.length,
         },
       ],

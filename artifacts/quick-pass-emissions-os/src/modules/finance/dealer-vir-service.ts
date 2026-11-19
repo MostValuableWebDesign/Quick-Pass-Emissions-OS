@@ -488,7 +488,11 @@ export async function commitDealerVirUpload(
           description: "Emissions inspections",
           quantity: group.length,
           unitCents: rate!,
-          vehicleVins: group.map((row) => row.vin),
+          vehicleVins: group.map((row) => ({
+            vin: row.vin,
+            testNumber: row.testNumber,
+            certificate: row.certificate,
+          })),
           reference: `VIR-${upload.id}-${date}`,
           evidence: `${group.length} reviewed VIR report(s). Upload ${upload.id}.`,
           createdBy: actorId,
@@ -552,12 +556,30 @@ export async function commitDealerVirUpload(
       });
       requireRule(service, "The saved inspection service could not be found.");
       const existingVins = Array.isArray(service.vehicleVins)
-        ? service.vehicleVins.filter(
-            (value): value is string =>
-              typeof value === "string" && /^[A-Z0-9-]{1,40}$/.test(value),
-          )
+        ? service.vehicleVins.filter((value) => {
+            if (typeof value === "string") return /^[A-Z0-9-]{1,40}$/.test(value);
+            if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+            const detail = value as Record<string, unknown>;
+            return typeof detail.vin === "string" && /^[A-Z0-9-]{1,40}$/.test(detail.vin);
+          })
         : [];
-      const nextVins = existingVins.includes(row.vin) ? existingVins : [...existingVins, row.vin];
+      const testDetail = {
+        vin: row.vin,
+        testNumber: row.testNumber,
+        certificate: row.certificate,
+      };
+      const detailIndex = existingVins.findIndex((value) => {
+        if (typeof value === "string") return value === row.vin;
+        const detail = value as Record<string, unknown>;
+        return (
+          detail.vin === row.vin &&
+          (detail.testNumber === row.testNumber || detail.certificate === row.certificate)
+        );
+      });
+      const nextVins =
+        detailIndex >= 0
+          ? existingVins.map((value, index) => (index === detailIndex ? testDetail : value))
+          : [...existingVins, testDetail];
       await tx.dealerService.update({
         where: { id: existing.serviceId },
         data: { vehicleVins: nextVins },

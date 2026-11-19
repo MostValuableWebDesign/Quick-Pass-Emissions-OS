@@ -31,7 +31,7 @@ Billable VIR invoices should include the VIN printed for each inspection, withou
 
 **Why:** The user needs the test vehicle identified on the customer invoice, and says a GCAF-accepted test remains countable even when its VIN is invalid.
 
-**How to apply:** Require a VIN value for a billable report but preserve the reviewed value as printed. Retain VIN values only on billable service records and invoice snapshots; never retain PDF bytes or full OCR text. A duplicate report may backfill a missing VIN only when it matches the saved inspection, without creating a second charge.
+**How to apply:** Require a VIN value for a billable report but preserve the reviewed value as printed. Show each report's test ID paired with its VIN in invoice details. Retain VIN values only on billable service records and invoice snapshots; never retain PDF bytes or full OCR text. A duplicate report may backfill a missing VIN only when it matches the saved inspection, without creating a second charge.
 
 Dealership invoices should be tailored to each recipient using their official website branding, while Quick Pass remains clearly identified as the invoice issuer.
 

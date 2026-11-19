@@ -28,11 +28,23 @@ import {
 } from "./rules";
 
 export function invoiceServiceDescription(description: string, value: unknown) {
-  const vins = Array.isArray(value)
-    ? value.filter((vin): vin is string => typeof vin === "string" && /^[A-Z0-9-]{1,40}$/.test(vin))
+  const inspections = Array.isArray(value)
+    ? value.flatMap((entry) => {
+        if (typeof entry === "string" && /^[A-Z0-9-]{1,40}$/.test(entry)) return [`VIN: ${entry}`];
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+        const detail = entry as Record<string, unknown>;
+        if (typeof detail.vin !== "string" || !/^[A-Z0-9-]{1,40}$/.test(detail.vin)) return [];
+        const identifier =
+          typeof detail.testNumber === "string" && detail.testNumber
+            ? `Test ID: ${detail.testNumber} · `
+            : typeof detail.certificate === "string" && detail.certificate
+              ? `Certificate: ${detail.certificate} · `
+              : "";
+        return [`${identifier}VIN: ${detail.vin}`];
+      })
     : [];
-  return vins.length
-    ? `${description}\nVehicle VINs:\n${vins.map((vin) => `VIN: ${vin}`).join("\n")}`
+  return inspections.length
+    ? `${description}\nInspection details:\n${inspections.join("\n")}`
     : description;
 }
 export const categories = [

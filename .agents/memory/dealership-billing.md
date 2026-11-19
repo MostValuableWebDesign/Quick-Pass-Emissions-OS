@@ -39,6 +39,18 @@ Re-uploading saved VIRs must support VIN updates and reuse of unbilled services,
 
 **How to apply:** Distinguish updating an existing draft from invoicing an unbilled saved service. Explicitly show the whole saved-service quantity and original rate before reuse, deduplicate service selections, and never bill a service already allocated to another invoice.
 
+Explicitly reviewed VIN enrichment must also appear on existing sent invoice downloads, not only drafts.
+
+**Why:** The user re-uploaded old VIRs for an already-sent invoice and still downloaded a PDF without VINs; restricting description enrichment to drafts made the fix ineffective.
+
+**How to apply:** Permit audited, hash-matched VIN detail additions to active issued invoice descriptions without altering quantities, rates, totals, due dates, payment or sending history. Do not resend automatically or claim an already-sent email attachment was changed. Let the user resume a pending VIR review from the invoice instead of demanding another upload.
+
+When a duplicate report matches a saved inspection identity, use its saved date during VIN recovery.
+
+**Why:** A re-scan missed one report's date while reading its VIN correctly; the disabled duplicate date field and all-or-nothing save then blocked every VIN in the batch.
+
+**How to apply:** Recover a blank re-scanned date from the matched saved inspection, retain exact VIN-hash checks, and reject conflicting nonblank dates instead of changing billing history.
+
 Dealership invoices should be tailored to each recipient using their official website branding, while Quick Pass remains clearly identified as the invoice issuer.
 
 **Why:** The user asked for dealership-specific invoice designs referenced from their five partner websites. Customer branding must not imply that the dealership issued the invoice.

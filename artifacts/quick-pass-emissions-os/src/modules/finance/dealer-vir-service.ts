@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { readAsActor } from "@/lib/read-as-actor";
 import { businessDate, addDays } from "@/lib/time";
 import { dateString } from "@/lib/validation";
 import { phase4, financeRoles, audit, requireRule, type Tx } from "../phase4";
@@ -21,6 +22,16 @@ const termsReady = (dealer: {
   termsDays: number | null;
   taxBps: number | null;
 }) => !!dealer.termsAuthorizedAt && dealer.termsDays !== null && dealer.taxBps !== null;
+
+export async function pendingDealerVirReview(actorId: string, dealershipId: string) {
+  return readAsActor(actorId, financeRoles, (tx) =>
+    tx.dealerVirUpload.findFirst({
+      where: { dealershipId, createdBy: actorId, status: "REVIEW", expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    }),
+  );
+}
 
 export async function dealerVirOptions(actorId: string) {
   return phase4(actorId, financeRoles, (tx) =>
@@ -295,7 +306,12 @@ export async function finishDealerVirUpload(
 ): Promise<DealerVirPreview> {
   return phase4(actorId, financeRoles, async (tx) => {
     const upload = await tx.dealerVirUpload.findFirst({
-      where: { id: uploadId, createdBy: actorId, status: "PROCESSING" },
+      where: {
+        id: uploadId,
+        createdBy: actorId,
+        status: { in: ["PROCESSING", "REVIEW"] },
+        expiresAt: { gt: new Date() },
+      },
       include: {
         dealership: true,
         chunks: { orderBy: { sequence: "asc" } },
@@ -325,7 +341,7 @@ export async function finishDealerVirUpload(
           },
         ],
       },
-      select: { reportKey: true, sourceKey: true, testKey: true, serviceId: true },
+      select: { reportKey: true, sourceKey: true, testKey: true, serviceId: true, date: true },
     });
     const savedServices = await tx.dealerService.findMany({
       where: {
@@ -368,6 +384,12 @@ export async function finishDealerVirUpload(
           return {
             ...row,
             vin: row.vin ?? "",
+            date: match?.date ?? row.date,
+            warnings: match
+              ? row.warnings.filter(
+                  (warning) => warning !== "Enter the inspection date from the original report.",
+                )
+              : row.warnings,
             savedService: service
               ? {
                   id: service.id,
@@ -580,7 +602,8 @@ export async function commitDealerVirUpload(
       });
     }
     let vinUpdated = 0;
-    let updatedDraft: { id: string; number: string } | null = null;
+    let updatedInvoice: { id: string; number: string } | null = null;
+    const enrichedInvoices = new Set<string>();
     for (const row of vinUpdates) {
       const testKey = virTestKey(row.testNumber);
       const existing = await tx.dealerVirRecord.findFirst({
@@ -596,7 +619,9 @@ export async function commitDealerVirUpload(
         select: { id: true, serviceId: true, date: true, billing: true, vinHash: true },
       });
       requireRule(
-        existing?.serviceId && existing.billing === "BILL" && existing.date === row.date,
+        existing?.serviceId &&
+          existing.billing === "BILL" &&
+          (!row.date || existing.date === row.date),
         `${row.source} is already recorded, but its billable service could not be matched. No new charge was created.`,
       );
       requireRule(
@@ -660,18 +685,28 @@ export async function commitDealerVirUpload(
         where: { id: existing.serviceId },
         data: { vehicleVins: nextVins },
       });
-      const draftLines = await tx.dealerInvoiceLine.findMany({
+      const invoiceLines = await tx.dealerInvoiceLine.findMany({
         where: { serviceId: existing.serviceId },
-        include: { invoice: { select: { id: true, number: true, state: true, archivedAt: true } } },
+        include: {
+          invoice: {
+            select: { id: true, number: true, state: true, archivedAt: true, voidDate: true },
+          },
+        },
       });
-      for (const line of draftLines) {
-        if (line.invoice.state === "DRAFT" && !line.invoice.archivedAt) {
-          await tx.dealerInvoiceLine.update({
-            where: { id: line.id },
-            data: { description: invoiceServiceDescription(service.description, nextVins) },
-          });
-          updatedDraft ??= { id: line.invoice.id, number: line.invoice.number };
+      for (const line of invoiceLines) {
+        if (line.invoice.state === "VOIDED" || line.invoice.voidDate || line.invoice.archivedAt)
+          continue;
+        // Explicitly reviewed, hash-matched vehicle identity only. Never change charges or delivery.
+        const originalDescription = line.description.replace(
+          /\n(?:Vehicle VINs|Inspection details):\n[\s\S]*$/,
+          "",
+        );
+        const description = invoiceServiceDescription(originalDescription, nextVins);
+        if (line.description !== description) {
+          await tx.dealerInvoiceLine.update({ where: { id: line.id }, data: { description } });
+          enrichedInvoices.add(line.invoice.id);
         }
+        updatedInvoice ??= { id: line.invoice.id, number: line.invoice.number };
       }
       if (!existing.vinHash)
         await tx.dealerVirRecord.update({
@@ -683,6 +718,17 @@ export async function commitDealerVirUpload(
         uploadId: upload.id,
       });
       vinUpdated++;
+    }
+    for (const invoiceId of enrichedInvoices) {
+      await tx.dealerInvoice.update({
+        where: { id: invoiceId },
+        data: { version: { increment: 1 } },
+      });
+      await audit(tx, actorId, "DEALER_INVOICE_VINS_ADDED", invoiceId, {
+        uploadId: upload.id,
+        amountsUnchanged: true,
+        emailSent: false,
+      });
     }
     const invoice = data.createDraft
       ? await createInvoiceInTransaction(tx, actorId, {
@@ -701,8 +747,8 @@ export async function commitDealerVirUpload(
       billable: billable.length,
       free: accepted.length - billable.length,
       skipped: merged.length - accepted.length,
-      invoiceId: invoice?.id ?? updatedDraft?.id ?? null,
-      invoiceNumber: invoice?.number ?? updatedDraft?.number ?? null,
+      invoiceId: invoice?.id ?? updatedInvoice?.id ?? null,
+      invoiceNumber: invoice?.number ?? updatedInvoice?.number ?? null,
       vinUpdated,
     };
     await tx.dealerVirUpload.update({

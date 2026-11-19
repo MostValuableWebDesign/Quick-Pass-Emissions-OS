@@ -81,9 +81,11 @@ function elapsedLabel(s: number) {
 export function DealerVirUpload({
   dealershipId,
   dealers = [],
+  resumeUploadId,
 }: {
   dealershipId?: string;
   dealers?: { id: string; name: string }[];
+  resumeUploadId?: string;
 }) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -197,9 +199,30 @@ export function DealerVirUpload({
     if (fileInput.current) fileInput.current.value = "";
   }
 
-  function open() {
+  async function open() {
     reset();
     dialog.current?.showModal();
+    if (resumeUploadId) {
+      setBusy("preview");
+      setProgressMessage("Loading your uploaded reports…");
+      try {
+        const response = await finishDealerVirs(resumeUploadId);
+        if (!response.ok) {
+          setError(response.message);
+          return;
+        }
+        setDealer(response.data.dealershipId);
+        setPreview(response.data);
+        setRows(response.data.rows.map(initialRow));
+        setCreateDraft(false);
+        setIssueDate(response.data.issueDate || today());
+      } catch {
+        setError("Unable to reopen the report review. Your invoice has not been changed.");
+      } finally {
+        setBusy("");
+        setProgressMessage("");
+      }
+    }
   }
 
   function requestClose() {
@@ -414,7 +437,7 @@ export function DealerVirUpload({
         data-testid="button-open-vir-upload"
       >
         <FileUp size={16} aria-hidden="true" />
-        Upload VIR PDFs
+        {resumeUploadId ? "Review uploaded VINs" : "Upload VIR PDFs"}
       </button>
 
       {result && (
@@ -431,7 +454,7 @@ export function DealerVirUpload({
             .{" "}
             {result.invoiceId ? (
               <a href={`/invoices/${result.invoiceId}`}>
-                Open invoice draft {result.invoiceNumber ?? ""}
+                Open invoice {result.invoiceNumber ?? ""}
               </a>
             ) : (
               <a href={`/dealerships/${result.dealershipId}?section=services#create-invoice`}>
@@ -665,8 +688,8 @@ export function DealerVirUpload({
                     }
                     data-testid="checkbox-vir-update-all-vins"
                   />
-                  I checked the VINs above; update all matched saved tests without adding new
-                  charges
+                  I checked the VINs above; update all matched saved tests and invoice VIN details.
+                  Charges stay unchanged; no email will be sent.
                 </label>
               )}
 
@@ -801,7 +824,8 @@ export function DealerVirUpload({
                             }
                             data-testid={`checkbox-vir-save-existing-vin-${r.id}`}
                           />
-                          Update this saved test with the VIN above; no new charge will be created
+                          Update this saved test and its active invoice with the verified VIN above.
+                          Charges stay unchanged; no email will be sent.
                         </label>
                       )}
                       {src.duplicate && src.savedService?.availableForInvoice && (
@@ -830,7 +854,8 @@ export function DealerVirUpload({
                           <Link href={`/invoices/${src.savedService.invoiceId}`}>
                             invoice {src.savedService.invoiceNumber}
                           </Link>
-                          . Save VIN updates for a draft, or open the existing invoice to resend it.
+                          . Saving VIN updates adds them to this invoice and future PDF downloads.
+                          Previously sent emails are unchanged.
                         </p>
                       )}
                       {r.billing !== "EXCLUDE" && (

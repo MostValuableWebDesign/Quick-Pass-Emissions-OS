@@ -289,6 +289,97 @@ if (enabled) {
     expect(await db.dealerInvoice.count()).toBe(1);
     expect(await db.dealerVirRecord.count()).toBe(1);
   });
+  it("adds reviewed VINs to a sent invoice and its PDF without changing money or sending again", async () => {
+    const finance = await import("../src/modules/finance/service");
+    const { createInvoicePdf } = await import("../src/modules/finance/invoice-pdf");
+    const { invoiceSnapshotSchema } = await import("../src/modules/finance/invoice-document");
+    const result = await service.commitDealerVirUpload(owner, commit(await preview([row()])));
+    const draft = await db.dealerInvoice.findUniqueOrThrow({
+      where: { id: result.invoiceId! },
+      include: { lines: true },
+    });
+    await db.dealerService.update({
+      where: { id: draft.lines[0].serviceId },
+      data: { vehicleVins: [] },
+    });
+    await db.dealerInvoiceLine.update({
+      where: { id: draft.lines[0].id },
+      data: { description: "Emissions inspections" },
+    });
+    await finance.recordGmailInvoiceSent(owner, {
+      id: draft.id,
+      version: draft.version,
+      date: today,
+      reference: "GMAIL:fixture-existing-send",
+    });
+    const sent = await db.dealerInvoice.findUniqueOrThrow({ where: { id: draft.id } });
+    const unreadableDate = row();
+    unreadableDate.date = "";
+    unreadableDate.warnings.push("Enter the inspection date from the original report.");
+    const reupload = await preview([unreadableDate]);
+    expect(reupload.rows[0].date).toBe(past);
+    expect(reupload.rows[0].warnings).not.toContain(
+      "Enter the inspection date from the original report.",
+    );
+    expect(await service.pendingDealerVirReview(owner, dealer)).toEqual({ id: reupload.uploadId });
+    const resumed = await service.finishDealerVirUpload(owner, reupload.uploadId);
+    expect(resumed.rows[0].savedService?.invoiceId).toBe(sent.id);
+    const input = commit(resumed, "EXCLUDE", false);
+    input.rows[0].saveExistingVin = true;
+    const saved = await service.commitDealerVirUpload(owner, input);
+    expect(saved.invoiceId).toBe(sent.id);
+    const detail = await finance.invoiceDetail(owner, sent.id);
+    const invoice = detail.invoice!;
+    expect(invoice).toMatchObject({
+      state: sent.state,
+      sentDate: sent.sentDate,
+      deliveryReference: sent.deliveryReference,
+      subtotalCents: sent.subtotalCents,
+      totalCents: sent.totalCents,
+      taxCents: sent.taxCents,
+      dueDate: sent.dueDate,
+      snapshot: sent.snapshot,
+      version: sent.version + 1,
+    });
+    expect(invoice.lines[0].description).toContain("Test ID: 91106123456 · VIN: 1M8GDM9AXKP042788");
+    const bytes = await createInvoicePdf({
+      ...invoice,
+      status: "Sent",
+      snapshot: invoiceSnapshotSchema.parse(invoice.snapshot),
+      demo: false,
+      paidCents: 0,
+      remainingCents: invoice.totalCents,
+    });
+    const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const task = getDocument({ data: bytes, verbosity: 0 });
+    try {
+      const document = await task.promise;
+      let text = "";
+      for (let page = 1; page <= document.numPages; page++) {
+        const content = await (await document.getPage(page)).getTextContent();
+        text += content.items.flatMap((item) => ("str" in item ? [item.str] : [])).join(" ");
+      }
+      expect(text).toContain("1M8GDM9AXKP042788");
+      expect(text).toContain("91106123456");
+    } finally {
+      await task.destroy();
+    }
+    expect(await db.dealerInvoice.count()).toBe(1);
+    expect(await db.dealerVirRecord.count()).toBe(1);
+    expect(
+      await db.auditLog.count({ where: { entityId: sent.id, action: "DEALER_INVOICE_SENT" } }),
+    ).toBe(1);
+    expect(
+      await db.auditLog.count({
+        where: { entityId: sent.id, action: "DEALER_INVOICE_VINS_ADDED" },
+      }),
+    ).toBe(1);
+    expect(await service.pendingDealerVirReview(owner, dealer)).toBeNull();
+    expect(await service.commitDealerVirUpload(owner, input)).toEqual(saved);
+    expect((await db.dealerInvoice.findUniqueOrThrow({ where: { id: sent.id } })).version).toBe(
+      sent.version + 1,
+    );
+  });
   it("does not allow a duplicate report from another dealership to be reused", async () => {
     await service.commitDealerVirUpload(owner, commit(await preview([row()])));
     dealer = (

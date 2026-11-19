@@ -11,6 +11,8 @@ import { PaymentFields } from "@/components/finance";
 import { InvoiceEmailComposer } from "@/components/invoice-email-composer";
 import { invoiceIssuer, invoiceSnapshotSchema } from "@/modules/finance/invoice-document";
 import { InvoiceCustomerBrand } from "@/components/invoice-customer-brand";
+import { DealerVirUpload } from "@/components/dealer-vir-upload";
+import { pendingDealerVirReview } from "@/modules/finance/dealer-vir-service";
 import * as actions from "@/app/phase4-actions";
 import { checkInvoiceResend, resolveInvoiceResendNotSent } from "@/app/invoice-email-actions";
 export default async function Invoice({ params }: { params: Promise<{ id: string }> }) {
@@ -30,6 +32,10 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
   const onlinePaymentLink = i.stripePaymentLink;
   const latestResend = i.emailResends[0];
   const resendUnresolved = latestResend && ["PREPARING", "UNCERTAIN"].includes(latestResend.state);
+  const pendingVirReview =
+    !i.archivedAt && i.state !== "VOIDED"
+      ? await pendingDealerVirReview(actor.id, i.dealershipId)
+      : null;
   return (
     <>
       <PageHeader
@@ -110,6 +116,9 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
       <section className="card space-top">
         <div className="card-heading">
           <h2>Invoice line items</h2>
+          {!i.archivedAt && i.state !== "VOIDED" && (
+            <DealerVirUpload dealershipId={i.dealershipId} resumeUploadId={pendingVirReview?.id} />
+          )}
         </div>
         <div className="table-scroll">
           <table>

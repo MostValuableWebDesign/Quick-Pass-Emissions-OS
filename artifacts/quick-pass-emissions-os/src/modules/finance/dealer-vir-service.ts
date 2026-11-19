@@ -3,10 +3,11 @@ import { businessDate, addDays } from "@/lib/time";
 import { dateString } from "@/lib/validation";
 import { phase4, financeRoles, audit, requireRule, type Tx } from "../phase4";
 import { stationConfig } from "../station/service";
-import { createInvoiceInTransaction } from "./service";
+import { createInvoiceInTransaction, invoiceServiceDescription } from "./service";
 import { isInvoiceNumberForYear } from "./invoice-number";
 import {
   cleanVirIdentifier,
+  hashVin,
   virReportKey,
   virReviewSchema,
   virTestKey,
@@ -329,7 +330,7 @@ export async function finishDealerVirUpload(
           minute: _minute,
           sourceKey: _sourceKey,
           ...row
-        }) => row,
+        }) => ({ ...row, vin: row.vin ?? "" }),
       ),
       rateCents: upload.dealership.defaultRateCents,
       taxBps: upload.dealership.taxBps,
@@ -343,7 +344,7 @@ export async function failDealerVirUpload(actorId: string, uploadId: string) {
   return phase4(actorId, financeRoles, (tx) =>
     tx.dealerVirUpload.updateMany({
       where: { id: uploadId, createdBy: actorId, status: "PROCESSING" },
-      data: { status: "FAILED" },
+      data: { status: "FAILED", rows: [] },
     }),
   );
 }
@@ -381,8 +382,21 @@ export async function commitDealerVirUpload(
     );
     const merged = originals.map((original) => {
       const review = data.rows.find((row) => row.id === original.id)!;
+      const vin = review.vin.trim().toUpperCase();
+      if (review.saveExistingVin) {
+        requireRule(
+          original.duplicate,
+          `${original.source} is not an existing inspection that can be updated.`,
+        );
+        requireRule(/^[A-Z0-9-]{1,40}$/.test(vin), `Enter the VIN shown on ${original.source}.`);
+      }
       if (review.billing === "EXCLUDE")
-        return { ...original, billing: review.billing, confirmed: review.confirmed };
+        return {
+          ...original,
+          ...review,
+          vin,
+          vinHash: vin ? hashVin(vin) : null,
+        };
       requireRule(review.confirmed, `Confirm the reviewed fields for ${original.source}.`);
       const date = dateString.parse(review.date);
       requireRule(date <= businessDate(), "Inspection dates cannot be in the future.");
@@ -402,9 +416,16 @@ export async function commitDealerVirUpload(
         `Choose the inspection result for ${original.source}.`,
       );
       requireRule(review.testType !== "UNKNOWN", `Choose the test type for ${original.source}.`);
+      if (review.billing === "BILL")
+        requireRule(
+          /^[A-Z0-9-]{1,40}$/.test(vin),
+          `Enter the VIN shown on ${original.source} before billing it.`,
+        );
       return {
         ...original,
         ...review,
+        vin,
+        vinHash: vin ? hashVin(vin) : null,
         date,
         certificate,
         testNumber,
@@ -419,8 +440,9 @@ export async function commitDealerVirUpload(
     const accepted = merged.filter(
       (row) => row.billing !== "EXCLUDE" && !states.get(row.id)?.duplicate,
     );
+    const vinUpdates = merged.filter((row) => row.saveExistingVin);
     requireRule(
-      accepted.length > 0,
+      accepted.length > 0 || vinUpdates.length > 0,
       "No new inspections selected. Duplicates cannot be imported again.",
     );
     for (const row of accepted) {
@@ -466,6 +488,7 @@ export async function commitDealerVirUpload(
           description: "Emissions inspections",
           quantity: group.length,
           unitCents: rate!,
+          vehicleVins: group.map((row) => row.vin),
           reference: `VIR-${upload.id}-${date}`,
           evidence: `${group.length} reviewed VIR report(s). Upload ${upload.id}.`,
           createdBy: actorId,
@@ -500,6 +523,67 @@ export async function commitDealerVirUpload(
         },
       });
     }
+    let vinUpdated = 0;
+    for (const row of vinUpdates) {
+      const testKey = virTestKey(row.testNumber);
+      const existing = await tx.dealerVirRecord.findFirst({
+        where: {
+          dealershipId: data.dealershipId,
+          serviceId: { not: null },
+          OR: [
+            ...(row.reportKey ? [{ reportKey: row.reportKey }] : []),
+            { sourceKey: row.sourceKey },
+            ...(testKey ? [{ testKey }] : []),
+          ],
+        },
+        select: { id: true, serviceId: true, date: true, billing: true, vinHash: true },
+      });
+      requireRule(
+        existing?.serviceId && existing.billing === "BILL" && existing.date === row.date,
+        `${row.source} is already recorded, but its billable service could not be matched. No new charge was created.`,
+      );
+      requireRule(
+        !existing.vinHash || existing.vinHash === row.vinHash,
+        `The VIN on ${row.source} differs from its saved record. Verify the source report before updating it.`,
+      );
+      const service = await tx.dealerService.findFirst({
+        where: { id: existing.serviceId, dealershipId: data.dealershipId },
+        select: { description: true, vehicleVins: true },
+      });
+      requireRule(service, "The saved inspection service could not be found.");
+      const existingVins = Array.isArray(service.vehicleVins)
+        ? service.vehicleVins.filter(
+            (value): value is string =>
+              typeof value === "string" && /^[A-Z0-9-]{1,40}$/.test(value),
+          )
+        : [];
+      const nextVins = existingVins.includes(row.vin) ? existingVins : [...existingVins, row.vin];
+      await tx.dealerService.update({
+        where: { id: existing.serviceId },
+        data: { vehicleVins: nextVins },
+      });
+      const draftLines = await tx.dealerInvoiceLine.findMany({
+        where: { serviceId: existing.serviceId },
+        include: { invoice: { select: { state: true, archivedAt: true } } },
+      });
+      for (const line of draftLines) {
+        if (line.invoice.state === "DRAFT" && !line.invoice.archivedAt)
+          await tx.dealerInvoiceLine.update({
+            where: { id: line.id },
+            data: { description: invoiceServiceDescription(service.description, nextVins) },
+          });
+      }
+      if (!existing.vinHash)
+        await tx.dealerVirRecord.update({
+          where: { id: existing.id },
+          data: { vinHash: row.vinHash },
+        });
+      await audit(tx, actorId, "DEALER_VIR_VIN_ADDED", existing.id, {
+        serviceId: existing.serviceId,
+        uploadId: upload.id,
+      });
+      vinUpdated++;
+    }
     const invoice = data.createDraft
       ? await createInvoiceInTransaction(tx, actorId, {
           dealershipId: data.dealershipId,
@@ -517,6 +601,7 @@ export async function commitDealerVirUpload(
       skipped: merged.length - accepted.length,
       invoiceId: invoice?.id ?? null,
       invoiceNumber: invoice?.number ?? null,
+      vinUpdated,
     };
     await tx.dealerVirUpload.update({
       where: { id: upload.id },

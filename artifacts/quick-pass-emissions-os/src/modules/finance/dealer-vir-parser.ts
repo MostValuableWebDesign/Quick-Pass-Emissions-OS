@@ -10,7 +10,8 @@ export type StoredVirRow = DealerVirRow & {
   sourceKey: string;
 };
 
-const hash = (value: string) => createHash("sha256").update(value).digest("hex");
+export const hashVin = (value: string) => createHash("sha256").update(value).digest("hex");
+const hash = hashVin;
 export const cleanVirIdentifier = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
 export function virReportKey(certificate: string, testNumber: string) {
@@ -33,7 +34,7 @@ export function parseVirPage(
   method: "TEXT" | "OCR",
   confidence = 100,
 ): StoredVirRow {
-  // Only parse labelled fields; never retain full report text or a raw VIN.
+  // Parse labelled fields only; never retain full report text or PDF bytes.
   const normalized = text.replace(/[‘’]/g, "'").replace(/\s+/g, " ").trim();
   const isVir = /GEORGIA\s+VEHICLE\s+EMISSIONS\s+INSPECTION\s+REPORT/i.test(normalized);
   const certMatch = normalized.match(/CERTIFICATE\s*NUMBER\s*[:#]?\s*([A-Z0-9-]+)/i);
@@ -56,7 +57,7 @@ export function parseVirPage(
   const testTypeMatch = normalized.match(/Test\s*Type\s*:\s*(Initial|Re[\s-]?test)/i)?.[1];
   const feeMatch = normalized.match(/Test\s*Fee\s*:\s*[$S]?\s*(\d{1,3})[.,](\d{2})/i);
   const feeCents = feeMatch ? Number(feeMatch[1]) * 100 + Number(feeMatch[2]) : null;
-  const vin = normalized.match(/\bVIN\s*:\s*([A-Z0-9]{17})\b/i)?.[1].toUpperCase() ?? null;
+  const vin = normalized.match(/\bVIN\s*:\s*([A-Z0-9-]{1,40})(?=\s|$)/i)?.[1].toUpperCase() ?? null;
   const rawCertificate = cleanVirIdentifier(certMatch?.[1] ?? "");
   const certificate = rawCertificate === "RETEST" ? "" : rawCertificate;
   const testNumber = cleanVirIdentifier(testMatch?.[1] ?? "");
@@ -84,6 +85,7 @@ export function parseVirPage(
     id: randomUUID(),
     source,
     date,
+    vin: vin ?? "",
     certificate,
     testNumber,
     outcome: outcome ?? "UNKNOWN",
@@ -112,12 +114,21 @@ export const virReviewSchema = z.object({
       z.object({
         id: z.string().uuid(),
         date: z.string().max(10),
+        vin: z
+          .string()
+          .trim()
+          .max(40)
+          .transform((value) => value.toUpperCase())
+          .refine((value) => value === "" || /^[A-Z0-9-]{1,40}$/.test(value), {
+            message: "Use the VIN characters shown on the report.",
+          }),
         certificate: z.string().trim().max(40),
         testNumber: z.string().trim().max(24),
         outcome: z.enum(["PASS", "FAIL", "ABORT", "UNKNOWN"]),
         testType: z.enum(["INITIAL", "RETEST", "UNKNOWN"]),
         billing: z.enum(["BILL", "FREE", "EXCLUDE"]),
         confirmed: z.boolean(),
+        saveExistingVin: z.boolean().default(false),
       }),
     )
     .min(1)

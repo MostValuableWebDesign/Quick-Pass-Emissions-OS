@@ -390,16 +390,42 @@ export async function createInvoicePdf(invoice: InvoicePdfDetails) {
   }
   for (const [index, item] of invoice.lines.entries()) {
     const description = wrap(item.description, regular, 9, 225);
-    const height = Math.max(1, description.length) * 12 + 10;
-    if (room(height)) tableHeading();
-    if (index % 2 === 1)
-      page.drawRectangle({ x: X, y: y - height + 10, width: CW, height, color: tint });
-    text(invoiceDate(item.date), cols.date, y, 8.5, regular, ink);
-    description.forEach((l, n) => text(l, cols.desc, y - n * 12, 9, regular, ink));
-    rightText(String(item.quantity), cols.qty, y, 9);
-    rightText(invoiceMoney(item.unitCents), cols.rate, y, 9);
-    rightText(invoiceMoney(item.amountCents), cols.amt, y, 9, bold, ink);
-    y -= height;
+    let offset = 0;
+    let firstChunk = true;
+    while (offset < description.length) {
+      let availableLines = Math.floor((y - BOTTOM - 10) / 12);
+      if (availableLines < 1) {
+        tableHeading();
+        availableLines = Math.floor((y - BOTTOM - 10) / 12);
+      }
+      const chunk = description.slice(offset, offset + availableLines);
+      const height = chunk.length * 12 + 10;
+      if (index % 2 === 1)
+        page.drawRectangle({ x: X, y: y - height + 10, width: CW, height, color: tint });
+      text(
+        fit(
+          firstChunk ? invoiceDate(item.date) : `${invoiceDate(item.date)} continued`,
+          regular,
+          8.5,
+          cols.desc - cols.date - 8,
+        ),
+        cols.date,
+        y,
+        8.5,
+        regular,
+        ink,
+      );
+      chunk.forEach((l, n) => text(l, cols.desc, y - n * 12, 9, regular, ink));
+      if (firstChunk) {
+        rightText(String(item.quantity), cols.qty, y, 9);
+        rightText(invoiceMoney(item.unitCents), cols.rate, y, 9);
+        rightText(invoiceMoney(item.amountCents), cols.amt, y, 9, bold, ink);
+      }
+      y -= height;
+      offset += chunk.length;
+      firstChunk = false;
+      if (offset < description.length) tableHeading();
+    }
   }
   page.drawLine({
     start: { x: X, y: y + 8 },

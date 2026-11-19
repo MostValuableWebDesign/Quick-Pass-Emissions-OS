@@ -100,7 +100,7 @@ try {
     );
     await fs.mkdir(path.join(upgradeDir, "migrations"));
     for (const entry of await fs.readdir(path.join(app, "prisma/migrations"))) {
-      if (/^\d{12}_.+$/.test(entry) && entry >= "202611180002_invoice_resends") continue;
+      if (/^\d{12}_.+$/.test(entry) && entry >= "202611180003_dealer_service_vins") continue;
       await fs.cp(
         path.join(app, "prisma/migrations", entry),
         path.join(upgradeDir, "migrations", entry),
@@ -226,8 +226,22 @@ try {
       employee: employee.id,
     });
     if (before !== after) throw new Error("Upgrade changed a sentinel snapshot.");
+    const service = await fixture.dealerService.create({
+      data: {
+        dealershipId: dealership.id,
+        date: "2026-01-01",
+        description: "Migration fixture service",
+        quantity: 1,
+        unitCents: 1500,
+        reference: "migration-sentinel-service",
+        evidence: "Fixture only",
+        createdBy: user.id,
+      },
+    });
+    if (!Array.isArray(service.vehicleVins) || service.vehicleVins.length !== 0)
+      throw new Error("The migrated service VIN list did not receive its empty default.");
     console.log(
-      "The latest additive invoice resend migration retained approved payroll, approved invoice and signed reversal sentinel snapshots.",
+      "The additive service VIN migration preserved existing payroll and invoice snapshots and initialized legacy services with empty VIN lists.",
     );
     await fixture.$disconnect();
   }

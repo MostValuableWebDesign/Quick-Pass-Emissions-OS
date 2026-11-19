@@ -1224,7 +1224,7 @@ model Dealership {
   virRecords        DealerVirRecord[]
 }
 
-// Only reviewed billing metadata and hashed vehicle identity; never PDF/OCR bytes.
+// Temporary review fields only; PDF bytes/OCR text are never stored. Raw VINs are cleared on commit.
 model DealerVirUpload {
   id             String            @id @default(cuid())
   dealershipId   String
@@ -1272,6 +1272,7 @@ model DealerVirRecord {
   testNumber   String
   date         String
   minute       Int?
+  // Keep the historical report index privacy-preserving; raw VINs belong on billable services only.
   vinHash      String?
   outcome      String
   testType     String
@@ -1306,6 +1307,8 @@ model DealerService {
   description          String
   quantity             Int
   unitCents            Int
+  // Only billable vehicles, retained so saved services can be invoiced with their VINs.
+  vehicleVins          Json                  @default("[]")
   reference            String                @unique
   evidence             String
   createdBy            String

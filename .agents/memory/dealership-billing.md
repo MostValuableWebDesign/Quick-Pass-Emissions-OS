@@ -27,6 +27,12 @@ VIR uploads must show upload and processed counts and automatically process larg
 
 **How to apply:** Preserve the full-upload tally across batch boundaries and distinguish processed pages from billable inspections; free or excluded reports must not disappear from processing counts.
 
+Billable VIR invoices should include the VIN printed for each inspection, without rejecting provider-accepted VINs for format or check-digit reasons.
+
+**Why:** The user needs the test vehicle identified on the customer invoice, and says a GCAF-accepted test remains countable even when its VIN is invalid.
+
+**How to apply:** Require a VIN value for a billable report but preserve the reviewed value as printed. Retain VIN values only on billable service records and invoice snapshots; never retain PDF bytes or full OCR text. A duplicate report may backfill a missing VIN only when it matches the saved inspection, without creating a second charge.
+
 Dealership invoices should be tailored to each recipient using their official website branding, while Quick Pass remains clearly identified as the invoice issuer.
 
 **Why:** The user asked for dealership-specific invoice designs referenced from their five partner websites. Customer branding must not imply that the dealership issued the invoice.

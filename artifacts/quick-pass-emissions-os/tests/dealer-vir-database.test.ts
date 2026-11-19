@@ -90,17 +90,20 @@ if (enabled) {
       rows: p.rows.map((r) => ({
         id: r.id,
         date: r.date,
+        vin: r.vin,
         certificate: r.certificate,
         testNumber: r.testNumber,
         outcome: r.outcome,
         testType: r.testType,
         billing,
         confirmed: true,
+        saveExistingVin: false,
       })),
     };
   }
   it("makes one grouped service and a draft with exact count, rate, due date and persistent report breakdown", async () => {
     const p = await preview([row(), row("ZZ123457", past, 620, "1M8GDM9AXKP042789")]);
+    expect(p.rows[0].vin).toBe("1M8GDM9AXKP042788");
     expect(JSON.stringify(p)).not.toContain("vinHash");
     expect(JSON.stringify(p)).not.toContain("sourceKey");
     const result = await service.commitDealerVirUpload(owner, commit(p));
@@ -117,10 +120,26 @@ if (enabled) {
       dueDate: addDays(today, 30),
     });
     expect(invoice.lines).toHaveLength(1);
-    expect(invoice.lines[0]).toMatchObject({ quantity: 2, unitCents: 2000, amountCents: 4000 });
+    expect(invoice.lines[0]).toMatchObject({
+      quantity: 2,
+      unitCents: 2000,
+      amountCents: 4000,
+      description:
+        "Emissions inspections\nVehicle VINs:\nVIN: 1M8GDM9AXKP042788\nVIN: 1M8GDM9AXKP042789",
+    });
     expect(await db.dealerVirRecord.count()).toBe(2);
     const upload = await db.dealerVirUpload.findUniqueOrThrow({ where: { id: p.uploadId } });
     expect(upload.rows).toEqual([]);
+  });
+  it("bills and prints a provider-reported VIN without applying standard-format or check-digit rules", async () => {
+    const p = await preview([row("ZZ123486", past, 605, "BADVIN")]);
+    expect(p.rows[0].vin).toBe("BADVIN");
+    const result = await service.commitDealerVirUpload(owner, commit(p));
+    const invoice = await db.dealerInvoice.findUniqueOrThrow({
+      where: { id: result.invoiceId! },
+      include: { lines: true },
+    });
+    expect(invoice.lines[0].description).toContain("VIN: BADVIN");
   });
   it("rebuilds a deleted invoice draft from the same saved VIR service without duplicating reports", async () => {
     const finance = await import("../src/modules/finance/service");
@@ -161,9 +180,50 @@ if (enabled) {
     expect(
       await db.dealerInvoiceLine.findMany({
         where: { invoiceId: recreated.id },
-        select: { serviceId: true, quantity: true, amountCents: true },
+        select: { serviceId: true, quantity: true, amountCents: true, description: true },
       }),
-    ).toEqual([{ serviceId: savedServiceId, quantity: 1, amountCents: 2000 }]);
+    ).toEqual([
+      {
+        serviceId: savedServiceId,
+        quantity: 1,
+        amountCents: 2000,
+        description: "Emissions inspections\nVehicle VINs:\nVIN: 1M8GDM9AXKP042788",
+      },
+    ]);
+  });
+  it("adds a verified VIN from a duplicate PDF to its saved service without rebilling", async () => {
+    const first = await service.commitDealerVirUpload(owner, commit(await preview([row()])));
+    const original = await db.dealerInvoice.findUniqueOrThrow({
+      where: { id: first.invoiceId! },
+      include: { lines: true },
+    });
+    const serviceId = original.lines[0].serviceId;
+    await db.dealerService.update({ where: { id: serviceId }, data: { vehicleVins: [] } });
+    await db.dealerInvoiceLine.update({
+      where: { id: original.lines[0].id },
+      data: { description: "Emissions inspections" },
+    });
+
+    const duplicate = await preview([row()]);
+    expect(duplicate.rows[0].duplicate).toBe(true);
+    const input = commit(duplicate);
+    input.createDraft = false;
+    input.rows[0].billing = "EXCLUDE";
+    input.rows[0].confirmed = false;
+    input.rows[0].saveExistingVin = true;
+    const updated = await service.commitDealerVirUpload(owner, input);
+
+    expect(updated).toMatchObject({ saved: 0, skipped: 1, vinUpdated: 1, invoiceId: null });
+    expect(await db.dealerService.findUniqueOrThrow({ where: { id: serviceId } })).toMatchObject({
+      vehicleVins: ["1M8GDM9AXKP042788"],
+    });
+    expect(
+      await db.dealerInvoiceLine.findUniqueOrThrow({ where: { id: original.lines[0].id } }),
+    ).toMatchObject({
+      description: "Emissions inspections\nVehicle VINs:\nVIN: 1M8GDM9AXKP042788",
+    });
+    expect(await db.dealerInvoice.count()).toBe(1);
+    expect(await db.dealerVirRecord.count()).toBe(1);
   });
   it("fills missing owner-authorized $15 terms and bills two reviewed VIRs at $30", async () => {
     const finance = await import("../src/modules/finance/service");

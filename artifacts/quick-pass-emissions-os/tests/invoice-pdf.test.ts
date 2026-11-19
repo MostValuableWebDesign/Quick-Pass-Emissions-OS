@@ -70,6 +70,42 @@ describe("invoice PDF generation", () => {
     expect(document.getPages()[0].getSize()).toEqual({ width: 612, height: 792 });
   });
 
+  it("prints each inspection VIN in the invoice line details", async () => {
+    const bytes = await createInvoicePdf({
+      ...invoicePdfFixture,
+      lines: [
+        {
+          ...invoicePdfFixture.lines[0],
+          description:
+            "Emissions inspections\nVehicle VINs:\nVIN: 1M8GDM9AXKP042788\nVIN: 1M8GDM9AXKP042789",
+          quantity: 2,
+        },
+      ],
+    });
+    const text = await pdfText(bytes);
+    expect(text).toContain("1M8GDM9AXKP042788");
+    expect(text).toContain("1M8GDM9AXKP042789");
+  });
+
+  it("continues long VIN lists across pages without clipping invoice details", async () => {
+    const vins = Array.from({ length: 90 }, (_, index) => String(index).padStart(17, "0"));
+    const bytes = await createInvoicePdf({
+      ...invoicePdfFixture,
+      lines: [
+        {
+          ...invoicePdfFixture.lines[0],
+          description: `Emissions inspections\nVehicle VINs:\n${vins.map((vin) => `VIN: ${vin}`).join("\n")}`,
+          quantity: vins.length,
+        },
+      ],
+    });
+    const document = await PDFDocument.load(bytes);
+    expect(document.getPageCount()).toBeGreaterThan(1);
+    const text = await pdfText(bytes);
+    expect(text).toContain(`VIN: ${vins[0]}`);
+    expect(text).toContain(`VIN: ${vins.at(-1)}`);
+  });
+
   it("embeds a clickable secure payment link when the invoice has an active balance", async () => {
     const url = `https://quickpassemissions.com/api/invoices/pay/${"a".repeat(72)}`;
     const document = await PDFDocument.load(

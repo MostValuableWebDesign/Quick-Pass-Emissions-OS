@@ -47,6 +47,7 @@ function canBill(row: DealerVirReviewRow, src: DealerVirRow) {
   return (
     !src.duplicate &&
     !src.freeRetest &&
+    !!row.vin.trim() &&
     (row.outcome === "PASS" || row.outcome === "FAIL") &&
     row.testType !== "UNKNOWN" &&
     !!row.date &&
@@ -58,12 +59,14 @@ function initialRow(src: DealerVirRow): DealerVirReviewRow {
   const base: DealerVirReviewRow = {
     id: src.id,
     date: src.date,
+    vin: src.vin,
     certificate: src.certificate,
     testNumber: src.testNumber,
     outcome: src.outcome,
     testType: src.testType,
     billing: "EXCLUDE",
     confirmed: false,
+    saveExistingVin: false,
   };
   if (src.duplicate) return base;
   if (src.freeRetest) return { ...base, billing: "FREE" };
@@ -149,19 +152,21 @@ export function DealerVirUpload({
   }, [rows, preview]);
 
   const included = rows.filter((r) => r.billing !== "EXCLUDE");
-  const allReviewed = included.length > 0 && included.every((r) => r.confirmed);
+  const vinUpdates = rows.filter((r) => r.saveExistingVin);
+  const allReviewed = included.every((r) => r.confirmed);
   const rateMissing = preview?.rateCents == null;
   const termsReady = !!preview?.termsReady;
   const draftOn = createDraft && termsReady && !rateMissing && tally.bill > 0;
-  const blockReason = !included.length
-    ? "Include at least one inspection to save."
-    : !allReviewed
-      ? "Mark every included row as reviewed."
-      : tally.bill > 0 && rateMissing
-        ? "No owner-authorized service rate. Billable rows cannot be saved; mark them free or excluded."
-        : draftOn && !issueDate
-          ? "Choose an invoice issue date."
-          : "";
+  const blockReason =
+    !included.length && !vinUpdates.length
+      ? "Include at least one inspection to save."
+      : !allReviewed
+        ? "Mark every included row as reviewed."
+        : tally.bill > 0 && rateMissing
+          ? "No owner-authorized service rate. Billable rows cannot be saved; mark them free or excluded."
+          : draftOn && !issueDate
+            ? "Choose an invoice issue date."
+            : "";
 
   function reset() {
     setFiles([]);
@@ -369,11 +374,12 @@ export function DealerVirUpload({
         if (r.id !== id) return r;
         const next = { ...r, ...change };
         const src = srcById.get(id);
+        if (src?.duplicate && "vin" in change) next.saveExistingVin = false;
         if (src && next.billing === "BILL" && !canBill(next, src))
           next.billing = src.freeRetest ? "FREE" : "EXCLUDE";
         if (src?.duplicate) next.billing = "EXCLUDE";
         const edited = (
-          ["date", "certificate", "testNumber", "outcome", "testType", "billing"] as const
+          ["date", "vin", "certificate", "testNumber", "outcome", "testType", "billing"] as const
         ).some((k) => k in change && next[k] !== r[k]);
         if (edited || next.billing === "EXCLUDE") next.confirmed = false;
         return next;
@@ -402,7 +408,11 @@ export function DealerVirUpload({
             {result.fileCount} PDF{result.fileCount === 1 ? "" : "s"} uploaded ·{" "}
             {result.processedPages} / {result.uploadedPages} VIR pages processed. Saved{" "}
             {result.saved} reviewed inspection{result.saved === 1 ? "" : "s"} · {result.billable}{" "}
-            billable · {result.free} free · {result.skipped} skipped.{" "}
+            billable · {result.free} free · {result.skipped} skipped
+            {result.vinUpdated
+              ? ` · ${result.vinUpdated} saved VIN${result.vinUpdated === 1 ? "" : "s"} added`
+              : ""}
+            .{" "}
             {result.invoiceId ? (
               <a href={`/invoices/${result.invoiceId}`}>
                 Open invoice draft {result.invoiceNumber ?? ""}
@@ -510,8 +520,8 @@ export function DealerVirUpload({
                 </p>
               )}
               <p className="muted vir-privacy">
-                Files are read once for review and discarded. The PDFs, full VINs and OCR text are
-                never stored.
+                PDFs and OCR text are not retained. VINs are shown during review and saved only for
+                billable services so the invoice can identify each tested vehicle.
               </p>
               {busy === "preview" && (
                 <div className="vir-progress" role="status" aria-live="polite">
@@ -641,17 +651,27 @@ export function DealerVirUpload({
                           ))}
                         </ul>
                       )}
-                      <fieldset
-                        className="vir-fields"
-                        disabled={src.duplicate || busy === "commit"}
-                      >
+                      <fieldset className="vir-fields" disabled={busy === "commit"}>
                         <legend className="sr-only">Inspection fields for {src.source}</legend>
                         <label>
                           <span>Test date</span>
                           <input
                             type="date"
                             value={r.date}
+                            disabled={src.duplicate}
                             onChange={(e) => patch(r.id, { date: e.target.value })}
+                          />
+                        </label>
+                        <label>
+                          <span>VIN</span>
+                          <input
+                            value={r.vin}
+                            maxLength={40}
+                            placeholder="VIN shown on report"
+                            autoCapitalize="characters"
+                            required={r.billing === "BILL"}
+                            onChange={(e) => patch(r.id, { vin: e.target.value.toUpperCase() })}
+                            data-testid={`input-vir-vin-${r.id}`}
                           />
                         </label>
                         <label>
@@ -659,6 +679,7 @@ export function DealerVirUpload({
                           <input
                             value={r.certificate}
                             maxLength={40}
+                            disabled={src.duplicate}
                             onChange={(e) => patch(r.id, { certificate: e.target.value })}
                           />
                         </label>
@@ -667,6 +688,7 @@ export function DealerVirUpload({
                           <input
                             value={r.testNumber}
                             maxLength={40}
+                            disabled={src.duplicate}
                             onChange={(e) => patch(r.id, { testNumber: e.target.value })}
                           />
                         </label>
@@ -674,6 +696,7 @@ export function DealerVirUpload({
                           <span>Outcome</span>
                           <select
                             value={r.outcome}
+                            disabled={src.duplicate}
                             onChange={(e) =>
                               patch(r.id, { outcome: e.target.value as DealerVirRow["outcome"] })
                             }
@@ -687,6 +710,7 @@ export function DealerVirUpload({
                           <span>Test type</span>
                           <select
                             value={r.testType}
+                            disabled={src.duplicate}
                             onChange={(e) =>
                               patch(r.id, { testType: e.target.value as DealerVirRow["testType"] })
                             }
@@ -700,6 +724,7 @@ export function DealerVirUpload({
                           <span>Billing</span>
                           <select
                             value={r.billing}
+                            disabled={src.duplicate}
                             onChange={(e) => patch(r.id, { billing: e.target.value as Billing })}
                             data-testid={`select-vir-billing-${r.id}`}
                           >
@@ -711,6 +736,19 @@ export function DealerVirUpload({
                           </select>
                         </label>
                       </fieldset>
+                      {src.duplicate && (
+                        <label className="check-row vir-confirm">
+                          <input
+                            type="checkbox"
+                            checked={r.saveExistingVin}
+                            disabled={busy === "commit"}
+                            onChange={(e) => patch(r.id, { saveExistingVin: e.target.checked })}
+                            data-testid={`checkbox-vir-save-existing-vin-${r.id}`}
+                          />
+                          Add this verified VIN to the already-saved billable test; no new charge
+                          will be created
+                        </label>
+                      )}
                       {r.billing !== "EXCLUDE" && (
                         <label className="check-row vir-confirm" htmlFor={id}>
                           <input

@@ -1,8 +1,9 @@
-/** Safe review data only: never includes PDF bytes, OCR text, or a raw VIN. */
+/** Review data includes only the labelled VIN alongside parsed fields, never PDF/OCR contents. */
 export type DealerVirRow = {
   id: string;
   source: string;
   date: string;
+  vin: string;
   certificate: string;
   testNumber: string;
   outcome: "PASS" | "FAIL" | "ABORT" | "UNKNOWN";
@@ -45,12 +46,14 @@ export type DealerVirProgress = {
 export type DealerVirReviewRow = {
   id: string;
   date: string;
+  vin: string;
   certificate: string;
   testNumber: string;
   outcome: DealerVirRow["outcome"];
   testType: DealerVirRow["testType"];
   billing: "BILL" | "FREE" | "EXCLUDE";
   confirmed: boolean;
+  saveExistingVin: boolean;
 };
 
 export type DealerVirCommitInput = {
@@ -69,6 +72,7 @@ export type DealerVirResult = {
   skipped: number;
   invoiceId: string | null;
   invoiceNumber: string | null;
+  vinUpdated?: number;
 };
 
 export type DealerVirResponse<T> = { ok: true; data: T } | { ok: false; message: string };

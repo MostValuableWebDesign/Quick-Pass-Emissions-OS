@@ -126,7 +126,7 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
               {i.lines.map((l) => (
                 <tr key={l.id}>
                   <td>{l.date}</td>
-                  <td>{l.description}</td>
+                  <td style={{ whiteSpace: "pre-line" }}>{l.description}</td>
                   <td>{l.quantity}</td>
                   <td>
                     <Money cents={l.unitCents} />

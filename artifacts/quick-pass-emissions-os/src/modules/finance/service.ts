@@ -26,6 +26,15 @@ import {
   csv,
   requiredInteger,
 } from "./rules";
+
+export function invoiceServiceDescription(description: string, value: unknown) {
+  const vins = Array.isArray(value)
+    ? value.filter((vin): vin is string => typeof vin === "string" && /^[A-Z0-9-]{1,40}$/.test(vin))
+    : [];
+  return vins.length
+    ? `${description}\nVehicle VINs:\n${vins.map((vin) => `VIN: ${vin}`).join("\n")}`
+    : description;
+}
 export const categories = [
   "EMISSIONS",
   "TAG_KIOSK",
@@ -427,7 +436,7 @@ export async function createInvoiceInTransaction(tx: Tx, actorId: string, input:
         create: services.map((s, i) => ({
           serviceId: s.id,
           date: s.date,
-          description: s.description,
+          description: invoiceServiceDescription(s.description, s.vehicleVins),
           quantity: s.quantity,
           unitCents: s.unitCents,
           amountCents: totals.amounts[i],

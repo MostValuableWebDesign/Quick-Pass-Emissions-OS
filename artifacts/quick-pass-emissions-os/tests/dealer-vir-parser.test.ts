@@ -14,10 +14,11 @@ VIN: 1M8GDM9AXKP042788 Test ID: 91106999999
 ${edits}`;
 
 describe("dealer VIR parsing", () => {
-  it("extracts safe billing fields but never retains OCR text or a raw VIN", () => {
+  it("extracts the labelled VIN and safe billing fields without retaining OCR text", () => {
     const row = parseVirPage(report(), "PDF 1 · Page 1", "TEXT");
     expect(row).toMatchObject({
       date: "2026-10-01",
+      vin: "1M8GDM9AXKP042788",
       minute: 709,
       certificate: "ZZ123456",
       testNumber: "91106999999",
@@ -28,7 +29,7 @@ describe("dealer VIR parsing", () => {
       duplicate: false,
     });
     expect(row.vinHash).toMatch(/^[a-f0-9]{64}$/);
-    expect(JSON.stringify(row)).not.toContain("1M8GDM9AXKP042788");
+    expect(row.vin).toBe("1M8GDM9AXKP042788");
     expect(JSON.stringify(row)).not.toContain("GEORGIA VEHICLE");
     expect(row.warnings).toEqual([]);
   });
@@ -87,6 +88,21 @@ describe("dealer VIR parsing", () => {
     );
     expect(row.vinHash).toMatch(/^[a-f0-9]{64}$/);
     expect(row.outcome).toBe("PASS");
+  });
+
+  it("does not invent a VIN when the report does not contain one", () => {
+    const row = parseVirPage(report().replace("VIN: 1M8GDM9AXKP042788", ""), "p1", "TEXT");
+    expect(row.vin).toBe("");
+    expect(row.vinHash).toBeNull();
+  });
+
+  it("keeps a provider-printed nonstandard VIN without check-digit validation", () => {
+    const row = parseVirPage(report().replace("1M8GDM9AXKP042788", "BADVIN"), "p1", "TEXT");
+    expect(row.vin).toBe("BADVIN");
+    expect(row.vinHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(row.warnings).not.toContain(
+      "VIN could not be read reliably. Verify the free-retest status manually.",
+    );
   });
 
   it("requires explicit review input and constrains batch size", () => {

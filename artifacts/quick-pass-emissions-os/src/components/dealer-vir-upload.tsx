@@ -159,7 +159,11 @@ export function DealerVirUpload({
   const draftOn = createDraft && termsReady && !rateMissing && tally.bill > 0;
   const blockReason =
     !included.length && !vinUpdates.length
-      ? "Include at least one inspection to save."
+      ? rows.some((row) => srcById.get(row.id)?.duplicate)
+        ? "Select the VIN update option on a saved billable test, or invoice the saved service from the dealership page."
+        : "Include at least one inspection to save."
+      : vinUpdates.some((row) => !row.vin.trim())
+        ? "Enter the VIN shown on each selected report before updating saved tests."
       : !allReviewed
         ? "Mark every included row as reviewed."
         : tally.bill > 0 && rateMissing
@@ -374,7 +378,6 @@ export function DealerVirUpload({
         if (r.id !== id) return r;
         const next = { ...r, ...change };
         const src = srcById.get(id);
-        if (src?.duplicate && "vin" in change) next.saveExistingVin = false;
         if (src && next.billing === "BILL" && !canBill(next, src))
           next.billing = src.freeRetest ? "FREE" : "EXCLUDE";
         if (src?.duplicate) next.billing = "EXCLUDE";
@@ -745,8 +748,7 @@ export function DealerVirUpload({
                             onChange={(e) => patch(r.id, { saveExistingVin: e.target.checked })}
                             data-testid={`checkbox-vir-save-existing-vin-${r.id}`}
                           />
-                          Add this verified VIN to the already-saved billable test; no new charge
-                          will be created
+                          Update this saved test with the VIN above; no new charge will be created
                         </label>
                       )}
                       {r.billing !== "EXCLUDE" && (

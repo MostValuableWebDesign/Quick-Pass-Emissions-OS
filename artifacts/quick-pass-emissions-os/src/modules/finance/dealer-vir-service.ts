@@ -528,6 +528,7 @@ export async function commitDealerVirUpload(
       });
     }
     let vinUpdated = 0;
+    let updatedDraft: { id: string; number: string } | null = null;
     for (const row of vinUpdates) {
       const testKey = virTestKey(row.testNumber);
       const existing = await tx.dealerVirRecord.findFirst({
@@ -586,14 +587,16 @@ export async function commitDealerVirUpload(
       });
       const draftLines = await tx.dealerInvoiceLine.findMany({
         where: { serviceId: existing.serviceId },
-        include: { invoice: { select: { state: true, archivedAt: true } } },
+        include: { invoice: { select: { id: true, number: true, state: true, archivedAt: true } } },
       });
       for (const line of draftLines) {
-        if (line.invoice.state === "DRAFT" && !line.invoice.archivedAt)
+        if (line.invoice.state === "DRAFT" && !line.invoice.archivedAt) {
           await tx.dealerInvoiceLine.update({
             where: { id: line.id },
             data: { description: invoiceServiceDescription(service.description, nextVins) },
           });
+          updatedDraft ??= { id: line.invoice.id, number: line.invoice.number };
+        }
       }
       if (!existing.vinHash)
         await tx.dealerVirRecord.update({
@@ -621,8 +624,8 @@ export async function commitDealerVirUpload(
       billable: billable.length,
       free: accepted.length - billable.length,
       skipped: merged.length - accepted.length,
-      invoiceId: invoice?.id ?? null,
-      invoiceNumber: invoice?.number ?? null,
+      invoiceId: invoice?.id ?? updatedDraft?.id ?? null,
+      invoiceNumber: invoice?.number ?? updatedDraft?.number ?? null,
       vinUpdated,
     };
     await tx.dealerVirUpload.update({

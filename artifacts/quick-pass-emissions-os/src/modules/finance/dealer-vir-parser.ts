@@ -129,6 +129,7 @@ export const virReviewSchema = z.object({
         billing: z.enum(["BILL", "FREE", "EXCLUDE"]),
         confirmed: z.boolean(),
         saveExistingVin: z.boolean().default(false),
+        reuseSavedService: z.boolean().default(false),
       }),
     )
     .min(1)

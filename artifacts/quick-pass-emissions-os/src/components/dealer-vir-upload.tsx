@@ -136,23 +136,36 @@ export function DealerVirUpload({
   const tally = useMemo(() => {
     let bill = 0,
       free = 0,
-      excluded = 0;
+      excluded = 0,
+      reusedCents = 0;
+    const reused = new Set<string>();
     for (const r of rows) {
       if (r.billing === "BILL") bill++;
       else if (r.billing === "FREE") free++;
-      else excluded++;
+      else if (!r.saveExistingVin && !r.reuseSavedService) excluded++;
+      const service = srcById.get(r.id)?.savedService;
+      if (r.reuseSavedService && service && !reused.has(service.id)) {
+        reused.add(service.id);
+        reusedCents += service.quantity * service.unitCents;
+      }
     }
     const rate = preview?.rateCents ?? null;
-    const subtotal = rate === null ? null : rate * bill;
+    const subtotal = rate === null && bill > 0 ? null : (rate ?? 0) * bill + reusedCents;
+    const reusedCount = [...reused].reduce(
+      (count, id) =>
+        count +
+        (preview?.rows.find((row) => row.savedService?.id === id)?.savedService?.quantity ?? 0),
+      0,
+    );
     const tax =
       subtotal !== null && preview?.taxBps != null
         ? Math.floor((subtotal * preview.taxBps + 5000) / 10000)
         : null;
-    return { bill, free, excluded, subtotal, tax };
-  }, [rows, preview]);
+    return { bill: bill + reusedCount, free, excluded, subtotal, tax, reusedCount };
+  }, [rows, preview, srcById]);
 
   const included = rows.filter((r) => r.billing !== "EXCLUDE");
-  const vinUpdates = rows.filter((r) => r.saveExistingVin);
+  const vinUpdates = rows.filter((r) => r.saveExistingVin || r.reuseSavedService);
   const allReviewed = included.every((r) => r.confirmed);
   const rateMissing = preview?.rateCents == null;
   const termsReady = !!preview?.termsReady;
@@ -160,17 +173,17 @@ export function DealerVirUpload({
   const blockReason =
     !included.length && !vinUpdates.length
       ? rows.some((row) => srcById.get(row.id)?.duplicate)
-        ? "Select the VIN update option on a saved billable test, or invoice the saved service from the dealership page."
+        ? "Select Update saved test to add its VIN, or Reuse saved service to create an invoice."
         : "Include at least one inspection to save."
       : vinUpdates.some((row) => !row.vin.trim())
         ? "Enter the VIN shown on each selected report before updating saved tests."
-      : !allReviewed
-        ? "Mark every included row as reviewed."
-        : tally.bill > 0 && rateMissing
-          ? "No owner-authorized service rate. Billable rows cannot be saved; mark them free or excluded."
-          : draftOn && !issueDate
-            ? "Choose an invoice issue date."
-            : "";
+        : !allReviewed
+          ? "Mark every included row as reviewed."
+          : tally.bill > 0 && rateMissing
+            ? "No owner-authorized service rate. Billable rows cannot be saved; mark them free or excluded."
+            : draftOn && !issueDate
+              ? "Choose an invoice issue date."
+              : "";
 
   function reset() {
     setFiles([]);
@@ -413,7 +426,7 @@ export function DealerVirUpload({
             {result.saved} reviewed inspection{result.saved === 1 ? "" : "s"} · {result.billable}{" "}
             billable · {result.free} free · {result.skipped} skipped
             {result.vinUpdated
-              ? ` · ${result.vinUpdated} saved VIN${result.vinUpdated === 1 ? "" : "s"} added`
+              ? ` · ${result.vinUpdated} saved test VIN${result.vinUpdated === 1 ? "" : "s"} updated`
               : ""}
             .{" "}
             {result.invoiceId ? (
@@ -421,7 +434,9 @@ export function DealerVirUpload({
                 Open invoice draft {result.invoiceNumber ?? ""}
               </a>
             ) : (
-              <a href={`/dealerships/${result.dealershipId}`}>View dealership services</a>
+              <a href={`/dealerships/${result.dealershipId}?section=services#create-invoice`}>
+                View dealership services
+              </a>
             )}
           </p>
           <button
@@ -588,7 +603,9 @@ export function DealerVirUpload({
                   <small>
                     {preview.rateCents === null
                       ? "Owner must authorize a rate"
-                      : `${tally.bill} × ${money(preview.rateCents)} authorized rate${tally.tax !== null ? ` + ${money(tally.tax)} tax` : " · tax not configured"}`}
+                      : tally.reusedCount > 0
+                        ? `${tally.reusedCount} saved inspections at their original rates${tally.bill > tally.reusedCount ? " + new billable inspections" : ""}${tally.tax !== null ? ` + ${money(tally.tax)} tax` : ""}`
+                        : `${tally.bill} × ${money(preview.rateCents)} authorized rate${tally.tax !== null ? ` + ${money(tally.tax)} tax` : " · tax not configured"}`}
                   </small>
                 </div>
               </div>
@@ -623,6 +640,35 @@ export function DealerVirUpload({
                 />
                 I have checked every included row against its PDF page
               </label>
+              {preview.rows.some((row) => row.duplicate && row.savedService) && (
+                <label className="check-row vir-all">
+                  <input
+                    type="checkbox"
+                    checked={preview.rows
+                      .filter((row) => row.duplicate && row.savedService)
+                      .every((source) => rows.find((row) => row.id === source.id)?.saveExistingVin)}
+                    disabled={!!busy}
+                    onChange={(event) =>
+                      setRows((list) =>
+                        list.map((row) =>
+                          srcById.get(row.id)?.savedService && srcById.get(row.id)?.duplicate
+                            ? {
+                                ...row,
+                                saveExistingVin: event.target.checked,
+                                reuseSavedService: event.target.checked
+                                  ? row.reuseSavedService
+                                  : false,
+                              }
+                            : row,
+                        ),
+                      )
+                    }
+                    data-testid="checkbox-vir-update-all-vins"
+                  />
+                  I checked the VINs above; update all matched saved tests without adding new
+                  charges
+                </label>
+              )}
 
               <ol className="vir-rows">
                 {rows.map((r) => {
@@ -642,7 +688,9 @@ export function DealerVirUpload({
                           {src.method === "OCR" ? "OCR" : "Text"} · {Math.round(src.confidence)}%
                           confidence
                         </span>
-                        {src.duplicate && <span className="vir-chip bad">Already recorded</span>}
+                        {src.duplicate && (
+                          <span className="vir-chip info">Saved test · reuse or update</span>
+                        )}
                         {src.freeRetest && (
                           <span className="vir-chip info">Free retest detected</span>
                         )}
@@ -739,17 +787,51 @@ export function DealerVirUpload({
                           </select>
                         </label>
                       </fieldset>
-                      {src.duplicate && (
+                      {src.duplicate && src.savedService && (
                         <label className="check-row vir-confirm">
                           <input
                             type="checkbox"
                             checked={r.saveExistingVin}
                             disabled={busy === "commit"}
-                            onChange={(e) => patch(r.id, { saveExistingVin: e.target.checked })}
+                            onChange={(e) =>
+                              patch(r.id, {
+                                saveExistingVin: e.target.checked,
+                                reuseSavedService: e.target.checked ? r.reuseSavedService : false,
+                              })
+                            }
                             data-testid={`checkbox-vir-save-existing-vin-${r.id}`}
                           />
                           Update this saved test with the VIN above; no new charge will be created
                         </label>
+                      )}
+                      {src.duplicate && src.savedService?.availableForInvoice && (
+                        <label className="check-row vir-confirm">
+                          <input
+                            type="checkbox"
+                            checked={!!r.reuseSavedService}
+                            disabled={!!busy}
+                            onChange={(event) =>
+                              patch(r.id, {
+                                reuseSavedService: event.target.checked,
+                                saveExistingVin: event.target.checked || r.saveExistingVin,
+                              })
+                            }
+                            data-testid={`checkbox-vir-reuse-service-${r.id}`}
+                          />
+                          Reuse saved service on new invoice: {src.savedService.quantity} inspection
+                          {src.savedService.quantity === 1 ? "" : "s"} ×{" "}
+                          {money(src.savedService.unitCents)}. Includes the full saved service;
+                          selecting it on multiple reports bills it once.
+                        </label>
+                      )}
+                      {src.duplicate && src.savedService?.invoiceId && (
+                        <p className="muted">
+                          Already on{" "}
+                          <Link href={`/invoices/${src.savedService.invoiceId}`}>
+                            invoice {src.savedService.invoiceNumber}
+                          </Link>
+                          . Save VIN updates for a draft, or open the existing invoice to resend it.
+                        </p>
                       )}
                       {r.billing !== "EXCLUDE" && (
                         <label className="check-row vir-confirm" htmlFor={id}>
@@ -814,8 +896,7 @@ export function DealerVirUpload({
                   </div>
                 )}
                 <p className="muted">
-                  Drafts need approval by a different owner or manager. Nothing is sent or charged
-                  here.
+                  Review and send from the invoice page. Nothing is emailed or charged here.
                 </p>
               </fieldset>
 
@@ -846,7 +927,11 @@ export function DealerVirUpload({
                   onClick={runCommit}
                   data-testid="button-vir-commit"
                 >
-                  {draftOn ? "Create invoice draft" : "Save reviewed inspections"}
+                  {draftOn
+                    ? "Create invoice draft"
+                    : vinUpdates.length
+                      ? "Save VIN updates"
+                      : "Save reviewed inspections"}
                 </button>
               </div>
             </div>

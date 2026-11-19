@@ -4,13 +4,16 @@ import { describe, expect, it } from "vitest";
 import { DealerVirRecoveryNotice } from "@/components/dealer-vir-recovery-notice";
 
 describe("duplicate VIR invoice recovery", () => {
-  it("links to saved services instead of importing duplicate inspections", () => {
+  it("explains VIN updates and safe reuse without blocking reuploads", () => {
     const html = renderToStaticMarkup(
       createElement(DealerVirRecoveryNotice, { dealershipId: "fixture-dealership" }),
     );
-    expect(html).toContain('href="/dealerships/fixture-dealership#create-invoice"');
-    expect(html).toContain("Invoice saved services");
-    expect(html).toContain("You do not need to upload the PDFs again.");
-    expect(html).toContain("Services attached to another invoice cannot be billed again.");
+    expect(html).toContain(
+      'href="/dealerships/fixture-dealership?section=services#create-invoice"',
+    );
+    expect(html).toContain("Open saved services");
+    expect(html).toContain("Reuse saved service");
+    expect(html).toContain("Services attached to a sent invoice cannot be billed again.");
+    expect(html).not.toContain("You do not need to upload");
   });
 });

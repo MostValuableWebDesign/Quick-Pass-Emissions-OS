@@ -472,8 +472,9 @@ export default async function Dealer({
                 <section className="card card-body space-top" id="create-invoice">
                   <h2>Create invoice from saved services</h2>
                   <p className="muted">
-                    Select unbilled services. Previously scanned VIR inspections are already saved;
-                    do not upload their PDFs again.
+                    Select saved unbilled services to create a draft. Use Upload VIR PDFs above to
+                    add missing VINs or reuse reports from a deleted draft without importing them
+                    twice.
                   </p>
                   <ActionForm action={actions.createInvoice} submit="Create invoice draft">
                     <input type="hidden" name="dealershipId" value={d.id} />

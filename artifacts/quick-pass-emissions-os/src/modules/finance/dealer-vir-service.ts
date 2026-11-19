@@ -280,7 +280,7 @@ async function annotateRows(tx: Tx, rows: StoredVirRow[]) {
         ),
         ...(duplicate
           ? [
-              "Already recorded; no new copy will be imported. If its draft was deleted, invoice the saved unbilled services instead.",
+              "Saved report found. Update its VIN or reuse its unbilled saved service below; no duplicate inspection will be imported.",
             ]
           : []),
         ...(freeRetest ? ["Free retest or zero-fee inspection. Not billable."] : []),
@@ -308,6 +308,32 @@ export async function finishDealerVirUpload(
       `Only ${upload.processedPages} of ${upload.expectedPages} VIR pages were processed. Continue the remaining batches.`,
     );
     const annotated = upload.rows as unknown as StoredVirRow[];
+    const savedReports = await tx.dealerVirRecord.findMany({
+      where: {
+        dealershipId: upload.dealershipId,
+        billing: "BILL",
+        serviceId: { not: null },
+        OR: [
+          { reportKey: { in: annotated.flatMap((row) => (row.reportKey ? [row.reportKey] : [])) } },
+          { sourceKey: { in: annotated.map((row) => row.sourceKey) } },
+          {
+            testKey: {
+              in: annotated.flatMap((row) =>
+                virTestKey(row.testNumber) ? [virTestKey(row.testNumber)!] : [],
+              ),
+            },
+          },
+        ],
+      },
+      select: { reportKey: true, sourceKey: true, testKey: true, serviceId: true },
+    });
+    const savedServices = await tx.dealerService.findMany({
+      where: {
+        id: { in: savedReports.flatMap((row) => (row.serviceId ? [row.serviceId] : [])) },
+        dealershipId: upload.dealershipId,
+      },
+      include: { invoice: { select: { id: true, number: true } } },
+    });
     await tx.dealerVirUpload.update({
       where: { id: upload.id },
       data: {
@@ -330,7 +356,30 @@ export async function finishDealerVirUpload(
           minute: _minute,
           sourceKey: _sourceKey,
           ...row
-        }) => ({ ...row, vin: row.vin ?? "" }),
+        }) => {
+          const testKey = virTestKey(row.testNumber);
+          const match = savedReports.find(
+            (report) =>
+              report.reportKey === _reportKey ||
+              report.sourceKey === _sourceKey ||
+              (!!testKey && report.testKey === testKey),
+          );
+          const service = savedServices.find((service) => service.id === match?.serviceId);
+          return {
+            ...row,
+            vin: row.vin ?? "",
+            savedService: service
+              ? {
+                  id: service.id,
+                  quantity: service.quantity,
+                  unitCents: service.unitCents,
+                  availableForInvoice: !service.invoiceId && !service.voidDate,
+                  invoiceId: service.invoice?.id ?? null,
+                  invoiceNumber: service.invoice?.number ?? null,
+                }
+              : undefined,
+          };
+        },
       ),
       rateCents: upload.dealership.defaultRateCents,
       taxBps: upload.dealership.taxBps,
@@ -383,7 +432,7 @@ export async function commitDealerVirUpload(
     const merged = originals.map((original) => {
       const review = data.rows.find((row) => row.id === original.id)!;
       const vin = review.vin.trim().toUpperCase();
-      if (review.saveExistingVin) {
+      if (review.saveExistingVin || review.reuseSavedService) {
         requireRule(
           original.duplicate,
           `${original.source} is not an existing inspection that can be updated.`,
@@ -440,7 +489,7 @@ export async function commitDealerVirUpload(
     const accepted = merged.filter(
       (row) => row.billing !== "EXCLUDE" && !states.get(row.id)?.duplicate,
     );
-    const vinUpdates = merged.filter((row) => row.saveExistingVin);
+    const vinUpdates = merged.filter((row) => row.saveExistingVin || row.reuseSavedService);
     requireRule(
       accepted.length > 0 || vinUpdates.length > 0,
       "No new inspections selected. Duplicates cannot be imported again.",
@@ -470,7 +519,10 @@ export async function commitDealerVirUpload(
         "Set the dealership service rate before importing billable inspections.",
       );
     if (data.createDraft) {
-      requireRule(billable.length > 0, "An invoice needs at least one billable inspection.");
+      requireRule(
+        billable.length > 0 || merged.some((row) => row.reuseSavedService),
+        "Select a new billable inspection or an unbilled saved service.",
+      );
       requireRule(
         termsReady(upload.dealership),
         "Authorize the dealership billing terms and tax before creating a draft.",
@@ -553,9 +605,32 @@ export async function commitDealerVirUpload(
       );
       const service = await tx.dealerService.findFirst({
         where: { id: existing.serviceId, dealershipId: data.dealershipId },
-        select: { description: true, vehicleVins: true },
+        select: {
+          description: true,
+          vehicleVins: true,
+          invoiceId: true,
+          voidDate: true,
+          date: true,
+        },
       });
       requireRule(service, "The saved inspection service could not be found.");
+      requireRule(
+        !service.voidDate,
+        "This saved service was voided and cannot be updated or billed.",
+      );
+      if (row.reuseSavedService) {
+        requireRule(
+          !service.invoiceId,
+          "This saved service is already attached to an invoice. Update or resend that invoice instead.",
+        );
+        if (data.createDraft) {
+          requireRule(
+            service.date <= data.issueDate,
+            "Invoice date must be on or after the saved inspection date.",
+          );
+          if (!serviceIds.includes(existing.serviceId)) serviceIds.push(existing.serviceId);
+        }
+      }
       const existingVins = Array.isArray(service.vehicleVins)
         ? service.vehicleVins.filter((value) => {
             if (typeof value === "string") return /^[A-Z0-9-]{1,40}$/.test(value);
@@ -616,7 +691,9 @@ export async function commitDealerVirUpload(
           number: data.invoiceNumber,
           issueDate: data.issueDate,
           serviceIds,
-          notes: `Created from ${billable.length} reviewed VIR reports.`,
+          notes: vinUpdates.some((row) => row.reuseSavedService)
+            ? "Created from reviewed VIR reports and previously saved services."
+            : `Created from ${billable.length} reviewed VIR reports.`,
         })
       : null;
     const result: DealerVirResult = {

@@ -13,6 +13,14 @@ export type DealerVirRow = {
   method: "TEXT" | "OCR";
   warnings: string[];
   duplicate: boolean;
+  savedService?: {
+    id: string;
+    quantity: number;
+    unitCents: number;
+    availableForInvoice: boolean;
+    invoiceId: string | null;
+    invoiceNumber: string | null;
+  };
   freeRetest: boolean;
 };
 
@@ -54,6 +62,7 @@ export type DealerVirReviewRow = {
   billing: "BILL" | "FREE" | "EXCLUDE";
   confirmed: boolean;
   saveExistingVin: boolean;
+  reuseSavedService?: boolean;
 };
 
 export type DealerVirCommitInput = {

@@ -33,6 +33,12 @@ Billable VIR invoices should include the VIN printed for each inspection, withou
 
 **How to apply:** Require a VIN value for a billable report but preserve the reviewed value as printed. Show each report's test ID paired with its VIN in invoice details. Retain VIN values only on billable service records and invoice snapshots; never retain PDF bytes or full OCR text. A duplicate report may backfill a missing VIN only when it matches the saved inspection, without creating a second charge.
 
+Re-uploading saved VIRs must support VIN updates and reuse of unbilled services, not simply disable all duplicate reports.
+
+**Why:** The user could not re-upload older reports to put VINs on a replacement invoice; an excluded-row-only review made the intended recovery path unusable.
+
+**How to apply:** Distinguish updating an existing draft from invoicing an unbilled saved service. Explicitly show the whole saved-service quantity and original rate before reuse, deduplicate service selections, and never bill a service already allocated to another invoice.
+
 Dealership invoices should be tailored to each recipient using their official website branding, while Quick Pass remains clearly identified as the invoice issuer.
 
 **Why:** The user asked for dealership-specific invoice designs referenced from their five partner websites. Customer branding must not imply that the dealership issued the invoice.

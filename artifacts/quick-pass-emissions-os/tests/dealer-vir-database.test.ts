@@ -214,7 +214,7 @@ if (enabled) {
     input.rows[0].saveExistingVin = true;
     const updated = await service.commitDealerVirUpload(owner, input);
 
-    expect(updated).toMatchObject({ saved: 0, skipped: 1, vinUpdated: 1, invoiceId: null });
+    expect(updated).toMatchObject({ saved: 0, skipped: 1, vinUpdated: 1, invoiceId: original.id });
     expect(await db.dealerService.findUniqueOrThrow({ where: { id: serviceId } })).toMatchObject({
       vehicleVins: [
         {
@@ -232,6 +232,89 @@ if (enabled) {
     });
     expect(await db.dealerInvoice.count()).toBe(1);
     expect(await db.dealerVirRecord.count()).toBe(1);
+  });
+  it("reuploads reports from a deleted draft and reuses their saved service exactly once", async () => {
+    const finance = await import("../src/modules/finance/service");
+    const original = await service.commitDealerVirUpload(
+      owner,
+      commit(await preview([row(), row("ZZ123457", past, 620, "1M8GDM9AXKP042789")])),
+    );
+    const invoice = await db.dealerInvoice.findUniqueOrThrow({
+      where: { id: original.invoiceId! },
+      include: { lines: true },
+    });
+    const serviceId = invoice.lines[0].serviceId;
+    await finance.deleteDraftInvoice(owner, { id: invoice.id, version: invoice.version });
+    await db.dealerService.update({ where: { id: serviceId }, data: { vehicleVins: [] } });
+    const reupload = await preview([row(), row("ZZ123457", past, 620, "1M8GDM9AXKP042789")]);
+    for (const report of reupload.rows) {
+      expect(report).toMatchObject({
+        duplicate: true,
+        savedService: { id: serviceId, availableForInvoice: true, quantity: 2, unitCents: 2000 },
+      });
+    }
+    const input = commit(reupload, "EXCLUDE");
+    input.rows.forEach((report) => {
+      report.saveExistingVin = true;
+      report.reuseSavedService = true;
+    });
+    const result = await service.commitDealerVirUpload(owner, input);
+    expect(result).toMatchObject({ saved: 0, vinUpdated: 2 });
+    const recreated = await db.dealerInvoice.findUniqueOrThrow({
+      where: { id: result.invoiceId! },
+      include: { lines: true },
+    });
+    expect(recreated.totalCents).toBe(4000);
+    expect(recreated.lines).toHaveLength(1);
+    expect(recreated.lines[0]).toMatchObject({ quantity: 2, serviceId });
+    expect(recreated.lines[0].description).toContain(
+      "Test ID: 91106123456 · VIN: 1M8GDM9AXKP042788",
+    );
+    expect(recreated.lines[0].description).toContain(
+      "Test ID: 91106123457 · VIN: 1M8GDM9AXKP042789",
+    );
+    expect(await db.dealerService.count()).toBe(1);
+    expect(await db.dealerVirRecord.count()).toBe(2);
+    expect(await service.commitDealerVirUpload(owner, input)).toEqual(result);
+  });
+  it("rejects a forged reuse selection when the saved service is already invoiced", async () => {
+    await service.commitDealerVirUpload(owner, commit(await preview([row()])));
+    const reupload = await preview([row()]);
+    expect(reupload.rows[0].savedService?.availableForInvoice).toBe(false);
+    const input = commit(reupload, "EXCLUDE");
+    input.rows[0].reuseSavedService = true;
+    await expect(service.commitDealerVirUpload(owner, input)).rejects.toThrow(
+      "already attached to an invoice",
+    );
+    expect(await db.dealerInvoice.count()).toBe(1);
+    expect(await db.dealerVirRecord.count()).toBe(1);
+  });
+  it("does not allow a duplicate report from another dealership to be reused", async () => {
+    await service.commitDealerVirUpload(owner, commit(await preview([row()])));
+    dealer = (
+      await db.dealership.create({
+        data: {
+          code: randomUUID(),
+          name: "Other dealership",
+          billingAddress: "",
+          defaultRateCents: 1500,
+          termsDays: 30,
+          taxBps: 0,
+          termsAuthorizedAt: new Date(),
+          termsAuthorizedBy: owner,
+          termsReference: "Fixture",
+        },
+      })
+    ).id;
+    const reupload = await preview([row()]);
+    expect(reupload.rows[0].duplicate).toBe(true);
+    expect(reupload.rows[0].savedService).toBeUndefined();
+    const input = commit(reupload, "EXCLUDE");
+    input.rows[0].reuseSavedService = true;
+    await expect(service.commitDealerVirUpload(owner, input)).rejects.toThrow(
+      "could not be matched",
+    );
+    expect(await db.dealerInvoice.count()).toBe(1);
   });
   it("fills missing owner-authorized $15 terms and bills two reviewed VIRs at $30", async () => {
     const finance = await import("../src/modules/finance/service");

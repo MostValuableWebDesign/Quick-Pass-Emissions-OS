@@ -41,7 +41,7 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
     <>
       <PageHeader
         title={`Invoice ${i.number}`}
-        description={`${summary.status} · Issued ${i.issueDate} · Due ${i.dueDate}${i.sentDate ? ` · Sent ${i.sentDate}` : ""}`}
+        description={`${summary.status} · Issued ${i.issueDate}${i.sentDate ? ` · Sent ${i.sentDate}` : ""}`}
       />
       <DemoNotice demo={data.demo} />
       <section className="card card-body space-top" aria-labelledby="invoice-record-actions">

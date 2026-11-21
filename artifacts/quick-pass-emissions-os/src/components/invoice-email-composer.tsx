@@ -193,7 +193,6 @@ export function InvoiceEmailComposer({
             />
             <span>
               Blind copy this invoice to <strong>{invoiceBccEmail}</strong>
-              <small>Hidden from the dealership recipient.</small>
             </span>
           </label>
           <div className="field">

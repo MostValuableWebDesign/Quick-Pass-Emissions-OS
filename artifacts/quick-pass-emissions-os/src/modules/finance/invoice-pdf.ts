@@ -289,7 +289,6 @@ export async function createInvoicePdf(invoice: InvoicePdfDetails) {
 
   const facts: [string, string][] = [
     ["Issue date", invoiceDate(invoice.issueDate)],
-    ["Due date", invoiceDate(invoice.dueDate)],
     ["Service period", invoiceServicePeriod(invoice.lines.map((l) => l.date))],
   ];
   const factX = X + leftW + 22;

@@ -51,7 +51,6 @@ export function buildInvoiceEmail(
       "",
       `- Invoice number: ${invoice.number}`,
       `- Outstanding balance: ${invoiceMoney(invoice.remainingCents)}`,
-      `- Payment due date: ${invoiceDate(invoice.dueDate)}`,
       "",
       ...(paymentUrl
         ? [

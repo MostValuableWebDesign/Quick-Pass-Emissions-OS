@@ -33,13 +33,13 @@ describe("manual dealership invoice emails", () => {
       "Oct 1, 2026 to Oct 3, 2026",
       "INV-104",
       "Outstanding balance: $120.00",
-      "Payment due date: Oct 20, 2026",
       signature.paymentInstructions,
       signature.senderName,
       signature.senderPhone,
       "If payment has already been sent, please reply with the payment date and reference number",
     ])
       expect(draft.body).toContain(text);
+    expect(draft.body).not.toContain("Payment due date");
     expect(draft.body).not.toContain(signature.senderEmail);
     expect(draft.body).not.toContain(invoiceIssuer.website);
     expect(draft.body).not.toMatch(/\[[^\]]+\]/);
@@ -99,6 +99,7 @@ describe("manual dealership invoice emails", () => {
     expect(html).toContain("Sending issues this draft invoice.");
     expect(html).toContain('value="qpemissions@gmail.com"');
     expect(html).toContain(`Blind copy this invoice to <strong>${invoiceBccEmail}</strong>`);
+    expect(html).not.toContain("Hidden from the dealership recipient.");
     expect(html).toContain('name="includeBcc"');
     expect(html).toContain('checked=""');
     expect(html).toContain('readOnly=""');

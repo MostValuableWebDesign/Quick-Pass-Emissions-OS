@@ -489,25 +489,13 @@ export async function createInvoicePdf(invoice: InvoicePdfDetails) {
       color: lineColor,
     });
     sheet.drawRectangle({ x: X, y: 43.5, width: 40, height: 1.5, color: accent });
-    // The full website is already shown in the masthead; keep the footer concise
-    // so it never truncates the business contact details into an unclear URL.
-    const left = `${invoiceIssuer.name}  |  ${invoiceIssuer.email}`;
-    sheet.drawText(fit(left, regular, 7.5, 250), {
+    const footer = fit(`${invoiceIssuer.name} | Prepared for ${snap.name}`, regular, 7.5, CW);
+    sheet.drawText(footer, {
       x: X,
       y: 30,
       size: 7.5,
       font: regular,
       color: muted,
-    });
-    const mid = fit(`Prepared for ${snap.name}`, regular, 7.5, 180);
-    sheet.drawText(mid, { x: X + 260, y: 30, size: 7.5, font: regular, color: muted });
-    const pg = `Page ${index + 1} of ${pages.length}`;
-    sheet.drawText(pg, {
-      x: X + CW - bold.widthOfTextAtSize(pg, 7.5),
-      y: 30,
-      size: 7.5,
-      font: bold,
-      color: navy,
     });
   }
   return document.save();

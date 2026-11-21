@@ -74,6 +74,8 @@ describe("invoice PDF generation", () => {
     const text = await pdfText(await createInvoicePdf(invoicePdfFixture));
     expect(text).toContain("Emissions Testing Services For Dealership Partners");
     expect(text).toContain("1185 Old Salem Rd. SE, Conyers, GA 30094");
+    expect(text).toContain("Quick Pass Emissions | Prepared for Fixture Motors");
+    expect(text).not.toContain("Page 1 of 1");
     expect(text).not.toContain("Payment terms");
     expect(text).not.toContain("Terms reference");
     expect(text).not.toContain("INVOICE NOTES");

@@ -489,7 +489,9 @@ export async function createInvoicePdf(invoice: InvoicePdfDetails) {
       color: lineColor,
     });
     sheet.drawRectangle({ x: X, y: 43.5, width: 40, height: 1.5, color: accent });
-    const left = `${invoiceIssuer.name}  |  ${invoiceIssuer.email}  |  ${invoiceIssuer.website}`;
+    // The full website is already shown in the masthead; keep the footer concise
+    // so it never truncates the business contact details into an unclear URL.
+    const left = `${invoiceIssuer.name}  |  ${invoiceIssuer.email}`;
     sheet.drawText(fit(left, regular, 7.5, 250), {
       x: X,
       y: 30,

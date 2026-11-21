@@ -56,7 +56,6 @@ export function DealerInvoiceWorkflow({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(issueDate);
-  const [notes, setNotes] = useState("");
 
   const selected = useMemo(
     () => services.filter((service) => selectedIds.includes(service.id)),
@@ -244,10 +243,6 @@ export function DealerInvoiceWorkflow({
               />
               <small>Leave blank to assign the next invoice number.</small>
             </label>
-            <label className="field wide">
-              <span>Invoice notes · optional</span>
-              <textarea value={notes} maxLength={2000} onChange={(event) => setNotes(event.target.value)} />
-            </label>
           </div>
           {!termsReady && (
             <p className="dealer-invoice-warning" role="alert">
@@ -308,7 +303,6 @@ export function DealerInvoiceWorkflow({
             <input type="hidden" name="dealershipId" value={dealershipId} />
             <input type="hidden" name="issueDate" value={invoiceDate} />
             <input type="hidden" name="number" value={invoiceNumber} />
-            <input type="hidden" name="notes" value={notes} />
             {selected.map((service) => (
               <input key={service.id} type="hidden" name="serviceIds" value={service.id} />
             ))}

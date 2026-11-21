@@ -70,6 +70,17 @@ describe("invoice PDF generation", () => {
     expect(document.getPages()[0].getSize()).toEqual({ width: 612, height: 792 });
   });
 
+  it("shows the emissions business address and omits terms, notes, and payment instructions", async () => {
+    const text = await pdfText(await createInvoicePdf(invoicePdfFixture));
+    expect(text).toContain("Emissions Testing Services For Dealership Partners");
+    expect(text).toContain("1185 Old Salem Rd. SE, Conyers, GA 30094");
+    expect(text).not.toContain("Payment terms");
+    expect(text).not.toContain("Terms reference");
+    expect(text).not.toContain("INVOICE NOTES");
+    expect(text).not.toContain("Thank you for your business.");
+    expect(text).not.toContain("Please reference invoice");
+  });
+
   it("prints each inspection VIN in the invoice line details", async () => {
     const bytes = await createInvoicePdf({
       ...invoicePdfFixture,

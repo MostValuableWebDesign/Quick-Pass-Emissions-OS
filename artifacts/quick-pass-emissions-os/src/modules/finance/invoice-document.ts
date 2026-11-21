@@ -11,6 +11,7 @@ export const invoiceDocumentPalette = {
 
 export const invoiceIssuer = {
   name: "Quick Pass Emissions",
+  address: "1185 Old Salem Rd. SE, Conyers, GA 30094",
   email: "qpemissions@gmail.com",
   website: "quickpassemissions.com",
 } as const;

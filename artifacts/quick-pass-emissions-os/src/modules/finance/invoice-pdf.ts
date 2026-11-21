@@ -197,22 +197,23 @@ export async function createInvoicePdf(invoice: InvoicePdfDetails) {
   };
 
   // ---------- Issuer masthead (Quick Pass always issues) ----------
-  page.drawRectangle({ x: 0, y: H - 104, width: W, height: 104, color: navy });
-  page.drawRectangle({ x: 0, y: H - 108, width: W, height: 4, color: accent });
+  page.drawRectangle({ x: 0, y: H - 120, width: W, height: 120, color: navy });
+  page.drawRectangle({ x: 0, y: H - 124, width: W, height: 4, color: accent });
   text("ISSUED BY", X, H - 38, 7, bold, pdfColor("#9FC3DE"));
   text("QUICK PASS EMISSIONS", X, H - 60, 20, bold, paper);
   text(
-    "Emissions testing services for dealership partners",
+    "Emissions Testing Services For Dealership Partners",
     X,
     H - 76,
     8.5,
     regular,
     pdfColor("#C7DCEC"),
   );
+  text(invoiceIssuer.address, X, H - 90, 8, regular, pdfColor("#C7DCEC"));
   text(
     `${invoiceIssuer.email}  ·  ${invoiceIssuer.website}`,
     X,
-    H - 91,
+    H - 104,
     7.5,
     regular,
     pdfColor("#C7DCEC"),
@@ -237,7 +238,7 @@ export async function createInvoicePdf(invoice: InvoicePdfDetails) {
     opacity: 0.14,
   });
   rightText(statusLabel, X + CW - 8, H - 85, 7.5, bold, paper);
-  y = H - 130;
+  y = H - 146;
 
   if (invoice.demo) {
     page.drawRectangle({
@@ -290,9 +291,7 @@ export async function createInvoicePdf(invoice: InvoicePdfDetails) {
     ["Issue date", invoiceDate(invoice.issueDate)],
     ["Due date", invoiceDate(invoice.dueDate)],
     ["Service period", invoiceServicePeriod(invoice.lines.map((l) => l.date))],
-    ["Payment terms", `Net ${snap.termsDays} days`],
   ];
-  if (snap.termsReference) facts.push(["Terms reference", snap.termsReference]);
   const factX = X + leftW + 22;
   const factW = X + CW - factX;
   const factRows = facts.map(([k, v]) => [k, wrap(v, bold, 9, factW - 92)] as const);
@@ -465,9 +464,7 @@ export async function createInvoicePdf(invoice: InvoicePdfDetails) {
   page.drawRectangle({ x: tx, y: y - 12, width: 4, height: 30, color: accent });
   text("OUTSTANDING BALANCE", tx + 14, y, 8.5, bold, paper);
   rightText(invoiceMoney(invoice.remainingCents), X + CW - 10, y - 2, 13, bold, paper);
-  text(`Please reference invoice ${invoice.number}`, X, y + 40, 8, regular, muted);
-  text(`with payment. Due ${invoiceDate(invoice.dueDate)}.`, X, y + 28, 8, regular, muted);
-  y -= 34;
+  y -= 12;
 
   if (invoice.paymentUrl && invoice.remainingCents > 0 && invoice.status !== "VOIDED") {
     const url = safePaymentUrl(invoice.paymentUrl);
@@ -480,11 +477,6 @@ export async function createInvoicePdf(invoice: InvoicePdfDetails) {
       regular,
       muted,
     );
-  }
-
-  if (invoice.notes) {
-    sectionLabel("INVOICE NOTES");
-    paragraph(invoice.notes, 9.5, regular, ink, 9);
   }
 
   // ---------- Repeated footer ----------

@@ -103,10 +103,6 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
           phone={snap.phone}
           contacts={snap.contacts}
         />
-        <p>
-          Terms: net {snap.termsDays} days · {snap.termsReference}
-        </p>
-        <p>{i.notes}</p>
         <p className="muted">This retained snapshot does not change when the account is edited.</p>
         {i.voidDate && (
           <p className="notice warning">

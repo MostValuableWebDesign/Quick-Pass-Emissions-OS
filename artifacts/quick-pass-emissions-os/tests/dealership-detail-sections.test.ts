@@ -30,8 +30,26 @@ vi.mock("@/components/shared", () => ({
     createElement("div", null, title, text),
 }));
 vi.mock("@/components/action-form", () => ({
-  ActionForm: ({ children, submit }: { children: ReactNode; submit: string }) =>
-    createElement("form", null, children, createElement("button", null, submit)),
+  ActionForm: ({
+    children,
+    submit,
+    confirmTitle,
+    confirmOnSubmit,
+  }: {
+    children: ReactNode;
+    submit: string;
+    confirmTitle?: string;
+    confirmOnSubmit?: string;
+  }) =>
+    createElement(
+      "form",
+      null,
+      children,
+      createElement("button", null, submit),
+      confirmTitle && confirmOnSubmit
+        ? createElement("p", null, confirmTitle, " ", confirmOnSubmit)
+        : null,
+    ),
   Field: ({ label, children }: { label: string; children: ReactNode }) =>
     createElement("label", null, label, children),
 }));
@@ -169,6 +187,25 @@ describe("dealership detail sections", () => {
     expect(html).toContain('aria-current="page"');
     expect(html).not.toContain("Authorize dealership terms");
     expect(html).not.toContain("Create invoice from saved services");
+  });
+
+  it("offers a confirmed archive action for active dealerships", async () => {
+    const html = renderToStaticMarkup(await page());
+    expect(html).toContain("Archive dealership");
+    expect(html).toContain("Archive this dealership?");
+    expect(html).toContain("Existing services, invoices, and payments will remain in history.");
+  });
+
+  it("offers restore instead of archive for inactive dealerships", async () => {
+    mocks.detail.mockResolvedValueOnce({
+      dealer: { ...dealer, active: false },
+      unbilled: [],
+      demo: false,
+    });
+    const html = renderToStaticMarkup(await page());
+    expect(html).toContain("Restore dealership");
+    expect(html).not.toContain("Archive dealership");
+    expect(html).not.toContain('href="/dealerships/fixture-dealer?section=services#create-invoice"');
   });
 
   it("shows contact cards and an add-contact action in the contacts section", async () => {

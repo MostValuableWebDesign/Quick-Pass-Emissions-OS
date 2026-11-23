@@ -64,6 +64,34 @@ export default async function Dealer({
             </RecordLink>
           </>
         )}
+        {d.active ? (
+          <ActionForm
+            action={actions.saveDealer}
+            submit="Archive dealership"
+            className="inline-form"
+            confirmEyebrow="Dealership partnership"
+            confirmTitle="Archive this dealership?"
+            confirmConfirmLabel="Archive dealership"
+            confirmCancelLabel="Keep active"
+            confirmOnSubmit={`Archive ${d.name}? It will leave the active partner list and cannot receive new invoices. Existing services, invoices, and payments will remain in history. You can restore it later.`}
+          >
+            <RecordId id={d.id} version={d.version} />
+            <input type="hidden" name="name" value={d.name} />
+            <input type="hidden" name="notes" value={d.notes} />
+            <input type="hidden" name="active" value="false" />
+          </ActionForm>
+        ) : (
+          <ActionForm
+            action={actions.saveDealer}
+            submit="Restore dealership"
+            className="inline-form"
+          >
+            <RecordId id={d.id} version={d.version} />
+            <input type="hidden" name="name" value={d.name} />
+            <input type="hidden" name="notes" value={d.notes} />
+            <input type="hidden" name="active" value="true" />
+          </ActionForm>
+        )}
       </PageHeader>
       <DemoNotice demo={data.demo} />
       <div className="dealer-workspace">

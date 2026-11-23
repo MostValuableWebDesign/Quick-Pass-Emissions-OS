@@ -90,6 +90,30 @@ describe("simplified dealership records", () => {
     expect(mocks.tx.dealership.update.mock.calls[0][0].data).not.toHaveProperty("defaultRateCents");
   });
 
+  it("archives a dealership without deleting its saved history", async () => {
+    mocks.tx.dealership.findUnique.mockResolvedValue({
+      id: dealerId,
+      version: 0,
+      code: "LEGACY-CODE",
+      phone: "555-0101",
+      active: true,
+      billingAddress: "Fixture billing address",
+      notes: "",
+    });
+    await saveDealer("owner", { ...input, id: dealerId, active: false });
+    expect(mocks.tx.dealership.update).toHaveBeenCalledWith({
+      where: { id: dealerId },
+      data: expect.objectContaining({ active: false, code: "LEGACY-CODE" }),
+    });
+    expect(mocks.audit).toHaveBeenCalledWith(
+      mocks.tx,
+      "owner",
+      "DEALER_SAVED",
+      dealerId,
+      expect.objectContaining({ active: false }),
+    );
+  });
+
   it("allows an entered phone number to be cleared", async () => {
     mocks.tx.dealership.findUnique.mockResolvedValue({
       id: dealerId,

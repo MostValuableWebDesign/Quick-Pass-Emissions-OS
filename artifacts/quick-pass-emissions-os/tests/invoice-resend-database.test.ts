@@ -71,14 +71,14 @@ if (enabled) {
     const first = await finance.beginInvoiceResend(owner, {
       invoiceId,
       requestId,
-      recipient: "billing@example.test",
+      recipient: "billing@example.test, accounts@example.test",
     });
     expect(first.status).toBe("READY");
     expect(
       await finance.beginInvoiceResend(owner, {
         invoiceId,
         requestId,
-        recipient: "billing@example.test",
+        recipient: "billing@example.test, accounts@example.test",
       }),
     ).toMatchObject({ status: "RECONCILE", attempt: { id: first.attempt.id } });
 
@@ -87,7 +87,7 @@ if (enabled) {
       finance.beginInvoiceResend(owner, {
         invoiceId,
         requestId: randomUUID(),
-        recipient: "billing@example.test",
+        recipient: "billing@example.test, accounts@example.test",
       }),
     ).resolves.toMatchObject({ status: "RECONCILE", attempt: { id: first.attempt.id } });
     await expect(
@@ -109,7 +109,7 @@ if (enabled) {
     const retry = await finance.beginInvoiceResend(owner, {
       invoiceId,
       requestId: retryId,
-      recipient: "billing@example.test",
+      recipient: "billing@example.test, accounts@example.test",
     });
     expect(retry.status).toBe("READY");
     await finance.finishInvoiceResend(owner, {
@@ -120,7 +120,7 @@ if (enabled) {
       await finance.beginInvoiceResend(owner, {
         invoiceId,
         requestId: retryId,
-        recipient: "billing@example.test",
+        recipient: "billing@example.test, accounts@example.test",
       }),
     ).toMatchObject({ status: "SENT" });
     expect((await db.dealerInvoice.findUniqueOrThrow({ where: { id: invoiceId } })).state).toBe(

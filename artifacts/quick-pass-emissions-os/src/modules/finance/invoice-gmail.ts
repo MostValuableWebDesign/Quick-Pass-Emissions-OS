@@ -3,12 +3,19 @@ import { randomUUID } from "node:crypto";
 import type { ReplitConnectors } from "@replit/connectors-sdk";
 import { invoiceIssuer } from "./invoice-document";
 import { invoiceBccEmail } from "./invoice-email";
+import { invoiceRecipientAddresses } from "./invoice-recipients";
 
 type GmailMessageList = { messages?: { id?: string }[] };
 
 function recipientMatchesHeader(value: string | undefined, target: string) {
   const addresses = value?.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? [];
-  return addresses.some((address) => address.toLowerCase() === target.toLowerCase());
+  try {
+    return invoiceRecipientAddresses(target).every((recipient) =>
+      addresses.some((address) => address.toLowerCase() === recipient),
+    );
+  } catch {
+    return false;
+  }
 }
 
 export async function findSentGmailMessage(connectors: ReplitConnectors, messageId: string) {
@@ -74,8 +81,9 @@ export async function findSentGmailResendMessage(
     .toISOString()
     .slice(0, 10)
     .replaceAll("-", "/");
+  const recipients = invoiceRecipientAddresses(input.recipient);
   const query = new URLSearchParams({
-    q: `from:${invoiceIssuer.email} to:${input.recipient} filename:"${filename}" after:${after}`,
+    q: `from:${invoiceIssuer.email} to:${recipients[0]} filename:"${filename}" after:${after}`,
     labelIds: "SENT",
     maxResults: "100",
   });
@@ -136,7 +144,9 @@ export function invoiceGmailRawMessage(input: {
   includeBcc: boolean;
   resendRequestId?: string;
 }) {
-  if (!input.to || /[\r\n]/.test(input.to)) throw new Error("Enter one valid recipient email.");
+  if (/[\r\n]/.test(input.to)) throw new Error("Enter valid recipient email addresses.");
+  const recipients = invoiceRecipientAddresses(input.to);
+  const to = recipients.join(", ");
   const safeNumber = input.invoiceNumber.replace(/[^a-zA-Z0-9_-]/g, "_");
   const filename = `Quick-Pass-${safeNumber}.pdf`;
   const boundary = `qp-invoice-${randomUUID().replaceAll("-", "")}`;
@@ -148,7 +158,7 @@ export function invoiceGmailRawMessage(input: {
   const attachment = wrapBase64(Buffer.from(input.pdf).toString("base64"));
   const message = [
     `From: ${invoiceIssuer.name} <${invoiceIssuer.email}>`,
-    `To: ${input.to}`,
+    `To: ${to}`,
     ...(input.includeBcc ? [`Bcc: ${invoiceBccEmail}`] : []),
     `Subject: =?UTF-8?B?${subject}?=`,
     `Message-ID: ${messageId}`,

@@ -1051,6 +1051,27 @@ main#main {
 .dealer-contacts {
   padding: 22px;
 }
+.invoice-recipient-picker {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+}
+.invoice-recipient-picker legend {
+  padding: 0 6px;
+  font-weight: 700;
+}
+.invoice-recipient-picker > p {
+  margin: 0 0 12px;
+}
+.invoice-recipient-options {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.invoice-recipient-options .check-row {
+  align-items: flex-start;
+}
 .dealer-primary-contact {
   display: grid;
   justify-items: start;

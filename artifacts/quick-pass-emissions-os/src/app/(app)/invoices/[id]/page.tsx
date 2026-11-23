@@ -30,6 +30,22 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
       i.state === "DRAFT" ? Math.max(0, i.totalCents - summary.paidCents) : summary.remainingCents,
     management = true;
   const snap = invoiceSnapshotSchema.parse(i.snapshot);
+  const currentEmailContacts = [
+    ...i.dealership.contacts.filter((contact) => contact.email.trim()),
+    ...(i.dealership.email.trim() &&
+    !i.dealership.contacts.some(
+      (contact) => contact.email.toLowerCase() === i.dealership.email.toLowerCase(),
+    )
+      ? [
+          {
+            name: i.dealership.name,
+            email: i.dealership.email,
+            purpose: "Primary email",
+          },
+        ]
+      : []),
+  ];
+  const sendContacts = currentEmailContacts.length ? currentEmailContacts : snap.contacts;
   const onlinePaymentLink = i.stripePaymentLink;
   const latestResend = i.emailResends[0];
   const resendUnresolved = latestResend && ["PREPARING", "UNCERTAIN"].includes(latestResend.state);
@@ -245,7 +261,7 @@ export default async function Invoice({ params }: { params: Promise<{ id: string
           serviceDates: i.lines.map((line) => line.date),
           remainingCents: emailBalanceCents,
         }}
-        contacts={snap.contacts}
+        contacts={sendContacts}
         sender={{ name: invoiceIssuer.name, email: invoiceIssuer.email }}
         isDraft={i.state === "DRAFT"}
         isResend={i.state === "SENT"}

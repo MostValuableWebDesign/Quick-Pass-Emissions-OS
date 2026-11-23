@@ -19,6 +19,7 @@ import {
   invoiceGmailMessageId,
   invoiceGmailRawMessage,
 } from "@/modules/finance/invoice-gmail";
+import { invoiceRecipientAddresses } from "@/modules/finance/invoice-recipients";
 
 export type InvoiceGmailSendState = {
   ok: boolean;
@@ -32,8 +33,12 @@ const requestSchema = z.object({
   invoiceId: z.string().trim().min(1).max(64),
   sendMode: z.enum(["ISSUE", "RESEND"]).default("ISSUE"),
   resendRequestId: z.uuid().optional(),
-  recipient: z.email().max(254),
-  contactName: z.string().trim().min(1).max(160),
+  recipients: z
+    .array(z.email().max(254).transform((value) => value.toLowerCase()))
+    .min(1, "Select at least one dealership email contact.")
+    .max(20, "Send to no more than 20 email contacts at a time.")
+    .transform((values) => [...new Set(values)]),
+  contactName: z.string().trim().max(160).default(""),
   paymentInstructions: z.string().trim().max(500).default(""),
   senderName: z.string().trim().max(160).default(""),
   senderPhone: z.string().trim().max(50).default(""),
@@ -41,13 +46,22 @@ const requestSchema = z.object({
     .literal("on")
     .optional()
     .transform((value) => value === "on"),
-});
+}).transform((data) => ({
+  ...data,
+  recipient: data.recipients.join(", "),
+}));
 
 type GmailMessageMetadata = { payload?: { headers?: { name?: string; value?: string }[] } };
 
 function recipientMatchesHeader(value: string | undefined, target: string) {
   const addresses = value?.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? [];
-  return addresses.some((address) => address.toLowerCase() === target.toLowerCase());
+  try {
+    return invoiceRecipientAddresses(target).every((recipient) =>
+      addresses.some((address) => address.toLowerCase() === recipient),
+    );
+  } catch {
+    return false;
+  }
 }
 
 async function sentRecipientMatches(
@@ -94,7 +108,19 @@ export async function sendInvoiceFromGmail(
   _previous: InvoiceGmailSendState | null,
   formData: FormData,
 ): Promise<InvoiceGmailSendState> {
-  const parsed = requestSchema.safeParse(Object.fromEntries(formData.entries()));
+  const requestValues = Object.fromEntries(
+    [...formData.entries()].filter(
+      ([key]) => key !== "recipients" && key !== "additionalRecipients",
+    ),
+  );
+  const additionalRecipients = String(formData.get("additionalRecipients") ?? "")
+    .split(/[;,\n]+/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const parsed = requestSchema.safeParse({
+    ...requestValues,
+    recipients: [...formData.getAll("recipients").map(String), ...additionalRecipients],
+  });
   if (!parsed.success) {
     return {
       ok: false,

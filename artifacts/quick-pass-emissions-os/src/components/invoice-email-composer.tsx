@@ -42,18 +42,18 @@ export function InvoiceEmailComposer({
     },
     null,
   );
-  const emailContacts = contacts.filter((contact) => contact.email);
-  const billingContacts = emailContacts.filter((contact) =>
-    /billing|invoic|accounts? payable/i.test(contact.purpose ?? ""),
+  const emailContacts = [
+    ...new Map(
+      contacts
+        .filter((contact) => contact.email.trim())
+        .map((contact) => [contact.email.trim().toLowerCase(), contact]),
+    ).values(),
+  ];
+  const [selectedRecipients, setSelectedRecipients] = useState(
+    emailContacts.map((contact) => contact.email.trim()),
   );
-  const defaultContact =
-    emailContacts.length === 1
-      ? emailContacts[0]
-      : billingContacts.length === 1
-        ? billingContacts[0]
-        : undefined;
-  const [recipient, setRecipient] = useState(defaultContact?.email ?? "");
-  const [contactName, setContactName] = useState(defaultContact?.name ?? "");
+  const [additionalRecipients, setAdditionalRecipients] = useState("");
+  const [contactName, setContactName] = useState(emailContacts.length === 1 ? emailContacts[0]!.name : "");
   const [paymentInstructions, setPaymentInstructions] = useState("");
   const [senderName, setSenderName] = useState(
     sender.name === "Quick Pass Emissions" ? "" : sender.name,
@@ -61,6 +61,19 @@ export function InvoiceEmailComposer({
   const senderEmail = sender.email;
   const [senderPhone, setSenderPhone] = useState("");
   const [includeBcc, setIncludeBcc] = useState(true);
+  const additionalRecipientList = additionalRecipients
+    .split(/[;,\n]+/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const recipientList = [
+    ...new Map(
+      [...selectedRecipients, ...additionalRecipientList].map((email) => [
+        email.toLowerCase(),
+        email.trim(),
+      ]),
+    ).values(),
+  ];
+  const recipients = recipientList.join(", ");
   useEffect(() => {
     const dialog = confirmation.current;
     if (confirmingSend && dialog && !dialog.open) dialog.showModal();
@@ -73,7 +86,7 @@ export function InvoiceEmailComposer({
     senderEmail,
     senderPhone,
   });
-  const draftReady = !!(contactName.trim() && senderEmail.trim());
+  const draftReady = !!senderEmail.trim();
 
   return (
     <section className="card card-body space-top" aria-labelledby={`${prefix}-heading`}>
@@ -102,47 +115,83 @@ export function InvoiceEmailComposer({
             <input type="hidden" name="resendRequestId" value={resendRequestId} />
           )}
           {emailContacts.length > 0 && (
-            <div className="field wide">
-              <label htmlFor={`${prefix}-contact`}>Choose a billing contact</label>
-              <select
-                id={`${prefix}-contact`}
-                value={
-                  emailContacts.some((contact) => contact.email === recipient) ? recipient : ""
+            <fieldset className="field wide invoice-recipient-picker">
+              <legend>Send to dealership contacts</legend>
+              <p className="muted">
+                All saved email contacts are selected by default. Recipients can see one another
+                in the To field.
+              </p>
+              <button
+                className="button button-outline"
+                type="button"
+                onClick={() =>
+                  setSelectedRecipients(
+                    selectedRecipients.length === emailContacts.length
+                      ? []
+                      : emailContacts.map((contact) => contact.email.trim()),
+                  )
                 }
-                onChange={(event) => {
-                  const contact = emailContacts.find((item) => item.email === event.target.value);
-                  setRecipient(contact?.email ?? "");
-                  setContactName(contact?.name ?? "");
-                }}
               >
-                <option value="">Other recipient</option>
-                {emailContacts.map((contact, index) => (
-                  <option key={`${contact.email}-${index}`} value={contact.email}>
-                    {contact.name} · {contact.email}
-                  </option>
-                ))}
-              </select>
-            </div>
+                {selectedRecipients.length === emailContacts.length ? "Clear all" : "Select all"}
+              </button>
+              <div className="invoice-recipient-options">
+                {emailContacts.map((contact, index) => {
+                  const email = contact.email.trim();
+                  const checked = selectedRecipients.some(
+                    (recipient) => recipient.toLowerCase() === email.toLowerCase(),
+                  );
+                  return (
+                    <label className="check-row" key={`${email}-${index}`}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(event) =>
+                          setSelectedRecipients((previous) =>
+                            event.currentTarget.checked
+                              ? [...previous, email]
+                              : previous.filter(
+                                  (recipient) => recipient.toLowerCase() !== email.toLowerCase(),
+                                ),
+                          )
+                        }
+                      />
+                      <span>
+                        <strong>{contact.name}</strong>
+                        {contact.purpose ? ` · ${contact.purpose}` : ""}
+                        <br />
+                        {email}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
           )}
-          <div className="field">
-            <label htmlFor={`${prefix}-recipient`}>Recipient email</label>
+          {selectedRecipients.map((email, index) => (
+            <input key={`${email}-${index}`} type="hidden" name="recipients" value={email} />
+          ))}
+          <div className="field wide">
+            <label htmlFor={`${prefix}-additional-recipients`}>
+              Additional email addresses (optional)
+            </label>
             <input
-              id={`${prefix}-recipient`}
-              name="recipient"
-              type="email"
-              maxLength={254}
-              required
-              value={recipient}
-              onChange={(event) => setRecipient(event.target.value)}
+              id={`${prefix}-additional-recipients`}
+              name="additionalRecipients"
+              type="text"
+              inputMode="email"
+              maxLength={6000}
+              placeholder="Separate addresses with commas"
+              value={additionalRecipients}
+              onChange={(event) => setAdditionalRecipients(event.target.value)}
             />
+            <small>Leave blank to use only the selected saved contacts.</small>
           </div>
           <div className="field">
-            <label htmlFor={`${prefix}-contact-name`}>Contact name</label>
+            <label htmlFor={`${prefix}-contact-name`}>Greeting name (optional)</label>
             <input
               id={`${prefix}-contact-name`}
               name="contactName"
               maxLength={160}
-              required
               value={contactName}
               onChange={(event) => setContactName(event.target.value)}
             />
@@ -221,7 +270,7 @@ export function InvoiceEmailComposer({
               value={
                 draftReady
                   ? emailPreview.body
-                  : "Complete the contact name and signature to preview your message."
+                  : "Complete the sender details to preview your message."
               }
               rows={20}
             />
@@ -237,7 +286,7 @@ export function InvoiceEmailComposer({
               type="submit"
               disabled={
                 !draftReady ||
-                !recipient.trim() ||
+                !recipientList.length ||
                 pending ||
                 !!state?.ok ||
                 confirmingSend ||
@@ -272,12 +321,12 @@ export function InvoiceEmailComposer({
                 {isResend ? (
                   <>
                     Send the existing invoice <strong>{invoice.number}</strong> and the same saved
-                    VIR report totals to <strong>{recipient}</strong> again? This does not create a
+                    VIR report totals to <strong>{recipients}</strong> again? This does not create a
                     second invoice.
                   </>
                 ) : (
                   <>
-                    Send invoice <strong>{invoice.number}</strong> to <strong>{recipient}</strong>,
+                    Send invoice <strong>{invoice.number}</strong> to <strong>{recipients}</strong>,
                     with the PDF attached? This sends the email now
                     {isDraft ? " and issues the invoice" : ""}. The app will record it as sent.
                   </>

@@ -14,6 +14,7 @@ import { STANDARD_DEALERSHIP_TERMS } from "./dealership-terms";
 import { invoiceLineDescription } from "./invoice-document";
 import { closeInvoicePaymentLink } from "./stripe-payments";
 import { formatInvoiceNumber, isInvoiceNumberForYear, nextInvoiceSequence } from "./invoice-number";
+import { normalizeInvoiceRecipients } from "./invoice-recipients";
 import { id, dateString } from "@/lib/validation";
 import { businessDate, addDays } from "@/lib/time";
 import { label, reason, notes, optionalId, version } from "../maintenance/validation";
@@ -604,10 +605,7 @@ export async function recordGmailInvoiceSent(actorId: string, input: unknown) {
 const invoiceResendInput = z.object({
   invoiceId: id,
   requestId: z.uuid(),
-  recipient: z
-    .email()
-    .max(254)
-    .transform((value) => value.toLowerCase()),
+  recipient: z.string().trim().min(1).max(6000).transform(normalizeInvoiceRecipients),
 });
 
 /** Atomically reserve one deliberate resend or return a prior uncertain attempt for reconciliation. */
@@ -1186,6 +1184,17 @@ export async function invoiceDetail(actorId: string, key: string) {
     invoice: await tx.dealerInvoice.findUnique({
       where: { id: id.parse(key) },
       include: {
+        dealership: {
+          select: {
+            name: true,
+            email: true,
+            contacts: {
+              where: { active: true },
+              orderBy: { createdAt: "asc" },
+              select: { name: true, email: true, purpose: true },
+            },
+          },
+        },
         lines: { orderBy: [{ date: "asc" }, { id: "asc" }] },
         payments: { orderBy: { createdAt: "asc" }, include: { reversal: true } },
         stripePaymentLink: true,

@@ -67,7 +67,7 @@ const form = () => {
   const data = new FormData();
   for (const [key, value] of Object.entries({
     invoiceId: invoice.id,
-    recipient: "billing@example.com",
+    recipients: "billing@example.com",
     contactName: "Billing",
     paymentInstructions: "Pay by check",
   }))
@@ -190,6 +190,16 @@ describe("confirmed Gmail invoice send", () => {
       "/dealerships/fixture-dealer",
     ])
       expect(mocks.revalidate).toHaveBeenCalledWith(path);
+  });
+
+  it("sends one message to every selected dealership contact", async () => {
+    const data = form();
+    data.append("recipients", "accounts@example.com");
+    const result = await sendInvoiceFromGmail(null, data);
+    expect(result).toMatchObject({ ok: true, sent: true });
+    expect(mocks.raw).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "billing@example.com, accounts@example.com" }),
+    );
   });
 
   it("never sends Gmail if an exact-balance payment link cannot be prepared", async () => {

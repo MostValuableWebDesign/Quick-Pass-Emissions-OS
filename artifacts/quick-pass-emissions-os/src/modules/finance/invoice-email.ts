@@ -45,7 +45,7 @@ export function buildInvoiceEmail(
   return {
     subject: `Quick Pass Emissions — ${invoice.remainingCents > 0 ? "Payment Due" : "Invoice Copy"} for ${invoice.dealershipName}`,
     body: [
-      `Hi ${signature.contactName.trim()},`,
+      signature.contactName.trim() ? `Hi ${signature.contactName.trim()},` : "Hello,",
       "",
       `Attached is your invoice for emissions testing services provided to ${invoice.dealershipName} during ${invoiceServicePeriod(invoice.serviceDates)}.`,
       "",

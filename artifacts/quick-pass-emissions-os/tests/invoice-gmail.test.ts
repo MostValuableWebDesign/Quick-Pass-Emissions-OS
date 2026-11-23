@@ -37,6 +37,22 @@ describe("invoice Gmail MIME message", () => {
     expect(message).toContain(Buffer.from("%PDF-demo").toString("base64"));
   });
 
+  it("puts all dealership contacts in the To header", () => {
+    const message = Buffer.from(
+      invoiceGmailRawMessage({
+        to: "billing@example.com, accounts@example.com",
+        subject: "Invoice QP-2026-0001",
+        body: "Hello,",
+        invoiceNumber: "QP-2026-0001",
+        pdf: Buffer.from("%PDF-demo"),
+        includeBcc: false,
+      }),
+      "base64url",
+    ).toString("utf8");
+    expect(message).toContain("To: billing@example.com, accounts@example.com");
+    expect(message).not.toContain("Bcc:");
+  });
+
   it("marks a resend with its unique attempt key and message ID", () => {
     const requestId = "6ee9130f-05e8-4fe0-89dc-b675990ac918";
     const message = Buffer.from(
@@ -85,7 +101,7 @@ describe("invoice Gmail MIME message", () => {
         pdf: new Uint8Array([1]),
         includeBcc: false,
       }),
-    ).toThrow("Enter one valid recipient email.");
+    ).toThrow("Enter valid recipient email addresses.");
   });
 });
 
@@ -187,6 +203,33 @@ describe("sent invoice reconciliation", () => {
         requestId,
         invoiceNumber: "QP-2026-0002",
         recipient: "billing@example.com",
+        createdAt,
+      }),
+    ).toBeNull();
+  });
+
+  it("requires every selected recipient to match a resend in Gmail Sent", async () => {
+    const requestId = "6ee9130f-05e8-4fe0-89dc-b675990ac918";
+    const createdAt = new Date("2026-11-18T10:00:00.000Z");
+    const proxy = vi.fn().mockResolvedValueOnce(
+      response({ messages: [{ id: "resend-message" }] }),
+    ).mockResolvedValueOnce(
+      response({
+        labelIds: ["SENT"],
+        payload: {
+          headers: [
+            { name: "X-Quick-Pass-Resend-ID", value: requestId },
+            { name: "To", value: "Billing <billing@example.com>" },
+          ],
+          parts: [{ filename: attachment }],
+        },
+      }),
+    );
+    expect(
+      await findSentGmailResendMessage(connector(proxy), {
+        requestId,
+        invoiceNumber: "QP-2026-0002",
+        recipient: "billing@example.com, accounts@example.com",
         createdAt,
       }),
     ).toBeNull();

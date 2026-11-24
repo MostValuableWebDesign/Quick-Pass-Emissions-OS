@@ -34,6 +34,7 @@ export function NoteEditor({
   onConvert,
   onLifecycle,
   onOpenTask,
+  onExpense,
 }: {
   draft: Extract<Draft, { kind: "note" }>;
   note: PersonalNoteView;
@@ -48,6 +49,7 @@ export function NoteEditor({
   onConvert: (noteId: string, itemId?: string) => void;
   onLifecycle: (op: "archive" | "unarchive" | "delete" | "restore") => void;
   onOpenTask: (id: string) => void;
+  onExpense: () => void;
 }) {
   const f = draft.fields;
   const readOnly = !!note.deletedAt;
@@ -122,6 +124,15 @@ export function NoteEditor({
                   Make task
                 </button>
               )}
+              <button
+                type="button"
+                className="pw-btn pw-btn-sm pw-btn-quiet"
+                disabled={busy}
+                onClick={onExpense}
+                data-testid="button-note-expense"
+              >
+                Expense
+              </button>
               <button
                 type="button"
                 className="pw-btn pw-btn-sm pw-btn-quiet"
@@ -254,6 +265,7 @@ export function TaskEditor({
   onRetry,
   onReload,
   onOpenNote,
+  onExpense,
 }: {
   draft: Extract<Draft, { kind: "task" }>;
   task: PersonalTaskView;
@@ -265,6 +277,7 @@ export function TaskEditor({
   onRetry: () => void;
   onReload: () => void;
   onOpenNote: (id: string) => void;
+  onExpense: () => void;
 }) {
   const f = draft.fields;
   const done = f.status === "COMPLETED";
@@ -274,6 +287,16 @@ export function TaskEditor({
       <div className="pw-toolbar">
         <span className="pw-stamp">Created {fmtDate(task.createdAt)}</span>
         <SaveBadge state={saveState} error={saveError} onRetry={onRetry} onReload={onReload} />
+        <div className="pw-toolbar-actions">
+          <button
+            type="button"
+            className="pw-btn pw-btn-sm pw-btn-quiet"
+            onClick={onExpense}
+            data-testid="button-task-expense"
+          >
+            Record or link expense
+          </button>
+        </div>
       </div>
       <div className="pw-paper">
         <div className="pw-task-head">

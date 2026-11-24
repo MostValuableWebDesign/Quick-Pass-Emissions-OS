@@ -189,6 +189,7 @@ enum Frequency {
 model User {
   personalFolders PersonalFolder[]
   personalNotes PersonalNote[]
+  personalExpenses PersonalExpense[]
   personalTasks PersonalTask[]
   personalSummaries PersonalSummary[]
   personalSchedule PersonalSummarySchedule?
@@ -246,6 +247,7 @@ model PersonalNote {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   tasks PersonalTask[]
+  expenseLinks PersonalExpenseLink[]
   @@index([userId, deletedAt, archivedAt])
 }
 
@@ -267,6 +269,7 @@ model PersonalTask {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   events PersonalTaskEvent[]
+  expenseLinks PersonalExpenseLink[]
   @@unique([userId, sourceKey])
   @@index([userId, status, dueDate])
 }
@@ -310,6 +313,80 @@ model PersonalSummarySchedule {
 model PersonalSummaryRunner {
   id String @id @default("personal")
   lastRunAt DateTime
+}
+
+model PersonalExpense {
+  id String @id
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title String
+  amountCents Int?
+  vendor String @default("")
+  date String
+  category String @default("Uncategorized")
+  purpose String @default("")
+  paymentMethod String @default("")
+  planned Boolean @default(true)
+  version Int @default(1)
+  archivedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  entries PersonalExpenseEntry[]
+  links PersonalExpenseLink[]
+  attachments PersonalExpenseAttachment[]
+  history PersonalExpenseHistory[]
+  @@index([userId, date])
+}
+
+model PersonalExpenseEntry {
+  id String @id
+  expenseId String
+  expense PersonalExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  kind String
+  amountCents Int
+  date String
+  fundingSource String @default("BUSINESS")
+  paymentMethod String @default("")
+  note String @default("")
+  voidedAt DateTime?
+  voidReason String?
+  createdAt DateTime @default(now())
+  @@index([expenseId, date])
+}
+
+model PersonalExpenseLink {
+  id String @id @default(cuid())
+  expenseId String
+  expense PersonalExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  sourceKey String
+  noteId String?
+  note PersonalNote? @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  taskId String?
+  task PersonalTask? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  @@unique([expenseId, sourceKey])
+}
+
+model PersonalExpenseAttachment {
+  id String @id
+  expenseId String
+  expense PersonalExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  filename String
+  mimeType String
+  byteSize Int
+  objectPath String @unique
+  uploadedAt DateTime?
+  createdAt DateTime @default(now())
+}
+
+model PersonalExpenseHistory {
+  id String @id @default(cuid())
+  expenseId String
+  expense PersonalExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  action String
+  detail String @default("")
+  snapshot Json
+  createdAt DateTime @default(now())
+  @@index([expenseId, createdAt])
 }
 
 model PerformancePanelLayout {

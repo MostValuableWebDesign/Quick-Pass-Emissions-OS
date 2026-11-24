@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import type { PersonalSummaryView, PersonalWorkspaceData } from "@/modules/personal/types";
+import type { SpendingSnapshot } from "@/modules/personal/expense-types";
+import { SpendingFigures, CategoryTable } from "./expenses-report";
+import "./expenses.css";
 import { type Priority, type Status, fmtDate, fmtStamp, PRI_LABEL, STATUS_LABEL } from "./shared";
 
 export function addDays(d: string, n: number) {
@@ -143,6 +146,7 @@ export function SummaryDoc({
   notify: (t: "ok" | "err", s: string) => void;
 }) {
   const s = summary.snapshot;
+  const spending = (s as { spending?: SpendingSnapshot | null }).spending ?? null;
   const reopenedIds = new Set(s.reopened.map((r) => r.id));
   const copy = async () => {
     try {
@@ -246,6 +250,18 @@ export function SummaryDoc({
               ))}
             </ul>
           </>
+        )}
+        <h3 className="pw-doc-h">Spending</h3>
+        {spending ? (
+          <div className="ex ex-summary-spend">
+            <SpendingFigures s={spending} />
+            <CategoryTable s={spending} />
+          </div>
+        ) : (
+          <p className="pw-hint">
+            This summary was saved before spending was tracked. Generate the same dates again to
+            add spending figures.
+          </p>
         )}
         <p className="pw-doc-foot">
           Generated from recorded tasks only. No hours or estimates included.

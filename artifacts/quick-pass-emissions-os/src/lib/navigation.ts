@@ -442,6 +442,7 @@ function detail(
 export const ROUTES: RouteDef[] = [
   ...navDefs,
   ...detachedNavDefs,
+  detail("/notes/expenses", "Expenses", "/notes", MANAGERS),
   detail("/tasks/:id", "Task detail", "/tasks", OPERATORS),
   detail("/employees/:id", "Employee profile", "/employees", MANAGERS),
   detail("/payroll/:id", "Payroll period", "/payroll", FINANCE),

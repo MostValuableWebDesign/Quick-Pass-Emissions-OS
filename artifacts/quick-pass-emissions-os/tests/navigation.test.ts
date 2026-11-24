@@ -10,6 +10,16 @@ import {
   safeReturnPath,
   withReturn,
 } from "@/lib/navigation";
+it("keeps expenses inside the private Notes & Tasks navigation", () => {
+  expect(matchRoute("/notes/expenses")?.title).toBe("Expenses");
+  expect(activeNavHref("/notes/expenses", "OWNER")).toBe("/notes");
+  expect(breadcrumbs("/notes/expenses")).toEqual([
+    { label: "Overview" },
+    { label: "Notes & Tasks", href: "/notes" },
+    { label: "Expenses" },
+  ]);
+  expect(safeReturnPath("/notes/expenses", "EMPLOYEE")).toBeNull();
+});
 
 const hrefs = (role: string) => allNavItems(role).map((item) => item.href);
 

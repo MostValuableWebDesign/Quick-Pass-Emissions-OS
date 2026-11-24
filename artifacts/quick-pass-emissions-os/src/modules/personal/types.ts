@@ -28,6 +28,7 @@ export type PersonalTaskView = {
   createdAt: string;
 };
 export type SummarySnapshot = {
+  spending?: import("./expense-types").SpendingSnapshot;
   text: string;
   completed: {
     id: string;

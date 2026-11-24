@@ -28,8 +28,11 @@ import {
   rid,
   linkedTask,
 } from "./personal/shared";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import "./personal-workspace.css";
 export function PersonalWorkspace({ initialData }: { initialData: PersonalWorkspaceData }) {
+  const router = useRouter();
   const [data, setData] = useState(initialData);
   const [view, setView] = useState<View>({ kind: "notes", folder: "all" });
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -318,6 +321,11 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
   );
 
   // ---------- actions ----------
+  const goExpenses = async (q?: string) => {
+    if (!(await flush())) return;
+    router.push(`/notes/expenses${q ? `?${q}` : ""}`);
+  };
+
   const newNote = async () => {
     if (!(await flush())) return;
     const id = rid();
@@ -534,6 +542,17 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
           <h1>Notes &amp; Tasks</h1>
         </div>
         <div className="pw-bar-actions">
+          <Link
+            href="/notes/expenses"
+            className="pw-btn pw-btn-quiet"
+            onClick={(e) => {
+              e.preventDefault();
+              void goExpenses();
+            }}
+            data-testid="link-expenses"
+          >
+            Expenses
+          </Link>
           <button
             type="button"
             className="pw-btn pw-btn-quiet pw-only-mobile"
@@ -915,6 +934,7 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
               onReload={reloadServer}
               onConvert={convert}
               onLifecycle={(op) => noteLifecycle(op, currentNote)}
+              onExpense={() => void goExpenses(`note=${encodeURIComponent(currentNote.id)}`)}
               onOpenTask={(id) => {
                 setView({
                   kind: "tasks",
@@ -938,6 +958,7 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
               onEdit={editTask}
               onRetry={saveState === "conflict" ? retryConflict : () => void saveDraftNow()}
               onReload={reloadServer}
+              onExpense={() => void goExpenses(`task=${encodeURIComponent(currentTask.id)}`)}
               onOpenNote={(id) => {
                 setView({ kind: "notes", folder: "all" });
                 void openItem("note", id);

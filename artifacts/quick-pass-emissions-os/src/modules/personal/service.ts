@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { businessDate } from "@/lib/time";
 import { buildPersonalSummary, closedSummaryPeriods } from "./rules";
 import type { PersonalWorkspaceData } from "./types";
+import { readExpenses } from "./expense-service";
+import { buildSpendingReport, spendingText } from "./expense-rules";
 
 const date = z
   .string()
@@ -123,6 +125,8 @@ async function makeSummary(
     include: { events: { orderBy: { occurredAt: "asc" } } },
   });
   const snapshot = buildPersonalSummary(tasks, startDate, endDate);
+  snapshot.spending = buildSpendingReport(await readExpenses(tx, userId), startDate, endDate);
+  snapshot.text += `\n\n${spendingText(snapshot.spending)}`;
   if (existing)
     return tx.personalSummary.update({
       where: { id: existing.id },

@@ -26,3 +26,9 @@ Standalone Node success does not verify a server-side OCR/PDF flow bundled by Ne
 **Why:** Local extraction passed while the web action failed because Webpack could not analyze a dynamically constructed module loader for its OCR assets.
 
 **How to apply:** Keep language-data/worker dependencies statically resolvable and verify at least one scanned document through the actual server action. Keep diagnostics limited to fixed processing stages and error classifications, never source text or document identifiers.
+
+A browser-test hydration diff containing `bb-custom-select-container` / `bb-customSelect` can come from the testing browser's select enhancement, not the application.
+
+**Why:** A test browser replaced a native select before hydration; the resulting recoverable overlay appeared even though the saved-data workflow remained usable.
+
+**How to apply:** Check whether the wrapper exists in application source and inspect the actual diff before changing rendering logic. Do not hide general hydration errors or rewrite working controls merely to accommodate test-browser injection.

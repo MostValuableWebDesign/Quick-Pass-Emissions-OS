@@ -62,6 +62,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "dashboard", roles: ALL },
       { href: "/operations", label: "Operations manager", icon: "tasks", roles: MANAGERS },
+      { href: "/notes", label: "Notes & Tasks", icon: "ledger", roles: MANAGERS },
       { href: "/analytics", label: "Analytics", icon: "chart", roles: MANAGERS },
       { href: "/overview", label: "Owner exceptions", icon: "gauge", roles: OWNER_ONLY },
     ],

@@ -3,6 +3,7 @@ import { businessDate, addDays, dueInstant } from "../../lib/time";
 import { generateMaintenance } from "../maintenance/jobs";
 import { occursOn } from "./recurrence";
 import { runAutomation } from "../automation/jobs";
+import { runPersonalSummaries } from "../personal/service";
 export async function runJobs(now = new Date()) {
   const run = await db.jobRun.create({ data: {} });
   try {
@@ -99,7 +100,8 @@ export async function runJobs(now = new Date()) {
       data: { status: "UNCONFIGURED", completedAt: now },
     });
     const automation = await runAutomation(now);
-    return { generated, runId: run.id, automation };
+    const personal = await runPersonalSummaries(now);
+    return { generated, runId: run.id, automation, personal };
   } catch (error) {
     await db.jobRun.update({
       where: { id: run.id },

@@ -187,6 +187,11 @@ enum Frequency {
 }
 
 model User {
+  personalFolders PersonalFolder[]
+  personalNotes PersonalNote[]
+  personalTasks PersonalTask[]
+  personalSummaries PersonalSummary[]
+  personalSchedule PersonalSummarySchedule?
   requestedDoorCodes     DoorAccessCode[]        @relation("DoorCodeRequester")
   registeredDoors        DoorLock[]              @relation("DoorRegistrar")
   ownerSummaryEmails     OwnerSummaryEmail[]
@@ -213,6 +218,98 @@ model User {
   reminderEvents         ReminderEvent[]
   performancePanelLayout PerformancePanelLayout?
   gmailInboxEdits        GmailInboxAnnotation[]  @relation("GmailInboxAnnotationEditor")
+}
+
+model PersonalFolder {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name String
+  createdAt DateTime @default(now())
+  notes PersonalNote[]
+  @@unique([userId, name])
+}
+
+model PersonalNote {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId String?
+  folder PersonalFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  title String @default("")
+  body String @default("")
+  checklist Json @default("[]")
+  pinned Boolean @default(false)
+  archivedAt DateTime?
+  deletedAt DateTime?
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tasks PersonalTask[]
+  @@index([userId, deletedAt, archivedAt])
+}
+
+model PersonalTask {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  noteId String?
+  note PersonalNote? @relation(fields: [noteId], references: [id], onDelete: SetNull)
+  sourceKey String
+  title String
+  description String @default("")
+  dueDate String?
+  priority String @default("MEDIUM")
+  status String @default("TODO")
+  completionNote String @default("")
+  completedAt DateTime?
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events PersonalTaskEvent[]
+  @@unique([userId, sourceKey])
+  @@index([userId, status, dueDate])
+}
+
+model PersonalTaskEvent {
+  id String @id @default(cuid())
+  taskId String
+  task PersonalTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  kind String
+  title String
+  completionNote String @default("")
+  status String @default("TODO")
+  priority String @default("MEDIUM")
+  dueDate String?
+  completedAt DateTime?
+  occurredAt DateTime @default(now())
+  @@index([taskId, occurredAt])
+}
+
+model PersonalSummary {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startDate String
+  endDate String
+  snapshot Json
+  createdAt DateTime @default(now())
+  @@unique([userId, startDate, endDate])
+}
+
+model PersonalSummarySchedule {
+  userId String @id
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstDate String
+  nextDate String
+  enabled Boolean @default(false)
+  lastRunAt DateTime?
+  updatedAt DateTime @updatedAt
+}
+
+model PersonalSummaryRunner {
+  id String @id @default("personal")
+  lastRunAt DateTime
 }
 
 model PerformancePanelLayout {

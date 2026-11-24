@@ -23,3 +23,4 @@
 - [Staffing alerts](staffing-alerts.md) — 2 PM Eastern, configured open days, 50 or fewer paid tests; missing data cannot justify an early-departure alert.
 - [Read-only data access](read-only-data-access.md) — page reads must not wait on business write locks; preserve fresh permission checks and mutation serialization.
 - [Invoice payment boundaries](stripe-payment-boundaries.md) — variable Stripe amounts follow Quick Pass balances and explicit sending, using the installed API-proxy connection.
+- [Personal Notes & Tasks](personal-notes-scope.md) — private ideas and accomplishments, not staff assignments or approvals; summaries must use recorded history only.

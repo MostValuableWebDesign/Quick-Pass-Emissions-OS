@@ -1,0 +1,121 @@
+.pw-polish {
+  margin: 18px 0 24px;
+  padding: 18px;
+  border: 1px solid var(--border, #dbe2e6);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  min-width: 0;
+}
+.pw-polish header,
+.pw-polish header > div,
+.pw-polish-actions,
+.pw-polish-saved {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pw-polish header {
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.pw-polish h3,
+.pw-polish h4 {
+  margin: 0;
+  font-size: 14px;
+}
+.pw-polish h4,
+.pw-polish-review label {
+  display: block;
+  font-weight: 600;
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+.pw-polish-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.pw-polish-columns > div {
+  min-width: 0;
+}
+.pw-polish textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 85px;
+  border: 1px solid var(--border, #dbe2e6);
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  background: var(--surface, #fff);
+  color: inherit;
+  resize: vertical;
+}
+.pw-polish-original,
+.pw-polish-copy {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.pw-polish-original {
+  padding: 10px;
+  background: var(--surface-alt, #f5f7f8);
+  border-radius: 8px;
+  max-height: 260px;
+  overflow: auto;
+}
+.pw-polish-copy {
+  margin-bottom: 10px;
+}
+.pw-polish-question label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.pw-polish-question button {
+  margin-top: 8px;
+}
+.pw-polish-error {
+  color: #ac2c30;
+  background: #fff2f2;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.pw-polish-saved {
+  font-size: 13px;
+  color: #21634a;
+}
+.pw-polish-actions {
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+.pw-polish details {
+  margin-top: 14px;
+  font-size: 12px;
+}
+.pw-polish details p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pw-polish details > div {
+  padding: 10px 0;
+}
+@media (max-width: 760px) {
+  .pw-polish {
+    padding: 12px;
+  }
+  .pw-polish-columns {
+    grid-template-columns: 1fr;
+  }
+  .pw-polish header > .pw-btn {
+    width: 100%;
+  }
+}

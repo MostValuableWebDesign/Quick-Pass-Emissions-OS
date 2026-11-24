@@ -19,6 +19,7 @@ import {
   linkedTask,
 } from "./shared";
 import { SaveBadge } from "./controls";
+import { WorkSummaryEditor, type PreparedNote, type ReviewedSummary } from "./work-summary";
 
 export function NoteEditor({
   draft,
@@ -35,6 +36,8 @@ export function NoteEditor({
   onLifecycle,
   onOpenTask,
   onExpense,
+  onPrepareSummary,
+  onSaveSummary,
 }: {
   draft: Extract<Draft, { kind: "note" }>;
   note: PersonalNoteView;
@@ -50,6 +53,8 @@ export function NoteEditor({
   onLifecycle: (op: "archive" | "unarchive" | "delete" | "restore") => void;
   onOpenTask: (id: string) => void;
   onExpense: () => void;
+  onPrepareSummary: (id: string) => Promise<PreparedNote>;
+  onSaveSummary: (summary: ReviewedSummary) => Promise<void>;
 }) {
   const f = draft.fields;
   const readOnly = !!note.deletedAt;
@@ -183,6 +188,13 @@ export function NoteEditor({
           rows={Math.max(6, f.body.split("\n").length + 1)}
         />
 
+        <WorkSummaryEditor
+          key={note.id}
+          note={note}
+          readOnly={readOnly}
+          onPrepare={onPrepareSummary}
+          onSave={onSaveSummary}
+        />
         <div className="pw-checklist">
           {f.checklist.map((c) => {
             const t = linkedTask(tasks, note.id, c.id);

@@ -14,3 +14,9 @@ Expense tracking extends this lightweight personal workspace; it is recordkeepin
 **Why:** The user requested quick business-spending records linked to notes/tasks, separated planned purchases from actual spending, and explicitly reserved tax decisions for themselves and their accountant.
 
 **How to apply:** Preserve existing billing and payroll boundaries. Keep optional details and receipts fillable later; missing details should be gentle prompts, not purchase-approval requirements.
+
+Quick-note polishing must preserve the original, ask about unclear actions/outcomes, and let the user edit and save suggested wording before it becomes a work record. Never invent facts or turn a plan into completed work.
+
+**Why:** The user wants casual capture now and accurate, natural documentation later, without exaggerating their contribution.
+
+**How to apply:** Use reviewed wording in linked completed-task records and new biweekly summaries. Do not mark tasks complete just because a note was polished, or apply a whole-note description to a narrower checklist task.

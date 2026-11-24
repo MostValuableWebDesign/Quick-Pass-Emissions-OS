@@ -31,6 +31,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import "./personal-workspace.css";
+import type { ReviewedSummary } from "./personal/work-summary";
 export function PersonalWorkspace({ initialData }: { initialData: PersonalWorkspaceData }) {
   const router = useRouter();
   const [data, setData] = useState(initialData);
@@ -213,6 +214,32 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
     },
     [data, flush, setDraft, setSaveState],
   );
+
+  const prepareSummary = async (id: string) => {
+    if (!(await flush())) throw new Error("Save your current note edits before polishing.");
+    const current = draftRef.current;
+    if (current?.kind !== "note" || current.id !== id)
+      throw new Error("Open the note you want to polish.");
+    return { id, version: current.version };
+  };
+  const saveWorkSummary = async (review: ReviewedSummary) => {
+    await prepareSummary(review.id);
+    if (draftRef.current?.version !== review.version)
+      throw new Error("Your note changed. Polish the latest version before saving this wording.");
+    setBusy(true);
+    try {
+      await enqueue(async () => {
+        const next = await api({ op: "note.summary.save", ...review });
+        setData(next);
+        const current = draftRef.current;
+        const saved = next.notes.find((n) => n.id === review.id);
+        if (current?.kind === "note" && current.id === review.id && saved)
+          setDraft({ ...current, version: saved.version });
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const changeView = async (v: View) => {
     if (!(await flush())) return;
@@ -935,6 +962,8 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
               onConvert={convert}
               onLifecycle={(op) => noteLifecycle(op, currentNote)}
               onExpense={() => void goExpenses(`note=${encodeURIComponent(currentNote.id)}`)}
+              onPrepareSummary={prepareSummary}
+              onSaveSummary={saveWorkSummary}
               onOpenTask={(id) => {
                 setView({
                   kind: "tasks",

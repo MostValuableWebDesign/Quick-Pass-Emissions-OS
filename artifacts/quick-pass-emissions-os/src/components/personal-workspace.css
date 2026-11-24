@@ -11,9 +11,14 @@
 }
 .pw-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
+}
+.pw-bar-title {
+  flex: 1 0 180px;
+  min-width: 0;
 }
 .pw-kicker {
   font-size: 10px;
@@ -24,6 +29,8 @@
 }
 .pw-bar-actions {
   display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
   gap: 8px;
 }
 .pw-btn {

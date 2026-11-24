@@ -7,6 +7,8 @@ import { buildPersonalSummary, closedSummaryPeriods } from "./rules";
 import type { PersonalWorkspaceData } from "./types";
 import { readExpenses } from "./expense-service";
 import { buildSpendingReport, spendingText } from "./expense-rules";
+import { clarification, polishSource } from "./polish-rules";
+import { saveReviewedWorkSummary } from "./work-summary-service";
 
 const date = z
   .string()
@@ -27,6 +29,12 @@ const checklistItem = z.object({
 });
 const priority = z.enum(["HIGH", "MEDIUM", "LOW"]);
 const commands = z.discriminatedUnion("op", [
+  z.object({
+    op: z.literal("note.summary.save"),
+    ...identity,
+    text: z.string().trim().min(1).max(12000),
+    answers: z.array(clarification).max(8),
+  }),
   z.object({ op: z.literal("note.create"), id: identity.id, title: title.optional() }),
   z.object({
     op: z.literal("note.save"),
@@ -93,7 +101,10 @@ export async function personalWorkspace(userId: string): Promise<PersonalWorkspa
   return JSON.parse(
     JSON.stringify({
       folders,
-      notes,
+      notes: notes.map((note) => ({
+        ...note,
+        polishedCurrent: !!note.polishedSummary && note.polishedSource === polishSource(note),
+      })),
       tasks,
       summaries,
       schedule,
@@ -122,9 +133,22 @@ async function makeSummary(
   if (existing && !refresh && businessDate(existing.createdAt) > endDate) return existing;
   const tasks = await tx.personalTask.findMany({
     where: { userId },
-    include: { events: { orderBy: { occurredAt: "asc" } } },
+    include: {
+      events: { orderBy: { occurredAt: "asc" } },
+      note: { select: { userId: true, polishedSummary: true } },
+    },
   });
-  const snapshot = buildPersonalSummary(tasks, startDate, endDate);
+  const snapshot = buildPersonalSummary(
+    tasks.map((task) => ({
+      ...task,
+      approvedWorkSummary:
+        task.note?.userId === userId && task.sourceKey === `note:${task.noteId}`
+          ? task.note.polishedSummary
+          : "",
+    })),
+    startDate,
+    endDate,
+  );
   snapshot.spending = buildSpendingReport(await readExpenses(tx, userId), startDate, endDate);
   snapshot.text += `\n\n${spendingText(snapshot.spending)}`;
   if (existing)
@@ -145,6 +169,9 @@ export async function mutatePersonalWorkspace(userId: string, input: unknown) {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`personal:${userId}`}, 0))`;
       await authorize(tx, userId);
       switch (command.op) {
+        case "note.summary.save":
+          await saveReviewedWorkSummary(tx, userId, command);
+          break;
         case "folder.create":
           await tx.personalFolder.upsert({
             where: { userId_name: { userId, name: command.name } },
@@ -240,7 +267,7 @@ export async function mutatePersonalWorkspace(userId: string, input: unknown) {
               sourceKey,
               noteId: note.id,
               title: taskTitle.slice(0, 500),
-              description: item ? "" : note.body.slice(0, 20000),
+              description: item ? "" : (note.polishedSummary || note.body).slice(0, 20000),
               events: { create: { kind: "TODO", title: taskTitle.slice(0, 500) } },
             },
           });
@@ -255,6 +282,18 @@ export async function mutatePersonalWorkspace(userId: string, input: unknown) {
           void op;
           const completedAt =
             command.status === "COMPLETED" ? (previous!.completedAt ?? new Date()) : null;
+          if (
+            command.status === "COMPLETED" &&
+            !data.completionNote.trim() &&
+            previous?.noteId &&
+            previous.sourceKey === `note:${previous.noteId}`
+          ) {
+            const note = await tx.personalNote.findFirst({
+              where: { id: previous.noteId, userId },
+              select: { polishedSummary: true },
+            });
+            data.completionNote = note?.polishedSummary || "";
+          }
           const updated = await tx.personalTask.updateMany({
             where: { id, userId, version },
             data: { ...data, completedAt, version: { increment: 1 } },
@@ -272,7 +311,7 @@ export async function mutatePersonalWorkspace(userId: string, input: unknown) {
                 taskId: id,
                 kind,
                 title: command.title,
-                completionNote: command.completionNote,
+                completionNote: data.completionNote,
                 status: command.status,
                 priority: command.priority,
                 dueDate: command.dueDate,

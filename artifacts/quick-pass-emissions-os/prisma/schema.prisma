@@ -239,6 +239,11 @@ model PersonalNote {
   folder PersonalFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
   title String @default("")
   body String @default("")
+  polishedSummary String @default("")
+  polishedOriginal String @default("")
+  polishedSource String @default("")
+  polishedAnswers Json @default("[]")
+  polishedAt DateTime?
   checklist Json @default("[]")
   pinned Boolean @default(false)
   archivedAt DateTime?

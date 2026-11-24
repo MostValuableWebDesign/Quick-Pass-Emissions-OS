@@ -12,6 +12,7 @@ type Event = {
   completedAt: Date | null;
 };
 type Task = {
+  approvedWorkSummary?: string;
   id: string;
   title: string;
   priority: string;
@@ -45,7 +46,7 @@ export function buildPersonalSummary(tasks: Task[], start: string, end: string):
         id: task.id,
         title: completion.title,
         completedDate: businessDate(completion.occurredAt),
-        completionNote: completionDetails!.completionNote,
+        completionNote: task.approvedWorkSummary || completionDetails!.completionNote,
         reopened: events.some(
           (event) => event.kind === "REOPENED" && event.occurredAt > completion.occurredAt,
         ),

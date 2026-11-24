@@ -3,6 +3,11 @@ export type PersonalNoteView = {
   id: string;
   title: string;
   body: string;
+  polishedSummary: string;
+  polishedOriginal: string;
+  polishedAnswers: { question: string; answer: string }[];
+  polishedAt: string | null;
+  polishedCurrent: boolean;
   checklist: ChecklistItem[];
   folderId: string | null;
   pinned: boolean;

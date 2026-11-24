@@ -50,7 +50,7 @@ export function NoteEditor({
   onRetry: () => void;
   onReload: () => void;
   onConvert: (noteId: string, itemId?: string) => void;
-  onLifecycle: (op: "archive" | "unarchive" | "delete" | "restore") => void;
+  onLifecycle: (op: "archive" | "unarchive" | "delete" | "restore" | "purge") => void;
   onOpenTask: (id: string) => void;
   onExpense: () => void;
   onPrepareSummary: (id: string) => Promise<PreparedNote>;
@@ -80,14 +80,24 @@ export function NoteEditor({
         )}
         <div className="pw-toolbar-actions">
           {readOnly ? (
-            <button
-              type="button"
-              className="pw-btn pw-btn-sm pw-btn-primary"
-              disabled={busy}
-              onClick={() => onLifecycle("restore")}
-            >
-              Restore note
-            </button>
+            <>
+              <button
+                type="button"
+                className="pw-btn pw-btn-sm pw-btn-primary"
+                disabled={busy}
+                onClick={() => onLifecycle("restore")}
+              >
+                Restore note
+              </button>
+              <button
+                type="button"
+                className="pw-btn pw-btn-sm pw-btn-danger"
+                disabled={busy}
+                onClick={() => onLifecycle("purge")}
+              >
+                Delete permanently
+              </button>
+            </>
           ) : (
             <>
               <button
@@ -278,6 +288,7 @@ export function TaskEditor({
   onReload,
   onOpenNote,
   onExpense,
+  onDelete,
 }: {
   draft: Extract<Draft, { kind: "task" }>;
   task: PersonalTaskView;
@@ -290,6 +301,7 @@ export function TaskEditor({
   onReload: () => void;
   onOpenNote: (id: string) => void;
   onExpense: () => void;
+  onDelete: () => void;
 }) {
   const f = draft.fields;
   const done = f.status === "COMPLETED";
@@ -307,6 +319,9 @@ export function TaskEditor({
             data-testid="button-task-expense"
           >
             Record or link expense
+          </button>
+          <button type="button" className="pw-btn pw-btn-sm pw-btn-danger" onClick={onDelete}>
+            Delete permanently
           </button>
         </div>
       </div>

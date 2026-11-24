@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type {
   PersonalNoteView,
   PersonalTaskView,
@@ -32,6 +32,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import "./personal-workspace.css";
 import type { ReviewedSummary } from "./personal/work-summary";
+type PermanentDeleteRequest =
+  | { kind: "note"; id: string; version: number; title: string }
+  | { kind: "task"; id: string; version: number; title: string };
 export function PersonalWorkspace({ initialData }: { initialData: PersonalWorkspaceData }) {
   const router = useRouter();
   const [data, setData] = useState(initialData);
@@ -46,6 +49,10 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
   const [busy, setBusy] = useState(false);
   const [newFolder, setNewFolder] = useState<string | null>(null);
   const [quickTask, setQuickTask] = useState("");
+  const [permanentDelete, setPermanentDelete] = useState<PermanentDeleteRequest | null>(null);
+  const permanentDeleteDialog = useRef<HTMLDialogElement>(null);
+  const permanentDeleteTitle = useId();
+  const permanentDeleteDescription = useId();
 
   const draftRef = useRef<Draft | null>(null);
   const dirtyRef = useRef(false);
@@ -68,6 +75,12 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
     setFlash({ tone, text });
     setTimeout(() => setFlash((f) => (f?.text === text ? null : f)), tone === "ok" ? 2600 : 6000);
   }, []);
+
+  useEffect(() => {
+    const dialog = permanentDeleteDialog.current;
+    if (permanentDelete && dialog && !dialog.open) dialog.showModal();
+    else if (!permanentDelete && dialog?.open) dialog.close();
+  }, [permanentDelete]);
 
   /** Serialize every mutation so each request uses the newest known version. */
   const enqueue = useCallback(<T,>(fn: () => Promise<T>): Promise<T> => {
@@ -404,7 +417,7 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
   };
 
   const noteLifecycle = async (
-    op: "archive" | "unarchive" | "delete" | "restore",
+    op: "archive" | "unarchive" | "delete" | "restore" | "purge",
     note: PersonalNoteView,
   ) => {
     if (!(await flush())) return;
@@ -419,15 +432,79 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
           ? { op: "note.archive", id: note.id, version, archived: false }
           : op === "delete"
             ? { op: "note.delete", id: note.id, version }
-            : { op: "note.restore", id: note.id, version };
+            : op === "restore"
+              ? { op: "note.restore", id: note.id, version }
+              : { op: "note.purge", id: note.id, version };
     const labels = {
       archive: "Note archived.",
       unarchive: "Note moved back to notes.",
       delete: "Moved to Recently Deleted.",
       restore: "Note restored.",
+      purge: "Note permanently deleted.",
     };
     const next = await mutate(body, labels[op]);
     if (next) {
+      setPermanentDelete(null);
+      setSelectedId(null);
+      setDraft(null);
+      setMobilePane("list");
+    }
+  };
+
+  const requestNotePurge = async (note: PersonalNoteView) => {
+    if (!(await flush())) return;
+    const latest = data.notes.find((item) => item.id === note.id);
+    if (!latest?.deletedAt) {
+      notify("err", "Only notes in Recently Deleted can be permanently deleted.");
+      return;
+    }
+    setPermanentDelete({
+      kind: "note",
+      id: latest.id,
+      version:
+        draftRef.current?.kind === "note" && draftRef.current.id === latest.id
+          ? draftRef.current.version
+          : latest.version,
+      title: latest.title || "Untitled note",
+    });
+  };
+
+  const requestTaskDelete = async (task: PersonalTaskView) => {
+    if (!(await flush())) return;
+    const latest = data.tasks.find((item) => item.id === task.id);
+    if (!latest) return;
+    setPermanentDelete({
+      kind: "task",
+      id: latest.id,
+      version:
+        draftRef.current?.kind === "task" && draftRef.current.id === latest.id
+          ? draftRef.current.version
+          : latest.version,
+      title:
+        draftRef.current?.kind === "task" && draftRef.current.id === latest.id
+          ? draftRef.current.fields.title
+          : latest.title,
+    });
+  };
+
+  const confirmPermanentDelete = async () => {
+    const request = permanentDelete;
+    if (!request || busy) return;
+    if (request.kind === "note") {
+      const note = data.notes.find((item) => item.id === request.id);
+      if (!note) {
+        setPermanentDelete(null);
+        return;
+      }
+      await noteLifecycle("purge", note);
+      return;
+    }
+    const next = await mutate(
+      { op: "task.delete", id: request.id, version: request.version },
+      "Task permanently deleted. Saved summaries were refreshed.",
+    );
+    if (next) {
+      setPermanentDelete(null);
       setSelectedId(null);
       setDraft(null);
       setMobilePane("list");
@@ -752,7 +829,7 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
               </form>
             )}
             {view.kind === "notes" && view.folder === "deleted" && (
-              <p className="pw-hint">Deleted notes stay here until you restore them.</p>
+              <p className="pw-hint">Restore a note or open it to permanently delete it.</p>
             )}
           </div>
 
@@ -960,7 +1037,11 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
               onRetry={saveState === "conflict" ? retryConflict : () => void saveDraftNow()}
               onReload={reloadServer}
               onConvert={convert}
-              onLifecycle={(op) => noteLifecycle(op, currentNote)}
+              onLifecycle={(op) =>
+                op === "purge"
+                  ? void requestNotePurge(currentNote)
+                  : void noteLifecycle(op, currentNote)
+              }
               onExpense={() => void goExpenses(`note=${encodeURIComponent(currentNote.id)}`)}
               onPrepareSummary={prepareSummary}
               onSaveSummary={saveWorkSummary}
@@ -988,6 +1069,7 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
               onRetry={saveState === "conflict" ? retryConflict : () => void saveDraftNow()}
               onReload={reloadServer}
               onExpense={() => void goExpenses(`task=${encodeURIComponent(currentTask.id)}`)}
+              onDelete={() => void requestTaskDelete(currentTask)}
               onOpenNote={(id) => {
                 setView({ kind: "notes", folder: "all" });
                 void openItem("note", id);
@@ -1037,6 +1119,62 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
       >
         <PenIcon />
       </button>
+      <dialog
+        ref={permanentDeleteDialog}
+        className="employee-removal-confirmation"
+        role="alertdialog"
+        aria-labelledby={permanentDeleteTitle}
+        aria-describedby={permanentDeleteDescription}
+        onCancel={(event) => {
+          event.preventDefault();
+          if (!busy) setPermanentDelete(null);
+        }}
+        onClick={(event) => {
+          if (event.target === permanentDeleteDialog.current && !busy) setPermanentDelete(null);
+        }}
+      >
+        {permanentDelete && (
+          <>
+            <div className="employee-removal-content">
+              <span className="employee-removal-icon" aria-hidden="true">
+                !
+              </span>
+              <div>
+                <p className="employee-removal-eyebrow">Permanent deletion</p>
+                <h2 id={permanentDeleteTitle} className="employee-removal-title">
+                  Delete this {permanentDelete.kind} permanently?
+                </h2>
+                <p className="employee-removal-description">
+                  <strong>{permanentDelete.title}</strong>
+                  {permanentDelete.kind === "note"
+                    ? " will be removed forever. Linked tasks and expense records stay, but their links to this note are removed. Existing saved summaries stay as they are."
+                    : " and its status history will be removed forever. Saved summaries will be refreshed to remove this task. Linked expense records and the source note stay, but the task link to those records is removed."}
+                  {" This cannot be undone."}
+                </p>
+              </div>
+            </div>
+            <div className="employee-removal-actions">
+              <button
+                type="button"
+                className="employee-removal-cancel"
+                autoFocus
+                disabled={busy}
+                onClick={() => setPermanentDelete(null)}
+              >
+                Keep it
+              </button>
+              <button
+                type="button"
+                className="employee-removal-confirm"
+                disabled={busy}
+                onClick={() => void confirmPermanentDelete()}
+              >
+                {busy ? "Deleting…" : "Delete permanently"}
+              </button>
+            </div>
+          </>
+        )}
+      </dialog>
     </div>
   );
 }

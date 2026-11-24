@@ -48,6 +48,7 @@ const commands = z.discriminatedUnion("op", [
   z.object({ op: z.literal("note.archive"), ...identity, archived: z.boolean() }),
   z.object({ op: z.literal("note.delete"), ...identity }),
   z.object({ op: z.literal("note.restore"), ...identity }),
+  z.object({ op: z.literal("note.purge"), ...identity }),
   z.object({ op: z.literal("folder.create"), name: z.string().trim().min(1).max(100) }),
   z.object({
     op: z.literal("task.create"),
@@ -68,6 +69,7 @@ const commands = z.discriminatedUnion("op", [
     status: z.enum(["TODO", "IN_PROGRESS", "COMPLETED"]),
     completionNote: z.string().max(20000),
   }),
+  z.object({ op: z.literal("task.delete"), ...identity }),
   z.object({ op: z.literal("summary.generate"), startDate: date, endDate: date }),
   z.object({ op: z.literal("schedule.save"), firstDate: date, enabled: z.boolean() }),
 ]);
@@ -221,6 +223,14 @@ export async function mutatePersonalWorkspace(userId: string, input: unknown) {
           if (!updated.count) conflict();
           break;
         }
+        case "note.purge": {
+          const removed = await tx.personalNote.deleteMany({
+            where: { id: command.id, userId, version: command.version, deletedAt: { not: null } },
+          });
+          if (!removed.count)
+            throw new Error("Only notes in Recently Deleted can be permanently deleted.");
+          break;
+        }
         case "task.create": {
           const sourceKey = `standalone:${command.id}`;
           await tx.personalTask.upsert({
@@ -319,6 +329,20 @@ export async function mutatePersonalWorkspace(userId: string, input: unknown) {
               },
             });
           }
+          break;
+        }
+        case "task.delete": {
+          const task = await tx.personalTask.findFirst({
+            where: { id: command.id, userId, version: command.version },
+          });
+          if (!task) conflict();
+          await tx.personalTask.delete({ where: { id: task!.id } });
+          const summaries = await tx.personalSummary.findMany({
+            where: { userId },
+            select: { startDate: true, endDate: true },
+          });
+          for (const summary of summaries)
+            await makeSummary(tx, userId, summary.startDate, summary.endDate, true);
           break;
         }
         case "summary.generate":

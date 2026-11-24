@@ -156,10 +156,79 @@ async function main() {
   data = await mutate(owner.id, standalone);
   data = await mutate(owner.id, standalone);
   assert.equal(data.tasks.filter((t) => t.id === standaloneId).length, 1);
+  let disposable = data.tasks.find((t) => t.id === standaloneId)!;
+  data = await mutate(owner.id, {
+    op: "task.save",
+    id: disposable.id,
+    version: disposable.version,
+    title: disposable.title,
+    description: disposable.description,
+    priority: disposable.priority,
+    dueDate: disposable.dueDate,
+    status: "COMPLETED",
+    completionNote: "Temporary deletion verification",
+  });
+  data = await mutate(owner.id, {
+    op: "summary.generate",
+    startDate: businessDate(),
+    endDate: businessDate(),
+  });
+  const generated = data.summaries.find(
+    (summary) => summary.startDate === businessDate() && summary.endDate === businessDate(),
+  )!;
+  assert.ok(generated.snapshot.completed.some((t) => t.id === standaloneId));
+  disposable = data.tasks.find((t) => t.id === standaloneId)!;
+  data = await mutate(owner.id, {
+    op: "task.delete",
+    id: disposable.id,
+    version: disposable.version,
+  });
+  assert.equal(
+    data.tasks.some((t) => t.id === standaloneId),
+    false,
+  );
+  const refreshed = data.summaries.find((summary) => summary.id === generated.id)!;
+  assert.equal(
+    refreshed.snapshot.completed.some((t) => t.id === standaloneId),
+    false,
+  );
+  assert.doesNotMatch(refreshed.snapshot.text, /Temporary deletion verification/);
+
+  let purgeData = await mutate(owner.id, {
+    op: "note.create",
+    id: randomUUID(),
+    title: "Permanent deletion verification",
+  });
+  const purgeNote = purgeData.notes.find((n) => n.title === "Permanent deletion verification")!;
+  purgeData = await mutate(owner.id, { op: "task.convert", noteId: purgeNote.id });
+  const linkedTask = purgeData.tasks.find((t) => t.noteId === purgeNote.id)!;
+  await assert.rejects(
+    mutate(owner.id, { op: "note.purge", id: purgeNote.id, version: purgeNote.version }),
+  );
+  purgeData = await mutate(owner.id, {
+    op: "note.delete",
+    id: purgeNote.id,
+    version: purgeNote.version,
+  });
+  const deletedNote = purgeData.notes.find((n) => n.id === purgeNote.id)!;
+  purgeData = await mutate(owner.id, {
+    op: "note.purge",
+    id: deletedNote.id,
+    version: deletedNote.version,
+  });
+  assert.equal(
+    purgeData.notes.some((n) => n.id === purgeNote.id),
+    false,
+  );
+  assert.equal(
+    purgeData.tasks.find((t) => t.id === linkedTask.id)?.noteId,
+    null,
+    "Linked tasks are retained as standalone tasks when a note is permanently deleted.",
+  );
   // Private handoff to browser tester; credentials are never printed.
   await writeFile(resolve(dir, "login.json"), JSON.stringify({ email, password }), { mode: 0o600 });
   console.log(
-    "PASS: database persistence, account isolation, stale-edit protection, duplicate-safe conversion and summary, completion/reopening history, delete/restore.",
+    "PASS: account isolation, persistence, stale edits, duplicate-safe conversion, summaries, completion history, restore, permanent note deletion with linked-task preservation, and permanent task deletion with summary refresh.",
   );
   console.log("Private browser credentials prepared in the owned verification directory.");
 }

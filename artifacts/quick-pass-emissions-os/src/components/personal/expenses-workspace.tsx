@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import type { ExpenseWorkspaceData } from "@/modules/personal/expense-types";
 import {
   type CommandResult,
@@ -37,10 +35,21 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: "archived", label: "Archived" },
 ];
 
-export function ExpenseWorkspace({ initialData }: { initialData: ExpenseWorkspaceData }) {
-  const params = useSearchParams();
-  const noteId = params.get("note");
-  const taskId = params.get("task");
+export type ExpenseSourceRef = { kind: "note" | "task"; id: string };
+
+export function ExpenseWorkspace({
+  initialData,
+  sourceRef = null,
+  embedded = false,
+  onDirtyChange,
+}: {
+  initialData: ExpenseWorkspaceData;
+  sourceRef?: ExpenseSourceRef | null;
+  embedded?: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
+}) {
+  const noteId = sourceRef?.kind === "note" ? sourceRef.id : null;
+  const taskId = sourceRef?.kind === "task" ? sourceRef.id : null;
   const [data, setDataState] = useState(initialData);
   const setData = useCallback((incoming: ExpenseWorkspaceData) => {
     setDataState((previous) => mergeExpenseWorkspace(previous, incoming));
@@ -59,6 +68,13 @@ export function ExpenseWorkspace({ initialData }: { initialData: ExpenseWorkspac
     dirtyRef.current = dirty;
     setHasDirty(dirty);
   }, []);
+  const reportDirty = useCallback(
+    (dirty: boolean) => {
+      markDirty(dirty);
+      onDirtyChange?.(dirty);
+    },
+    [markDirty, onDirtyChange],
+  );
 
   const source = useMemo(() => {
     if (noteId) {
@@ -175,16 +191,10 @@ export function ExpenseWorkspace({ initialData }: { initialData: ExpenseWorkspac
   const selected = data.expenses.find((e) => e.id === selectedId);
 
   return (
-    <div className="pw ex" data-pane={pane}>
+    <div className={`pw ex${embedded ? " ex-embedded" : ""}`} data-pane={pane}>
       <header className="pw-bar">
         <div className="pw-bar-title">
-          <span className="pw-kicker">
-            <Link href="/notes" className="ex-crumb" data-testid="link-back-notes">
-              Notes &amp; Tasks
-            </Link>{" "}
-            / Private to you
-          </span>
-          <h1>Expenses</h1>
+          {embedded ? <h2 className="ex-title">Expenses</h2> : <h1>Expenses</h1>}
         </div>
         <div className="ex-tabs" role="tablist">
           <button
@@ -380,7 +390,7 @@ export function ExpenseWorkspace({ initialData }: { initialData: ExpenseWorkspac
                 notify={notify}
                 reload={reload}
                 setData={setData}
-                onDirty={markDirty}
+                onDirty={reportDirty}
                 onClosed={() => {
                   setSelectedId(null);
                   setPane("list");
@@ -399,5 +409,53 @@ export function ExpenseWorkspace({ initialData }: { initialData: ExpenseWorkspac
         </div>
       )}
     </div>
+  );
+}
+
+export function EmbeddedExpenseWorkspace({
+  sourceRef,
+  onDirtyChange,
+}: {
+  sourceRef?: ExpenseSourceRef | null;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
+  const [data, setData] = useState<ExpenseWorkspaceData | null>(null);
+  const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let active = true;
+    Promise.resolve().then(async () => {
+      try {
+        const result = await expenseLoad();
+        if (active) {
+          setData(result);
+          setError("");
+        }
+      } catch (cause) {
+        if (active) setError(errText(cause, "Could not load expenses."));
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [attempt]);
+  if (!data)
+    return (
+      <div className="ex-embed-loading" role={error ? "alert" : "status"}>
+        {error || "Loading expenses…"}
+        {error && (
+          <button type="button" className="pw-link" onClick={() => setAttempt((n) => n + 1)}>
+            Retry
+          </button>
+        )}
+      </div>
+    );
+  return (
+    <ExpenseWorkspace
+      initialData={data}
+      sourceRef={sourceRef}
+      embedded
+      onDirtyChange={onDirtyChange}
+    />
   );
 }

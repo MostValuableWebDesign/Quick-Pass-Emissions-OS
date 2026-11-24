@@ -28,15 +28,13 @@ import {
   rid,
   linkedTask,
 } from "./personal/shared";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { EmbeddedExpenseWorkspace, type ExpenseSourceRef } from "./personal/expenses-workspace";
 import "./personal-workspace.css";
 import type { ReviewedSummary } from "./personal/work-summary";
 type PermanentDeleteRequest =
   | { kind: "note"; id: string; version: number; title: string }
   | { kind: "task"; id: string; version: number; title: string };
 export function PersonalWorkspace({ initialData }: { initialData: PersonalWorkspaceData }) {
-  const router = useRouter();
   const [data, setData] = useState(initialData);
   const [view, setView] = useState<View>({ kind: "notes", folder: "all" });
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -45,10 +43,12 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
   const [saveError, setSaveError] = useState("");
   const [flash, setFlash] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const [search, setSearch] = useState("");
-  const [mobilePane, setMobilePane] = useState<"nav" | "list" | "detail">("list");
+  const [mobilePane, setMobilePane] = useState<"nav" | "list" | "detail" | "expenses">("list");
   const [busy, setBusy] = useState(false);
   const [newFolder, setNewFolder] = useState<string | null>(null);
   const [quickTask, setQuickTask] = useState("");
+  const [expensesMounted, setExpensesMounted] = useState(false);
+  const [expensesDirty, setExpensesDirty] = useState(false);
   const [permanentDelete, setPermanentDelete] = useState<PermanentDeleteRequest | null>(null);
   const permanentDeleteDialog = useRef<HTMLDialogElement>(null);
   const permanentDeleteTitle = useId();
@@ -255,12 +255,26 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
   };
 
   const changeView = async (v: View) => {
-    if (!(await flush())) return;
+    const sameExpenseSource =
+      view.kind === "expenses" &&
+      v.kind === "expenses" &&
+      view.source?.kind === v.source?.kind &&
+      view.source?.id === v.source?.id;
+    if (
+      view.kind === "expenses" &&
+      expensesDirty &&
+      (v.kind !== "expenses" || !sameExpenseSource)
+    ) {
+      notify("err", "Save or discard your expense changes before switching sections.");
+      return false;
+    }
+    if (!(await flush())) return false;
     setView(v);
     setSearch("");
     setSelectedId(null);
     setDraft(null);
-    setMobilePane("list");
+    setMobilePane(v.kind === "expenses" ? "expenses" : "list");
+    return true;
   };
 
   // Refresh on focus without clobbering local edits
@@ -361,9 +375,8 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
   );
 
   // ---------- actions ----------
-  const goExpenses = async (q?: string) => {
-    if (!(await flush())) return;
-    router.push(`/notes/expenses${q ? `?${q}` : ""}`);
+  const goExpenses = async (sourceRef?: ExpenseSourceRef) => {
+    if (await changeView({ kind: "expenses", source: sourceRef })) setExpensesMounted(true);
   };
 
   const newNote = async () => {
@@ -636,27 +649,17 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
             high: "High Priority",
             completed: "Completed",
           }[view.filter]
-        : "Summaries";
+        : view.kind === "expenses"
+          ? "Expenses"
+          : "Summaries";
 
   return (
     <div className="pw" data-pane={mobilePane}>
       <header className="pw-bar">
         <div className="pw-bar-title">
-          <span className="pw-kicker">Private to you</span>
           <h1>Notes &amp; Tasks</h1>
         </div>
         <div className="pw-bar-actions">
-          <Link
-            href="/notes/expenses"
-            className="pw-btn pw-btn-quiet"
-            onClick={(e) => {
-              e.preventDefault();
-              void goExpenses();
-            }}
-            data-testid="link-expenses"
-          >
-            Expenses
-          </Link>
           <button
             type="button"
             className="pw-btn pw-btn-quiet pw-only-mobile"
@@ -664,9 +667,16 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
           >
             Folders
           </button>
-          <button type="button" className="pw-btn pw-btn-primary" onClick={newNote} disabled={busy}>
-            <PenIcon /> New note
-          </button>
+          {view.kind !== "expenses" && (
+            <button
+              type="button"
+              className="pw-btn pw-btn-primary"
+              onClick={newNote}
+              disabled={busy}
+            >
+              <PenIcon /> New note
+            </button>
+          )}
         </div>
       </header>
 
@@ -740,6 +750,13 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
             onClick={() => changeView({ kind: "notes", folder: "deleted" })}
           />
 
+          <p className="pw-nav-caption">Spending</p>
+          <NavItem
+            label="Expenses"
+            active={view.kind === "expenses"}
+            onClick={() => void goExpenses()}
+          />
+
           <p className="pw-nav-caption">Tasks</p>
           {(["all", "today", "overdue", "high", "completed"] as const).map((f) => (
             <NavItem
@@ -770,7 +787,11 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
         </nav>
 
         {/* ---------- List ---------- */}
-        <section className="pw-pane pw-list" aria-label={listTitle}>
+        <section
+          className="pw-pane pw-list"
+          aria-label={listTitle}
+          hidden={view.kind === "expenses"}
+        >
           <div className="pw-list-head">
             <div className="pw-list-titlerow">
               <button
@@ -1013,7 +1034,11 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
         </section>
 
         {/* ---------- Detail ---------- */}
-        <section className="pw-pane pw-detail" aria-label="Selected item">
+        <section
+          className="pw-pane pw-detail"
+          aria-label="Selected item"
+          hidden={view.kind === "expenses"}
+        >
           <button
             type="button"
             className="pw-back-link pw-only-mobile"
@@ -1042,7 +1067,7 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
                   ? void requestNotePurge(currentNote)
                   : void noteLifecycle(op, currentNote)
               }
-              onExpense={() => void goExpenses(`note=${encodeURIComponent(currentNote.id)}`)}
+              onExpense={() => void goExpenses({ kind: "note", id: currentNote.id })}
               onPrepareSummary={prepareSummary}
               onSaveSummary={saveWorkSummary}
               onOpenTask={(id) => {
@@ -1068,7 +1093,7 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
               onEdit={editTask}
               onRetry={saveState === "conflict" ? retryConflict : () => void saveDraftNow()}
               onReload={reloadServer}
-              onExpense={() => void goExpenses(`task=${encodeURIComponent(currentTask.id)}`)}
+              onExpense={() => void goExpenses({ kind: "task", id: currentTask.id })}
               onDelete={() => void requestTaskDelete(currentTask)}
               onOpenNote={(id) => {
                 setView({ kind: "notes", folder: "all" });
@@ -1108,17 +1133,27 @@ export function PersonalWorkspace({ initialData }: { initialData: PersonalWorksp
             </div>
           )}
         </section>
+        {expensesMounted && (
+          <div className="pw-pane pw-expenses-pane" hidden={view.kind !== "expenses"}>
+            <EmbeddedExpenseWorkspace
+              sourceRef={view.kind === "expenses" ? view.source : null}
+              onDirtyChange={setExpensesDirty}
+            />
+          </div>
+        )}
       </div>
 
-      <button
-        type="button"
-        className="pw-fab pw-only-mobile"
-        onClick={newNote}
-        disabled={busy}
-        aria-label="New note"
-      >
-        <PenIcon />
-      </button>
+      {view.kind !== "expenses" && (
+        <button
+          type="button"
+          className="pw-fab pw-only-mobile"
+          onClick={newNote}
+          disabled={busy}
+          aria-label="New note"
+        >
+          <PenIcon />
+        </button>
+      )}
       <dialog
         ref={permanentDeleteDialog}
         className="employee-removal-confirmation"

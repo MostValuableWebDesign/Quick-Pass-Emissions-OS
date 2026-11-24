@@ -10,7 +10,8 @@ export type Status = PersonalTaskView["status"];
 export type View =
   | { kind: "notes"; folder: "all" | "archived" | "deleted" | string }
   | { kind: "tasks"; filter: "all" | "today" | "overdue" | "high" | "completed" }
-  | { kind: "summaries" };
+  | { kind: "summaries" }
+  | { kind: "expenses"; source?: { kind: "note" | "task"; id: string } | null };
 
 export type NoteFields = {
   title: string;

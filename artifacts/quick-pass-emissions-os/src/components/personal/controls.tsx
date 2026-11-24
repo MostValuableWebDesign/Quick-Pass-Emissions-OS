@@ -30,7 +30,7 @@ export function NavItem({
   tone,
 }: {
   label: string;
-  count: number;
+  count?: number;
   active: boolean;
   onClick: () => void;
   indent?: boolean;
@@ -45,7 +45,9 @@ export function NavItem({
       onClick={onClick}
     >
       <span>{label}</span>
-      <span className={`pw-nav-count ${tone === "danger" ? "is-danger" : ""}`}>{count}</span>
+      {count !== undefined && (
+        <span className={`pw-nav-count ${tone === "danger" ? "is-danger" : ""}`}>{count}</span>
+      )}
     </button>
   );
 }

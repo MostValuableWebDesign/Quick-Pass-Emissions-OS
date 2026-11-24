@@ -1,3 +1,5 @@
+export const MAX_RECEIPT_BYTES = 25 * 1024 * 1024;
+
 export type ExpenseEntry = {
   id: string;
   expenseId: string;

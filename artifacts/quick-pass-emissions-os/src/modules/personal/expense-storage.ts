@@ -9,8 +9,9 @@ import {
   expenseWorkspace,
   ownedExpense,
 } from "./expense-service";
+import { MAX_RECEIPT_BYTES } from "./expense-types";
 
-const MAX_BYTES = 10 * 1024 * 1024;
+const MAX_BYTES = MAX_RECEIPT_BYTES;
 const types = ["application/pdf", "image/png", "image/jpeg", "image/webp"] as const;
 const prep = z.object({
   expenseId: z.string().min(1).max(160),

@@ -4,6 +4,7 @@ import type {
   ExpenseWorkspaceData,
   SpendingSnapshot,
 } from "@/modules/personal/expense-types";
+import { MAX_RECEIPT_BYTES } from "@/modules/personal/expense-types";
 
 export class ExpenseApiError extends Error {
   status: number;
@@ -133,7 +134,7 @@ async function attachPost<T>(body: Record<string, unknown>): Promise<T> {
 }
 
 export const RECEIPT_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
-export const RECEIPT_MAX = 10 * 1024 * 1024;
+export const RECEIPT_MAX = MAX_RECEIPT_BYTES;
 
 /** prepare -> direct PUT (with progress) -> complete */
 export async function uploadReceipt(

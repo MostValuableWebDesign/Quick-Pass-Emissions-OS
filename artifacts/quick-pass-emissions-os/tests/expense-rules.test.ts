@@ -8,6 +8,8 @@ import {
 } from "@/modules/personal/expense-rules";
 import { validateExpenseLedger } from "@/modules/personal/expense-service";
 import { validReceiptSignature } from "@/modules/personal/expense-storage";
+import { MAX_RECEIPT_BYTES } from "@/modules/personal/expense-types";
+import { RECEIPT_MAX } from "@/components/personal/expenses-api";
 import type { ExpenseEntry, ExpenseView } from "@/modules/personal/expense-types";
 const entry = (
   kind: ExpenseEntry["kind"],
@@ -209,6 +211,10 @@ describe("spending reports", () => {
   });
 });
 describe("receipt signatures", () => {
+  it("keeps the shared client and server receipt cap at 25 MiB", () => {
+    expect(MAX_RECEIPT_BYTES).toBe(25 * 1024 * 1024);
+    expect(RECEIPT_MAX).toBe(MAX_RECEIPT_BYTES);
+  });
   it("accepts matching signatures and rejects disguised HTML", () => {
     expect(validReceiptSignature(Buffer.from("%PDF-1.7 example"), "application/pdf")).toBe(true);
     expect(validReceiptSignature(Buffer.from("<html>fake.pdf"), "application/pdf")).toBe(false);

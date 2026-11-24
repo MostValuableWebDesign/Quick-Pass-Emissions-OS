@@ -56,7 +56,7 @@ export function ExpenseAttachments({
         continue;
       }
       if (f.size > RECEIPT_MAX) {
-        setPickErr(`${f.name} is ${fmtBytes(f.size)}. The limit is 10 MB.`);
+        setPickErr(`${f.name} is ${fmtBytes(f.size)}. The limit is 25 MB.`);
         continue;
       }
       void start(f);
@@ -140,7 +140,7 @@ export function ExpenseAttachments({
         </ul>
       ) : (
         !ups.length && (
-          <p className="pw-hint">PDF, PNG, JPEG or WEBP up to 10 MB. Only you can open them.</p>
+          <p className="pw-hint">PDF, PNG, JPEG or WEBP up to 25 MB. Only you can open them.</p>
         )
       )}
     </section>
